@@ -24,6 +24,19 @@ if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
 from src.storage.embedding_config import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_EMBEDDING_PROVIDER,
+    infer_embedding_dimension,
+)
+from src.config.runtime_contract import (
+    CANONICAL_CHUNK_OVERLAP,
+    CANONICAL_CHUNK_SIZE,
+    CANONICAL_INGEST_PROFILE_ID,
+    CANONICAL_PARSER_SCHEMA_VERSION,
+)
+from src.storage.store_manifest import (
+    StoreManifestV1,
+    canonical_store_manifest,
+    read_store_manifest,
+    write_store_manifest,
 )
 
 logger = logging.getLogger(__name__)
@@ -230,9 +243,7 @@ def rebuild_vector_store(
     *,
     source_store: Path,
     output_store: Path,
-    collection_name: str,
-    embedding_provider: str,
-    embedding_model_name: str,
+    manifest: StoreManifestV1,
     batch_size: int,
     force: bool,
     in_place: bool = False,
@@ -246,14 +257,20 @@ def rebuild_vector_store(
         backup_store = backup_in_place_source_graph(source_store)
 
     try:
+        if resume and output_store.exists():
+            existing_manifest = read_store_manifest(output_store)
+            if existing_manifest is not None and existing_manifest != manifest:
+                raise ValueError(
+                    "Cannot resume vector-store rebuild with a different store manifest."
+                )
         prepare_output_store(source_store, output_store, force=force, in_place=in_place, resume=resume)
 
         vector_store_manager_cls = _vector_store_manager_cls()
         manager = vector_store_manager_cls(
             persist_directory=str(output_store),
-            collection_name=collection_name,
-            embedding_provider=embedding_provider,
-            embedding_model_name=embedding_model_name,
+            collection_name=manifest.collection_name,
+            embedding_provider=manifest.embedding.provider,
+            embedding_model_name=manifest.embedding.model_name,
             allow_query_embedding_fallback=False,
         )
         add_result = manager.add_documents(chunks, metadatas, resume=resume, batch_size=batch_size)
@@ -263,16 +280,16 @@ def rebuild_vector_store(
         if external_health_check:
             health = validate_vector_store_external(
                 store=output_store,
-                collection_name=collection_name,
-                embedding_provider=embedding_provider,
-                embedding_model_name=embedding_model_name,
+                collection_name=manifest.collection_name,
+                embedding_provider=manifest.embedding.provider,
+                embedding_model_name=manifest.embedding.model_name,
             )
         else:
             reopened = vector_store_manager_cls(
                 persist_directory=str(output_store),
-                collection_name=collection_name,
-                embedding_provider=embedding_provider,
-                embedding_model_name=embedding_model_name,
+                collection_name=manifest.collection_name,
+                embedding_provider=manifest.embedding.provider,
+                embedding_model_name=manifest.embedding.model_name,
                 allow_query_embedding_fallback=False,
             )
             health = reopened.validate_vector_index()
@@ -280,6 +297,7 @@ def rebuild_vector_store(
         if not health.get("ok"):
             raise RuntimeError(f"Rebuilt vector store failed health check: {health.get('error')}")
 
+        manifest_path = write_store_manifest(output_store, manifest)
         if backup_store and backup_store.exists():
             shutil.rmtree(backup_store)
     except Exception:
@@ -290,9 +308,12 @@ def rebuild_vector_store(
     return {
         "source_store": str(source_store),
         "output_store": str(output_store),
-        "collection_name": collection_name,
-        "embedding_provider": embedding_provider,
-        "embedding_model_name": embedding_model_name,
+        "collection_name": manifest.collection_name,
+        "embedding_provider": manifest.embedding.provider,
+        "embedding_model_name": manifest.embedding.model_name,
+        "embedding_dimension": manifest.embedding.dimension,
+        "manifest": manifest.to_projection(),
+        "manifest_path": str(manifest_path),
         "documents": len(chunks),
         "parents": len(parents),
         "resume": bool(resume),
@@ -312,6 +333,19 @@ def main() -> None:
     parser.add_argument("--collection-name", default=DEFAULT_COLLECTION_NAME, help="Chroma collection name for the rebuilt store.")
     parser.add_argument("--embedding-provider", default=DEFAULT_EMBEDDING_PROVIDER, help="Embedding provider for reindexing.")
     parser.add_argument("--embedding-model-name", default=DEFAULT_EMBEDDING_MODEL, help="Embedding model name for reindexing.")
+    parser.add_argument(
+        "--embedding-dimension",
+        type=int,
+        help="Embedding vector dimension. Known provider/model pairs are inferred when omitted.",
+    )
+    parser.add_argument("--profile-id", default=CANONICAL_INGEST_PROFILE_ID, help="Ingest profile identity recorded in the store manifest.")
+    parser.add_argument(
+        "--parser-schema-version",
+        default=CANONICAL_PARSER_SCHEMA_VERSION,
+        help="Parser schema identity recorded in the store manifest.",
+    )
+    parser.add_argument("--chunk-size", type=int, default=CANONICAL_CHUNK_SIZE, help="Chunk size recorded in the store manifest.")
+    parser.add_argument("--chunk-overlap", type=int, default=CANONICAL_CHUNK_OVERLAP, help="Chunk overlap recorded in the store manifest.")
     parser.add_argument("--batch-size", type=int, default=64, help="Vector add batch size.")
     parser.add_argument("--force", action="store_true", help="Replace the output store directory if it already exists.")
     parser.add_argument(
@@ -340,12 +374,30 @@ def main() -> None:
     else:
         raise ValueError("--output-store is required unless --in-place is set")
 
-    summary = rebuild_vector_store(
-        source_store=source_store,
-        output_store=output_store,
+    embedding_dimension = args.embedding_dimension
+    if embedding_dimension is None:
+        embedding_dimension = infer_embedding_dimension(
+            args.embedding_provider,
+            args.embedding_model_name,
+        )
+    if embedding_dimension is None:
+        raise ValueError(
+            "Embedding dimension is unknown; pass --embedding-dimension explicitly."
+        )
+    manifest = canonical_store_manifest(
         collection_name=args.collection_name,
         embedding_provider=args.embedding_provider,
         embedding_model_name=args.embedding_model_name,
+        embedding_dimension=embedding_dimension,
+        profile_id=args.profile_id,
+        parser_schema_version=args.parser_schema_version,
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
+    )
+    summary = rebuild_vector_store(
+        source_store=source_store,
+        output_store=output_store,
+        manifest=manifest,
         batch_size=args.batch_size,
         force=bool(args.force),
         in_place=bool(args.in_place),

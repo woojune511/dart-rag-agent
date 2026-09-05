@@ -144,9 +144,23 @@ CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
 NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     "inline_value_unit_pattern": (
         r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*"
-        rf"(?P<unit>조\s*원?|십억\s*원|억\s*원?|백만\s*원|천\s*원|원|%|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
+        rf"(?P<unit>조\s*원?|십억\s*원|억\s*원?|백만\s*원|천\s*원|원|백만\s*달러|달러|USD|\$|%p|%|퍼센트|items?|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
     ),
     "inline_unit_aliases": {"억": "억원", "조": "조원", "십억": "십억원"},
+    "canonical_units": {
+        "KRW": {"dimension": "KRW", "display_unit": "원"},
+        "USD": {"dimension": "USD", "display_unit": "USD"},
+        "COUNT": {"dimension": "COUNT", "display_unit": ""},
+        "PERCENT": {"dimension": "PERCENT", "display_unit": "%"},
+    },
+    "composite_value_pattern": (
+        r"(?P<major>[\d,]+(?:\.\d+)?)\s*조"
+        r"(?:\s*(?P<minor>[\d,]+(?:\.\d+)?)\s*억)?"
+        r"\s*(?P<currency>원|달러|USD|\$)?"
+    ),
+    "composite_major_scale": 1_000_000_000_000.0,
+    "composite_minor_scale": 100_000_000.0,
+    "composite_default_currency": "KRW",
     "krw_scales": {
         "원": 1.0,
         "천원": 1_000.0,
@@ -156,7 +170,10 @@ NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
         "조원": 1_0000_0000_0000.0,
     },
     "usd_scales": {"usd": 1.0, "$": 1.0, "달러": 1.0, "백만달러": 1_000_000.0},
+    "count_scales": {"item": 1.0, "items": 1.0},
+    # Source token boundaries are candidate identity inputs; keep them stable.
     "percent_units": ("%", "퍼센트"),
+    "percent_display_units": ("%p",),
 }
 
 
@@ -421,14 +438,7 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "percent_display_units": ("%", "%p"),
     "krw_normalized_unit": "KRW",
     "krw_display_units": ("원", "천원", "백만원", "억원", "십억원", "조원"),
-    "krw_display_unit_scales": {
-        "원": 1.0,
-        "천원": 1_000.0,
-        "백만원": 1_000_000.0,
-        "억원": 100_000_000.0,
-        "십억원": 1_000_000_000.0,
-        "조원": 1_000_000_000_000.0,
-    },
+    "krw_display_unit_scales": dict(NUMERIC_UNIT_NORMALIZATION_POLICY["krw_scales"]),
     "count_display_units": ("개", "명"),
     "inline_unit_right_boundary_block_pattern": r"[0-9A-Za-z가-힣]",
     "inline_unit_right_boundary_allowed_prefixes": (
@@ -523,11 +533,12 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "질문을 lookup, ratio, growth_rate 같은 고정 타입으로 먼저 분류하지 마세요.\n"
             "각 answer obligation을 충족할 실제 candidate를 고르고, 파생값만 제한 수식으로 표현하세요.\n\n"
             "필수 규칙:\n"
-            "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
+            "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id나 source_bundles_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
             "- 같은 candidate가 보여도 다른 owner cohort의 ID를 가져다 쓰지 마세요. row_headers, local_entity_surfaces, physical provenance, match_by_owner의 subject·metric·unit factor를 함께 확인하세요.\n"
             "- evidence_bundle_constraints가 있으면 runtime이 owner별 cohort 순위로 미리 고른 단 하나의 물리적 행 option만 payload에 노출합니다. 각 constraint의 모든 owner는 그 option 안의 candidate_id만 사용하고, 숨겨진 다른 행이나 option을 만들거나 선택하지 마세요.\n"
             "- 원문 값을 그대로 답하는 obligation은 direct_bindings에 둡니다.\n"
-            "- candidate_kind가 sentence_value이면 source_text 문장에 그 숫자가 직접 기재된 후보입니다. 질문의 의미를 문장이 직접 설명하면 인접한 회계 행을 대용하지 말고 이 후보를 우선 검토하세요.\n"
+            "- 각 candidate는 source_bundle_id로 원문 묶음을 참조합니다. 같은 묶음의 값은 서로 경쟁하는 top-1 label이 아니라 함께 읽어야 하는 원문 사실들입니다. source_value_span과 source bundle의 당기·전기·부호·괄호 문맥을 함께 확인하세요.\n"
+            "- candidate_kind가 sentence_value인 숫자를 direct binding, expression input, source display로 선택하면 source_assertions에 source_bundle_id, 함께 읽은 candidate_ids, byte-exact 연속 evidence_text를 반드시 반환하세요. evidence_text는 해당 bundle 원문에서 그대로 복사하고 참조한 모든 값 span을 포함해야 합니다. 표 셀과 narrative evidence에는 source assertion을 만들지 마세요.\n"
             "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"
             "- direct candidate의 범위 metadata가 unknown이지만 같은 원문·표의 narrative candidate가 그 범위를 명시하면 direct binding의 compatibility_candidate_ids에 넣으세요. 명시적으로 반대인 범위는 이렇게 덮어쓸 수 없습니다.\n"
             "- 계산에 필요한 원시 입력은 derived_value obligation의 evidence_requirements에 미리 선언되어 있어야 합니다. candidate_id 변수에는 그 입력의 source_requirement_id도 함께 바인딩하고, 앞서 생성된 obligation_id를 참조할 때는 비워 두세요.\n"
@@ -535,7 +546,8 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
             "- formula에는 변수, 숫자 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다.\n"
             "- 0, 1, 100 이외 상수는 constants에 query 또는 deterministic_cardinality origin으로 선언합니다.\n"
-            "- 원문이 반올림된 파생 표시를 직접 제공하면 source_display_candidate_id로 지정하되 deterministic formula도 유지합니다.\n"
+            "- 모든 expression에서 source_display_candidate_id와 source_display_reason을 반드시 반환하세요. 선택한 원문 묶음에 해당 obligation과 같은 의미의 파생 결과가 직접 제시돼 있으면 그 candidate ID를 지정하고, 선택하지 않으면 null을 지정하세요. source_display_reason에는 원문 맥락상 선택하거나 선택하지 않은 구체적 이유를 쓰세요. 빈 문자열이나 필드 생략으로 판단을 대신하지 마세요.\n"
+            "- source display를 선택해도 deterministic formula와 원시 입력 바인딩을 유지하세요. 시스템은 원문 기재값을 우선 표시하고 계산값을 별도로 표시합니다. 둘의 차이를 맞추려고 원문 값이나 수식을 바꾸거나 원문에 없는 반올림 이유를 추측하지 마세요.\n"
             "- 서로 다른 회사·연결기준·부문·기준·source context를 섞어야 한다면 이를 명시적으로 뒷받침하는 narrative candidate ID를 compatibility_candidate_ids에 넣으세요.\n"
             "- narrative obligation은 근거 candidate_ids와 그 근거만으로 작성한 짧은 text를 함께 반환합니다. 숫자는 선택한 원문에 보이는 표기 그대로만 쓰고, 질문에 필수적이지 않은 숫자는 생략하세요.\n"
             "- narrative candidate의 consolidation_scope·segment·basis metadata만 unknown이고 문맥상 해당 obligation에 적용된다고 판단하면 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period는 이 선언으로 보완할 수 없습니다.\n"
@@ -548,14 +560,14 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
             "원본 질문:\n{query}\n\n"
             "Answer obligations:\n{obligations}\n\n"
-            "Candidate cohorts and candidates_by_id:\n{candidate_catalog}\n\n"
+            "Source bundles, candidate cohorts, and candidates_by_id:\n{candidate_catalog}\n\n"
             "재시도 피드백(없으면 -):\n{retry_feedback}\n"
 ,
     'semantic_program_render_templates': {
             "item": "{label}: {value}",
             "item_sentence_ko": "{subject}{topic_particle} {value}입니다.",
-            "source_display_comparison": "calculated {calculated} (source-stated {source})",
-            "source_display_comparison_ko": "계산값 {calculated} (원문 기재: {source})",
+            "source_display_comparison": "{source} (recalculated {calculated})",
+            "source_display_comparison_ko": "{source} (재계산값 {calculated})",
             "derived_inputs": "Inputs: {items}.",
             "derived_inputs_ko": "입력값은 {items}입니다.",
             "derived_input_item": "{label} {value}",
@@ -572,7 +584,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "numeric_candidates": 96,
             "narrative_candidates": 32,
             "required_input_candidates_per_group": 4,
-            "numeric_candidates_per_owner": 4,
+            "numeric_source_bundles_per_owner": 2,
             "narrative_candidates_per_owner": 6,
             "compatibility_narrative_candidates_per_numeric_obligation": 2,
             "numeric_source_chars": 420,
@@ -633,6 +645,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- scope.company는 공시 문서의 회사 범위입니다. 표 행이나 문장 안에서 실제 값의 주체가 되는 회사·사업·대상은 semantic_target.local_subjects에 적고 scope.company로 대체하지 마세요.\n"
             "- 각 obligation과 evidence requirement의 semantic_target을 작성하세요. local_subjects에는 질문이 직접 지목한 local entity만, concept_keys에는 아래 목록에 실제로 있는 ontology concept key만, metric_surfaces에는 질문에 보이는 지표 표현을 보존하세요. 정확한 concept가 없으면 concept_keys를 비운 채 metric_surfaces를 사용하세요.\n"
             "- derived_value는 사용자에게 표시할 결과 scope와 별도로, 계산에 필요한 각 원시 입력을 evidence_requirements에 선언합니다. 입력마다 고유 requirement_id, label, period 및 다른 scope, retrieval_hints를 적고 이 입력들은 사용자 출력 obligation으로 만들지 않습니다.\n"
+            "- depends_on에는 이 obligation의 계산에 앞서 결과가 필요한 다른 answer obligation의 obligation_id만 적으세요. 같은 obligation의 원시 입력이나 evidence requirement ID는 적지 않습니다. 원시 입력 관계는 evidence_requirements만으로 선언합니다.\n"
             "- evidence_mode의 기본값은 declared_inputs입니다. 원시 계산 입력과 질문에 명시된 사실·관계에는 이 모드를 유지하세요. 이 모드의 narrative obligation은 답변에 필요한 각 사실과 관계, 특히 인과 설명을 evidence_requirements에 선언합니다. 대상 변화와 설명 요인을 함께 식별할 수 있는 label과 retrieval_hints를 사용하고, 다른 지표의 변화나 일반적 배경을 대상 변화의 직접 원인 근거로 대용하지 마세요.\n"
             "- 총액과 구성비처럼 공통 기준으로 결합되어야 하는 출력만 같은 coupling_key를 사용합니다. 같은 질문·회사·보고서에 속한다는 이유만으로 묶지 마세요. 독립적으로 요청된 출력은 coupling_key를 비워 두며 서로 다른 표를 근거로 사용할 수 있습니다. coupling_key는 반복 없는 64자 이하의 짧고 안정적인 식별자로 작성하세요.\n"
             "- ontology hints는 검색과 후보 의미 결합에 쓰는 제한된 vocabulary입니다. 질문에 맞는 정확한 concept가 없다고 비슷한 key를 만들거나 obligation을 삭제하지 마세요.\n"

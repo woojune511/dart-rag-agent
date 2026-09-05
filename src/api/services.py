@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import json
 import os
 from pathlib import Path
@@ -125,6 +125,14 @@ class AppServices:
                 and list(getattr(self.store, "bm25_docs", []) or [])
             ),
         )
+        validate_sources = getattr(self.store, "validate_source_integrity", None)
+        if self.readiness.ready and callable(validate_sources):
+            integrity = validate_sources()
+            if not integrity["ready"]:
+                self.readiness = replace(
+                    self.readiness, status="incomplete", ready=False,
+                    reason=integrity["reason"],
+                )
         if self.agent is not None:
             self.agent.retrieval_degraded_reason = (
                 self.readiness.reason if self.readiness.degraded else ""

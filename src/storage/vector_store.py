@@ -4,6 +4,7 @@ import logging
 import os
 import time
 from collections import OrderedDict
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Hashable, List, Optional, Tuple
 
@@ -95,6 +96,29 @@ def _metadata_for_chroma(metadata: Dict[str, Any]) -> Dict[str, Any]:
     return metadata_for_chroma(metadata)
 
 
+def _stored_source_uid(metadata: Any) -> Optional[str]:
+    if not isinstance(metadata, dict) or not any(
+        metadata.get(key) is not None and str(metadata[key]).strip()
+        for key in ("chunk_uid", "id", "rcept_no", "chunk_id", "sub_chunk_idx", "company", "year", "section_path")
+    ):
+        return None
+    return _chunk_uid_from_metadata(metadata)
+
+
+def _stored_source_rows(result: Dict[str, Any]) -> list[tuple[str, Any, Any]]:
+    ids = result.get("ids") or []
+    metadatas = result.get("metadatas") or []
+    documents = result.get("documents") or []
+    return [
+        (
+            str(ids[index]) if index < len(ids) else "",
+            metadatas[index] if index < len(metadatas) else None,
+            documents[index] if index < len(documents) else None,
+        )
+        for index in range(max(len(ids), len(metadatas), len(documents)))
+    ]
+
+
 def _is_embedding_capacity_error(exc: Exception) -> bool:
     return chroma_backend.is_embedding_capacity_error(exc)
 
@@ -179,8 +203,8 @@ class VectorStoreManager:
         self._parents: Dict[str, str] = self._load_parents()
         self._graph_path = Path(self.persist_directory) / "document_structure_graph.json"
         self._table_payloads_path = Path(self.persist_directory) / "table_payloads.json"
-        self._table_payloads: Dict[str, Dict[str, str]] = self._load_table_payloads()
         self._structure_graph: Dict[str, Any] = self._load_structure_graph()
+        self._table_payloads: Dict[str, Dict[str, str]] = self._load_table_payloads()
 
         self.bm25 = None
         self.bm25_docs: List[str] = []
@@ -343,10 +367,7 @@ class VectorStoreManager:
         return {}
 
     def _save_parents(self) -> None:
-        try:
-            parent_store.save_parents(self._parents_path, self._parents)
-        except Exception as e:
-            logger.warning("Failed to save parents.json: %s", e)
+        parent_store.save_parents(self._parents_path, self._parents)
 
     def _load_structure_graph(self) -> Dict[str, Any]:
         try:
@@ -380,34 +401,35 @@ class VectorStoreManager:
             existing_payloads=getattr(self, "_table_payloads", {}) or {},
         )
 
-    def _save_structure_graph(self) -> None:
-        try:
-            _graph, payloads = graph_persistence.persist_structure_graph(
-                self._graph_path,
-                self._table_payloads_path,
-                self._structure_graph,
-                compact_node_for_storage=self._compact_node_for_storage,
-            )
-            self._table_payloads = payloads
-        except Exception as e:
-            logger.warning("Failed to save document_structure_graph.json: %s", e)
+    def _save_structure_graph(self, graph: Optional[Dict[str, Any]] = None) -> None:
+        prospective = graph if graph is not None else deepcopy(self._structure_graph)
+        _graph, payloads = graph_persistence.persist_structure_graph(
+            self._graph_path,
+            self._table_payloads_path,
+            prospective,
+            compact_node_for_storage=self._compact_node_for_storage,
+            existing_payloads=getattr(self, "_table_payloads", {}),
+        )
+        self._structure_graph = prospective
+        self._table_payloads = payloads
 
     def _rebuild_structure_relationships(self) -> None:
         self._structure_graph = rebuild_structure_relationships(self._structure_graph)
 
     def _update_structure_graph(self, chunks: List[str], metadatas: List[dict]) -> None:
-        self._structure_graph = update_structure_graph(
-            self._structure_graph,
+        prospective = update_structure_graph(
+            deepcopy(self._structure_graph),
             chunks,
             metadatas,
             _chunk_uid_from_metadata,
         )
-        self._save_structure_graph()
+        self._save_structure_graph(prospective)
 
     def add_parents(self, parents: Dict[str, str]) -> None:
         """부모 청크 딕셔너리를 저장 (기존 항목에 병합)."""
-        self._parents = parent_store.merge_parents(self._parents, parents)
-        self._save_parents()
+        merged = parent_store.merge_parents(self._parents, parents)
+        parent_store.save_parents(self._parents_path, merged)
+        self._parents = merged
         logger.info("Stored %s parent chunks (total=%s).", len(parents), len(self._parents))
 
     def get_parent(self, parent_id: str) -> Optional[str]:
@@ -416,19 +438,21 @@ class VectorStoreManager:
 
     def delete_parents_for_rcept(self, rcept_no: str) -> None:
         """특정 접수번호의 부모 청크를 모두 삭제."""
-        self._parents, deleted_count = parent_store.delete_parents_for_rcept(self._parents, rcept_no)
-        self._save_parents()
-        logger.info("Deleted %s parent chunks for rcept_no=%s.", deleted_count, rcept_no)
-
+        parents, deleted_count = parent_store.delete_parents_for_rcept(self._parents, rcept_no)
         nodes = dict(self._structure_graph.get("nodes", {}) or {})
         filtered_nodes = {
             chunk_uid: node
             for chunk_uid, node in nodes.items()
             if str((node.get("metadata") or {}).get("rcept_no", "")) != str(rcept_no)
         }
-        self._structure_graph["nodes"] = filtered_nodes
-        self._rebuild_structure_relationships()
-        self._save_structure_graph()
+        prospective = deepcopy(self._structure_graph)
+        prospective["nodes"] = deepcopy(filtered_nodes)
+        self._save_structure_graph(rebuild_structure_relationships(prospective))
+        # Remove graph references first. Extra parents are harmless if the
+        # following independent parent-file replacement fails.
+        parent_store.save_parents(self._parents_path, parents)
+        self._parents = parents
+        logger.info("Deleted %s parent chunks for rcept_no=%s.", deleted_count, rcept_no)
 
     # ------------------------------------------------------------------
 
@@ -454,26 +478,118 @@ class VectorStoreManager:
         *,
         rcept_no: Optional[str] = None,
     ) -> set[str]:
-        return self._structure_graph_chunk_uids(rcept_no=rcept_no)
+        ids = self._structure_graph_chunk_uids(rcept_no=rcept_no)
+        nodes = self._structure_graph.get("nodes", {})
+        payloads = getattr(self, "_table_payloads", {})
+        return {
+            uid for uid in ids
+            if not (payload_id := str(
+                dict(nodes.get(uid, {}).get("metadata") or {}).get(_TABLE_PAYLOAD_ID_KEY) or ""
+            )) or bool(payloads.get(payload_id))
+        }
 
     def list_indexed_chunk_uids(self, *, rcept_no: Optional[str] = None) -> set[str]:
         if getattr(self, "skip_vector_add", False):
             return self._structure_graph_chunk_uids(rcept_no=rcept_no)
 
         where_filter = {"rcept_no": rcept_no} if rcept_no else None
-        try:
-            result = self.vector_store.get(where=where_filter)
-        except Exception:
-            return set()
+        result = self.vector_store.get(where=where_filter)
 
         indexed: set[str] = set()
         for metadata in result.get("metadatas") or []:
-            if not isinstance(metadata, dict):
-                continue
-            chunk_uid = _chunk_uid_from_metadata(metadata)
+            chunk_uid = _stored_source_uid(metadata)
             if chunk_uid:
                 indexed.add(chunk_uid)
         return indexed
+
+    def validate_source_integrity(self) -> Dict[str, Any]:
+        """Check committed provenance after startup or an ingest attempt."""
+        try:
+            graph = graph_persistence.load_structure_graph(self._graph_path)
+            payloads = load_table_payloads(self._table_payloads_path)
+            nodes = dict(graph.get("nodes") or {})
+            missing_payloads = sorted({
+                str(metadata[_TABLE_PAYLOAD_ID_KEY])
+                for node in nodes.values()
+                for metadata in [dict(node.get("metadata") or {})]
+                if metadata.get(_TABLE_PAYLOAD_ID_KEY)
+                and str(metadata[_TABLE_PAYLOAD_ID_KEY]) not in payloads
+            })
+            graph_ids = structure_graph_chunk_uids(
+                graph, chunk_uid_from_metadata=_chunk_uid_from_metadata,
+            )
+            vector_rows = [] if self.skip_vector_add else _stored_source_rows(self.vector_store.get())
+            indexed_ids = {uid for _, metadata, _ in vector_rows if (uid := _stored_source_uid(metadata))}
+            unidentified = [
+                vector_id or f"row:{index}"
+                for index, (vector_id, metadata, _) in enumerate(vector_rows)
+                if _stored_source_uid(metadata) is None
+            ]
+            missing_sources = sorted(indexed_ids - graph_ids)
+            return {
+                "ready": not missing_payloads and not missing_sources and not unidentified,
+                "missing_source_ids": missing_sources,
+                "missing_payload_ids": missing_payloads,
+                "unidentified_vector_ids": unidentified,
+                "reason": (
+                    "source snapshot is incomplete"
+                    if missing_payloads or missing_sources or unidentified else "source snapshot is complete"
+                ),
+            }
+        except Exception as exc:
+            return {"ready": False, "reason": f"source snapshot cannot be verified: {exc}"}
+
+    def repair_indexed_sources(self, chunks: List[Any]) -> List[Any]:
+        """Restore missing sidecars using stored text and parsed metadata.
+
+        Return only chunks needing new contextual generation and vector adds.
+        """
+        if self.skip_vector_add:
+            return [chunk for chunk in chunks if _chunk_uid_from_metadata(chunk.metadata)
+                    not in self.list_structure_chunk_uids()]
+        # Missing metadata cannot match a receipt filter. Inspect all stored
+        # rows before deciding that a chunk needs a new provider call.
+        rows = _stored_source_rows(self.vector_store.get())
+        parsed = {_chunk_uid_from_metadata(chunk.metadata): chunk for chunk in chunks}
+        metadata_repairs = []
+        for index, (vector_id, metadata, text) in enumerate(rows):
+            if _stored_source_uid(metadata) is not None:
+                continue
+            chunk = parsed.get(vector_id)
+            if chunk is None or not isinstance(text, str):
+                raise RuntimeError(
+                    "indexed source repair blocked: vector metadata has no identifiable source "
+                    f"({vector_id or f'row:{index}'})"
+                )
+            metadata_repairs.append((vector_id, _metadata_for_chroma(chunk.metadata)))
+            rows[index] = (vector_id, chunk.metadata, text)
+        if metadata_repairs:
+            # Chroma's document update embeds again; its metadata-only update
+            # preserves the stored document and embedding.
+            self.vector_store._collection.update(
+                ids=[vector_id for vector_id, _ in metadata_repairs],
+                metadatas=[metadata for _, metadata in metadata_repairs],
+            )
+        stored_texts = {
+            _chunk_uid_from_metadata(metadata): text
+            for _, metadata, text in rows
+        }
+        indexed_ids = {
+            _chunk_uid_from_metadata(metadata)
+            for _, metadata, _ in rows
+        }
+        complete = self.list_structure_chunk_uids()
+        repair = [chunk for chunk in chunks
+                  if _chunk_uid_from_metadata(chunk.metadata) in indexed_ids - complete]
+        if repair:
+            ids = [_chunk_uid_from_metadata(chunk.metadata) for chunk in repair]
+            if any(not isinstance(stored_texts.get(uid), str) for uid in ids):
+                raise RuntimeError("indexed source text is unavailable for sidecar repair")
+            self._update_structure_graph(
+                [stored_texts[uid] for uid in ids], [chunk.metadata for chunk in repair],
+            )
+            self._init_bm25()
+        return [chunk for chunk in chunks if _chunk_uid_from_metadata(chunk.metadata) not in indexed_ids]
 
     def _empty_add_documents_result(self, *, started_at: float, resume: bool) -> Dict[str, Any]:
         return {

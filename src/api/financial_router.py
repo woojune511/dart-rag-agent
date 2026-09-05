@@ -245,32 +245,29 @@ def get_router():
         if vsm is None:
             raise HTTPException(status_code=503, detail=services.readiness.reason)
 
-        try:
+        def load_companies():
             data = vsm.vector_store.get(include=["metadatas"])
             metadatas = data.get("metadatas") or []
+            company_years: Dict[str, set] = {}
+            company_counts: Dict[str, int] = {}
+            for meta in metadatas:
+                company = meta.get("company", "unknown")
+                year = meta.get("year")
+                company_years.setdefault(company, set())
+                company_counts[company] = company_counts.get(company, 0) + 1
+                if year:
+                    company_years[company].add(int(year))
+            companies = [
+                CompanyInfo(name=name, years=sorted(years), chunk_count=company_counts[name])
+                for name, years in sorted(company_years.items())
+            ]
+            return CompaniesResponse(companies=companies, total_chunks=len(metadatas))
+
+        try:
+            async with services.operation_lock:
+                return await run_in_threadpool(load_companies)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"DB 조회 실패: {e}")
-
-        company_years: Dict[str, set] = {}
-        company_counts: Dict[str, int] = {}
-
-        for meta in metadatas:
-            company = meta.get("company", "unknown")
-            year    = meta.get("year")
-            company_years.setdefault(company, set())
-            company_counts[company] = company_counts.get(company, 0) + 1
-            if year:
-                company_years[company].add(int(year))
-
-        companies = [
-            CompanyInfo(
-                name=name,
-                years=sorted(years),
-                chunk_count=company_counts[name],
-            )
-            for name, years in sorted(company_years.items())
-        ]
-        return CompaniesResponse(companies=companies, total_chunks=len(metadatas))
 
     @router.post("/ingest", response_model=IngestResponse)
     async def ingest(req: IngestRequest, request: Request):
@@ -285,17 +282,19 @@ def get_router():
         ingest_service = services.ingest_service
         if ingest_service is None:
             raise HTTPException(status_code=503, detail=services.readiness.reason)
+
+        def ingest_and_refresh():
+            try:
+                return ingest_service.ingest_company(
+                    req.company, req.years,
+                    max_workers=services.contextual_ingest_max_workers,
+                )
+            finally:
+                services.refresh_readiness()
+
         try:
             async with services.operation_lock:
-                try:
-                    result = await run_in_threadpool(
-                        ingest_service.ingest_company,
-                        req.company,
-                        req.years,
-                        max_workers=services.contextual_ingest_max_workers,
-                    )
-                finally:
-                    services.refresh_readiness()
+                result = await run_in_threadpool(ingest_and_refresh)
         except Exception as e:
             raise HTTPException(status_code=502, detail=f"수집·인덱싱 실패: {e}")
 
@@ -332,15 +331,6 @@ def get_router():
         classify → extract → retrieve → analyze → cite
         """
         services = _services(request)
-        if not services.readiness.ready:
-            raise HTTPException(
-                status_code=503,
-                detail=services.readiness.reason,
-            )
-        agent = services.agent
-        if agent is None:
-            raise HTTPException(status_code=503, detail="FinancialAgent is unavailable")
-
         if not req.question.strip():
             raise HTTPException(status_code=422, detail="질문이 비어있습니다.")
 
@@ -354,6 +344,11 @@ def get_router():
                 else None
             )
             async with services.operation_lock:
+                if not services.readiness.ready:
+                    raise HTTPException(status_code=503, detail=services.readiness.reason)
+                agent = services.agent
+                if agent is None:
+                    raise HTTPException(status_code=503, detail="FinancialAgent is unavailable")
                 result = await run_in_threadpool(
                     agent.run,
                     req.question,
@@ -361,6 +356,9 @@ def get_router():
                     include_review_trace=req.include_review_trace,
                     include_debug_bundle=req.include_debug_bundle,
                 )
+                readiness_snapshot = services.readiness.to_projection()
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"agent.run 실패: {e}")
             raise HTTPException(status_code=500, detail=f"분석 실패: {e}")
@@ -370,7 +368,7 @@ def get_router():
             result,
             include_review_trace=req.include_review_trace,
             include_debug_bundle=req.include_debug_bundle,
-            retrieval_readiness=services.readiness.to_projection(),
+            retrieval_readiness=readiness_snapshot,
         )
 
     return router

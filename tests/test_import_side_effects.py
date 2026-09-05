@@ -330,7 +330,13 @@ class ImportSideEffectTests(unittest.TestCase):
 
     def test_import_boundary_modules_do_not_load_heavy_dependencies(self) -> None:
         module_expectations = {
-            "src.agent.financial_graph": {"pydantic", "langchain_core"},
+            "src.agent.financial_graph": {
+                "pydantic",
+                "langchain_core",
+                "sentence_transformers",
+                "torch",
+                "transformers",
+            },
             "src.agent.financial_answer_slots": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_calculation": {"pydantic", "langchain_core"},
             "src.agent.financial_graph_evidence": {"pydantic", "langchain_core"},
@@ -442,8 +448,10 @@ class ImportSideEffectTests(unittest.TestCase):
                         },
                         "ledger": {"tasks": [], "artifacts": []},
                         "final_result": {
-                            "answer": "insufficient evidence",
-                            "citations": [],
+                            "agent_answer": {
+                                "answer": "insufficient evidence",
+                                "citations": [],
+                            },
                         },
                     }
 

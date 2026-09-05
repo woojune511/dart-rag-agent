@@ -268,8 +268,8 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         cohort_plan = _semantic_candidate_cohorts(catalog, [obligation])
 
         self.assertEqual(cohort_plan["status"], "ok")
-        self.assertEqual(cohort_plan["reservation"]["numeric"], 12)
-        self.assertEqual(cohort_plan["reservation"]["narrative"], 12)
+        self.assertEqual(cohort_plan["reservation"]["numeric"], 2)
+        self.assertEqual(cohort_plan["reservation"]["narrative"], 1)
         for cohort in cohort_plan["cohorts"]:
             self.assertEqual(cohort["candidate_kind"], "evidence")
             self.assertLessEqual(len(cohort["candidate_ids"]), 6)
@@ -542,29 +542,30 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         )
         self.assertIn("target-unknown", output_cohort["candidate_ids"])
         self.assertEqual(output_cohort["candidate_ids"][0], "target-unknown")
-        self.assertEqual(len(output_cohort["candidate_ids"]), 4)
+        self.assertEqual(len(output_cohort["candidate_ids"]), 2)
         self.assertEqual(
             output_cohort["match_counts"],
             {"compatible": 0, "unknown_only": 5, "explicit_conflict": 0},
         )
 
     def test_candidate_cohort_reservation_overflow_fails_closed(self) -> None:
-        obligations = [
-            _obligation(
-                f"ob_{index}",
-                "derived_value",
-                f"derived output {index}",
-                evidence_requirements=[
-                    _requirement(
-                        f"ob_{index}:req_{requirement_index}",
-                        f"input {requirement_index}",
-                    )
-                    for requirement_index in range(3)
-                ],
-            )
-            for index in range(9)
+        obligation = _obligation("ob_total", "direct_value", "reported total")
+        shared_text = " | ".join(str(index) for index in range(97))
+        catalog = [
+            {
+                **_candidate(
+                    f"cand-{index}",
+                    index + 1,
+                    row_label="reported total",
+                ),
+                "physical_table_id": "table-overflow",
+                "physical_row_id": "row-overflow",
+                "physical_cell_id": f"cell-{index}",
+                "source_bundle_text": shared_text,
+            }
+            for index in range(97)
         ]
-        cohort_plan = _semantic_candidate_cohorts([], obligations)
+        cohort_plan = _semantic_candidate_cohorts(catalog, [obligation])
         self.assertEqual(cohort_plan["status"], "capacity_exceeded")
         self.assertGreater(
             cohort_plan["reservation"]["numeric"],

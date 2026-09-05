@@ -4,6 +4,226 @@ from tests.semantic_program_test_support import *
 
 
 class SemanticCalculationProgramValidatorTests(unittest.TestCase):
+    def test_selected_prose_value_requires_exact_source_assertion(self) -> None:
+        obligation = _obligation(
+            "ob_growth",
+            "direct_value",
+            "reported growth",
+            display_unit="%",
+        )
+        candidate = {
+            **_candidate(
+                "cand-growth",
+                11.5,
+                raw_unit="%",
+                normalized_unit="PERCENT",
+            ),
+            "candidate_kind": "sentence_value",
+            "table_source_id": "",
+            "source_text": "The source reports year-on-year growth of 11.5%.",
+        }
+        base_program = {
+            "status": "ready",
+            "direct_bindings": [
+                {
+                    "obligation_id": "ob_growth",
+                    "candidate_id": "cand-growth",
+                }
+            ],
+        }
+
+        missing = validate_semantic_calculation_program(
+            program=base_program,
+            obligations=[obligation],
+            candidate_catalog=[candidate],
+            query="Return the reported growth.",
+        )
+        self.assertEqual(missing["status"], "invalid")
+        self.assertIn(
+            "missing_source_assertion",
+            {item["code"] for item in missing["errors"]},
+        )
+
+        assertions = _source_assertions([candidate], "cand-growth")
+        accepted = validate_semantic_calculation_program(
+            program={**base_program, "source_assertions": assertions},
+            obligations=[obligation],
+            candidate_catalog=[candidate],
+            query="Return the reported growth.",
+        )
+        self.assertEqual(accepted["status"], "ready")
+        self.assertEqual(len(accepted["valid_source_assertions"]), 1)
+        self.assertTrue(
+            accepted["valid_source_assertions"][0]["assertion_fingerprint"]
+        )
+
+        mismatched_assertion = {
+            **assertions[0],
+            "evidence_text": assertions[0]["evidence_text"].replace(
+                "11.5%", "11.6%"
+            ),
+        }
+        rejected = validate_semantic_calculation_program(
+            program={
+                **base_program,
+                "source_assertions": [mismatched_assertion],
+            },
+            obligations=[obligation],
+            candidate_catalog=[candidate],
+            query="Return the reported growth.",
+        )
+        self.assertEqual(rejected["status"], "invalid")
+        self.assertIn(
+            "source_assertion_text_mismatch",
+            {item["code"] for item in rejected["errors"]},
+        )
+
+    def test_source_assertion_rejects_cross_bundle_hidden_and_uncovered_values(self) -> None:
+        obligation = _obligation("ob_value", "direct_value", "reported value")
+        first_text = "The first source reports 10 items."
+        second_text = "The second source reports 20 items."
+        first = {
+            **_candidate("cand-first", 10),
+            "candidate_kind": "sentence_value",
+            "table_source_id": "",
+            "source_candidate_id": "source-first",
+            "source_text": first_text,
+            "source_bundle_text": first_text,
+        }
+        second = {
+            **_candidate("cand-second", 20),
+            "candidate_kind": "sentence_value",
+            "table_source_id": "",
+            "source_candidate_id": "source-second",
+            "source_text": second_text,
+            "source_bundle_text": second_text,
+        }
+        catalog = [first, second]
+        bundles = build_semantic_source_bundles(catalog)
+        bundle_ids = source_bundle_id_by_candidate_id(bundles)
+        base_program = {
+            "status": "ready",
+            "direct_bindings": [
+                {"obligation_id": "ob_value", "candidate_id": "cand-first"}
+            ],
+        }
+
+        cross_bundle = validate_semantic_calculation_program(
+            program={
+                **base_program,
+                "source_assertions": [
+                    {
+                        "source_bundle_id": bundle_ids["cand-second"],
+                        "candidate_ids": ["cand-first"],
+                        "evidence_text": second_text,
+                    }
+                ],
+            },
+            obligations=[obligation],
+            candidate_catalog=catalog,
+            query="Return the reported value.",
+        )
+        self.assertIn(
+            "source_assertion_bundle_mismatch",
+            {item["code"] for item in cross_bundle["errors"]},
+        )
+
+        uncovered = validate_semantic_calculation_program(
+            program={
+                **base_program,
+                "source_assertions": [
+                    {
+                        "source_bundle_id": bundle_ids["cand-first"],
+                        "candidate_ids": ["cand-first"],
+                        "evidence_text": "The first source reports",
+                    }
+                ],
+            },
+            obligations=[obligation],
+            candidate_catalog=catalog,
+            query="Return the reported value.",
+        )
+        self.assertIn(
+            "source_assertion_text_mismatch",
+            {item["code"] for item in uncovered["errors"]},
+        )
+
+        hidden = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "direct_bindings": [
+                    {
+                        "obligation_id": "ob_value",
+                        "candidate_id": "cand-second",
+                    }
+                ],
+                "source_assertions": _source_assertions(
+                    catalog, "cand-second"
+                ),
+            },
+            obligations=[obligation],
+            candidate_catalog=catalog,
+            query="Return the reported value.",
+            candidate_visibility=_semantic_candidate_visibility(
+                catalog,
+                visible_candidate_ids=["cand-first"],
+                candidate_ids_by_owner={"ob_value": ["cand-first"]},
+            ),
+        )
+        self.assertIn(
+            "candidate_not_exposed_to_compiler",
+            {item["code"] for item in hidden["errors"]},
+        )
+
+    def test_table_and_narrative_bindings_do_not_require_source_assertions(self) -> None:
+        table_obligation = _obligation(
+            "ob_table", "direct_value", "table value"
+        )
+        table_candidate = _candidate("cand-table", 10)
+        table_validation = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "direct_bindings": [
+                    {
+                        "obligation_id": "ob_table",
+                        "candidate_id": "cand-table",
+                    }
+                ],
+            },
+            obligations=[table_obligation],
+            candidate_catalog=[table_candidate],
+            query="Return the table value.",
+        )
+        self.assertEqual(table_validation["status"], "ready")
+
+        narrative_obligation = _obligation(
+            "ob_narrative", "narrative", "source summary"
+        )
+        narrative_candidate = {
+            **_candidate("cand-narrative", 0),
+            "kind": "narrative",
+            "normalized_value": None,
+            "candidate_kind": "chunk",
+            "table_source_id": "",
+            "source_text": "The source directly states the requested summary.",
+        }
+        narrative_validation = validate_semantic_calculation_program(
+            program={
+                "status": "ready",
+                "narrative_bindings": [
+                    {
+                        "obligation_id": "ob_narrative",
+                        "candidate_ids": ["cand-narrative"],
+                        "text": "The source directly states the requested summary.",
+                    }
+                ],
+            },
+            obligations=[narrative_obligation],
+            candidate_catalog=[narrative_candidate],
+            query="Summarize the source.",
+        )
+        self.assertEqual(narrative_validation["status"], "ready")
+
     def test_empty_obligation_program_fails_closed(self) -> None:
         execution = execute_semantic_calculation_program(
             program={"status": "incomplete"},
@@ -117,6 +337,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                     ],
                     "formula": "CURRENT - PRIOR",
                     "result_unit": "",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 }
             ],
         }
@@ -199,6 +421,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         ],
                         "formula": "CURRENT - PRIOR",
                         "result_unit": "",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -241,6 +465,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         current = {
             **_candidate("cand-current", 380, period="2024"),
             "candidate_kind": "sentence_value",
+            "table_source_id": "",
             "company": "sample",
             "year": 2024,
             "segment": "",
@@ -250,6 +475,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         prior = {
             **_candidate("cand-prior", 343, period="2023"),
             "candidate_kind": "sentence_value",
+            "table_source_id": "",
             "company": "sample",
             "year": 2023,
             "segment": "",
@@ -283,8 +509,15 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         ],
                         "formula": "((CURRENT - PRIOR) / PRIOR) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
+                "source_assertions": _source_assertions(
+                    [current, prior],
+                    "cand-current",
+                    "cand-prior",
+                ),
             }
 
         rejected = validate_semantic_calculation_program(
@@ -383,9 +616,9 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         self.assertEqual(output["normalized_value"], 10.0)
         self.assertEqual(output["source_display_value"], "95.0%")
         self.assertFalse(output["source_display_matches_formula"])
-        self.assertFalse(output["source_stated_result_used"])
+        self.assertTrue(output["source_stated_result_used"])
         self.assertIn("calculated", result["answer"])
-        self.assertIn("source-stated 95.0%", result["answer"])
+        self.assertIn("95.0% (recalculated 10%)", result["answer"])
 
     def test_preserved_source_display_cannot_bypass_scope_or_unit_checks(self) -> None:
         for field, value in (
@@ -441,12 +674,11 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
         stated = _candidate(
             "cand-stated",
-            10.8,
+            "10.8%",
             raw_unit="억원",
             normalized_unit="PERCENT",
             row_label="change rate",
         )
-        stated["raw_value"] = "10.8%"
         execution = execute_semantic_calculation_program(
             program={
                 "status": "ready",
@@ -460,6 +692,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "((CURR - PREV) / PREV) * 100",
                         "result_unit": "%",
                         "source_display_candidate_id": "cand-stated",
+                        "source_display_reason": "The selected source candidate explicitly reports this derived result.",
                     }
                 ],
             },
@@ -553,6 +786,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             ],
             "formula": "A - B",
             "result_unit": "원",
+            "source_display_candidate_id": None,
+            "source_display_reason": "The fixture provides operands without a matching source-stated result.",
         }
         rejected = validate_semantic_calculation_program(
             program={"status": "ready", "expressions": [expression]},
@@ -622,6 +857,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                 "code": "candidate_not_exposed_to_compiler",
                 "obligation_id": "ob_target",
                 "detail": "other-visible",
+                "owner_id": "ob_target", "candidate_id": "other-visible",
+                "location": "direct_binding", "repair_action": "repair_program",
             },
             validation["errors"],
         )
@@ -646,6 +883,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                             _binding("B", "target-visible", "ob_derived:req_b"),
                         ],
                         "formula": "A - B",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1011,6 +1250,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "A + B + 7",
                         "result_unit": "개",
                         "constants": [],
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1257,12 +1498,16 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                     "variable_bindings": [{"variable": "B", "source_id": "b"}],
                     "formula": "B * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
                 {
                     "obligation_id": "b",
                     "variable_bindings": [{"variable": "A", "source_id": "a"}],
                     "formula": "A * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
             ],
         }
@@ -1320,6 +1565,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         ],
                         "formula": "(A / B) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1373,6 +1620,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "(PART / TOTAL) * 100",
                         "result_unit": "%",
                         "source_display_candidate_id": "stated",
+                        "source_display_reason": "The selected source candidate explicitly reports this derived result.",
                     }
                 ],
             },
@@ -1428,6 +1676,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                             {"variable": "A", "source_id": "finite"}
                         ],
                         "formula": "A",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1469,6 +1719,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "(A / B) * 100",
                         "result_unit": "%",
                         "source_display_candidate_id": "not-finite-display",
+                        "source_display_reason": "The selected source candidate explicitly reports this derived result.",
                     }
                 ],
             },

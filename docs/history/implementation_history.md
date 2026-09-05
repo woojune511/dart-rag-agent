@@ -12563,3 +12563,78 @@ are complete. It remains only as an audit record, not an active priority.
   heartbeat bundles remain ignored. GitHub Actions `33007869709` passed reviewer
   contracts 32/32, audit 217, and Ubuntu/Python 3.13 full unittest 2,172/2,172
   in 211.605 seconds. PR #86 stays draft and `main` unchanged.
+
+## Bounded strongest-tier semantic tie-breaker (2026-09-04)
+
+- Added a lazy local cross-encoder behind an opt-in flag. Deterministic scope,
+  subject, unit, metric, locality, owner visibility, and complete-row bundle
+  contracts remain authoritative; only an exact strongest factor tie can move.
+- Pair text is typed and cell-local. Initial ranking uses one bounded batch,
+  per-cohort and per-query caps, a bounded cache, and a minimum score margin.
+  Low margin, capacity, load, or inference failure preserves the old order.
+- Diagnostics advance to `semantic_candidate_stage_diagnostics_v8` and record
+  scorer identity, pair counts, scores, and margins without serializing them
+  into the compiler prompt. Heavy ML imports and model loading remain lazy.
+- The verified three-question source replay exposed 31 pairs within 248 model
+  tokens. Every cohort abstained, no first candidate changed, and T3 retained
+  table 82, so the feature remains disabled by default rather than claiming a
+  quality improvement.
+- Focused semantic/import/topology tests passed 90/90, the runtime-domain audit
+  passed 86 reviewed literals, and full unittest discovery passed 802/802. No
+  LLM provider run, benchmark refresh, fresh ingest, store mutation, or
+  historical artifact rewrite was performed.
+
+## Semantic tie-break pair identity and promotion gate (2026-09-04)
+
+- Advanced the pair projection to `semantic_tie_break_pair_v2`. The target is
+  the natural user query plus the typed owner focus, while evidence marks the
+  candidate's raw value inside the bounded cell-local text. Values extracted
+  from the same sentence therefore no longer share one pair fingerprint.
+- Added a six-case source-controlled fixture and a local promotion command that
+  measures baseline and model top-1, confident selection, ambiguity abstention,
+  confident errors, cold load, and repeated warm p95. It defaults to cached
+  files and cannot silently download a model.
+- The gate is advisory to activation: it does not change deterministic
+  applicability, cohort visibility, physical-row bundles, compiler prompts, or
+  the default-disabled setting.
+- Focused semantic, bundle, import, and documentation contracts passed 89/89;
+  the runtime-domain audit retained 86 reviewed literals and full unittest
+  discovery passed 809/809.
+
+## Source-bundle compiler transition (2026-09-05)
+
+- Commit `d4aaf37` introduced the provider-free `SourceBundleV1` contract.
+  Commit `30607cd` then moved numeric admission to at most two source bundles
+  per owner and exposed every non-conflicting member of each admitted bundle.
+- Compiler payload v5 stores exact source text once per bundle and candidate
+  rows carry bundle-local value spans. Selected prose numeric operands require
+  byte-exact source assertions before execution; table cells continue to use
+  physical row/cell provenance.
+- Candidate failures promote the next whole bundle, while assertion or format
+  failures reuse the same cohort for the existing single targeted island retry.
+  Other island programs and assertions remain byte-identical.
+- The seven-role prose classifier, fact-role tie projection, disabled local
+  cross-encoder, promotion harness, and dedicated export/mining surfaces were
+  removed. Candidate IDs, catalog fingerprint inputs, parser structure, store,
+  and HTTP output remained unchanged.
+- Focused contract suites passed `28 / 28` and `90 / 90`; the runtime-language
+  audit passed with `86` reviewed literals, import/topology passed `21 / 21`,
+  `compileall` and diff checks passed, and full unittest discovery passed
+  `805 / 805` in `19.636s`.
+- A provider-free replay of the immutable three-question predecessor retained
+  T2 period/growth values, isolated T3 Motional `26%` from BHAF `53%`, and
+  preserved all four previously selected Samsung candidates. No provider,
+  ingest, document embedding, or store mutation was performed.
+
+## Planner evidence-dependency boundary (2026-09-05)
+
+- Commit `af9a07e` makes `AnswerObligation.depends_on` an explicit reference to
+  other user-visible answer obligations only. Raw calculation inputs remain
+  owned by `evidence_requirements` and do not become compilation-island vertices.
+- Planner projection removes a dependency only when it exactly names the current
+  obligation's own evidence requirement. Known answer-obligation IDs are mapped
+  first; unknown and self references remain available to existing fail-closed
+  preflight checks.
+- The schema description and generic planner policy now state the same rule.
+  Focused planner tests pass 5/5, semantic contracts 164/164, import/topology
+  28/28, runtime audit 84, and full Python 3.13 unittest discovery 878/878.

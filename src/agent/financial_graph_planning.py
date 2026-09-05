@@ -10,14 +10,11 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_model_loaders import requirement_planner_output_model
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_retrieval_hints import infer_statement_and_section_hints
-from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_scope_policies import explicit_query_consolidation_scopes
 from src.agent.financial_runtime_trace import (
     report_cache_candidate_for_trace,
     resolve_runtime_calculation_trace,
-)
-from src.agent.financial_task_artifacts import (
-    semantic_plan_artifact_update as _semantic_plan_artifact_update,
 )
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import (
@@ -28,7 +25,7 @@ from src.config.retrieval_policy import (
 )
 
 if TYPE_CHECKING:
-    from src.agent.financial_graph_state import FinancialAgentState
+    from src.agent.financial_graph_state import FinancialAgentState, PlanningInput, RequirementsPhase, RoutingInput, RoutingPhase
 
 
 logger = logging.getLogger(__name__)
@@ -109,7 +106,7 @@ def align_scope_hints(
 class FinancialAgentPlanningMixin:
     """Own the pre-retrieval semantic contract, without operation classification."""
 
-    def _classify_query(self, state: FinancialAgentState) -> Dict[str, Any]:
+    def _classify_query(self, state: RoutingInput) -> RoutingPhase:
         result = self.query_router.route(state["query"])
         return {
             "query_type": result.intent,
@@ -218,6 +215,8 @@ class FinancialAgentPlanningMixin:
         query_consolidation_scopes = explicit_query_consolidation_scopes(query)
         allowed_query_consolidation_scopes = set(query_consolidation_scopes)
         target_notes: List[str] = []
+        dependency_notes: List[str] = []
+        requirement_errors: List[Dict[str, str]] = []
 
         def normalize_semantic_target(
             raw_target: Any,
@@ -301,12 +300,28 @@ class FinancialAgentPlanningMixin:
         obligations: List[Dict[str, Any]] = []
         for index, obligation in enumerate(raw_obligations, start=1):
             stable_id = f"ob_{index:03d}"
+            declared_unit = _normalise_spaces(str(obligation.get("display_unit") or ""))
+            if declared_unit and declared_unit.upper() != "UNKNOWN" and resolve_unit_spec(declared_unit) is None:
+                requirement_errors.append({
+                    "code": "invalid_obligation_unit", "obligation_id": stable_id,
+                    "owner_id": stable_id, "candidate_id": "",
+                    "location": "obligation.display_unit", "repair_action": "repair_requirements",
+                    "detail": declared_unit,
+                })
             scope = normalize_scope(obligation.get("scope"))
             obligation_concept_hints = list(obligation.get("concept_hints") or [])
             obligation_target = normalize_semantic_target(
                 obligation.get("semantic_target"),
                 concept_hints=obligation_concept_hints,
             )
+            raw_evidence_requirement_ids = {
+                requirement_id
+                for requirement in (obligation.get("evidence_requirements") or [])
+                for requirement_id in [
+                    _normalise_spaces(str(dict(requirement or {}).get("requirement_id") or ""))
+                ]
+                if requirement_id
+            }
             evidence_requirements = []
             for requirement_index, requirement in enumerate(
                 obligation.get("evidence_requirements") or [],
@@ -348,14 +363,29 @@ class FinancialAgentPlanningMixin:
                         ),
                     }
                 )
-            dependencies = [
-                raw_id_to_stable[item]
-                for item in (
-                    _normalise_spaces(str(value))
-                    for value in (obligation.get("depends_on") or [])
-                )
-                if item in raw_id_to_stable and raw_id_to_stable[item] != stable_id
-            ]
+            own_evidence_dependency_ids = raw_evidence_requirement_ids | {
+                str(requirement.get("requirement_id") or "")
+                for requirement in evidence_requirements
+            }
+            dependencies = []
+            for item in (
+                _normalise_spaces(str(value))
+                for value in (obligation.get("depends_on") or [])
+            ):
+                if not item:
+                    continue
+                if item in raw_id_to_stable:
+                    dependencies.append(raw_id_to_stable[item])
+                    continue
+                if item in raw_id_to_stable.values():
+                    dependencies.append(item)
+                    continue
+                if item in own_evidence_dependency_ids:
+                    dependency_notes.append(
+                        f"redundant_evidence_dependency_removed:{stable_id}:{item}"
+                    )
+                    continue
+                dependencies.append(item)
             obligations.append(
                 {
                     **obligation,
@@ -507,6 +537,7 @@ class FinancialAgentPlanningMixin:
             "section_filter": _normalise_spaces(str(planned.section_filter or "")) or None,
             "answer_obligations": obligations,
             "retrieval_queries": retrieval_queries,
+            "requirement_errors": requirement_errors,
             "tasks": [task],
             "planner_notes": [
                 item
@@ -514,6 +545,7 @@ class FinancialAgentPlanningMixin:
                     "requirement_planner",
                     _normalise_spaces(str(planned.rationale or "")),
                     *list(dict.fromkeys(target_notes)),
+                    *list(dict.fromkeys(dependency_notes)),
                 )
                 if item
             ],
@@ -558,15 +590,6 @@ class FinancialAgentPlanningMixin:
             "tasks": [narrative_task],
             "planner_notes": ["exclusive_narrative_task_policy"],
         }
-        ledger_update = _semantic_plan_artifact_update(
-            tasks=list(state.get("tasks") or []),
-            artifacts=list(state.get("artifacts") or []),
-            artifact_task_id="task_1",
-            semantic_plan=semantic_plan,
-            retrieval_queries=retrieval_queries,
-            summary="planned exclusive narrative retrieval",
-            calculation_tasks=[narrative_task],
-        )
         companies, years = align_scope_hints(
             companies=list(state.get("companies") or []),
             years=list(state.get("years") or []),
@@ -593,13 +616,11 @@ class FinancialAgentPlanningMixin:
                 "task_count": 0,
             },
             "subtask_loop_complete": True,
-            "tasks": list(ledger_update["tasks"]),
-            "artifacts": list(ledger_update["artifacts"]),
         }
 
     def _plan_answer_obligation_program(
-        self, state: FinancialAgentState
-    ) -> Dict[str, Any]:
+        self, state: PlanningInput
+    ) -> RequirementsPhase:
         intent = state.get("intent") or state.get("query_type", "qa")
         query = str(state.get("query") or "")
         topic = str(state.get("topic") or query)
@@ -645,8 +666,6 @@ class FinancialAgentPlanningMixin:
                 "subtask_results": [],
                 "subtask_debug_trace": {"reason": "non_numeric_intent"},
                 "subtask_loop_complete": True,
-                "tasks": list(state.get("tasks") or []),
-                "artifacts": list(state.get("artifacts") or []),
             }
 
         plan = self._build_llm_requirement_plan(
@@ -677,20 +696,8 @@ class FinancialAgentPlanningMixin:
             "answer_obligations": obligations,
             "tasks": tasks,
             "planner_notes": list(plan.get("planner_notes") or []),
+            "requirement_errors": list(plan.get("requirement_errors") or []),
         }
-        ledger_update = _semantic_plan_artifact_update(
-            tasks=list(state.get("tasks") or []),
-            artifacts=list(state.get("artifacts") or []),
-            artifact_task_id=str(active_subtask.get("task_id") or "task_1"),
-            semantic_plan=semantic_plan,
-            retrieval_queries=retrieval_queries,
-            summary=f"planned {len(obligations)} answer obligation(s)",
-            calculation_tasks=tasks,
-            payload_extra={
-                "answer_obligations": obligations,
-                "program_required": True,
-            },
-        )
         companies, years = align_scope_hints(
             companies=list(plan.get("companies") or state.get("companies") or []),
             years=list(plan.get("years") or state.get("years") or []),
@@ -725,8 +732,6 @@ class FinancialAgentPlanningMixin:
                 "planner_notes": list(semantic_plan.get("planner_notes") or []),
             },
             "subtask_loop_complete": False,
-            "tasks": list(ledger_update["tasks"]),
-            "artifacts": list(ledger_update["artifacts"]),
         }
 
     def _calc_query(self, state: FinancialAgentState) -> str:

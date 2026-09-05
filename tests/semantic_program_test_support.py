@@ -8,7 +8,8 @@ from unittest.mock import patch
 
 from src.agent.financial_calculation_execution import (
     derive_operation_family_from_formula,
-    execute_semantic_calculation_program,
+    execute_semantic_calculation_program as execute_numeric_program,
+    assemble_semantic_execution_result,
     semantic_candidate_applicability,
     validate_semantic_calculation_program,
 )
@@ -29,9 +30,11 @@ from src.agent.financial_graph_calculation import (
     _merge_targeted_program_retry,
     _retry_candidate_exclusions,
     _semantic_candidate_cohorts,
+    _semantic_candidate_visibility,
     build_semantic_compilation_islands,
 )
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
+from src.agent.financial_runtime_normalization import _normalise_operand_value
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
@@ -39,10 +42,44 @@ from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
     semantic_candidate_stage_diagnostics,
 )
+from src.agent.financial_source_bundles import (
+    build_semantic_source_bundles,
+    source_bundle_id_by_candidate_id,
+)
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     PLANNING_POLICY,
 )
+
+
+def execute_semantic_calculation_program(**inputs):
+    """Test harness for the explicit numeric-execution -> final-assembly seam."""
+    execution = execute_numeric_program(**inputs)
+    assembled = assemble_semantic_execution_result(
+        execution=execution, obligations=inputs["obligations"],
+        calculation_plan={}, query=inputs["query"],
+    )
+    return {**execution, **assembled,
+        "calculation_result": assembled["resolved_calculation_trace"]["calculation_result"]}
+
+
+def execute_compiled_fixture(agent, state, catalog):
+    """Migrate historical test inputs through the actual phase-owned graph nodes."""
+    from src.agent.financial_graph_state import RoutingPhase, RequirementsPhase, RetrievalPhase, CompilationPhase
+
+    phases = {
+        "request": {"query": state["query"], "report_scope": dict(state.get("report_scope") or {})},
+        "routing": {key: state[key] for key in RoutingPhase.__annotations__ if key in state},
+        "requirements": {key: state[key] for key in RequirementsPhase.__annotations__ if key in state},
+        "retrieval": {key: state[key] for key in RetrievalPhase.__annotations__ if key in state},
+        "candidates": {"semantic_candidate_catalog": catalog, "semantic_source_candidates": []},
+        "compilation": {key: state[key] for key in CompilationPhase.__annotations__ if key in state},
+    }
+    phases.update(agent._execute_numeric_phase(phases))
+    phases.update(agent._assemble_final_phase(phases))
+    phases.update(agent._assemble_ledger_phase(phases))
+    final = phases["final_result"]
+    return {**final["agent_answer"], **final["review_trace"], **phases["ledger"]}
 
 
 def _scope(**overrides):
@@ -98,11 +135,13 @@ def _candidate(
     value,
     *,
     raw_unit="items",
-    normalized_unit="COUNT",
+    normalized_unit=None,
+    normalized_value_override=None,
     period="",
     context="table-a",
     row_label="quantity",
 ):
+    normalized_value, parsed_unit = _normalise_operand_value(str(value), raw_unit)
     return {
         "candidate_id": candidate_id,
         "kind": "numeric",
@@ -123,14 +162,35 @@ def _candidate(
         "candidate_kind": "structured_value",
         "raw_value": str(value),
         "raw_unit": raw_unit,
-        "normalized_value": float(value),
-        "normalized_unit": normalized_unit,
+        "normalized_value": normalized_value if normalized_value_override is None else normalized_value_override,
+        "normalized_unit": parsed_unit if normalized_unit is None else normalized_unit,
         "period": period,
         "column_headers": [period] if period else [],
         "value_role": "",
         "aggregation_stage": "",
         "aggregate_label": "",
     }
+
+
+def _source_assertions(catalog, *candidate_ids):
+    requested = {str(item) for item in candidate_ids if str(item)}
+    assertions = []
+    for bundle in build_semantic_source_bundles(catalog):
+        selected = [
+            candidate_id
+            for candidate_id in bundle.candidate_ids
+            if candidate_id in requested
+        ]
+        if not selected:
+            continue
+        assertions.append(
+            {
+                "source_bundle_id": bundle.source_bundle_id,
+                "candidate_ids": selected,
+                "evidence_text": bundle.source_text,
+            }
+        )
+    return assertions
 
 
 def _contract_residual_fixture():
@@ -199,6 +259,7 @@ def _source_display_program_fixture():
                 "formula": "(CLOSE - OPEN) / OPEN * 100",
                 "result_unit": "%",
                 "source_display_candidate_id": "cand-stated",
+                "source_display_reason": "The selected source candidate explicitly reports this derived result.",
             }],
         },
         "query": "Calculate the change using the displayed opening and closing quantities.",

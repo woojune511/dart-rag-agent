@@ -14,7 +14,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from src.agent.financial_calculation_execution import execute_semantic_calculation_program
+from tests.semantic_program_test_support import execute_semantic_calculation_program, execute_compiled_fixture
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_model_loaders import validate_answer_slots_payload
 from src.agent.financial_graph_models import AnswerObligation, SemanticCalculationProgram
@@ -287,7 +287,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         self.assertEqual(llm.models, ["SemanticCalculationProgram"])
         self.assertEqual(len(llm.prompts), expected_calls)
         self.assertEqual(state["semantic_program_retry_count"], expected_calls - 1)
-        state.update(agent._execute_semantic_calculation_program(state))
+        state.update(execute_compiled_fixture(agent, state, state["semantic_candidate_catalog"]))
         state.update(agent._format_citations(state))
         ledger = project_task_artifact_trace(state["tasks"], state["artifacts"])
         self.assertEqual(ledger["integrity_status"], "ok")

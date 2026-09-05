@@ -35,6 +35,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                     "result_unit": "%",
                     "display_unit": "%",
                     "constants": [],
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 }
             ],
             "narrative_bindings": [],
@@ -70,6 +72,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                         "formula": "CURRENT - PRIOR",
                         "result_unit": "PERCENT",
                         "display_unit": "%p",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -149,6 +153,7 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                     "result_unit": "%",
                     "source_display_candidate_id": "cand-stated",
                     "constants": [],
+                    "source_display_reason": "The selected source candidate explicitly reports this derived result.",
                 }
             ],
         }
@@ -174,15 +179,15 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
         output = result["outputs_by_obligation"]["ob_change"]
         self.assertEqual(output["normalized_value"], 10.0)
         self.assertEqual(output["formula_result_value"], 10.0)
-        self.assertEqual(output["answer_slot"]["normalized_value"], 10.0)
+        self.assertEqual(output["answer_slot"]["normalized_value"], 10.2)
         self.assertEqual(output["source_display_value"], "10.2%")
         self.assertEqual(output["source_display_candidate_id"], "cand-stated")
         self.assertEqual(output["source_display_normalized_value"], 10.2)
         self.assertFalse(output["source_display_matches_formula"])
-        self.assertFalse(output["source_stated_result_used"])
-        self.assertEqual(output["formula_rendered_value"], output["rendered_value"])
+        self.assertTrue(output["source_stated_result_used"])
+        self.assertNotEqual(output["formula_rendered_value"], output["rendered_value"])
         self.assertIn(output["formula_rendered_value"], result["answer"])
-        self.assertIn("source-stated 10.2%", result["answer"])
+        self.assertIn("10.2% (recalculated 10%)", result["answer"])
         self.assertIn("calculated", result["answer"])
         self.assertIn("cand-stated", result["selected_candidate_ids"])
         self.assertIn("row-cand-stated", output["source_row_ids"])
@@ -194,7 +199,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
             with self.subTest(stated_value=stated_value):
                 fixture = _source_display_program_fixture()
                 if stated_value is None:
-                    fixture["program"]["expressions"][0]["source_display_candidate_id"] = ""
+                    fixture["program"]["expressions"][0]["source_display_candidate_id"] = None
+                    fixture["program"]["expressions"][0]["source_display_reason"] = "No source-stated result is selected for this calculation-only case."
                 else:
                     fixture["candidate_catalog"][-1].update(
                         normalized_value=stated_value, raw_value=str(stated_value),
@@ -218,7 +224,7 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
         fixture = _source_display_program_fixture()
         fixture["query"] = "표시된 기초 수량과 기말 수량으로 증가율을 계산해 줘."
         result = execute_semantic_calculation_program(**fixture)
-        self.assertIn("원문 기재: 10.2%", result["answer"])
+        self.assertIn("10.2% (재계산값", result["answer"])
         self.assertIn("계산값", result["answer"])
         self.assertIn("입력값은", result["answer"])
         self.assertIn("40.0items", result["answer"])
@@ -244,8 +250,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                 self.assertEqual(output["normalized_unit"], dimension)
                 self.assertEqual(output["source_display_value"], f"4.2{unit}")
                 self.assertFalse(output["source_display_matches_formula"])
-                self.assertFalse(output["source_stated_result_used"])
-                self.assertIn(f"source-stated 4.2{unit}", result["answer"])
+                self.assertTrue(output["source_stated_result_used"])
+                self.assertIn(f"4.2{unit} (recalculated", result["answer"])
 
     def test_multi_output_program_keeps_coupled_values_in_one_context(self) -> None:
         obligations = [
@@ -810,6 +816,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                         "formula": "A + -1",
                         "result_unit": "개",
                         "constants": [],
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -857,6 +865,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                     "constants": [
                         {"value": 2, "origin": "deterministic_cardinality", "source_text": "two inputs"}
                     ],
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 }
             ],
         }
@@ -885,6 +895,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                         "constants": [
                             {"value": 1, "origin": "deterministic_cardinality", "source_text": "one binding"}
                         ],
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -937,6 +949,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                             _binding("A", "numeric", "value:req_numeric")
                         ],
                         "formula": "A",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
                 "narrative_bindings": [
@@ -1003,6 +1017,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                         "formula": "A - B",
                         "result_unit": "개",
                         "compatibility_candidate_ids": ["compatibility"],
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },

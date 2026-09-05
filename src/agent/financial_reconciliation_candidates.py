@@ -15,6 +15,7 @@ from src.agent.financial_runtime_normalization import (
     resolve_source_numeric_unit,
 )
 from src.config.retrieval_policy import (
+    CALCULATION_PROMPT_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     SEMANTIC_CANDIDATE_POLICY,
@@ -534,6 +535,73 @@ def _candidate_period_role_kind(role: str) -> str:
     return ""
 
 
+def _candidate_period_focus(
+    cell: Mapping[str, Any], metadata: Mapping[str, Any]
+) -> str:
+    """Return the parser-projected current/prior role when it is explicit."""
+
+    for raw_value in (
+        cell.get("period_role"),
+        metadata.get("period_role"),
+        cell.get("period_focus"),
+        metadata.get("period_focus"),
+    ):
+        value = _normalise_spaces(str(raw_value or "")).lower()
+        if value in {"current", "prior"}:
+            return value
+    return _candidate_period_role_kind(_candidate_period_role(cell, metadata))
+
+
+def _candidate_period_label_surfaces(
+    cell: Mapping[str, Any], metadata: Mapping[str, Any]
+) -> List[str]:
+    """Preserve parser-owned period labels without making them identity material."""
+
+    def surfaces(*raw_items: Any) -> List[str]:
+        values: List[Any] = []
+        for raw_values in raw_items:
+            if isinstance(raw_values, (str, bytes)):
+                values.append(raw_values)
+            elif isinstance(raw_values, Sequence):
+                values.extend(raw_values)
+        return _normalized_string_list(values)
+
+    source_surface = _candidate_period_surface(cell, metadata)
+    if (
+        _cell_explicit_year(cell, metadata) is not None
+        or _fiscal_ordinal(cell, metadata) is not None
+    ):
+        return _normalized_string_list([source_surface])
+    cell_values = surfaces(cell.get("period_labels"), cell.get("period_text"))
+    if cell_values:
+        return cell_values
+    return surfaces(metadata.get("period_labels"), metadata.get("period_text"))
+
+
+def _candidate_projected_period_role(
+    cell: Mapping[str, Any],
+    metadata: Mapping[str, Any],
+    *,
+    value_year: Optional[int],
+) -> str:
+    for raw_value in (cell.get("period_role"), metadata.get("period_role")):
+        role = _candidate_period_role_kind(
+            _normalise_spaces(str(raw_value or "")).lower()
+        )
+        if role:
+            return role
+    try:
+        report_year = int(metadata.get("year"))
+    except (TypeError, ValueError):
+        report_year = None
+    if value_year is not None and report_year is not None:
+        if value_year == report_year:
+            return "current"
+        if value_year < report_year:
+            return "prior"
+    return _candidate_period_focus(cell, metadata)
+
+
 def _candidate_has_competing_periods(
     cells: Sequence[Mapping[str, Any]], metadata: Mapping[str, Any]
 ) -> bool:
@@ -583,6 +651,13 @@ def _candidate_value_year(
     except (TypeError, ValueError):
         return None
 
+    period_focus = _candidate_period_focus(cell, metadata)
+    if not _candidate_has_competing_periods(cells, metadata):
+        if period_focus == "current":
+            return report_year
+        if period_focus == "prior":
+            return report_year - 1
+
     explicit_role = _candidate_period_role(cell, metadata)
     role_kind = _candidate_period_role_kind(explicit_role)
     if role_kind == "current":
@@ -620,8 +695,15 @@ def _candidate_period_projection(
     if _fiscal_ordinal(cell, metadata) is not None:
         return source_surface, source_surface, "fiscal_period"
     role_kind = _candidate_period_role_kind(_candidate_period_role(cell, metadata))
+    period_focus = _candidate_period_focus(cell, metadata)
     if value_year is not None:
-        period_source = "value_role" if role_kind else "report_current"
+        period_source = (
+            "value_role"
+            if role_kind
+            else "table_period_focus"
+            if period_focus == "prior"
+            else "report_current"
+        )
         return str(value_year), source_surface, period_source
     return source_surface, source_surface, (
         "source_surface_unresolved" if source_surface else "unknown"
@@ -754,6 +836,10 @@ def _semantic_source_candidate(
         "candidate_id": str(candidate_id or "").strip(),
         "source_anchor": _normalise_spaces(source_anchor),
         "text": _normalise_spaces(text),
+        # Candidate identity continues to use the canonical, whitespace-normalized
+        # text above. Keep the exact input separately so prompt projections can
+        # preserve source punctuation and spacing without changing candidate IDs.
+        "source_text_exact": str(text or ""),
         "metadata": dict(metadata or {}),
         "candidate_kind": str(candidate_kind or "chunk"),
     }
@@ -1062,12 +1148,127 @@ def _numeric_context_excerpt(
     return _normalise_spaces(excerpt[window_start : window_start + bounded])
 
 
+def _canonical_spans_in_exact_text(
+    canonical_text: str,
+    exact_text: str,
+    spans: Sequence[Sequence[int]],
+) -> List[tuple[int, int] | None]:
+    """Map canonical value spans through one exact-source offset map."""
+
+    canonical = str(canonical_text or "")
+    exact = str(exact_text or "")
+    if not canonical or _normalise_spaces(exact) != canonical:
+        return [None for _ in spans]
+
+    offsets: List[int] = []
+    tokens = list(re.finditer(r"\S+", exact))
+    for token_index, token in enumerate(tokens):
+        if token_index:
+            offsets.append(tokens[token_index - 1].end())
+        offsets.extend(range(token.start(), token.end()))
+    if len(offsets) != len(canonical):
+        return [None for _ in spans]
+    mapped: List[tuple[int, int] | None] = []
+    for span in spans:
+        try:
+            start, end = int(span[0]), int(span[1])
+        except (IndexError, TypeError, ValueError):
+            mapped.append(None)
+            continue
+        mapped.append(
+            (offsets[start], offsets[end - 1] + 1)
+            if 0 <= start < end <= len(canonical)
+            else None
+        )
+    return mapped
+
+
+def _numeric_source_bundle_projections(
+    canonical_text: str,
+    exact_text: str,
+    spans: Sequence[Sequence[int]],
+    *,
+    max_chars: int = 700,
+) -> List[Dict[str, Any]]:
+    """Share bounded exact sentence windows across neighboring value spans."""
+
+    mapped = _canonical_spans_in_exact_text(canonical_text, exact_text, spans)
+    projections: List[Dict[str, Any]] = [{} for _ in spans]
+    text = str(exact_text or "")
+    boundary_positions = [
+        match.start()
+        for match in re.finditer(r"\n|[!?。]|(?<!\d)\.|\.(?!\d)", text)
+    ]
+    bounded = max(1, int(max_chars))
+    values_by_sentence: Dict[tuple[int, int], List[tuple[int, int, int]]] = {}
+    for index, value_span in enumerate(mapped):
+        if value_span is None:
+            continue
+        value_start, value_end = value_span
+        if value_end - value_start > bounded:
+            raise ValueError("numeric source span exceeds source bundle window")
+        sentence_start = max(
+            (position for position in boundary_positions if position < value_start),
+            default=-1,
+        ) + 1
+        next_boundary = min(
+            (position for position in boundary_positions if position >= value_end),
+            default=-1,
+        )
+        sentence_end = next_boundary + 1 if next_boundary >= 0 else len(text)
+        values_by_sentence.setdefault((sentence_start, sentence_end), []).append(
+            (index, value_start, value_end)
+        )
+
+    for (sentence_start, sentence_end), values in values_by_sentence.items():
+        values.sort(key=lambda value: (value[1], value[2], value[0]))
+        groups: List[List[tuple[int, int, int]]] = []
+        for value in values:
+            if not groups or value[2] - groups[-1][0][1] > bounded:
+                groups.append([])
+            groups[-1].append(value)
+        for group_index, group in enumerate(groups):
+            if sentence_end - sentence_start <= bounded:
+                window_start, window_end = sentence_start, sentence_end
+            else:
+                previous_value_end = (
+                    groups[group_index - 1][-1][2]
+                    if group_index
+                    else sentence_start
+                )
+                next_value_start = (
+                    groups[group_index + 1][0][1]
+                    if group_index + 1 < len(groups)
+                    else sentence_end
+                )
+                window_start = max(
+                    sentence_start,
+                    previous_value_end,
+                    group[0][1] - bounded // 3,
+                    group[-1][2] - bounded,
+                )
+                window_end = min(
+                    sentence_end, next_value_start, window_start + bounded
+                )
+            for index, value_start, value_end in group:
+                projections[index] = {
+                    "source_bundle_text": text[window_start:window_end],
+                    "source_bundle_context_span": [window_start, window_end],
+                    "source_bundle_value_span": [
+                        value_start - window_start,
+                        value_end - window_start,
+                    ],
+                }
+    return projections
+
+
 def _narrative_numeric_rows(
     *,
     source_candidate_id: str,
     evidence_id: str,
     base_record: Mapping[str, Any],
     source_text: str,
+    exact_source_text: str = "",
     require_explicit_unit: bool = False,
     represented_numeric_rows: Sequence[Mapping[str, Any]] = (),
 ) -> List[Dict[str, Any]]:
@@ -1178,6 +1379,19 @@ def _narrative_numeric_rows(
                 "local_entity_surfaces": local_entity_surfaces,
             }
         )
+    projections = _numeric_source_bundle_projections(
+        source_text,
+        exact_source_text or source_text,
+        [row["source_span"] for row in rows],
+        max_chars=int(
+            dict(
+                CALCULATION_PROMPT_POLICY.get("semantic_program_prompt_limits") or {}
+            ).get("numeric_source_chars")
+            or 420
+        ),
+    )
+    for row, projection in zip(rows, projections):
+        row.update(projection)
     return rows
 
 
@@ -1827,6 +2041,9 @@ def build_semantic_candidate_catalog(
                 or ""
             )
         )
+        source_bundle_text = str(
+            current.get("source_text_exact") or current.get("text") or source_text
+        )[:1200]
         base_record: Dict[str, Any] = {
             "source_candidate_id": source_candidate_id,
             "evidence_id": evidence_id,
@@ -1862,8 +2079,13 @@ def build_semantic_candidate_catalog(
             "basis": _normalise_spaces(
                 str(metadata.get("basis") or metadata.get("accounting_basis") or "")
             ),
+            "table_context": _normalise_spaces(
+                str(metadata.get("table_context") or _table_context_text(metadata, {}))
+            )[:320],
             "context_fingerprint": context_fingerprint,
             "source_text": source_text[:1200],
+            "source_bundle_text": source_bundle_text,
+            "source_bundle_context_span": [0, len(source_bundle_text)],
             "candidate_kind": candidate_kind,
         }
 
@@ -1982,6 +2204,15 @@ def build_semantic_candidate_catalog(
                     "period": period,
                     "source_period_surface": source_period_surface,
                     "period_source": period_source,
+                    "period_role": _candidate_projected_period_role(
+                        cell,
+                        metadata,
+                        value_year=value_year,
+                    ),
+                    "period_label_surfaces": _candidate_period_label_surfaces(
+                        cell,
+                        metadata,
+                    ),
                     "value_year": value_year,
                     "column_headers": column_headers,
                     "value_role": _candidate_value_role(
@@ -2009,12 +2240,19 @@ def build_semantic_candidate_catalog(
             narrative_numeric_source = _normalise_spaces(
                 str(current.get("text") or evidence_item.get("quote_span") or "")
             )
+            exact_narrative_numeric_source = str(
+                current.get("source_text_exact")
+                or current.get("text")
+                or evidence_item.get("quote_span")
+                or ""
+            )
             numeric_rows.extend(
                 _narrative_numeric_rows(
                     source_candidate_id=source_candidate_id,
                     evidence_id=evidence_id,
                     base_record=base_record,
                     source_text=narrative_numeric_source,
+                    exact_source_text=exact_narrative_numeric_source,
                     require_explicit_unit=(
                         has_structured_material and not is_explicit_non_table_source
                     ),

@@ -15,6 +15,7 @@ from src.agent.financial_row_surfaces import strip_financial_label_annotations
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
+    resolve_unit_spec,
 )
 from src.agent.financial_runtime_contracts import (
     EvidenceBundleConstraintV1,
@@ -354,9 +355,8 @@ def resolve_owner_target(
         for spec in specs
         if str(spec.get("unit_family") or "").upper() in _VALID_UNIT_FAMILIES
     }
-    _value, display_unit = _normalise_operand_value(
-        "1", str(owner_row.get("display_unit") or "")
-    )
+    unit_spec = resolve_unit_spec(str(owner_row.get("display_unit") or ""))
+    display_unit = unit_spec.normalized_dimension if unit_spec else "UNKNOWN"
     expected_unit = (
         display_unit
         if display_unit in _VALID_UNIT_FAMILIES
@@ -687,7 +687,7 @@ def rank_candidate_matches(
     limit: int,
     excluded_candidate_ids: Sequence[str] = (),
 ) -> list[Dict[str, Any]]:
-    """Select stronger factor tiers first, diversifying sources within a tie."""
+    """Select deterministic factor tiers while preserving source diversity."""
 
     excluded = {str(item) for item in excluded_candidate_ids if str(item)}
     allowed = {str(item) for item in allowed_kinds}

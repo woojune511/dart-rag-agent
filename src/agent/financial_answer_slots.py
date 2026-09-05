@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Mapping, Optional
 
 from src.agent.financial_graph_calculation_rendering import (
-    format_calculation_value_in_display_unit,
     format_ratio_percent_result,
     render_grounded_operand_display,
     render_value_with_unit,
@@ -346,12 +345,7 @@ def build_calculated_value_slot(
 ) -> Dict[str, Any]:
     rendered_value = ""
     if normalized_value is not None:
-        krw_normalized_unit = str(CALCULATION_RENDER_POLICY.get("krw_normalized_unit") or "").upper()
-        krw_display_unit_scales = dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})
-        if str(normalized_unit or "").upper() == krw_normalized_unit and display_unit in krw_display_unit_scales:
-            rendered_value = format_calculation_value_in_display_unit(float(normalized_value), display_unit)
-        else:
-            rendered_value = render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
+        rendered_value = render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
     row_ids = _clean_source_row_ids(source_row_ids or [])
     return {
         "status": slot_status(

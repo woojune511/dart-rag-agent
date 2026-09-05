@@ -1,107 +1,107 @@
 # Current Handoff Context
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
-## Canonical source
+## Working source
 
-- `main` is the canonical source. The runtime redesign and checkout closeout
-  landed through [PR #89](https://github.com/woojune511/dart-rag-agent/pull/89);
-  provider-free candidate ambiguity instrumentation is delivered by
-  [PR #90](https://github.com/woojune511/dart-rag-agent/pull/90).
-- The ambiguity instrumentation does not change candidate IDs, stores, or
-  compiler prompt input.
-- The product path is the single-agent `FinancialAgent`. MAS, Streamlit,
-  benchmark, evaluator, replay, and promotion tools remain optional or
-  experimental consumers.
+- Product: single-agent `FinancialAgent`.
+- Branch: `main`; verified development source
+  `codex/bounded-semantic-tiebreaker` was fast-forwarded at `f46e331`;
+  repair baseline: `5e13bc6`; latest runtime-contract fix: `af9a07e`.
+- Unit/retry, compiler, persistence/API, and final-state ownership repairs are
+  implemented as separate changes. Git is the commit chronology.
+- HTTP shape, `FinancialRunResultV1`, candidate identity/catalog fingerprint
+  inputs, parser table identity, and storage formats remain unchanged.
+- Historical results, datasets, stores, caches, and review packets are immutable.
+  New local replay/gate outputs remain ignored and uncommitted.
+
+Authority: [runtime contract](docs/architecture/agent_runtime_contract.md),
+[code map](docs/overview/codebase_map.md), and
+[project status](docs/overview/project_status.md).
+The fast development loop is in [AGENTS.md](AGENTS.md).
 
 ## Current runtime
 
-- `FinancialAgentStateV2` is phase-owned and the final assembler is the only
-  task-ledger and answer writer.
-- Compiler, validator, and executor share one immutable candidate-visibility
-  envelope. Catalog, cohort, or validation drift fails before execution.
-- Typed per-owner matching replaces additive keyword scoring. Candidate prompts
-  are cell-local, and related outputs select one complete physical row before
-  compiler invocation.
-- Declared dependencies, non-empty coupling keys, and inferred complete-row
-  bundles define bounded compilation islands. Candidate failure promotes the
-  next complete row; format-only retry keeps the selected row.
-- Retrieval, ingest, store readiness, API services, and the typed
-  `FinancialRunResultV1` have explicit ownership boundaries. Store compatibility
-  is exact, unknown occupancy fails closed, and degraded BM25 use is visible.
-- FastAPI serializes shared query and ingest work before threadpool dispatch.
-  Cached Streamlit services separately serialize store inspection, query,
-  ingest, readiness refresh, and evaluation across sessions.
+- One unit specification controls normalization, applicability, validation, and
+  rendering. Currency/count scales, composite signs, canonical units, USD direct
+  values, and non-finite results are covered by real-normalizer tests.
+- Unsupported planner units retain their obligations and block affected islands.
+  Compiler-format errors retry the same cohort; candidate replacement uses
+  explicit typed ownership, never IDs inferred from diagnostic prose.
+- Optional planner text serializations `null`/`none` normalize to blank for
+  display unit, display format, and coupling key. Real unsupported unit strings
+  remain errors, and blank coupling keys cannot merge independent islands.
+- `depends_on` names only other answer obligations. Redundant references to the
+  same obligation's evidence requirements are removed during projection; true
+  unknown, self, and cross-obligation dependencies keep fail-closed semantics.
+- `CompilationEnvelopeV2` binds complete catalog content, ordered obligations,
+  and query before executor revalidation. Production has no V1 fallback.
+- Source bundles preserve neighboring values in shared bounded windows. Actual
+  unique selectable IDs enforce numeric 96/narrative 32, including every retry.
+- Expressions explicitly select or decline a source display and give a reason.
+  Source values are primary; differing calculated values are also shown.
+  Downstream formulas use calculated values, with separate display provenance.
+- Source writes publish payload union then graph atomically and memory last.
+  Incomplete stores block queries but allow recovery ingest. Missing sidecars
+  reuse stored text/parser metadata without context generation or embedding.
+- Graph-source vector rebuilds now take one `StoreManifestV1` authority and
+  publish it only after index health succeeds. A failed side-by-side build stays
+  manifest-less and can be resumed without making the partial store query-ready.
+- Query readiness, execution, and snapshot share one operation lock; DB work,
+  ingest, and post-ingest readiness refresh run in workers.
+- Explicit phase TypedDicts replace the full-state merge. Numeric execution and
+  narrative validation return facts, not final answers. The graph finishes
+  `assemble_final → assemble_ledger → END`; `run()` only packages the result.
+  TypedDicts describe static shape, not runtime immutability.
 
-Stable rules are in
-[agent_runtime_contract.md](docs/architecture/agent_runtime_contract.md), the
-checked topology is in
-[runtime_flow_roles.md](docs/overview/runtime_flow_roles.md), and historical
-detail remains in [implementation_history.md](docs/history/implementation_history.md)
-and [experiment_history.md](docs/history/experiment_history.md).
+## Verification and claim boundary
 
-## Verification
+Python 3.13 full unittest `878 / 878`, domain audit (84 reviewed literals),
+import/topology, pycompile, and diff checks pass. The local integration recheck
+also passed `878 / 878` on Python 3.14.5; the environment emitted existing
+LangChain/Pydantic compatibility warnings but no test failure. Detailed counts
+are in project status.
+Provider-free replay verifies all three saved catalog identities and unchanged
+input-file hashes:
 
-- The reviewed PR head passed 790 local unittest cases, the 86-literal runtime
-  domain audit, import/topology checks, pycompile, and `git diff --check`.
-- GitHub's Python 3.13 reviewer-contract and full-unittest jobs passed. The
-  current-head Codex review reported no major issue and all review threads are
-  resolved.
-- The approved store-fixed three-question gate remains **3/3 runtime-complete**
-  with runtime error 0 and ledger `ok`: T2 retains `87.0만 대` and `78.1만 대`;
-  T3 selects one table-82 row for `26%` and `700,691백만원`; Samsung retains its
-  accepted numeric and Harman evidence.
-- Admission `06a40243...016` was consumed exactly once. The run used 17 LLM
-  calls, 117,631 LLM tokens, 32 query-embedding calls, zero document-embedding
-  calls, and an estimated USD `0.1212257` under the approved USD `0.40` cap.
-- The approved `data/chroma_dart` manifest is compatible and its predecessor
-  store files remained byte-identical. This is store readiness, not a new
-  provider-query result.
+- T2: explicit source-display copy renders `11.5% (재계산값 11.4%)`.
+- T3: original program bytes and physical row/evidence remain unchanged.
+- Samsung: restoring its recorded first binding accepts `28,352,769백만원`
+  and preserves the existing narrative evidence.
 
-## Predecessor cleanup
+T2 and Samsung are explicitly counterfactual runtime-contract tests. That replay
+itself made no compiler/provider/evaluator call and is not a release claim.
+Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
 
-On 2026-09-04 the original checkout
-`C:\Users\geonj\Desktop\dart-rag-agent` was converted into the primary clean
-`main` checkout at `9006ae7`. Its 24 visible dirty paths were preserved in the
-local recoverable stash named
-`pre-main-cleanup semantic-candidate-boundary predecessor 2026-09-04`; the
-`codex/semantic-candidate-boundary-repair` branch pointer remains at `a278c1a`.
+## Provider result, remaining work, and hard stops
 
-A read-only blob comparison against merged `main` found:
+1. Admission `0f0c0d52...0445` was consumed exactly once on clean commit
+   `58551c7` for OpenAI-store-fixed `HYU_T2_010`. Both obligations completed,
+   runtime error is `0`, ledger is `ok`, and evaluator faithfulness/completeness
+   are `1.0 / 1.0`. There was no fetch, ingest, document embedding, source
+   mutation, or runner retry.
+2. Numeric `ob_001` selected `87.0만 대`, `78.1만 대`, and source display
+   `11.5%`; deterministic calculation is `11.395646606914212`, rendered as
+   `11.4%`. Narrative `ob_002` selected `cand_bbd863eb396fa724d814`. Both islands
+   had empty preflight errors, confirming the dependency-projection repair.
+3. Numeric compilation used its allowed one same-cohort internal retry to repair
+   source assertions; narrative compilation was not retried. Final program is
+   ready with four selected candidates, two outputs, and no missing obligation.
+4. The run exited zero in `118.936s`, using 7 total LLM calls / 71,359 tokens and
+   11 query / 0 document embedding calls. Recorded non-embedding cost is USD
+   `0.0664263`; actual billing remains unavailable. Source-store fingerprint is
+   unchanged at `6231cd8e...24e9`, and no disposable store remains. Root result
+   SHA-256 is `a765a132...0ad9`; ignored receipt is `4dd004f2...a3b4`.
+5. With the manifest-bound immutable T3 and Samsung successes, the defined
+   source-consistent runtime release gate is now `3 / 3 PASS`: completeness 3/3,
+   runtime error 0, ledger `ok`. The mixed-question
+   `numeric_final_judgement=null` is evaluator N/A, not a runtime failure.
+6. The approval is exhausted. No further provider retry is authorized or needed
+   for this gate.
+7. Formula-wide rounding-error propagation is deferred. Source precision
+   comparison currently scales only the selected source's rounding interval.
+8. T3 answer-key/evaluator governance is separate; do not change tolerance,
+   faithfulness policy, dataset answers, or source evidence to improve a score.
 
-- 12 paths are already byte-identical to `main`.
-- The other 12 contain no change that should be ported. They are superseded
-  module-global API wiring, flat-result consumers, permissive partial-store
-  reuse, pre-rationale evaluator code, the mixed-basis T3 key, stale authority
-  prose, and tests for those predecessor contracts.
-- The divergent paths are `AGENTS.md`, the full curated dataset, numeric
-  evaluation and T3 review docs, `financial_router.py`, `benchmark_runner.py`,
-  `evaluator.py`, four associated test modules, and the standalone legacy HTTP
-  contract test.
-
-The clean, already-merged `runtime-integration` and `runtime-redesign` linked
-worktrees were removed. Before removal, 86 ignored result files found only in
-the integration worktree were copied into the primary `benchmarks/results`
-tree and verified by SHA-256; `.env`, reports, stores, and all benchmark
-artifacts remain uncommitted. Do not merge or rebase the predecessor branch
-into `main`; restore its stash on a separate branch only for explicit
-archaeology.
-
-## Hard boundaries and next work
-
-1. Do not rerun the exhausted paid gate, perform fresh ingest, or rewrite saved
-   stores, caches, benchmark results, candidate IDs, or historical artifacts.
-2. The provider-free audit rebuilt all three saved catalogs from their exact
-   structure-graph source windows and matched every saved source/catalog
-   fingerprint: 4,107 candidates, 16 owner cohorts, and 154,689 compiler-prompt
-   bytes. Eight cohorts have a multi-candidate top factor tier, while 3,301 of
-   3,323 non-conflicting candidate-owner evaluations are `unknown_only`. The
-   one complete-row bundle has two options; the selected row wins by
-   position-sum margin 2 and
-   worst-position margin 1. Five compiler islands recorded no retry or failure.
-3. The next implementation should be a bounded, provider-free tie-breaker only
-   inside those tied top factor tiers. It must preserve hard applicability,
-   owner visibility, and complete-row bundle selection. Do not rerank the whole
-   catalog or introduce benchmark-specific terms.
-4. Keep the persisted typed fact index deferred behind a separately approved,
-   versioned ingest/store migration.
+Historical evidence stays in [implementation history](docs/history/implementation_history.md),
+[experiment history](docs/history/experiment_history.md), and Git.

@@ -27,6 +27,30 @@ def _fingerprint(value: Any) -> str:
     return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
 
 
+def execution_content_fingerprint(
+    *,
+    candidate_catalog: Sequence[Mapping[str, Any]],
+    obligations: Sequence[Mapping[str, Any]],
+    query: str,
+) -> str:
+    """Bind every execution input while preserving obligation and value order."""
+
+    catalog_rows = sorted(
+        (dict(candidate) for candidate in candidate_catalog),
+        key=lambda candidate: (
+            str(candidate.get("candidate_id") or ""),
+            _canonical_json(candidate),
+        ),
+    )
+    return _fingerprint(
+        {
+            "candidate_catalog": catalog_rows,
+            "obligations": [dict(obligation) for obligation in obligations],
+            "query": query,
+        }
+    )
+
+
 def _ordered_unique(values: Sequence[Any]) -> Tuple[str, ...]:
     return tuple(dict.fromkeys(str(value) for value in values if str(value)))
 
@@ -325,15 +349,20 @@ class CandidateVisibilityV1:
 
 
 @dataclass(frozen=True, slots=True)
-class CompilationEnvelopeV1:
-    """Immutable program, validation, and visibility accepted at compile time."""
+class CompilationEnvelopeV2:
+    """Immutable program authority bound to the full compile-time inputs."""
 
     visibility: CandidateVisibilityV1
     program_json: str
     program_fingerprint: str
     validation_json: str
     validation_fingerprint: str
-    schema_version: str = "compilation_envelope_v1"
+    execution_content_fingerprint: str
+    schema_version: str = "compilation_envelope_v2"
+
+    def __post_init__(self) -> None:
+        if not self.execution_content_fingerprint:
+            raise ValueError("execution content fingerprint must be non-empty")
 
     @classmethod
     def create(
@@ -342,7 +371,10 @@ class CompilationEnvelopeV1:
         visibility: CandidateVisibilityV1,
         program: Mapping[str, Any],
         validation: Mapping[str, Any],
-    ) -> "CompilationEnvelopeV1":
+        candidate_catalog: Sequence[Mapping[str, Any]],
+        obligations: Sequence[Mapping[str, Any]],
+        query: str,
+    ) -> "CompilationEnvelopeV2":
         program_projection = dict(program)
         validation_projection = dict(validation)
         return cls(
@@ -351,6 +383,11 @@ class CompilationEnvelopeV1:
             program_fingerprint=_fingerprint(program_projection),
             validation_json=_canonical_json(validation_projection),
             validation_fingerprint=_fingerprint(validation_projection),
+            execution_content_fingerprint=execution_content_fingerprint(
+                candidate_catalog=candidate_catalog,
+                obligations=obligations,
+                query=query,
+            ),
         )
 
     def program_projection(self) -> Dict[str, Any]:
@@ -365,6 +402,19 @@ class CompilationEnvelopeV1:
     def matches_validation(self, validation: Mapping[str, Any]) -> bool:
         return _fingerprint(dict(validation)) == self.validation_fingerprint
 
+    def matches_execution_content(
+        self,
+        *,
+        candidate_catalog: Sequence[Mapping[str, Any]],
+        obligations: Sequence[Mapping[str, Any]],
+        query: str,
+    ) -> bool:
+        return self.execution_content_fingerprint == execution_content_fingerprint(
+            candidate_catalog=candidate_catalog,
+            obligations=obligations,
+            query=query,
+        )
+
     def to_projection(self) -> Dict[str, Any]:
         return {
             "schema_version": self.schema_version,
@@ -373,13 +423,15 @@ class CompilationEnvelopeV1:
             "program_fingerprint": self.program_fingerprint,
             "validation": self.validation_projection(),
             "validation_fingerprint": self.validation_fingerprint,
+            "execution_content_fingerprint": self.execution_content_fingerprint,
         }
 
 
 __all__ = [
     "CandidateVisibilityV1",
-    "CompilationEnvelopeV1",
+    "CompilationEnvelopeV2",
     "EvidenceBundleConstraintV1",
     "EvidenceBundleOptionV1",
     "OwnerCandidateVisibility",
+    "execution_content_fingerprint",
 ]

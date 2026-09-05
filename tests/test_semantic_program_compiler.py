@@ -4,6 +4,30 @@ from tests.semantic_program_test_support import *
 
 
 class SemanticCalculationProgramCompilerTests(unittest.TestCase):
+    def test_expression_schema_requires_explicit_source_display_decision(self) -> None:
+        schema = SemanticCalculationProgram.model_json_schema()
+        expression_schema = schema["$defs"]["SemanticProgramExpression"]
+        self.assertIn("source_display_candidate_id", expression_schema["required"])
+        self.assertIn("source_display_reason", expression_schema["required"])
+        self.assertNotIn("default", expression_schema["properties"]["source_display_candidate_id"])
+        self.assertIn({"type": "null"}, expression_schema["properties"]["source_display_candidate_id"]["anyOf"])
+        expression = {
+            "obligation_id": "derived", "formula": "A",
+            "source_display_candidate_id": None,
+            "source_display_reason": "Only the operand is reported in the source.",
+        }
+        parsed = SemanticCalculationProgram.model_validate({"status": "ready", "expressions": [expression]})
+        self.assertIsNone(parsed.expressions[0].source_display_candidate_id)
+        for field in ("source_display_candidate_id", "source_display_reason"):
+            omitted = {key: value for key, value in expression.items() if key != field}
+            with self.subTest(omitted=field), self.assertRaises(ValueError):
+                SemanticCalculationProgram.model_validate({"status": "ready", "expressions": [omitted]})
+        for reason in ("", "   \t\n"):
+            with self.subTest(reason=repr(reason)), self.assertRaises(ValueError):
+                SemanticCalculationProgram.model_validate({
+                    "status": "ready", "expressions": [{**expression, "source_display_reason": reason}],
+                })
+
     def test_models_accept_open_obligations_and_restricted_program(self) -> None:
         planned = RequirementPlannerOutput.model_validate(
             {
@@ -65,6 +89,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                         ],
                         "formula": "((CURR - PREV) / PREV) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
                 "narrative_bindings": [
@@ -99,7 +125,7 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         )
         self.assertEqual(program.expressions[0].formula, "((CURR - PREV) / PREV) * 100")
 
-    def test_program_prompt_excludes_parent_row_context_for_structured_cell(self) -> None:
+    def test_program_prompt_uses_bundle_local_text_instead_of_parent_context(self) -> None:
         candidate = {
             **_candidate("late-context", 10),
             "source_text": (
@@ -107,12 +133,22 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                 + "requested semantic context appears beside the source value "
                 + "unrelated suffix " * 40
             ),
+            "source_bundle_text": "quantity 10 items",
         }
-        row = FinancialAgent._semantic_program_prompt_rows([candidate])[0]
-        self.assertNotIn("requested semantic context", row["source_text"])
-        self.assertIn("quantity", row["source_text"])
-        self.assertIn("10", row["source_text"])
-        self.assertLessEqual(len(row["source_text"]), 420)
+        payload = FinancialAgent._semantic_program_prompt_payload(
+            [candidate],
+            {
+                "visible_candidate_ids": ["late-context"],
+                "candidate_match_by_id": {},
+                "cohorts": [],
+                "reservation": {},
+            },
+        )
+        row = payload["candidates_by_id"]["late-context"]
+        bundle = payload["source_bundles_by_id"][row["source_bundle_id"]]
+        self.assertNotIn("source_text", row)
+        self.assertNotIn("requested semantic context", bundle["source_text"])
+        self.assertEqual(bundle["source_text"], "quantity 10 items")
 
     def test_targeted_retry_merge_preserves_valid_output_bytes(self) -> None:
         preserved = {
@@ -129,11 +165,28 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
             sort_keys=True,
             separators=(",", ":"),
         ).encode("utf-8")
+        preserved_assertion = {
+            "source_bundle_id": "srcb-valid",
+            "candidate_ids": ["cand-valid"],
+            "evidence_text": "reported value 10",
+        }
+        assertion_before = json.dumps(
+            preserved_assertion,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
         merged = _merge_targeted_program_retry(
             previous_validation={
                 "valid_direct_bindings": [preserved],
                 "valid_expressions": [],
                 "valid_narrative_bindings": [],
+                "valid_source_assertions": [
+                    {
+                        **preserved_assertion,
+                        "assertion_fingerprint": "validation-only",
+                        "covered_obligation_ids": ["ob_valid"],
+                    }
+                ],
             },
             retry_program={
                 "status": "ready",
@@ -153,6 +206,12 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
             separators=(",", ":"),
         ).encode("utf-8")
         self.assertEqual(after, before)
+        assertion_after = json.dumps(
+            merged["source_assertions"][0],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.assertEqual(assertion_after, assertion_before)
 
     def test_source_defined_mode_is_explicit_in_schema_and_prompts(self) -> None:
         mode = AnswerObligation.model_json_schema()["properties"]["evidence_mode"]
@@ -234,6 +293,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                     "formula": "((END / START) ** (1 / 3) - 1) * 100",
                     "result_unit": "%",
                     "constants": [{"value": 3, "origin": "query", "source_text": "3 years"}],
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
                 {
                     "obligation_id": "change_1",
@@ -243,6 +304,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                     ],
                     "formula": "((CURR - PREV) / PREV) * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
                 {
                     "obligation_id": "change_2",
@@ -252,6 +315,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                     ],
                     "formula": "((CURR - PREV) / PREV) * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
             ],
         }

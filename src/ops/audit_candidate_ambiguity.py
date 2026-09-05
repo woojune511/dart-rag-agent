@@ -43,6 +43,8 @@ SUPPORTED_DIAGNOSTIC_SCHEMAS = frozenset(
     {
         "semantic_candidate_stage_diagnostics_v6",
         "semantic_candidate_stage_diagnostics_v7",
+        "semantic_candidate_stage_diagnostics_v8",
+        "semantic_candidate_stage_diagnostics_v9",
     }
 )
 
@@ -85,15 +87,18 @@ def _iter_calculation_plans(
     value: Any,
     *,
     question_id: str = "",
+    question: str = "",
     store: Mapping[str, Any] | None = None,
-) -> Iterable[tuple[str, Mapping[str, Any], Mapping[str, Any]]]:
+) -> Iterable[tuple[str, str, Mapping[str, Any], Mapping[str, Any]]]:
     if isinstance(value, Mapping):
         local_question_id = question_id
+        local_question = question
         local_store = dict(store or {})
         if isinstance(value.get("store"), Mapping):
             local_store = dict(value.get("store") or {})
         if value.get("question") and value.get("id"):
             local_question_id = str(value.get("id") or "")
+            local_question = str(value.get("question") or "")
         diagnostics = value.get("candidate_stage_diagnostics")
         if (
             isinstance(diagnostics, Mapping)
@@ -101,11 +106,12 @@ def _iter_calculation_plans(
             in SUPPORTED_DIAGNOSTIC_SCHEMAS
             and isinstance(value.get("candidate_cohorts"), Sequence)
         ):
-            yield local_question_id, value, local_store
+            yield local_question_id, local_question, value, local_store
         for child in value.values():
             yield from _iter_calculation_plans(
                 child,
                 question_id=local_question_id,
+                question=local_question,
                 store=local_store,
             )
     elif isinstance(value, Sequence) and not isinstance(
@@ -116,6 +122,7 @@ def _iter_calculation_plans(
             yield from _iter_calculation_plans(
                 child,
                 question_id=question_id,
+                question=question,
                 store=store,
             )
 
@@ -131,7 +138,7 @@ def load_saved_plans(
     seen: set[tuple[str, str]] = set()
     for path in _result_files(paths):
         payload = _read_json(path)
-        for question_id, plan, store in _iter_calculation_plans(payload):
+        for question_id, question, plan, store in _iter_calculation_plans(payload):
             if question_ids and question_id not in question_ids:
                 continue
             diagnostics = dict(plan.get("candidate_stage_diagnostics") or {})
@@ -142,6 +149,7 @@ def load_saved_plans(
             rows.append(
                 {
                     "question_id": question_id or "unknown",
+                    "question": question,
                     "source_file": path.as_posix(),
                     "plan": dict(plan),
                     "store": dict(store),
@@ -325,6 +333,24 @@ def _owner_for_cohort(
             **dict(requirement.get("scope") or {}),
         }
     return requirement, parent or None
+
+
+def replay_verified_candidate_catalog(
+    plan: Mapping[str, Any],
+    store: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Public read-only catalog replay shared by ambiguity tooling."""
+
+    return _verified_catalog_replay(plan, store)
+
+
+def resolve_saved_candidate_owner(
+    obligations: Sequence[Mapping[str, Any]],
+    cohort: Mapping[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    """Resolve a saved cohort owner without changing its inherited scope."""
+
+    return _owner_for_cohort(obligations, cohort)
 
 
 def _reproject_full_catalog_ranking(

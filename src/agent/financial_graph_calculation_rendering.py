@@ -4,6 +4,7 @@ This module owns ratio result-unit and magnitude projection plus shared answer
 rendering; graph modules retain state preparation, orchestration, and adoption.
 """
 
+import math
 import re
 from typing import Any, Callable, Dict, List, Optional
 
@@ -13,6 +14,8 @@ from src.agent.financial_runtime_normalization import (
     display_operand_label,
     format_korean_won_compact,
     _normalise_spaces,
+    _normalise_operand_value,
+    resolve_unit_spec,
 )
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, CONCEPT_RATIO_RESULT_UNIT_POLICY
 
@@ -130,17 +133,17 @@ def ratio_result_projection(
 
 
 def format_calculation_value_in_display_unit(value: float, display_unit: str) -> str:
-    unit = _normalise_spaces(str(display_unit or ""))
-    scale_by_unit = dict(CALCULATION_RENDER_POLICY.get("krw_display_unit_scales") or {})
-    scale = scale_by_unit.get(unit)
-    if not scale:
+    spec = resolve_unit_spec(display_unit)
+    if spec is None or not math.isfinite(value):
         return ""
-    scaled = float(value) / scale
-    if abs(scaled - round(scaled)) <= 1e-6:
+    scaled = float(value) / spec.scale
+    if spec.normalized_dimension == "PERCENT":
+        rendered = format_calculation_value(scaled, spec.display_unit, "PERCENT")
+    elif abs(scaled - round(scaled)) <= 1e-6:
         rendered = f"{round(scaled):,}"
     else:
         rendered = f"{scaled:,.4f}".rstrip("0").rstrip(".")
-    return f"{rendered}{unit}"
+    return f"{rendered}{spec.display_unit}"
 
 
 def adjusted_difference_source_display_unit(
@@ -200,6 +203,14 @@ def adjusted_difference_source_display_unit(
 
 
 def render_value_with_unit(value: float, display_unit: str, normalized_unit: str) -> str:
+    spec = resolve_unit_spec(display_unit)
+    normalized_spec = resolve_unit_spec(normalized_unit)
+    if (
+        spec is not None
+        and normalized_spec is not None
+        and spec.normalized_dimension == normalized_spec.normalized_dimension
+    ):
+        return format_calculation_value_in_display_unit(value, display_unit)
     rendered = format_calculation_value(value, display_unit, normalized_unit)
     if normalized_unit == "KRW":
         return rendered
@@ -350,6 +361,18 @@ def render_grounded_operand_display(row: Dict[str, Any]) -> str:
     coerced_display = _normalise_spaces(str(row.get("rendered_value") or ""))
     if row.get("value_coercion") and coerced_display:
         return coerced_display
+    source_spec = resolve_unit_spec(raw_unit)
+    if (
+        raw_value
+        and source_spec is not None
+        and source_spec.normalized_dimension == normalized_unit
+    ):
+        _value, inline_dimension = _normalise_operand_value(raw_value, "")
+        return (
+            raw_value
+            if inline_dimension == normalized_unit
+            else f"{raw_value}{source_spec.display_unit}"
+        )
     if raw_value and normalized_unit in count_or_percent_units:
         embedded_non_currency_markers = tuple(
             marker for marker in embedded_unit_markers if marker not in krw_display_units

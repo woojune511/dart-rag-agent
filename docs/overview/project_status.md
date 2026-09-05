@@ -1,150 +1,125 @@
 # Project Status
 
-Last updated: 2026-09-04
+Last updated: 2026-09-05
 
-## At a glance
+## Current implementation
 
-| Question | Current answer |
-| --- | --- |
-| Product | Single-agent `FinancialAgent` for evidence-backed DART filing analysis |
-| Canonical source | `main`; runtime redesign through PR #89 and provider-free ambiguity audit through PR #90 |
-| Runtime state | Typed owner matching, atomic direct-output rows, and complete policy-defined source rows replace additive keyword scoring and independent multi-output selection |
-| Public result | `FinancialRunResultV1`; review/debug are opt-in and the HTTP answer wire shape is unchanged |
-| Store readiness | Approved manifest written; exact manifest check is `compatible`, `ready=true`, `degraded=false` |
-| Provider evidence | Atomic-bundle admission `06a40243...016` was consumed once in a completed store-fixed three-question `eval-only` run; no fresh ingest or document embedding |
-| Release status | **PASS, 3/3 runtime-complete** with runtime error 0 and ledger `ok`; qualitative evaluator thresholds remain separate |
+The product is the single-agent `FinancialAgent`, on `main`. The verified
+`codex/bounded-semantic-tiebreaker` source was fast-forwarded locally at
+`f46e331`. Contract repairs start from `5e13bc6`; the latest planner
+dependency-boundary fix is `af9a07e`.
+Public HTTP fields, `FinancialRunResultV1`, candidate identity inputs, catalog
+fingerprints, parser table structure, and stored formats remain compatible.
 
-## Current boundaries
+The implemented boundaries are:
 
-- `FinancialAgentStateV2` has one top-level writer for each phase. Intermediate
-  nodes do not mutate the task/artifact ledger or final answer.
-- Compiler, validator, and executor share one immutable visibility envelope.
-  Catalog or validation drift fails before execution.
-- Each obligation or evidence requirement may carry a typed semantic target.
-  Candidate admission compares scope, local subject, owner kind, unit, metric,
-  and physical locality as separate factors; explicit conflicts are excluded
-  and compatible candidates precede unknown-only candidates.
-- The candidate catalog remains complete and stable. Cohort prompts contain
-  cell-local structured text and one factor projection; they do not perform a
-  second keyword ranking pass.
-- Numeric compilation is isolated by declared dependency, non-empty coupling
-  key, and inferred complete-row evidence bundles. A bundle adds an island edge
-  even when planner coupling is empty. Code ranks complete rows from existing
-  owner cohorts, selects one before compiler invocation, and removes alternative
-  row IDs from output and requirement visibility. Numeric compatibility
-  narratives remain available. Unknown dependency, self-dependency, cycle,
-  island overflow, or candidate reservation overflow fails before compiler calls.
-- Retrieval is internally split into plan, search, selection, and trace stages.
-- `IngestService` owns fetch through manifest recording. `FinancialAgent` no
-  longer exposes ingest methods.
-- FastAPI dependencies live in lifespan-owned `AppServices`; sync query and ingest
-  execute in a threadpool. Liveness and readiness are separate endpoints.
-- Cached Streamlit services serialize store inspection, query, ingest plus
-  readiness refresh, and evaluation across sessions.
-- Evaluator-only accepted calculation/answer variants require one complete,
-  source-qualified atomic match. They do not alter runtime selection or promote
-  qualitative scores.
-- A `source_defined_group` with a selected structured row exposes every
-  policy-defined cell from that physical row as required. Candidate failure
-  rejects that row as a unit, and capacity overflow fails before compilation.
-- Derived values render their source-visible inputs. Faithfulness judge output
-  records a short rationale without changing score thresholds or overrides.
-- Benchmark `store-only` excludes question/evaluator work, while `eval-only`
-  evaluates from a disposable store copy and preserves its source bytes.
-- MAS and Streamlit remain experimental consumers, not the product authority.
+- Shared unit scales and source-preserving numeric display; canonical
+  KRW/USD/PERCENT/COUNT, signed composite amounts, USD lookups, and finite-value
+  checks use one normalizer contract.
+- Planner unit errors block only affected islands. Compiler format retries keep
+  candidates; explicit candidate conflicts carry exact replacement ownership.
+- Structured-output `null`/`none` sentinels normalize to blank only for optional
+  planner display/coupling text. Genuine unsupported units remain fail-closed.
+- `depends_on` is reserved for other answer obligations. Same-obligation raw
+  evidence requirement IDs are removed at planner projection, while known answer
+  dependencies, unknown IDs, and self references retain preflight validation.
+- `CompilationEnvelopeV2` checks full execution content before revalidation or
+  arithmetic. Existing visibility/program/validation checks remain independent.
+- Bundle-first selection retains adjacent source values and counts the actual
+  query-wide unique selectable IDs, including retry replacement.
+- Source-first output and separately labelled recomputation coexist.
+  Dependencies use calculated values; primary answer slots use display values.
+- Atomic payload-superset/graph-last persistence, failure propagation, strict
+  source coverage, and provider-free sidecar recovery replace partial publication.
+- Graph-source vector rebuilds use one expected store manifest for collection,
+  embedding, and ingest identity. The manifest is published only after health;
+  an interrupted side-by-side target stays unready and resumable.
+- API query/readiness snapshots share a lock. DB/ingest/readiness refresh work is
+  off the event loop. Health reads cached readiness only.
+- Concrete phase inputs/outputs replace the production full-state merge.
+  Numeric/narrative owners return facts; final assembly precedes ledger assembly.
+  `run()` does not rebuild the answer. TypedDicts are not immutability guarantees.
 
-## Evidence and remaining gate
+No role classifier, cross-encoder, metric-specific runtime branch, new provider
+call, source-store mutation, evaluator relaxation, or dataset correction is part
+of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
-The merged provider-free source combines typed target matching, cell-local
-prompts, complete-row bundle inference, and fail-closed validation. Complete
-options use the existing per-owner ranks: lowest summed position, then lowest
-worst position, then physical IDs. Only the selected row enters the compiler's
-candidate dictionary and active constraint. Candidate rejection rebuilds the
-cohorts so the next complete row can be promoted; format-only retry keeps the
-same row. Ranked alternatives are diagnostic-only. The reviewed head passes 790
-local unittest cases, the 86-literal domain audit, import/topology checks,
-pycompile, and `git diff --check`. Both Python 3.13 CI jobs passed; the latest
-Codex review reported no major issue and all review threads are resolved.
+## Local acceptance
 
-The exact atomic-bundle admission preserved the order `HYU_T2_010`,
-`HYU_T3_072`, `SAM_T2_078`. Manifest
-`06a402433efa892f016f537dac1eceb4776e62cc67c83e2e4494309c310dd016`
-and all three no-call rehearsals resolve to the same 6,730-byte receipt SHA-256
-`0e7ea486665d42d0be3686a067281461069bb887981dcd9e0d92a9409f95889f`.
+Python 3.13 is the verification interpreter.
 
-The separately approved process ran once, exited zero after 276.8 seconds, and
-wrote ignored result
-`benchmarks/results/atomic_evidence_bundle_focused_successor_envbound_2026-09-03/results.json`
-(SHA-256
-`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`).
+- Numeric/compiler independent snapshot: full unittest `837 / 837`.
+- Persistence/API independent snapshot: focused + import/topology/docs `79 / 79`.
+- Final integrated source before provider replay: full unittest `874 / 874`.
+- Planner dependency successor: planner `5 / 5`, semantic contracts `164 / 164`,
+  import/topology `28 / 28`, full unittest `878 / 878`.
+- Post-fast-forward integration recheck: Python 3.14.5 full unittest
+  `878 / 878`; existing LangChain/Pydantic compatibility warnings only.
+- Runtime domain audit: pass, `84` reviewed literals.
+- Import/topology, pycompile, and `git diff --check`: pass.
+- Tests inject failures into actual lower file writes, check same-process and
+  restart recovery, and prove no context/embedding calls during sidecar repair.
+- Actual graph-node tests check declared phase keys, unchanged inputs, and exact
+  public answer/structured-result/trace agreement with the final ledger artifact.
+- The graph-rebuild manifest seam passes 59/59 Python 3.13 adjacent tests,
+  runtime domain audit, pycompile, topology/import coverage, and diff checks.
 
-| Question | Runtime result | Gate evidence |
+New local outputs under `benchmarks/results/` are not committed.
+
+## Read-only saved-case replay
+
+`src.ops.replay_runtime_contract_cases` reads immutable result and source JSON
+without constructing a provider, vector store, agent, or benchmark runner.
+All three complete catalog IDs/fingerprints verify; original input SHA-256 values
+are unchanged after replay.
+
+| Case | Provider-free result | Claim limit |
 | --- | --- | --- |
-| `HYU_T2_010` | `ok`, 2/2 obligations | Same four predecessor evidence IDs; `87.0만 대` and `78.1만 대` produce `11.4%`, with source display `11.5%`; error 0, ledger `ok` |
-| `HYU_T3_072` | `ok`, 3/3 obligations | One compiler call, no retry; ownership `26%` and carrying amount `700,691백만원` both come from table 82 row `9:2`; no table 83 numeric ID; error 0, ledger `ok` |
-| `SAM_T2_078` | `ok`, 2/2 obligations | All three predecessor evidence IDs retained plus one compatible Harman overview source; `28,352,769백만원` and Harman narrative remain; error 0, ledger `ok` |
+| T2 | `11.5% (재계산값 11.4%)`; calculated value `11.395646606914212` | A copy explicitly selects the already-visible source display |
+| T3 | `26%`, `700,691백만원`, and the existing four-value narrative | Saved program bytes, physical rows, and evidence remain unchanged |
+| Samsung | `28,352,769백만원` plus the existing narrative | A copy restores the recorded first binding and first-attempt authority |
 
-T3's option ranker considered both complete direct-output rows, selected table
-82 before compiler invocation, and projected the direct owner spaces through
-that choice. Its Motional summary is still grounded in the distinct summary
-tables appropriate to those measures. Across all questions the compiler made
-five island calls and no internal retry.
+Both modified programs are labelled counterfactual. These checks prove
+validator/executor/display behavior, not that a new LLM will select the same
+program. Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
+Synthetic actual-node tests separately verify ledger integrity; the replay is
+not an evaluator or release run.
 
-The bounded runtime gate is **3/3 PASS**. It does not change the HYU T3
-historical provider output or relax evaluator criteria. The raw evaluator still
-reports T2/T3 completeness `0.7/0.3`, Samsung faithfulness `0.7`, and two
-company-level full-eval failures; those are not promoted into runtime acceptance.
+## Provider status and next gate
 
-After that paid gate, the source review decision corrected the canonical HYU T3
-key from a mixed separate/consolidated basis to the complete consolidated tuple.
-Provider-free replay of the saved source window now keeps table 90 row `21:4`
-as four required cells: `1,775`, `(803,742)`, `12,115`, and `(791,627)`
-백만원. Re-rendering the saved T2 execution trace includes the source inputs
-`2023 87.0만 대` and `2022 78.1만 대` without exposing an internal obligation
-ID. These are local successor checks, not a new benchmark result.
+The defined source-consistent runtime release gate is `3 / 3 PASS`. Immutable
+`HYU_T3_072` and `SAM_T2_078` successes are carried by exact artifact hashes;
+the final row was confirmed by admission `0f0c0d52...0445`, consumed once on
+clean commit `58551c7`.
 
-The historical Samsung faithfulness judge returned `0.7` without a persisted
-rationale, so its exact concern cannot be reconstructed. New evaluator outputs
-retain the judge reason; no score, tolerance, or acceptance rule was relaxed.
+OpenAI-store-fixed `HYU_T2_010` completed both obligations with runtime error `0`
+and ledger `ok`. Numeric `ob_001` selected `87.0만 대`, `78.1만 대`, and source
+display `11.5%`; it retained deterministic value `11.395646606914212` as the
+labelled recalculation `11.4%`. Narrative `ob_002` selected
+`cand_bbd863eb396fa724d814`. The final answer has faithfulness/completeness
+`1.0 / 1.0`, four selected candidates, two outputs, and no missing obligation.
 
-The run recorded 17 LLM calls, 117,631 LLM tokens, 32 query-embedding calls,
-zero document-embedding calls, and estimated runtime cost USD `0.1212257`, below
-the approved USD `0.40` ceiling. Embedding pricing is unavailable. Both source
-result hashes, SQLite hashes, and complete store fingerprints remain unchanged;
-no disposable store remains.
+Both island preflights had zero errors, confirming `af9a07e`. The numeric island
+used the permitted one internal retry to correct source-assertion structure while
+keeping the same cohort; the narrative island and runner process were not
+retried. There was no fresh fetch, parse, ingest, document embedding, or source
+mutation.
 
-## Provider-free candidate ambiguity baseline
+The process exited zero in `118.936s`, with 7 total LLM calls / 71,359 tokens and
+11 query / 0 document embedding calls. Recorded non-embedding cost is USD
+`0.0664263`; actual billing and embedding cost are unavailable. Source store is
+unchanged at `6231cd8e...24e9`, no disposable store remains, root result SHA-256
+is `a765a132...0ad9`, and ignored receipt SHA-256 is `4dd004f2...a3b4`.
 
-The audit rebuilds saved source windows from the immutable structure graph and
-table sidecar, without Chroma or providers, and accepts them only when all saved
-source/catalog counts and fingerprints match. All three matched: 413 candidates
-for T2, 3,191 for T3, and 503 for Samsung.
+`numeric_final_judgement=null` is N/A for this mixed question and is not a
+runtime failure because numeric execution, faithfulness, completeness, retrieval,
+error rate, and ledger are healthy. The admission is exhausted; no further
+provider retry is authorized or needed for this release gate.
 
-Eight of 16 owner cohorts have a multi-candidate top factor tier (T2 1, T3 4,
-Samsung 3); 3,301 of 3,323 non-conflicting candidate-owner evaluations are
-`unknown_only` (`99.34%`). Five islands used 154,689 prompt bytes with no retry
-or failure. T3's two complete rows were separated by position-sum 2 and
-worst-position 1. Two audit runs were byte-identical, while saved result SHA-256
-`b103657a301aea72ae1d529a163f6db4a686361c061fe4c0029092817f44753e`
-remained unchanged.
+Deferred: formula-wide rounding-error propagation and separate T3 dataset/
+evaluator governance. Existing answer keys, tolerances, and faithfulness policy
+are unchanged.
 
-This justifies a provider-free tie-breaker inside the strongest tier, not a
-whole-catalog keyword score; existing applicability, visibility, and row-bundle
-contracts remain authoritative.
-
-## Next work
-
-1. Do not rerun the paid gate. Admission `06a40243...016` is exhausted.
-2. Keep benchmark artifacts uncommitted. Checkout cleanup completed on
-   2026-09-04: the primary path now tracks clean `main`, the predecessor's 24
-   visible paths remain recoverable in a named local stash, and both clean,
-   already-merged linked worktrees were removed. The 86 integration-only
-   ignored result files were copied into the primary results tree and verified
-   before removal. Do not port the superseded predecessor contracts; restore
-   the stash on a separate branch only for explicit archaeology.
-3. Implement and test the bounded top-tier semantic tie-breaker provider-free.
-   Do not rerank lower tiers or add benchmark-specific vocabulary. Keep the
-   persisted typed fact index behind a separate versioned migration contract.
-
-See [runtime_flow_roles.md](runtime_flow_roles.md) for checked topology and
-[agent_runtime_contract.md](../architecture/agent_runtime_contract.md) for the normative contract; superseded detail stays in history documents.
+See [runtime contract](../architecture/agent_runtime_contract.md),
+[checked topology](runtime_flow_roles.md), and
+[experiment history](../history/experiment_history.md).

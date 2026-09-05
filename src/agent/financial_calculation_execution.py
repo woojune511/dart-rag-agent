@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import ast
+import hashlib
+import json
 import math
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
@@ -25,13 +27,19 @@ from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
     _normalise_operand_value,
     _normalise_spaces,
+    resolve_unit_spec,
+    source_display_precision,
 )
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
-    CompilationEnvelopeV1,
+    CompilationEnvelopeV2,
 )
 from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
+)
+from src.agent.financial_source_bundles import (
+    build_semantic_source_bundles,
+    source_bundle_id_by_candidate_id,
 )
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
@@ -306,8 +314,10 @@ def _result_unit_valid(result_unit: str, dimension: str) -> bool:
     cleaned = _normalise_spaces(str(result_unit or ""))
     if not cleaned:
         return dimension in {"SCALAR", "RATIO", "UNKNOWN"}
-    _value, normalized = _normalise_operand_value("1", cleaned)
-    normalized = str(normalized or "UNKNOWN").upper()
+    spec = resolve_unit_spec(cleaned)
+    normalized = spec.normalized_dimension if spec is not None else "UNKNOWN"
+    if spec is None and cleaned.upper() != "UNKNOWN":
+        return False
     percent_display_units = {
         str(item)
         for item in (CALCULATION_RENDER_POLICY.get("percent_display_units") or ())
@@ -321,7 +331,7 @@ def _result_unit_valid(result_unit: str, dimension: str) -> bool:
         return normalized in {"COUNT", "UNKNOWN"}
     if dimension == "UNKNOWN":
         return normalized == "UNKNOWN"
-    return normalized == dimension
+    return spec is not None and normalized == dimension
 
 
 def _scope_surface_matches(expected: str, actual: str) -> bool:
@@ -507,6 +517,7 @@ def _scope_errors(
     *,
     include_basis: bool = True,
     applicable_unknown_fields: Sequence[str] = (),
+    conflicts_only: bool = False,
 ) -> List[str]:
     scope = dict(obligation.get("scope") or {})
     applicable = {
@@ -520,11 +531,13 @@ def _scope_errors(
     errors: List[str] = []
     for field in checks:
         state = _scope_match_state(field, scope.get(field), candidate)
+        if conflicts_only and state != "conflict":
+            continue
         if state == "match" or (state == "unknown" and field in applicable):
             continue
         errors.append(f"scope mismatch: {field}")
     period_state = _scope_match_state("period", scope.get("period"), candidate)
-    if period_state != "match":
+    if period_state != "match" and (not conflicts_only or period_state == "conflict"):
         errors.append("scope mismatch: period")
     return errors
 
@@ -1027,9 +1040,17 @@ def validate_semantic_calculation_program(
     )
     errors: List[Dict[str, str]] = []
 
-    def error(code: str, obligation_id: str = "", detail: str = "") -> None:
+    def error(
+        code: str, obligation_id: str = "", detail: str = "", *,
+        owner_id: str = "", candidate_id: str = "", location: str = "program",
+        repair_action: str = "repair_program",
+    ) -> None:
         errors.append(
-            {"code": code, "obligation_id": obligation_id, "detail": str(detail or "")}
+            {
+                "code": code, "obligation_id": obligation_id, "detail": str(detail or ""),
+                "owner_id": owner_id or obligation_id, "candidate_id": candidate_id,
+                "location": location, "repair_action": repair_action,
+            }
         )
 
     def candidate_is_exposed(candidate_id: str, owner_id: str) -> bool:
@@ -1200,13 +1221,16 @@ def validate_semantic_calculation_program(
             error("unknown_or_nonnumeric_candidate", obligation_id, candidate_id)
             invalid = True
         if not candidate_is_exposed(candidate_id, obligation_id):
-            error("candidate_not_exposed_to_compiler", obligation_id, candidate_id)
+            error("candidate_not_exposed_to_compiler", obligation_id, candidate_id,
+                  candidate_id=candidate_id, location="direct_binding")
             invalid = True
         if candidate and obligation and candidate_has_semantic_conflict(
             candidate_id,
             obligation_id,
         ):
-            error("candidate_semantic_target_mismatch", obligation_id, candidate_id)
+            error("candidate_semantic_target_mismatch", obligation_id, candidate_id,
+                  candidate_id=candidate_id, location="direct_binding",
+                  repair_action="replace_candidate")
             invalid = True
         if obligation and str(obligation.get("kind") or "") != "direct_value":
             error("non_direct_obligation_has_direct_binding", obligation_id)
@@ -1273,7 +1297,10 @@ def validate_semantic_calculation_program(
                 ]
                 if hard_errors:
                     for detail in hard_errors:
-                        error("compatibility_scope_mismatch", obligation_id, detail)
+                        error("compatibility_scope_mismatch", obligation_id, detail,
+                              candidate_id=str(witness.get("candidate_id") or ""),
+                              location="compatibility_binding",
+                              repair_action="replace_candidate" if detail in _scope_errors(witness, obligation, include_basis=False, conflicts_only=True) else "repair_program")
                     invalid = True
                     compatibility_ready = False
                     break
@@ -1320,7 +1347,9 @@ def validate_semantic_calculation_program(
                     ),
                 }
             if subject_checked and subject_state != "match" and not subject_bridge_ready:
-                error("candidate_subject_mismatch", obligation_id, "segment")
+                error("candidate_subject_mismatch", obligation_id, "segment",
+                      candidate_id=candidate_id, location="direct_binding",
+                      repair_action="replace_candidate" if subject_state == "conflict" else "repair_program")
                 invalid = True
             scope_details = _scope_errors(candidate, obligation)
             if subject_checked and subject_state == "match":
@@ -1336,7 +1365,9 @@ def validate_semantic_calculation_program(
                     if not _direct_scope_gap_is_bridgeable(candidate, detail)
                 ]
             for detail in scope_details:
-                error("candidate_scope_mismatch", obligation_id, detail)
+                error("candidate_scope_mismatch", obligation_id, detail,
+                      candidate_id=candidate_id, location="direct_binding",
+                      repair_action="replace_candidate" if detail in _scope_errors(candidate, obligation, conflicts_only=True) else "repair_program")
                 invalid = True
         if (
             obligation
@@ -1353,9 +1384,12 @@ def validate_semantic_calculation_program(
                 _candidate_dimension(candidate),
             ):
                 error(
-                    "direct_result_unit_mismatch",
+                    "direct_result_unit_mismatch" if resolve_unit_spec(display_unit) else "invalid_obligation_unit",
                     obligation_id,
                     display_unit,
+                    candidate_id=candidate_id,
+                    location="direct_binding" if resolve_unit_spec(display_unit) else "obligation.display_unit",
+                    repair_action="replace_candidate" if resolve_unit_spec(display_unit) else "repair_requirements",
                 )
                 invalid = True
             preview_operand = project_semantic_program_operand(
@@ -1408,6 +1442,17 @@ def validate_semantic_calculation_program(
         deferred: List[Dict[str, Any]] = []
         for expression in unresolved:
             obligation_id = str(expression.get("obligation_id") or "").strip()
+            if (
+                "source_display_candidate_id" not in expression
+                or not isinstance(expression.get("source_display_reason"), str)
+                or not str(expression.get("source_display_reason") or "").strip()
+                or (expression.get("source_display_candidate_id") is not None
+                    and (not isinstance(expression["source_display_candidate_id"], str)
+                         or not expression["source_display_candidate_id"].strip()))
+            ):
+                error("invalid_source_display_decision", obligation_id,
+                      location="expression.source_display", repair_action="repair_program")
+                continue
             obligation = obligation_by_id.get(obligation_id)
             bindings = [dict(item or {}) for item in expression.get("variable_bindings") or []]
             source_ids = [str(item.get("source_id") or "").strip() for item in bindings]
@@ -1573,6 +1618,8 @@ def validate_semantic_calculation_program(
                                     "candidate_semantic_target_mismatch",
                                     obligation_id,
                                     f"{source_requirement_id}: {source_id}",
+                                    owner_id=source_requirement_id, candidate_id=source_id,
+                                    location="expression_input", repair_action="replace_candidate",
                                 )
                                 invalid = True
                             bound_requirement_ids.add(source_requirement_id)
@@ -1588,6 +1635,9 @@ def validate_semantic_calculation_program(
                                     "candidate_requirement_scope_mismatch",
                                     obligation_id,
                                     f"{source_requirement_id}: {detail}",
+                                    owner_id=source_requirement_id, candidate_id=source_id,
+                                    location="expression_input",
+                                    repair_action="replace_candidate" if detail in _scope_errors(candidate, {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True) else "repair_program",
                                 )
                                 invalid = True
                         variable_units[variable] = _candidate_dimension(candidate)
@@ -1631,6 +1681,11 @@ def validate_semantic_calculation_program(
                 or (obligation or {}).get("display_unit")
                 or ""
             )
+            declared_result_unit = str(expression.get("result_unit") or "")
+            if declared_result_unit and not _result_unit_valid(declared_result_unit, dimension):
+                error("result_unit_mismatch", obligation_id, f"{dimension} -> {declared_result_unit}",
+                      location="expression.result_unit")
+                continue
             if not _result_unit_valid(result_unit, dimension):
                 error("result_unit_mismatch", obligation_id, f"{dimension} -> {result_unit}")
                 continue
@@ -1659,7 +1714,9 @@ def validate_semantic_calculation_program(
                 )
                 if display_scope_errors:
                     for detail in display_scope_errors:
-                        error("source_display_scope_mismatch", obligation_id, detail)
+                        error("source_display_scope_mismatch", obligation_id, detail,
+                              candidate_id=display_id, location="source_display",
+                              repair_action="replace_candidate" if detail in _scope_errors(display_candidate, obligation or {}, include_basis=False, conflicts_only=True) else "repair_program")
                     continue
                 display_dimension = _candidate_dimension(display_candidate)
                 compatible_display_dimensions = (
@@ -1672,6 +1729,8 @@ def validate_semantic_calculation_program(
                         "source_display_unit_mismatch",
                         obligation_id,
                         f"{display_dimension} cannot display {dimension}",
+                        candidate_id=display_id, location="source_display",
+                        repair_action="replace_candidate",
                     )
                     continue
                 if not render_grounded_operand_display(
@@ -1929,6 +1988,8 @@ def validate_semantic_calculation_program(
                         "candidate_semantic_target_mismatch",
                         obligation_id,
                         f"{requirement_id}: {candidate_id}",
+                        owner_id=requirement_id, candidate_id=candidate_id,
+                        location="narrative_input", repair_action="replace_candidate",
                     )
                     invalid = True
                     continue
@@ -1945,6 +2006,9 @@ def validate_semantic_calculation_program(
                         "candidate_requirement_scope_mismatch",
                         obligation_id,
                         f"{requirement_id}: {detail}",
+                        owner_id=requirement_id, candidate_id=candidate_id,
+                        location="narrative_input",
+                        repair_action="replace_candidate" if detail in _scope_errors(candidate, {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True) else "repair_program",
                     )
                     invalid = True
             for missing_requirement_id in sorted(
@@ -2128,7 +2192,9 @@ def validate_semantic_calculation_program(
                 if candidate_id not in allowed
             ]
             for candidate_id in rejected_ids or selected_by_owner[owner_id]:
-                error("evidence_bundle_mismatch", owner_id, candidate_id)
+                error("evidence_bundle_mismatch", owner_id, candidate_id,
+                      owner_id=owner_id, candidate_id=candidate_id,
+                      location="evidence_bundle", repair_action="replace_candidate")
         invalid_bundled.update(owner_ids)
         evidence_bundle_validation.append(
             {
@@ -2241,6 +2307,194 @@ def validate_semantic_calculation_program(
         ]
         produced.difference_update(invalid_coupled)
 
+    source_bundles = build_semantic_source_bundles(candidate_rows)
+    source_bundle_by_id = {
+        bundle.source_bundle_id: bundle for bundle in source_bundles
+    }
+    source_bundle_id_by_candidate = source_bundle_id_by_candidate_id(
+        source_bundles
+    )
+    selected_obligations_by_candidate: Dict[str, List[str]] = {}
+    required_assertion_ids_by_obligation: Dict[str, List[str]] = {}
+    for obligation_id in produced:
+        for candidate_id in sources_by_output.get(obligation_id, []):
+            candidate = candidate_by_id.get(candidate_id)
+            if not candidate or str(candidate.get("kind") or "") != "numeric":
+                continue
+            selected_obligations_by_candidate.setdefault(candidate_id, [])
+            if obligation_id not in selected_obligations_by_candidate[candidate_id]:
+                selected_obligations_by_candidate[candidate_id].append(obligation_id)
+            source_bundle = source_bundle_by_id.get(
+                source_bundle_id_by_candidate.get(candidate_id, "")
+            )
+            if (
+                str(candidate.get("candidate_kind") or "") == "sentence_value"
+                and source_bundle is not None
+                and source_bundle.source_kind == "prose_sentence"
+            ):
+                required_assertion_ids_by_obligation.setdefault(
+                    obligation_id, []
+                )
+                if candidate_id not in required_assertion_ids_by_obligation[
+                    obligation_id
+                ]:
+                    required_assertion_ids_by_obligation[obligation_id].append(
+                        candidate_id
+                    )
+
+    valid_source_assertions: List[Dict[str, Any]] = []
+    asserted_candidate_ids: set[str] = set()
+    invalid_assertion_obligation_ids: set[str] = set()
+    for raw_assertion in program.get("source_assertions") or []:
+        assertion = dict(raw_assertion or {})
+        source_bundle_id = str(
+            assertion.get("source_bundle_id") or ""
+        ).strip()
+        candidate_ids = list(
+            dict.fromkeys(
+                str(candidate_id).strip()
+                for candidate_id in (assertion.get("candidate_ids") or [])
+                if str(candidate_id).strip()
+            )
+        )
+        evidence_text = str(assertion.get("evidence_text") or "")
+        related_obligation_ids = list(
+            dict.fromkeys(
+                obligation_id
+                for candidate_id in candidate_ids
+                for obligation_id in selected_obligations_by_candidate.get(
+                    candidate_id, []
+                )
+            )
+        )
+
+        assertion_error = ""
+        detail = source_bundle_id
+        bundle = source_bundle_by_id.get(source_bundle_id)
+        if not source_bundle_id or bundle is None:
+            assertion_error = "unknown_source_bundle"
+        elif not candidate_ids:
+            assertion_error = "empty_source_assertion_candidates"
+        elif any(candidate_id not in candidate_by_id for candidate_id in candidate_ids):
+            assertion_error = "unknown_source_assertion_candidate"
+        elif any(
+            candidate_id not in selected_obligations_by_candidate
+            for candidate_id in candidate_ids
+        ):
+            assertion_error = "source_assertion_candidate_not_selected"
+        elif any(
+            str(candidate_by_id[candidate_id].get("candidate_kind") or "")
+            != "sentence_value"
+            or source_bundle_by_id[
+                source_bundle_id_by_candidate.get(candidate_id, "")
+            ].source_kind
+            != "prose_sentence"
+            for candidate_id in candidate_ids
+        ):
+            assertion_error = "source_assertion_nonprose_candidate"
+        elif any(
+            source_bundle_id_by_candidate.get(candidate_id) != source_bundle_id
+            for candidate_id in candidate_ids
+        ):
+            assertion_error = "source_assertion_bundle_mismatch"
+        elif not evidence_text:
+            assertion_error = "empty_source_assertion_text"
+        else:
+            value_spans = bundle.value_span_by_candidate_id()
+            if any(candidate_id not in value_spans for candidate_id in candidate_ids):
+                assertion_error = "source_assertion_value_span_missing"
+            else:
+                occurrence_starts: List[int] = []
+                search_start = 0
+                while True:
+                    occurrence_start = bundle.source_text.find(
+                        evidence_text, search_start
+                    )
+                    if occurrence_start < 0:
+                        break
+                    occurrence_starts.append(occurrence_start)
+                    search_start = occurrence_start + 1
+                grounded_start = next(
+                    (
+                        occurrence_start
+                        for occurrence_start in occurrence_starts
+                        if all(
+                            occurrence_start <= value_spans[candidate_id][0]
+                            and value_spans[candidate_id][1]
+                            <= occurrence_start + len(evidence_text)
+                            for candidate_id in candidate_ids
+                        )
+                    ),
+                    None,
+                )
+                if grounded_start is None:
+                    assertion_error = "source_assertion_text_mismatch"
+
+        if assertion_error:
+            target_ids = related_obligation_ids or sorted(produced) or [""]
+            for obligation_id in target_ids:
+                error(
+                    assertion_error, obligation_id, detail,
+                    candidate_id=candidate_ids[0] if len(candidate_ids) == 1 else "",
+                    location="source_assertion",
+                )
+                if obligation_id:
+                    invalid_assertion_obligation_ids.add(obligation_id)
+            continue
+
+        assertion_projection = {
+            "source_bundle_id": source_bundle_id,
+            "candidate_ids": candidate_ids,
+            "evidence_text": evidence_text,
+        }
+        assertion_fingerprint = hashlib.sha256(
+            json.dumps(
+                assertion_projection,
+                ensure_ascii=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode("utf-8")
+        ).hexdigest()
+        valid_source_assertions.append(
+            {
+                **assertion_projection,
+                "assertion_fingerprint": assertion_fingerprint,
+                "covered_obligation_ids": related_obligation_ids,
+            }
+        )
+        asserted_candidate_ids.update(candidate_ids)
+
+    for obligation_id, candidate_ids in required_assertion_ids_by_obligation.items():
+        for candidate_id in candidate_ids:
+            if candidate_id in asserted_candidate_ids:
+                continue
+            error(
+                "missing_source_assertion", obligation_id, candidate_id,
+                candidate_id=candidate_id, location="source_assertion",
+            )
+            invalid_assertion_obligation_ids.add(obligation_id)
+
+    if invalid_assertion_obligation_ids:
+        valid_direct = [
+            item
+            for item in valid_direct
+            if str(item.get("obligation_id") or "")
+            not in invalid_assertion_obligation_ids
+        ]
+        valid_expressions = [
+            item
+            for item in valid_expressions
+            if str(item.get("obligation_id") or "")
+            not in invalid_assertion_obligation_ids
+        ]
+        valid_narrative = [
+            item
+            for item in valid_narrative
+            if str(item.get("obligation_id") or "")
+            not in invalid_assertion_obligation_ids
+        ]
+        produced.difference_update(invalid_assertion_obligation_ids)
+
     required = {
         obligation_id
         for obligation_id, obligation in obligation_by_id.items()
@@ -2272,6 +2526,7 @@ def validate_semantic_calculation_program(
         "valid_direct_bindings": valid_direct,
         "valid_expressions": valid_expressions,
         "valid_narrative_bindings": valid_narrative,
+        "valid_source_assertions": valid_source_assertions,
         "missing_obligation_ids": missing,
         "ambiguous_obligation_ids": ambiguous,
         "selected_candidate_ids": selected_candidate_ids,
@@ -2359,9 +2614,13 @@ def _source_display_matches(candidate: Mapping[str, Any], formula_value: float) 
         source_value = float(candidate.get("normalized_value"))
     except (TypeError, ValueError):
         return False
-    raw_value = str(candidate.get("raw_value") or "")
-    decimals = re.search(r"\.([0-9]+)", raw_value.replace(",", ""))
-    display_tolerance = 0.5 * (10 ** -len(decimals.group(1))) if decimals else 0.5
+    if not math.isfinite(source_value) or not math.isfinite(formula_value):
+        return False
+    display_tolerance = source_display_precision(
+        str(candidate.get("raw_value") or ""), str(candidate.get("raw_unit") or "")
+    )
+    if display_tolerance is None:
+        return False
     tolerance = max(1e-9, abs(float(formula_value)) * 1e-9, display_tolerance)
     return abs(source_value - float(formula_value)) <= tolerance
 
@@ -2712,11 +2971,16 @@ def _fail_closed_semantic_validation(
             for item in (validation.get("errors") or [])
             if isinstance(item, Mapping)
         ],
-        {"code": code, "obligation_id": "", "detail": detail},
+        {
+            "code": code, "obligation_id": "", "detail": detail,
+            "owner_id": "", "candidate_id": "",
+            "location": "compilation_envelope", "repair_action": "repair_program",
+        },
     ]
     failed["valid_direct_bindings"] = []
     failed["valid_expressions"] = []
     failed["valid_narrative_bindings"] = []
+    failed["valid_source_assertions"] = []
     failed["selected_candidate_ids"] = []
     failed["source_candidate_ids_by_obligation"] = {}
     failed["inferred_units"] = {}
@@ -2735,7 +2999,7 @@ def execute_semantic_calculation_program(
     obligations: Sequence[Mapping[str, Any]],
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
-    compilation_envelope: Optional[CompilationEnvelopeV1] = None,
+    compilation_envelope: Optional[CompilationEnvelopeV2] = None,
     require_compilation_envelope: bool = False,
 ) -> Dict[str, Any]:
     """Execute only the validated subset and report completeness separately."""
@@ -2747,6 +3011,9 @@ def execute_semantic_calculation_program(
             "visibility_mismatch",
             "compile-time visibility envelope is missing",
         )
+    if compilation_envelope is not None and not isinstance(compilation_envelope, CompilationEnvelopeV2):
+        authority_error = ("execution_content_mismatch", "a V2 compilation envelope is required")
+        compilation_envelope = None
     if compilation_envelope is not None:
         candidate_visibility = compilation_envelope.visibility
         actual_catalog_fingerprint = semantic_candidate_catalog_fingerprint(
@@ -2760,13 +3027,20 @@ def execute_semantic_calculation_program(
                 "visibility_mismatch",
                 "candidate catalog fingerprint changed after compilation",
             )
+        elif not compilation_envelope.matches_execution_content(
+            candidate_catalog=candidate_catalog, obligations=obligations, query=query,
+        ):
+            authority_error = (
+                "execution_content_mismatch",
+                "candidate content, obligations, or query changed after compilation",
+            )
         elif not compilation_envelope.matches_program(program):
             authority_error = (
                 "validation_drift",
                 "semantic program changed after compile-time validation",
             )
 
-    validation = validate_semantic_calculation_program(
+    validation = {} if authority_error else validate_semantic_calculation_program(
         program=program,
         obligations=obligations,
         candidate_catalog=candidate_catalog,
@@ -2946,6 +3220,13 @@ def execute_semantic_calculation_program(
             )
             continue
 
+        if not math.isfinite(value):
+            execution_errors.append({
+                "code": "non_finite_formula_result", "obligation_id": obligation_id,
+                "detail": "formula result must be finite",
+            })
+            continue
+
         dimension = str(validation.get("inferred_units", {}).get(obligation_id) or "UNKNOWN")
         normalized_unit = "PERCENT" if dimension == "RATIO" else (
             "UNKNOWN" if dimension == "SCALAR" else dimension
@@ -2981,11 +3262,12 @@ def execute_semantic_calculation_program(
             source_display_value = render_grounded_operand_display(display_operand)
             source_display_normalized_value = float(display_candidate["normalized_value"])
             source_display_matches_formula = _source_display_matches(display_candidate, value)
-            # Preserve selected source facts even when they cannot replace the calculated value.
+            # Display authority is independent of numerical equivalence. Dependencies
+            # retain the calculated normalized_value, never the reported display value.
             candidate_ids.append(display_id)
             source_row_ids.extend(display_operand.get("source_row_ids") or [])
             source_anchors.append(str(display_candidate.get("source_anchor") or ""))
-            if source_display_value and source_display_matches_formula:
+            if source_display_value:
                 rendered_value = source_display_value
                 slot = build_operand_value_slot(
                     {
@@ -3015,6 +3297,16 @@ def execute_semantic_calculation_program(
             "formula": formula,
             "formula_result_value": value,
             "formula_rendered_value": formula_rendered_value,
+            "calculated_value": value,
+            "calculated_provenance": {
+                "formula": formula,
+                "input_candidate_ids": [row["candidate_id"] for row in input_rows if row.get("candidate_id")],
+            },
+            "display_value": slot.get("normalized_value"),
+            "display_provenance": {
+                "source_display_candidate_id": display_id if source_display_used else None,
+                "source_row_ids": list(slot.get("source_row_ids") or []),
+            },
             "source_stated_result_used": source_display_used,
             "source_display_candidate_id": display_id,
             "source_display_value": source_display_value,
@@ -3073,13 +3365,6 @@ def execute_semantic_calculation_program(
     else:
         status = "incomplete"
 
-    answer = _render_semantic_program_answer(
-        query=query,
-        obligations=obligation_rows,
-        outputs=outputs,
-        missing_ids=missing_ids,
-    )
-
     numeric_outputs = [
         outputs[str(obligation.get("obligation_id") or "")]
         for obligation in obligation_rows
@@ -3121,10 +3406,10 @@ def execute_semantic_calculation_program(
         "status": "ok" if status == "ok" else "insufficient_operands",
         "semantic_status": status,
         "ledger_integrity_status": "ok",
-        "result_value": primary.get("normalized_value"),
+        "result_value": primary_slot.get("normalized_value", primary.get("normalized_value")),
+        "calculated_result_value": primary.get("normalized_value"),
         "result_unit": str(primary.get("result_unit") or ""),
         "rendered_value": str(primary.get("rendered_value") or ""),
-        "formatted_result": answer,
         "series": [],
         "answer_slots": (
             {
@@ -3159,7 +3444,6 @@ def execute_semantic_calculation_program(
     }
     return {
         "status": status,
-        "answer": answer,
         "outputs": list(outputs.values()),
         "outputs_by_obligation": outputs,
         "missing_obligation_ids": missing_ids,
@@ -3169,3 +3453,61 @@ def execute_semantic_calculation_program(
         "validation": validation,
         "execution_errors": execution_errors,
     }
+
+
+def assemble_semantic_execution_result(
+    *, execution: Mapping[str, Any], obligations: Sequence[Mapping[str, Any]],
+    calculation_plan: Mapping[str, Any], query: str,
+) -> Dict[str, Any]:
+    """Pure final-assembly projection; numeric execution never writes an answer."""
+    from copy import deepcopy
+
+    outputs = deepcopy(dict(execution.get("outputs_by_obligation") or {}))
+    answer = _render_semantic_program_answer(
+        query=query, obligations=obligations, outputs=outputs,
+        missing_ids=list(execution.get("missing_obligation_ids") or []),
+    )
+    result = deepcopy(dict(execution.get("calculation_result") or {}))
+    operation = str(dict(result.get("derived_metrics") or {}).get("operation_family") or "formula")
+    result.update(formatted_result=answer, operation_family=operation)
+    plan = deepcopy(dict(calculation_plan))
+    plan["operation_family"] = operation
+    trace = {
+        "calculation_operands": deepcopy(list(execution.get("calculation_operands") or [])),
+        "calculation_plan": plan,
+        "calculation_result": result,
+    }
+    rows = []
+    for output in outputs.values():
+        obligation_id = str(output.get("obligation_id") or "")
+        family = str(output.get("operation_family") or "formula")
+        slot = dict(output.get("answer_slot") or {})
+        rows.append({
+            "task_id": f"task_1:{obligation_id}", "metric_family": "semantic_program",
+            "metric_label": str(output.get("label") or obligation_id),
+            "operation_family": family, "status": str(output.get("status") or "ok"),
+            "answer": _normalise_spaces(str(output.get("text") or "") if output.get("kind") == "narrative"
+                else f"{output.get('label') or obligation_id}: {output.get('rendered_value') or ''}"),
+            "calculation_result": {
+                "status": str(output.get("status") or "ok"), "operation_family": family,
+                "result_value": slot.get("normalized_value", output.get("normalized_value")),
+                "calculated_result_value": output.get("normalized_value"),
+                "result_unit": str(output.get("result_unit") or ""),
+                "rendered_value": str(output.get("rendered_value") or ""),
+                "answer_slots": {"operation_family": "lookup" if family == "lookup" else "single_value",
+                    "metric_label": str(output.get("label") or obligation_id), "primary_value": slot} if slot else {},
+                "derived_metrics": {"operation_family": family},
+                "source_row_ids": list(output.get("source_row_ids") or []),
+            },
+            "source_row_ids": list(output.get("source_row_ids") or []),
+            "source_evidence_ids": list(output.get("candidate_ids") or []),
+        })
+    structured_result = {
+        "status": str(execution.get("status") or "incomplete"),
+        "answer": answer, "final_answer": answer, "subtask_results": rows,
+        "answer_obligations": deepcopy(list(obligations)),
+        "missing_obligation_ids": list(execution.get("missing_obligation_ids") or []),
+        "resolved_calculation_trace": trace,
+    }
+    return {"answer": answer, "structured_result": structured_result,
+        "resolved_calculation_trace": trace, "subtask_results": rows}

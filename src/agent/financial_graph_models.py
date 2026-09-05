@@ -9,8 +9,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 _SEMANTIC_COUPLING_KEY_MAX_CHARS = 128
 
 
-def _bounded_semantic_coupling_key(value: Any) -> str:
+def _normalise_optional_planner_text(value: Any) -> str:
+    """Collapse serialized null sentinels for planner fields that allow blank."""
+
     text = " ".join(str(value or "").split())
+    if text.casefold() in {"null", "none"}:
+        return ""
+    return text
+
+
+def _bounded_semantic_coupling_key(value: Any) -> str:
+    text = _normalise_optional_planner_text(value)
     if len(text) <= _SEMANTIC_COUPLING_KEY_MAX_CHARS:
         return text
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
@@ -143,7 +152,14 @@ class AnswerObligation(_DeferredBaseModel):
         ),
     )
     evidence_requirements: List[EvidenceRequirement] = Field(default_factory=list)
-    depends_on: List[str] = Field(default_factory=list)
+    depends_on: List[str] = Field(
+        default_factory=list,
+        description=(
+            "IDs of other user-visible answer obligations whose calculated outputs "
+            "feed this obligation. Do not include this obligation or any of its "
+            "evidence requirement IDs; raw inputs belong in evidence_requirements."
+        ),
+    )
     coupling_key: str = Field(
         default="",
         max_length=_SEMANTIC_COUPLING_KEY_MAX_CHARS,
@@ -153,6 +169,11 @@ class AnswerObligation(_DeferredBaseModel):
             "company, or report does not establish coupling."
         ),
     )
+
+    @field_validator("display_unit", "display_format", mode="before")
+    @classmethod
+    def _normalise_optional_display_fields(cls, value: Any) -> str:
+        return _normalise_optional_planner_text(value)
 
     @field_validator("coupling_key", mode="before")
     @classmethod
@@ -255,7 +276,16 @@ class SemanticProgramExpression(_DeferredBaseModel):
     result_unit: str = ""
     display_unit: str = ""
     display_format: str = ""
-    source_display_candidate_id: str = ""
+    source_display_candidate_id: Optional[str] = Field(
+        description=(
+            "Visible candidate reporting the same derived result as this obligation, "
+            "or null when no matching source-stated result is selected."
+        ),
+    )
+    source_display_reason: str = Field(
+        min_length=1,
+        description="Explain why the source-stated result was selected or not selected.",
+    )
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
         description=(
@@ -264,6 +294,13 @@ class SemanticProgramExpression(_DeferredBaseModel):
         ),
     )
     constants: List[SemanticProgramConstant] = Field(default_factory=list)
+
+    @field_validator("source_display_reason")
+    @classmethod
+    def _source_display_reason_is_nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("source_display_reason must be nonblank")
+        return value
 
 
 class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):
@@ -294,6 +331,16 @@ class SemanticProgramNarrativeBinding(_DeferredBaseModel):
     text: str
 
 
+class SemanticProgramSourceAssertion(_DeferredBaseModel):
+    """Exact source excerpt grounding one or more selected prose values."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    source_bundle_id: str
+    candidate_ids: List[str] = Field(default_factory=list)
+    evidence_text: str
+
+
 class SemanticCalculationProgram(_DeferredBaseModel):
     """Post-evidence semantic selection plus restricted deterministic expressions."""
 
@@ -303,6 +350,9 @@ class SemanticCalculationProgram(_DeferredBaseModel):
     direct_bindings: List[SemanticProgramDirectBinding] = Field(default_factory=list)
     expressions: List[SemanticProgramExpression] = Field(default_factory=list)
     narrative_bindings: List[SemanticProgramNarrativeBinding] = Field(default_factory=list)
+    source_assertions: List[SemanticProgramSourceAssertion] = Field(
+        default_factory=list
+    )
     missing_obligation_ids: List[str] = Field(default_factory=list)
     ambiguous_obligation_ids: List[str] = Field(default_factory=list)
     rationale: str = ""

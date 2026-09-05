@@ -12,6 +12,8 @@ from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
+from starlette.requests import Request
 
 from src.api.financial_router import get_router
 from src.agent.financial_run_result import (
@@ -151,6 +153,47 @@ def _client(services):
 
 
 class FinancialAPIContractTests(unittest.TestCase):
+    def test_queued_query_rechecks_readiness_after_acquiring_lock(self) -> None:
+        async def scenario():
+            services, agent, _ = _services()
+            app = FastAPI()
+            app.state.services = services
+            router = get_router()
+            endpoint = next(route.endpoint for route in router.routes if route.path == "/api/query")
+            from src.api.financial_router import QueryRequest
+            request = Request({"type": "http", "app": app, "headers": []})
+            await services.operation_lock.acquire()
+            pending = asyncio.create_task(endpoint(QueryRequest(question="q"), request))
+            await asyncio.sleep(0)
+            services.readiness = StoreReadiness(
+                status="incomplete", ready=False, reason="source incomplete",
+                expected=services.expected_manifest,
+            )
+            services.operation_lock.release()
+            with self.assertRaises(HTTPException) as raised:
+                await pending
+            self.assertEqual(raised.exception.status_code, 503)
+            self.assertEqual(agent.calls, [])
+        asyncio.run(scenario())
+
+    def test_companies_and_ingest_readiness_execute_in_worker_under_lock(self) -> None:
+        services, _, _ = _services()
+        calls = []
+        def get(**kwargs):
+            calls.append(("companies", threading.current_thread().name, services.operation_lock.locked()))
+            return {"metadatas": [{"company": "A", "year": 2024}]}
+        def refresh():
+            calls.append(("readiness", threading.current_thread().name, services.operation_lock.locked()))
+        services.store.vector_store = SimpleNamespace(get=get)
+        services.refresh_readiness = refresh
+        with _client(services) as client:
+            self.assertEqual(client.get("/api/companies").status_code, 200)
+            self.assertEqual(client.post("/api/ingest", json={"company": "A", "years": [2024]}).status_code, 200)
+        self.assertEqual([kind for kind, _, _ in calls], ["companies", "readiness"])
+        for _, thread, locked in calls:
+            self.assertIn("worker", thread.lower())
+            self.assertTrue(locked)
+
     def test_synchronous_optional_clients_share_one_service_lock(self) -> None:
         from src.api.services import AppServices
 

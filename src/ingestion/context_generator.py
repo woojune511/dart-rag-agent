@@ -217,6 +217,18 @@ class ContextGenerator:
         self.vsm.add_parents(parents)
         logger.info("[contextual_ingest] stored %s parent chunks", len(parents))
 
+        original_count = len(chunks)
+        repair = getattr(self.vsm, "repair_indexed_sources", None)
+        if resume_partial_store and callable(repair):
+            chunks = repair(chunks)
+            if not chunks:
+                return {
+                    "mode": "contextual", "chunks": original_count,
+                    "stored_parent_chunks": len(parents), "added_chunks": 0,
+                    "api_calls": 0, **self._context_generation_metrics(),
+                    "max_workers": 0, "batch_size": 0, "elapsed_sec": 0.0,
+                }
+
         total = len(chunks)
         workers = self._resolve_context_workers(max_workers, total)
         request_batch_size = self._resolve_context_batch_size(batch_size, workers)
@@ -244,7 +256,7 @@ class ContextGenerator:
         logger.info("[contextual_ingest] indexed %s contextualized chunks", total)
         return {
             "mode": "contextual",
-            "chunks": total,
+            "chunks": original_count,
             "added_chunks": int(add_metrics.get("added_chunks", total)),
             "stored_parent_chunks": len(parents),
             "api_calls": total,
@@ -290,6 +302,11 @@ class ContextGenerator:
         parents = FinancialParser.build_parents(chunks)
         self.vsm.add_parents(parents)
 
+        original_chunks = chunks
+        repair = getattr(self.vsm, "repair_indexed_sources", None)
+        if resume_partial_store and callable(repair):
+            chunks = repair(chunks)
+
         total = len(chunks)
         workers = self._resolve_context_workers(max_workers, total)
         request_batch_size = self._resolve_context_batch_size(batch_size, workers)
@@ -318,7 +335,7 @@ class ContextGenerator:
 
         result = {
             "mode": "contextual",
-            "chunks": total,
+            "chunks": len(original_chunks),
             "stored_parent_chunks": len(parents),
             "api_calls": total,
             **context_metrics,
@@ -327,13 +344,29 @@ class ContextGenerator:
             "elapsed_sec": time.perf_counter() - started_at,
             "resume_enabled": bool(add_metrics.get("resume_enabled", False)),
             "resume_added_chunks": int(add_metrics.get("added_chunks", 0) or 0),
-            "resume_skipped_chunks": int(add_metrics.get("skipped_chunks", 0) or 0),
+            "resume_skipped_chunks": (
+                len(original_chunks) - total
+                + int(add_metrics.get("skipped_chunks", 0) or 0)
+            ),
             "resume_batch_count": int(add_metrics.get("batch_count", 0) or 0),
         }
         if return_artifacts:
+            generated_by_chunk = {
+                id(chunk): text for chunk, text in zip(chunks, texts)
+            }
+            artifact_texts = []
+            for chunk in original_chunks:
+                uid = str(chunk.metadata.get("chunk_uid") or "")
+                if id(chunk) in generated_by_chunk:
+                    artifact_texts.append(generated_by_chunk[id(chunk)])
+                else:
+                    node = self.vsm.get_structure_node(uid)
+                    if node is None:
+                        raise RuntimeError("indexed source is unavailable for ingest artifacts")
+                    artifact_texts.append(node["text"])
             result["artifacts"] = {
-                "texts": texts,
-                "metadatas": metadatas,
+                "texts": artifact_texts,
+                "metadatas": [chunk.metadata for chunk in original_chunks],
                 "parents": parents,
             }
         return result

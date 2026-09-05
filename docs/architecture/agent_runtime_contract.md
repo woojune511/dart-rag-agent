@@ -24,6 +24,20 @@ answer only through a registered candidate and validated program binding. Source
 display and deterministic calculated display may coexist, but their provenance
 must remain distinct.
 
+Numeric normalization and rendering share `UnitSpecV1`: source numbers multiply
+by its scale; calculated displays divide by the same scale. Canonical currency,
+percentage, and count dimensions are valid unit declarations. Direct values keep
+the source unit, parentheses, and precision. Non-finite normalized or calculated
+values cannot produce answer slots; source precision comparisons use base units.
+
+Unsupported planner units remain recorded and block the affected island. Errors
+identify owner, candidate, location, and repair action. Compiler format errors
+keep the cohort; only explicit dimension, scope, or subject conflict replaces a
+candidate. Unknown applicability and diagnostic prose never select replacements.
+Structured-output `null`/`none` means blank only for optional planner text
+(`display_unit`, `display_format`, `coupling_key`). Typed validation normalizes
+it; real non-empty unsupported units still block their island.
+
 ## 2. Public result v1
 
 `FinancialAgent.run()` returns `FinancialRunResultV1`:
@@ -51,14 +65,13 @@ version does not alter that wire shape.
 
 ## 3. Candidate visibility v1
 
-Compiler authority is represented by frozen, slotted standard-library
-contracts:
+Compiler authority uses frozen, slotted standard-library contracts:
 
 - `OwnerCandidateVisibility`
 - `EvidenceBundleOptionV1`
 - `EvidenceBundleConstraintV1`
 - `CandidateVisibilityV1`
-- `CompilationEnvelopeV1`
+- `CompilationEnvelopeV2`
 
 Visibility stores catalog and cohort fingerprints, all visible candidate IDs,
 and selectable IDs per obligation or requirement owner as tuples. Construction
@@ -74,6 +87,13 @@ Before execution, the executor must verify:
 2. the program fingerprint equals the validated program fingerprint;
 3. the validation fingerprint equals the envelope fingerprint;
 4. every binding is selectable for its declared owner.
+
+V2 additionally binds the complete catalog contents (sorted by candidate ID),
+ordered obligations, and query with `execution_content_fingerprint`. Changed
+normalized numbers, dimensions, scope, source bytes, spans, or physical
+provenance fail before revalidation or arithmetic as `execution_content_mismatch`.
+Production accepts no V1 envelope fallback. Existing candidate IDs and catalog
+identity fingerprints are unchanged.
 
 Any mismatch fails closed as `visibility_mismatch` or `validation_drift`.
 Execution must not overwrite immutable compile validation.
@@ -100,18 +120,57 @@ explicit scope, subject, or unit conflict. Within each owner cohort,
 `compatible` candidates always rank before `unknown_only`; explicit conflicts
 are excluded. Equal factor tiers are deterministic and source-diverse.
 
-Structured prompt rows contain only the physical cell value and its row/column
-axes, not the parent chunk's flattened table body. The prompt receives the
-factor projection but does not rerank it. Validation recomputes the same matcher
-for explicitly declared semantic targets and rejects a visible but conflicting
-ID as `candidate_semantic_target_mismatch`. During the schema transition, a
-target-less legacy owner may derive a local subject only from catalog identity
-surfaces that also occur in the owner text.
+`SourceBundleV1` is the compiler's source-reading unit. It has a deterministic
+bundle ID, source kind, source anchor, context fingerprint, exact contiguous
+source text, member candidate IDs, and bundle-local value spans. Prose values
+from the same source sentence share a bundle. A sentence longer than the prompt
+window is split into maximal consecutive value-span groups within 420 characters;
+each group shares one window containing all its values without cutting a
+neighboring numeric span or normalizing bytes. Every value belongs to one window.
+Table values share a bundle only through the same physical table and row;
+row headers and cell provenance remain on their candidates.
 
-Numeric owners have capacity four, narrative requirements six, and numeric
-compatibility narrative capacity two. Query-wide reservation remains bounded by
-96 numeric and 32 narrative candidates. Overflow fails before compiler calls;
-owners may not be silently dropped.
+Numeric selection is bundle-first. Code excludes `explicit_conflict`, gives
+`compatible` bundles precedence over `unknown_only`, and ranks a bundle by its
+best member's existing factor vector. Each numeric owner receives at most two
+bundles. Every non-conflicting numeric member of a selected bundle is visible to
+that owner so period pairs, signs, and neighboring operands are not separated by
+an arbitrary top-one cutoff. Selecting the same bundle for more than one owner
+does not duplicate its source text in one compiler payload.
+
+`semantic_program_candidate_payload_v5` stores source text once in
+`source_bundles_by_id`. Candidate rows retain their existing IDs and metadata,
+refer to `source_bundle_id`, and carry a bundle-local value span instead of a
+repeated source excerpt. The prompt receives the factor projection but does not
+perform a second ranking pass. Validation recomputes applicability for declared
+semantic targets and rejects a visible but conflicting ID as
+`candidate_semantic_target_mismatch`.
+
+When the compiler selects a prose `sentence_value` as a direct binding,
+expression source, or source display, `source_assertions` must identify the
+bundle and selected candidate IDs and copy an exact contiguous source substring
+covering every referenced value span. Code verifies bundle membership, owner
+visibility, exact bytes, and span coverage before execution and fingerprints the
+validated assertion. Table cells use physical row/cell provenance instead;
+narrative obligations keep their existing multi-evidence bindings. Meaning such
+as total, component, rate, or derived display is represented by obligation
+bindings and formula AST, not a candidate role enum or a separate reranker.
+
+Every expression explicitly supplies nullable `source_display_candidate_id` and
+a nonblank `source_display_reason`; omission is a compiler format error and
+retries the same cohort. A selected source display passes the same authority,
+scope, dimension, and exact-assertion checks as other sources. Its value and
+source spelling are primary even when they differ from recomputation. The
+answer then also labels the recalculated value. Numeric equivalence remains a
+separate scaled-precision comparison, not a condition for source authority.
+Dependency formulas consume calculated values; public primary answer slots use
+display values. Trace preserves both values and their separate provenance.
+
+Numeric owners have capacity two source bundles, narrative requirements six
+candidates, and numeric compatibility narrative capacity two. Query-wide
+visibility remains bounded by 96 unique numeric and 32 narrative candidates.
+Bundle expansion is atomic: overflow fails before compiler calls, and a bundle
+is never partially trimmed to meet capacity.
 
 Coupling applies only when two or more distinct obligations share the same
 non-empty `coupling_key`. Multiple period operands of one derived obligation do
@@ -126,19 +185,13 @@ provenance and applicability.
 When two or more direct outputs have the same explicit local subject, compatible
 declared scope, and at least one physical row containing a compatible candidate
 for every output, the runtime creates an immutable evidence-bundle constraint.
-Each complete row is one option. Options are ordered by the sum of their best
-owner-cohort positions, then their worst owner position, then physical table and
-row ID. Before compilation, code selects the first option and projects every
-constrained output and requirement cohort through that physical row. Numeric
-compatibility narratives remain auxiliary selectable IDs. The compiler receives
-only the active one-option constraint and its candidate dictionary; ranked
-alternatives remain diagnostics and never enter the prompt.
+Each complete row is an option, ordered by summed best owner positions, worst
+position, then physical table/row ID. Code projects constrained cohorts through
+the first option. Compatibility narratives remain auxiliary IDs. Only the active
+option enters the prompt; ranked alternatives remain diagnostics.
 
-All constrained outputs therefore share one physical-row selection by
-construction. Mixing rows is not representable through normal compiler
-visibility, while validator and executor retain `evidence_bundle_mismatch` as a
-defense-in-depth check. This invariant is inferred independently of planner
-`coupling_key`.
+Constrained outputs share one row. Validator and executor also reject mixing
+rows as `evidence_bundle_mismatch`, independently of planner `coupling_key`.
 
 A required `source_defined_group` narrative may join that bundle across tables
 only when local subject and declared scope agree and its filing company, report
@@ -149,46 +202,47 @@ otherwise independent outputs together.
 
 ## 5. Internal graph state v2
 
-`FinancialAgentStateV2` has these phase envelopes, in order:
+`FinancialAgentStateV2` phases are `request`, `routing`, `requirements`,
+`retrieval`, `candidates`, `compilation`, `numeric_result | narrative_result`,
+`final_result`, and `ledger`.
 
-```text
-request
-routing
-requirements
-retrieval
-candidates
-compilation
-numeric_result | narrative_result
-ledger
-final_result
-```
-
-Every graph node writes exactly one top-level phase key. Diagnostics stay inside
+Concrete phase input/output TypedDicts define static shapes, not runtime
+immutability. Owners receive explicitly projected fields, never a full-phase
+dictionary merge. Every graph node writes exactly one top-level phase key. Diagnostics stay inside
 the phase that produced them. A phase transition moves its downstream readers in
 the same change; long-lived dual-write is forbidden.
 
 Intermediate nodes do not write `tasks`, `artifacts`, or the final answer.
-`assemble_ledger` creates one `LedgerSnapshot` from phase results.
+Numeric execution returns calculation rows, display slots, and evidence;
+narrative validation returns supported sentences and evidence.
+`assemble_ledger` records the already completed public answer, structured result,
+trace, and narrative source material as one `LedgerSnapshot`.
 `assemble_final` is the only graph node that assembles answer, citations, and
 structured result. The checked node/edge list is generated in
 [runtime_flow_roles.md](../overview/runtime_flow_roles.md).
+The final edges are `assemble_final → assemble_ledger → END`; `run()` packages
+typed results and telemetry without modifying answers, citations, or evidence.
 
 ## 6. Compilation islands
 
-Each answer obligation is a vertex. Two vertices share an island when one
-declares a dependency on the other, both have the same non-empty `coupling_key`,
-or they are members of the same inferred evidence-bundle constraint.
-
-Unknown dependency, self-dependency, and cycle fail the affected island before a
-compiler call. A query may contain at most eight islands. All candidate
-reservations are preflighted before any compiler call.
+Each answer obligation is a vertex. Islands connect only through a dependency on
+another user-visible answer obligation, a shared non-empty `coupling_key`, or an
+inferred evidence-bundle constraint. `depends_on` never names raw inputs; those
+live in `evidence_requirements` and are not vertices. Projection drops an exact
+own-requirement reference only after known answer IDs are resolved. Unknown,
+self, and cyclic dependencies fail before compilation. At most eight islands and
+all candidate selectable ID unions are preflighted before calls, counting a shared
+ID only once (numeric 96, narrative 32). Owner quota sums are not reservations.
+Every retry candidate replacement also checks the query-wide union, including
+already accepted and not-yet-compiled islands. An overflowing retry makes no
+provider call and preserves accepted program bytes; bundles are never truncated.
 
 Islands are ordered by original obligation order and compiled sequentially. Each
 island has one internal retry at most:
 
-- candidate validation failure excludes the rejected ID and promotes the next
-  ranked candidate;
-- AST, schema, or binding format failure retains the same cohort.
+- candidate validation failure excludes the rejected candidate's source bundle
+  for that owner and promotes the next ranked bundle;
+- assertion, AST, schema, or binding format failure retains the same cohort.
 
 If any member of an evidence bundle needs retry, every obligation in that bundle
 is retried together. Candidate rejection rebuilds the bounded cohorts and bundle
@@ -197,22 +251,17 @@ selected; AST, schema, and binding-format retries retain the active option.
 
 Accepted program JSON from an island that is not retried must remain byte-for-byte
 identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v7` records
-owner factor counts, factor-vector tier separation, unknown-only share inputs,
-the active constraint, complete-row option counts and ranked option selection,
-island composition, call/retry counts, visibility fingerprints, and prompt
-bytes. Ranking diagnostics are observability-only and are not serialized into
-the compiler prompt.
+original obligation order. `semantic_candidate_stage_diagnostics_v9` records
+owner factor counts, selected bundle IDs, bundle/member counts and fingerprint,
+the active physical-row constraint, island composition, call/retry counts,
+attempt-visible IDs, prompt bytes, and assertion coverage/errors.
+Ranking diagnostics are observability-only and are not serialized into the
+compiler prompt.
 
 ## 7. Retrieval boundary
 
-Retrieval runs in four owner-local stages without changing the external graph
-node or search-result order:
-
-1. build plan;
-2. execute searches;
-3. select evidence;
-4. build trace.
+Retrieval runs `build_plan → execute_searches → select_evidence → build_trace`
+inside one owner without changing the external graph node or search-result order.
 
 `retrieval_debug_trace` records query bundles, filters, executed and reused
 queries, selected chunks, policy decisions, and degraded mode. Seed evidence may
@@ -226,74 +275,66 @@ their reason is recorded in routing trace.
 
 ## 8. Store and ingest v1
 
-`StoreManifestV1` is stored as `store_manifest.json` and contains exactly:
+`store_manifest.json` contains exactly:
+`schema_version`, `collection_name`,
+`embedding {provider, model_name, dimension}`, and
+`ingest {profile_id, parser_schema_version, chunk_size, chunk_overlap}`.
+Unknown/missing fields or non-exact identity make readiness false and query 503.
+Startup only reads identity; adopting a non-empty legacy store requires the
+separate CLI's validated dry-run followed by an explicitly approved write.
+Configured BM25-only mode is the sole identity exception and is exposed in
+readiness, response, and retrieval trace. It requires persisted BM25 sources.
 
-```text
-schema_version
-collection_name
-embedding { provider, model_name, dimension }
-ingest { profile_id, parser_schema_version, chunk_size, chunk_overlap }
-```
+A manifest-less Chroma store with zero embeddings and pending operations may
+initialize ingest after restart but is not query-ready. `IngestService` owns
+fetch, parse, context generation, indexing, and manifest recording. Multi-report
+ingest records the manifest after its first successful indexed batch so later
+failure remains resumable. `FinancialAgent` exposes no ingest methods.
 
-Query startup reads this manifest. Missing, invalid, or non-exact manifests make
-readiness false and query returns 503. Runtime must not infer or write identity
-for an existing non-empty store. Explicit BM25-only degraded mode is the sole
-exception; it must be enabled by configuration and exposed in readiness,
-response, and retrieval trace.
+Source persistence builds the next graph from a deep copy. It atomically writes
+the union of old/new payloads before replacing the graph, which is the commit
+point; memory publishes only after success. Parents also persist before publish.
+Readers load graph before payload. Missing referenced payloads and all lower
+write failures propagate; old payloads are not automatically garbage-collected.
 
-Exactness includes the complete top-level, embedding, and ingest field sets;
-unknown or missing fields make the manifest invalid.
+Startup and ingest completion check committed graph/vector coverage and payload
+references. Missing or empty payload content and unidentified vector metadata
+block readiness without blocking recovery ingest. Resume reconstructs missing
+sidecars from stored contextual text and parser metadata, without repeating
+context generation or embedding. Exact stored vector ID / parser chunk-ID
+matches permit metadata-only repair; unidentified sources otherwise fail before
+provider calls. Resume counts only actual new additions and records vector
+progress immediately after each committed batch.
 
-A manifest-less Chroma directory whose embedding and pending-operation counts
-are both zero remains eligible for ingest initialization after restart. It is
-not query-ready, and ingest writes the manifest only after indexing documents.
+Benchmark-only in-progress cache metadata preserves a manifest-less partial
+store only with exact cache/store signatures and explicit partial-resume policy;
+it never grants query readiness.
 
-Legacy-store adoption uses a separate CLI. Its default is dry-run; writing a
-manifest requires the explicit write flag after collection, dimension, and
-declared profile validation.
-
-`IngestService(fetcher, parser, context_generator, store)` owns fetch, parse,
-context generation, indexing, and manifest recording. A manifest is written only
-after documents are indexed. Multi-report ingest records it after the first
-successful store batch so a later failure remains resumable. A report is skipped
-only when every parsed `chunk_uid` is already present; otherwise document adds
-resume by chunk identity. Ingest results count only chunks actually added after
-resume filtering. Vector-batch progress is recorded immediately after the vector
-commit, and resume reconciles already-indexed chunks into the structure sidecar.
-`FinancialAgent` exposes no ingest method.
-
-Benchmark-only `in_progress` cache metadata may preserve a manifest-less partial
-store only when cache and store signatures match exactly and partial resume is
-enabled. It never makes that store query-ready; the store manifest remains a
-completion boundary.
+Graph-based vector-store rebuilds use one expected `StoreManifestV1` as the
+provider, model, dimension, collection, and ingest identity. A side-by-side
+partial rebuild remains manifest-less and resumable; the rebuild publishes the
+manifest only after the completed index passes its external health check.
 
 ## 9. API and optional surfaces
 
-FastAPI creates `AppServices` in lifespan and stores it on `app.state`. Query and
-ingest execute in a threadpool. `/api/health/live` reports process liveness;
-`/api/health/ready` reports strict store readiness; `/api/health` is a readiness
-alias. `QueryRequest.report_scope` is typed and passed without invented fields.
+FastAPI creates `AppServices` in lifespan on `app.state`. Query, ingest, and
+company DB reads/aggregation run in workers. The same operation lock encloses
+query readiness checking, execution, and the response readiness snapshot.
+Readiness failure is HTTP 503, not a wrapped 500. Ingest's finally-readiness
+refresh also runs in its worker and lock. Health only reads the computed state:
+`/api/health/live` is liveness; `/api/health/ready` and `/api/health` are readiness.
+Typed `QueryRequest.report_scope` is forwarded without invented fields.
 
-Repository `.env` values are resolved before application settings, with process
-environment values taking precedence and imports leaving process state
-unchanged. Query and ingest operations sharing one `AppServices` instance are
-serialized before threadpool dispatch because the agent and store are mutable.
-Readiness is refreshed inside that serialization boundary after every ingest
-attempt, including a partial failure. The experimental Streamlit path uses a
-process-wide synchronous lock on its cached `AppServices` for store inspection,
-query, ingest, and evaluation; ingest readiness refresh remains inside that
-same boundary on success or failure.
+Repository `.env` loads before settings; process environment wins and imports
+do not mutate it. Experimental Streamlit serializes cached services with a
+process-wide synchronous lock, including readiness refresh on ingest failure.
+Per-query retrieval fallback is exposed as degraded without rewriting persistent
+store readiness. Forced BM25-only startup never initializes dense embeddings;
+new/verified-empty stores retain manifest-declared dense ingest initialization.
 
-Each run projects retrieval status from all executed-query telemetry. When a
-compatible store falls back to BM25 for a query, the HTTP response exposes that
-query as degraded without changing the persistent store readiness.
-
-CORS is disabled unless an environment allowlist is configured. Streamlit and
-MAS are experimental. Evaluator dependencies load only for an actual evaluation
-action. Core runtime imports may not depend on ops or experimental modules.
-Explicit forced BM25-only startup does not initialize a dense embedding client;
-it is selected only when persisted BM25 source data exists. A new or verified
-empty store stays on the manifest-declared dense initialization and ingest path.
+CORS requires an environment allowlist. Streamlit and MAS remain experimental.
+Evaluator dependencies load only for actual evaluation; core imports may not
+depend on ops/experimental modules.
 
 ## 10. Validation and release gate
 

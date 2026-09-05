@@ -211,6 +211,8 @@
                 }
               ],
               "formula": "CURRENT - PRIOR",
+              "source_display_candidate_id": null,
+              "source_display_reason": "The fixture reports period operands without a separate source-stated result.",
               "result_unit": "개",
               "constants": []
             }
@@ -356,6 +358,8 @@
                 }
               ],
               "formula": "REPORTED - ADJUSTMENT",
+              "source_display_candidate_id": null,
+              "source_display_reason": "The fixture reports separate operands rather than the adjusted result.",
               "result_unit": "백만원",
               "constants": []
             }
