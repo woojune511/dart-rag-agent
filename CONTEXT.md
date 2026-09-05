@@ -103,8 +103,11 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
    for this gate.
 7. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
-8. T3 answer-key/evaluator governance is separate; do not change tolerance,
-   faithfulness policy, dataset answers, or source evidence to improve a score.
+8. T3 dataset governance completed on 2026-09-03: the active curated answer and
+   evaluator canonical reference use one consolidated Motional tuple (`26%`,
+   `700,691백만원`, and the four same-basis summary measures). Runtime and
+   dataset/evaluator ownership remain separate; do not relax tolerance,
+   faithfulness policy, or source-evidence requirements to improve a score.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md),
 [experiment history](docs/history/experiment_history.md), and Git.
