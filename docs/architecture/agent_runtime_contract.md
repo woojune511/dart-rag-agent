@@ -30,12 +30,13 @@ percentage, and count dimensions are valid unit declarations. Direct values keep
 the source unit, parentheses, and precision. Non-finite normalized or calculated
 values cannot produce answer slots; source precision comparisons use base units.
 
-Unsupported planner units remain recorded on their obligations and block the
-affected compilation island. Validation errors identify the owner, candidate,
-location, and repair action explicitly. Compiler format errors retry the same
-cohort; only an explicit candidate dimension, scope, or subject conflict permits
-candidate replacement. Unknown applicability is not a replacement instruction,
-and retry selection must never infer candidate IDs from diagnostic prose.
+Unsupported planner units remain recorded and block the affected island. Errors
+identify owner, candidate, location, and repair action. Compiler format errors
+keep the cohort; only explicit dimension, scope, or subject conflict replaces a
+candidate. Unknown applicability and diagnostic prose never select replacements.
+Structured-output `null`/`none` means blank only for optional planner text
+(`display_unit`, `display_format`, `coupling_key`). Typed validation normalizes
+it; real non-empty unsupported units still block their island.
 
 ## 2. Public result v1
 

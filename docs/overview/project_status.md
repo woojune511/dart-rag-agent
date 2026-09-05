@@ -5,7 +5,8 @@ Last updated: 2026-09-05
 ## Current implementation
 
 The product is the single-agent `FinancialAgent`, on
-`codex/bounded-semantic-tiebreaker`. Contract repairs start from `5e13bc6`.
+`codex/bounded-semantic-tiebreaker`. Contract repairs start from `5e13bc6`; the
+latest optional planner-field boundary fix is `bacb9c2`.
 Public HTTP fields, `FinancialRunResultV1`, candidate identity inputs, catalog
 fingerprints, parser table structure, and stored formats remain compatible.
 
@@ -16,6 +17,8 @@ The implemented boundaries are:
   checks use one normalizer contract.
 - Planner unit errors block only affected islands. Compiler format retries keep
   candidates; explicit candidate conflicts carry exact replacement ownership.
+- Structured-output `null`/`none` sentinels normalize to blank only for optional
+  planner display/coupling text. Genuine unsupported units remain fail-closed.
 - `CompilationEnvelopeV2` checks full execution content before revalidation or
   arithmetic. Existing visibility/program/validation checks remain independent.
 - Bundle-first selection retains adjacent source values and counts the actual
@@ -43,7 +46,9 @@ Python 3.13 is the verification interpreter.
 
 - Numeric/compiler independent snapshot: full unittest `837 / 837`.
 - Persistence/API independent snapshot: focused + import/topology/docs `79 / 79`.
-- Final integrated source: full unittest `874 / 874`.
+- Final integrated source before provider replay: full unittest `874 / 874`.
+- Optional planner-field successor: planner `4 / 4`, semantic integration
+  `101 / 101`, import/topology `28 / 28`, full unittest `877 / 877`.
 - Runtime domain audit: pass, `84` reviewed literals.
 - Import/topology, pycompile, and `git diff --check`: pass.
 - Tests inject failures into actual lower file writes, check same-process and
@@ -115,6 +120,26 @@ approved USD `0.30` ceiling, while actual provider billing remains unavailable.
 Run receipt SHA-256 is `6fa0c805...d4719`; no automatic retry occurred. This
 approval is exhausted. A new exact admission is required for a Hyundai T2-only
 store-fixed eval against the OpenAI store.
+
+T2 admission `9bdd8db4...30fe3` was consumed once on `b29b239`. OpenAI removed
+the query-embedding capacity blocker: 11 calls succeeded, with no document
+embedding, fresh ingest, source mutation, or retry. Numeric `ob_001` selected
+`87.0만 대`, `78.1만 대`, and `11.5%`; calculation stayed `11.395646606914212`
+/ `11.4%`.
+
+The run remained partial because narrative `ob_002` received planner
+`display_unit="null"`. Preflight interpreted that string as an unsupported unit
+and blocked the island before compilation, despite six visible narrative
+candidates and one explicit match. The artifact has runtime error `0`, ledger
+`ok`, faithfulness/completeness `0.5 / 0.5`, 5 LLM calls / 34,430 tokens, and a
+USD `0.0379082` non-embedding estimate; actual billing and embedding cost are
+unavailable. Source-store fingerprint remained
+`6231cd8e...24e9`; root result SHA-256 is `8aac48c7...32b69`, and ignored receipt
+SHA-256 is `86d21248...ead74`.
+
+Commit `bacb9c2` fixes that generic seam while preserving unsupported-unit
+failure. Local gates pass, but it is not provider-replayed. The consumed admission
+cannot be reused; completeness stays `2 / 3` pending a separately approved run.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy

@@ -132,6 +132,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Candidate Fact-Role Projection V1 (2026-09-05)](#candidate-fact-role-projection-v1-2026-09-05) | 물리 후보별 구조 role과 exact-source-grounded prose role 경계 | v5 packet 6/34; raw role context와 exact-surface rank rule은 회귀로 기각, runtime scorer disabled |
 | [Bounded Prose Semantic-Role Interpreter Harness (2026-09-05)](#bounded-prose-semantic-role-interpreter-harness-2026-09-05) | query/answer-label-free same-source role extraction contract | one request/two values; reviewed role plumbing 2/2, cross-encoder stays 1/4, provider 0 |
 | [Runtime Repair Failed-Row Provider Retry (2026-09-05)](#runtime-repair-failed-row-provider-retry-2026-09-05) | 첫 repair gate의 429 실패 두 행만 exact manifest로 재실행하고 T3 성공을 해시로 carry forward | Samsung 완전 통과, T2 query embedding 429 재발; combined same-runtime gate 2/3 HOLD, no retry |
+| [OpenAI-Store T2 Replay And Planner Null Boundary (2026-09-05)](#openai-store-t2-replay-and-planner-null-boundary-2026-09-05) | rebuilt OpenAI store에서 T2를 exact admission으로 1회 실행하고 optional planner sentinel 결함을 분리 | query embedding은 정상화되고 숫자는 완전 통과; narrative는 `display_unit="null"`로 compiler 전 차단. generic no-call fix 뒤 full 877/877, provider successor 미실행 |
 
 ## 보는 법
 
@@ -7428,3 +7429,36 @@ References:
   `2 / 3`; release remains `HOLD`. The approval is consumed. Repeating the
   unchanged provider run is not authorized and would not address the remaining
   Google query-embedding capacity boundary.
+
+## OpenAI-Store T2 Replay And Planner Null Boundary (2026-09-05)
+
+- Admission `9bdd8db4...30fe3` was consumed exactly once on commit `b29b239`.
+  The store-fixed eval-only runner completed in `93.657s` with exit code zero,
+  30-second heartbeats, and no automatic retry. It made no fetch, parse, ingest,
+  document-embedding, or source-store mutation.
+- OpenAI `text-embedding-3-large` handled all 11 query embedding calls without
+  the earlier Google capacity error. The source directory fingerprint remained
+  `6231cd8e...24e9`; no disposable eval store remained.
+- Numeric `ob_001` completed on the first compiler attempt. It selected
+  `cand_7d5294a9fe110c3e987f` (`87.0만 대`) and
+  `cand_2edd04c9130daab86745` (`78.1만 대`), preserved source display candidate
+  `cand_47bfc4cc05d682154cfa` (`11.5%`), and separately rendered the calculated
+  `11.395646606914212` as `11.4%`. Both prose assertions validated.
+- Narrative `ob_002` had six visible candidates, including one explicitly
+  compatible candidate, but did not reach the compiler. The planner returned
+  optional fields as literal strings (`display_unit`, `display_format`, and
+  `coupling_key` were `"null"`); unit preflight classified the display value as
+  `invalid_obligation_unit` and blocked that island with zero prompt bytes.
+  This is a typed planner-projection defect, not retrieval or ranking evidence.
+- The result is partial with runtime error `0`, ledger `ok`, and evaluator
+  faithfulness/completeness `0.5 / 0.5`. Usage was 5 LLM calls / 34,430 tokens,
+  11 query / 0 document embedding calls, with a USD `0.0379082` local
+  non-embedding estimate. Actual billing and embedding cost are unavailable.
+  Root result SHA-256 is `8aac48c7...32b69`; ignored run receipt SHA-256 is
+  `86d21248...ead74`.
+- Generic successor `bacb9c2` normalizes exact serialized absence sentinels only
+  for optional planner display/coupling text. Existing unsupported-unit failure
+  remains covered. Planner 4/4, semantic integration 101/101, import/topology
+  28/28, runtime audit 84, pycompile, diff check, and full unittest 877/877 pass.
+  No provider call followed the fix. The admission is exhausted and release
+  remains `HOLD` at combined same-runtime completeness `2 / 3`.
