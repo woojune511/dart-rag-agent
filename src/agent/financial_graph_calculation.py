@@ -35,7 +35,7 @@ from src.agent.financial_reconciliation_candidates import (
 from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
-    CompilationEnvelopeV1,
+    CompilationEnvelopeV2,
     EvidenceBundleConstraintV1,
 )
 from src.agent.financial_source_bundles import (
@@ -55,6 +55,24 @@ from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 logger = logging.getLogger(__name__)
 
 MAX_SEMANTIC_COMPILATION_ISLANDS = 8
+
+def _semantic_candidate_capacity(
+    catalog: Sequence[Mapping[str, Any]], selectable_ids: Sequence[str],
+) -> Dict[str, Any]:
+    """Charge each selectable source fact once across the entire query."""
+    selected = set(selectable_ids)
+    kind_by_id = {str(row.get("candidate_id") or ""): row.get("kind") for row in catalog}
+    limits = dict(CALCULATION_PROMPT_POLICY.get("semantic_program_prompt_limits") or {})
+    numeric = sum(kind_by_id.get(item) == "numeric" for item in selected)
+    narrative = sum(kind_by_id.get(item) == "narrative" for item in selected)
+    numeric_limit = int(limits.get("numeric_candidates") or 96)
+    narrative_limit = int(limits.get("narrative_candidates") or 32)
+    return {
+        "status": "capacity_exceeded" if numeric > numeric_limit or narrative > narrative_limit else "ok",
+        "numeric": numeric, "narrative": narrative,
+        "numeric_limit": numeric_limit, "narrative_limit": narrative_limit,
+    }
+
 def build_semantic_compilation_islands(
     obligations: Sequence[Mapping[str, Any]],
     *,
@@ -808,11 +826,6 @@ def _semantic_candidate_cohorts(
         for item in specifications
         if item["candidate_kind"] == "numeric"
     )
-    narrative_reservation = sum(
-        int(item["limit"])
-        for item in specifications
-        if item["candidate_kind"] in {"narrative", "evidence"}
-    )
     reservation = {
         "numeric": 0,
         "narrative": 0,
@@ -820,19 +833,6 @@ def _semantic_candidate_cohorts(
         "numeric_limit": global_numeric_limit,
         "narrative_limit": global_narrative_limit,
     }
-    if narrative_reservation > global_narrative_limit:
-        return {
-            "schema": "semantic_candidate_cohorts_v2",
-            "status": "capacity_exceeded",
-            "reservation": reservation,
-            "cohorts": [],
-            "candidate_ids_by_owner": {},
-            "visible_candidate_ids": [],
-            "candidate_match_by_id": {},
-            "evidence_bundle_constraints": [],
-            "evidence_bundle_option_selections": [],
-        }
-
     candidate_by_id = {
         str(item.get("candidate_id") or ""): dict(item)
         for item in catalog
@@ -1635,6 +1635,8 @@ class FinancialAgentCalculationMixin:
     def _compile_semantic_calculation_island(
         self,
         state: FinancialAgentState,
+        *,
+        other_selectable_ids: Sequence[str] = (),
     ) -> Dict[str, Any]:
         """Compile one preflighted dependency/coupling island."""
 
@@ -1947,7 +1949,6 @@ class FinancialAgentCalculationMixin:
                 )
                 if not needs_retry or attempt == 1:
                     break
-                retry_count = 1
                 previous_validation = dict(validation)
                 target_id_set = set(retry_target_ids)
                 retry_exclusions = _retry_candidate_exclusions(
@@ -1961,6 +1962,25 @@ class FinancialAgentCalculationMixin:
                     target_obligation_ids=retry_target_ids,
                     excluded_candidate_ids_by_owner=retry_exclusions,
                 )
+                target_owner_ids = set(retry_target_ids)
+                target_owner_ids.update(
+                    str(requirement.get("requirement_id") or "")
+                    for obligation in obligations
+                    if str(obligation.get("obligation_id") or "") in target_id_set
+                    for requirement in obligation.get("evidence_requirements") or []
+                )
+                retry_capacity = _semantic_candidate_capacity(catalog, [
+                    *other_selectable_ids,
+                    *list(active_cohort_plan.get("visible_candidate_ids") or []),
+                    *[candidate_id for owner_id, ids in validation_selectable_ids_by_owner.items()
+                      if owner_id not in target_owner_ids for candidate_id in ids],
+                ])
+                if active_cohort_plan.get("status") == "capacity_exceeded" or retry_capacity["status"] == "capacity_exceeded":
+                    invocation_errors.append("retry candidate capacity exceeded")
+                    attempt_candidate_diagnostics[-1]["retry_blocked_reason"] = "capacity_exceeded"
+                    attempt_candidate_diagnostics[-1]["retry_capacity"] = retry_capacity
+                    break
+                retry_count = 1
                 active_prompt_payload = self._semantic_program_prompt_payload(
                     catalog,
                     active_cohort_plan,
@@ -2096,10 +2116,11 @@ class FinancialAgentCalculationMixin:
                 attempts=attempt_candidate_diagnostics,
             )
         )
-        compilation_envelope = CompilationEnvelopeV1.create(
+        compilation_envelope = CompilationEnvelopeV2.create(
             visibility=validation_visibility,
             program=program_data,
             validation=validation,
+            candidate_catalog=catalog, obligations=obligations, query=query,
         )
         candidate_stage_diagnostics = {
             **semantic_candidate_stage_diagnostics(
@@ -2190,6 +2211,7 @@ class FinancialAgentCalculationMixin:
             "compile_validation_fingerprint": (
                 compilation_envelope.validation_fingerprint
             ),
+            "execution_content_fingerprint": compilation_envelope.execution_content_fingerprint,
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_catalog_rows),
             "prompt_candidate_ids": prompt_candidate_ids,
@@ -2358,6 +2380,10 @@ class FinancialAgentCalculationMixin:
         total_retry_count = 0
         total_call_count = 0
         invocation_errors: List[str] = []
+        query_selectable_by_owner = {
+            owner_id: list(ids) for owner_id, ids in
+            dict(global_cohort_plan.get("candidate_ids_by_owner") or {}).items()
+        }
         for island in islands:
             island_ids = [
                 str(item)
@@ -2406,10 +2432,11 @@ class FinancialAgentCalculationMixin:
                     query=query,
                     candidate_visibility=visibility,
                 )
-                envelope = CompilationEnvelopeV1.create(
+                envelope = CompilationEnvelopeV2.create(
                     visibility=visibility,
                     program=program,
                     validation=validation,
+                    candidate_catalog=catalog, obligations=island_obligations, query=query,
                 )
                 island_results.append(
                     {
@@ -2427,6 +2454,12 @@ class FinancialAgentCalculationMixin:
                 )
                 continue
 
+            island_owner_ids = set(island_ids)
+            island_owner_ids.update(
+                str(requirement.get("requirement_id") or "")
+                for obligation in island_obligations
+                for requirement in obligation.get("evidence_requirements") or []
+            )
             compiled = self._compile_semantic_calculation_island(
                 {
                     **dict(state),
@@ -2437,7 +2470,14 @@ class FinancialAgentCalculationMixin:
                     "tasks": [],
                     "artifacts": [],
                 },
+                other_selectable_ids=[
+                    candidate_id for owner_id, ids in query_selectable_by_owner.items()
+                    if owner_id not in island_owner_ids for candidate_id in ids
+                ],
             )
+            island_envelope = compiled.get("semantic_compilation_envelope")
+            if isinstance(island_envelope, CompilationEnvelopeV2):
+                query_selectable_by_owner.update(island_envelope.visibility.candidate_ids_by_owner())
             runtime_trace = resolve_runtime_calculation_trace(
                 compiled,
                 allow_legacy_top_level=False,
@@ -2654,7 +2694,7 @@ class FinancialAgentCalculationMixin:
         merged_bundle_constraint_ids: set[str] = set()
         for result in island_results:
             envelope = result.get("envelope")
-            if not isinstance(envelope, CompilationEnvelopeV1):
+            if not isinstance(envelope, CompilationEnvelopeV2):
                 continue
             for owner_id, candidate_ids in (
                 envelope.visibility.candidate_ids_by_owner().items()
@@ -2687,10 +2727,11 @@ class FinancialAgentCalculationMixin:
             query=query,
             candidate_visibility=merged_visibility,
         )
-        compilation_envelope = CompilationEnvelopeV1.create(
+        compilation_envelope = CompilationEnvelopeV2.create(
             visibility=merged_visibility,
             program=merged_program,
             validation=validation,
+            candidate_catalog=catalog, obligations=obligations, query=query,
         )
         final_bundle_selections = _active_evidence_bundle_selection_diagnostics(
             constraints=merged_bundle_constraints,
@@ -2794,14 +2835,14 @@ class FinancialAgentCalculationMixin:
                     "retry_count": int(result.get("retry_count") or 0),
                     "visibility_fingerprint": (
                         envelope.visibility.cohort_fingerprint
-                        if isinstance(envelope, CompilationEnvelopeV1)
+                        if isinstance(envelope, CompilationEnvelopeV2)
                         else ""
                     ),
                     "prompt_bytes": int(result.get("prompt_bytes") or 0),
                     "accepted_program_bytes": len(program_bytes),
                     "accepted_program_fingerprint": (
                         envelope.program_fingerprint
-                        if isinstance(envelope, CompilationEnvelopeV1)
+                        if isinstance(envelope, CompilationEnvelopeV2)
                         else ""
                     ),
                 }
@@ -2878,6 +2919,7 @@ class FinancialAgentCalculationMixin:
             "compile_validation_fingerprint": (
                 compilation_envelope.validation_fingerprint
             ),
+            "execution_content_fingerprint": compilation_envelope.execution_content_fingerprint,
             "candidate_count": len(catalog),
             "prompt_candidate_count": len(prompt_visible_ids),
             "prompt_candidate_ids": prompt_visible_ids,
@@ -3005,7 +3047,7 @@ class FinancialAgentCalculationMixin:
             query=str(state.get("query") or ""),
             compilation_envelope=(
                 compilation_envelope
-                if isinstance(compilation_envelope, CompilationEnvelopeV1)
+                if isinstance(compilation_envelope, CompilationEnvelopeV2)
                 else None
             ),
             require_compilation_envelope=True,

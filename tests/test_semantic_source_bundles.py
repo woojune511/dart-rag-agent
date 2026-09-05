@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from src.agent.financial_reconciliation_candidates import (
+    _numeric_source_bundle_projections,
     build_semantic_candidate_catalog,
     semantic_candidate_catalog_fingerprint,
 )
@@ -15,6 +16,119 @@ from src.agent.financial_source_bundles import (
 
 
 class SemanticSourceBundleTests(unittest.TestCase):
+    def test_long_sentence_neighbor_values_share_window_without_identity_changes(self) -> None:
+        text = (
+            "x " * 180
+            + "current 120% and prior 100% and expected 140% "
+            + "tail " * 130
+        )
+        catalog = build_semantic_candidate_catalog(
+            [{
+                "candidate_id": "chunk-long",
+                "source_anchor": "[sample]",
+                "candidate_kind": "chunk",
+                "text": text,
+                "metadata": {"is_table": False},
+            }]
+        )
+        numeric = [row for row in catalog if row["kind"] == "numeric"]
+        self.assertEqual(
+            [row["candidate_id"] for row in numeric],
+            [
+                "cand_81380f7ff4c52b71cdcd",
+                "cand_372fc8374a01f2400b75",
+                "cand_3c5071eb5d2e9960a341",
+            ],
+        )
+        self.assertEqual(
+            semantic_candidate_catalog_fingerprint(catalog),
+            "4c80cb5c982a8ff0c10ff37bc3c7233f5a49dede1a7cb5b5f95763abdda619f8",
+        )
+        bundles = build_semantic_source_bundles(numeric)
+        self.assertEqual(len(bundles), 1)
+        bundle = bundles[0]
+        self.assertLessEqual(len(bundle.source_text), 420)
+        self.assertEqual(len(bundle.candidate_ids), 3)
+        self.assertEqual(
+            {tuple(row["source_bundle_context_span"]) for row in numeric},
+            {tuple(numeric[0]["source_bundle_context_span"])},
+        )
+        for row in numeric:
+            start, end = bundle.value_span_by_candidate_id()[row["candidate_id"]]
+            self.assertEqual(bundle.source_text[start:end], row["raw_value"] + "%")
+
+    def test_multiple_exact_windows_keep_each_value_in_one_bundle(self) -> None:
+        exact = (
+            "context " * 50
+            + "current (120) 백만원\t  and prior (100) 백만원 "
+            + "intervening " * 50
+            + "later (140) 백만원\t  and following (130) 백만원 "
+            + "tail " * 100
+        )
+        source = {
+            "candidate_id": "chunk-separated",
+            "source_anchor": "[sample]",
+            "candidate_kind": "chunk",
+            "text": " ".join(exact.split()),
+            "source_text_exact": exact,
+            "metadata": {"is_table": False},
+        }
+        catalog = build_semantic_candidate_catalog([source])
+        numeric = [row for row in catalog if row["kind"] == "numeric"]
+        bundles = build_semantic_source_bundles(numeric)
+        self.assertEqual(len(numeric), 4)
+        self.assertEqual(sorted(len(bundle.candidate_ids) for bundle in bundles), [2, 2])
+        self.assertEqual(
+            sum(len(bundle.candidate_ids) for bundle in bundles),
+            len(source_bundle_id_by_candidate_id(bundles)),
+        )
+        for bundle in bundles:
+            self.assertLessEqual(len(bundle.source_text), 420)
+            self.assertIn(bundle.source_text, exact)
+            self.assertIn("\t  ", bundle.source_text)
+        for row in numeric:
+            start, end = row["source_bundle_context_span"]
+            value_start, value_end = row["source_bundle_value_span"]
+            self.assertEqual(row["source_bundle_text"], exact[start:end])
+            self.assertEqual(
+                row["source_bundle_text"][value_start:value_end],
+                row["raw_value"] + " 백만원",
+            )
+            for other in numeric:
+                if other["source_bundle_context_span"] == [start, end]:
+                    continue
+                other_start = (
+                    other["source_bundle_context_span"][0]
+                    + other["source_bundle_value_span"][0]
+                )
+                other_end = (
+                    other["source_bundle_context_span"][0]
+                    + other["source_bundle_value_span"][1]
+                )
+                self.assertTrue(other_end <= start or other_start >= end)
+        self.assertEqual(bundles, build_semantic_source_bundles(list(reversed(numeric))))
+        spans = [row["source_span"] for row in numeric]
+        forward = _numeric_source_bundle_projections(
+            source["text"], exact, spans, max_chars=420
+        )
+        reverse = _numeric_source_bundle_projections(
+            source["text"], exact, list(reversed(spans)), max_chars=420
+        )
+        self.assertEqual(forward, list(reversed(reverse)))
+
+    def test_sentence_boundaries_remain_separate_and_numeric_spans_are_not_cut(self) -> None:
+        text = "First 120%. Second 100%."
+        spans = [[6, 10], [19, 23]]
+        projected = _numeric_source_bundle_projections(text, text, spans, max_chars=420)
+        self.assertEqual(
+            [row["source_bundle_text"] for row in projected],
+            ["First 120%.", " Second 100%."],
+        )
+        with self.assertRaisesRegex(ValueError, "source span exceeds"):
+            _numeric_source_bundle_projections(
+                "123456789", "123456789", [[0, 9]], max_chars=8
+            )
+
     def test_prose_bundle_preserves_exact_period_and_parenthesis_context(self) -> None:
         canonical = (
             "당기 신용손실충당금전입액은 (3,146,409) 백만원이며, "

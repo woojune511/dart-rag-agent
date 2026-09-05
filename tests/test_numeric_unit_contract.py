@@ -29,6 +29,16 @@ def _catalog_value(raw_value, raw_unit):
 
 
 class NumericUnitContractTests(unittest.TestCase):
+    def test_display_alias_extension_keeps_source_candidate_boundaries(self):
+        from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+
+        # Display support must not silently lengthen historical source spans.
+        rows = extract_numeric_surface_candidates("The change was 0.3%p.")
+        self.assertEqual(rows[0]["unit"], "%")
+        self.assertEqual(rows[0]["text"], "0.3%")
+        self.assertEqual(rows[0]["span"], (15, 19))
+        self.assertEqual(resolve_unit_spec("%p").normalized_dimension, "PERCENT")
+
     def test_canonical_units_are_immutable_and_have_base_displays(self):
         for symbol, display in (("KRW", "원"), ("USD", "USD"), ("COUNT", ""), ("PERCENT", "%")):
             with self.subTest(symbol=symbol):

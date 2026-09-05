@@ -32,7 +32,7 @@ from src.agent.financial_runtime_normalization import (
 )
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
-    CompilationEnvelopeV1,
+    CompilationEnvelopeV2,
 )
 from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
@@ -1442,6 +1442,17 @@ def validate_semantic_calculation_program(
         deferred: List[Dict[str, Any]] = []
         for expression in unresolved:
             obligation_id = str(expression.get("obligation_id") or "").strip()
+            if (
+                "source_display_candidate_id" not in expression
+                or not isinstance(expression.get("source_display_reason"), str)
+                or not str(expression.get("source_display_reason") or "").strip()
+                or (expression.get("source_display_candidate_id") is not None
+                    and (not isinstance(expression["source_display_candidate_id"], str)
+                         or not expression["source_display_candidate_id"].strip()))
+            ):
+                error("invalid_source_display_decision", obligation_id,
+                      location="expression.source_display", repair_action="repair_program")
+                continue
             obligation = obligation_by_id.get(obligation_id)
             bindings = [dict(item or {}) for item in expression.get("variable_bindings") or []]
             source_ids = [str(item.get("source_id") or "").strip() for item in bindings]
@@ -2977,7 +2988,7 @@ def execute_semantic_calculation_program(
     obligations: Sequence[Mapping[str, Any]],
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
-    compilation_envelope: Optional[CompilationEnvelopeV1] = None,
+    compilation_envelope: Optional[CompilationEnvelopeV2] = None,
     require_compilation_envelope: bool = False,
 ) -> Dict[str, Any]:
     """Execute only the validated subset and report completeness separately."""
@@ -2989,6 +3000,9 @@ def execute_semantic_calculation_program(
             "visibility_mismatch",
             "compile-time visibility envelope is missing",
         )
+    if compilation_envelope is not None and not isinstance(compilation_envelope, CompilationEnvelopeV2):
+        authority_error = ("execution_content_mismatch", "a V2 compilation envelope is required")
+        compilation_envelope = None
     if compilation_envelope is not None:
         candidate_visibility = compilation_envelope.visibility
         actual_catalog_fingerprint = semantic_candidate_catalog_fingerprint(
@@ -3002,13 +3016,20 @@ def execute_semantic_calculation_program(
                 "visibility_mismatch",
                 "candidate catalog fingerprint changed after compilation",
             )
+        elif not compilation_envelope.matches_execution_content(
+            candidate_catalog=candidate_catalog, obligations=obligations, query=query,
+        ):
+            authority_error = (
+                "execution_content_mismatch",
+                "candidate content, obligations, or query changed after compilation",
+            )
         elif not compilation_envelope.matches_program(program):
             authority_error = (
                 "validation_drift",
                 "semantic program changed after compile-time validation",
             )
 
-    validation = validate_semantic_calculation_program(
+    validation = {} if authority_error else validate_semantic_calculation_program(
         program=program,
         obligations=obligations,
         candidate_catalog=candidate_catalog,
@@ -3230,11 +3251,12 @@ def execute_semantic_calculation_program(
             source_display_value = render_grounded_operand_display(display_operand)
             source_display_normalized_value = float(display_candidate["normalized_value"])
             source_display_matches_formula = _source_display_matches(display_candidate, value)
-            # Preserve selected source facts even when they cannot replace the calculated value.
+            # Display authority is independent of numerical equivalence. Dependencies
+            # retain the calculated normalized_value, never the reported display value.
             candidate_ids.append(display_id)
             source_row_ids.extend(display_operand.get("source_row_ids") or [])
             source_anchors.append(str(display_candidate.get("source_anchor") or ""))
-            if source_display_value and source_display_matches_formula:
+            if source_display_value:
                 rendered_value = source_display_value
                 slot = build_operand_value_slot(
                     {
@@ -3264,6 +3286,16 @@ def execute_semantic_calculation_program(
             "formula": formula,
             "formula_result_value": value,
             "formula_rendered_value": formula_rendered_value,
+            "calculated_value": value,
+            "calculated_provenance": {
+                "formula": formula,
+                "input_candidate_ids": [row["candidate_id"] for row in input_rows if row.get("candidate_id")],
+            },
+            "display_value": slot.get("normalized_value"),
+            "display_provenance": {
+                "source_display_candidate_id": display_id if source_display_used else None,
+                "source_row_ids": list(slot.get("source_row_ids") or []),
+            },
             "source_stated_result_used": source_display_used,
             "source_display_candidate_id": display_id,
             "source_display_value": source_display_value,
@@ -3370,7 +3402,8 @@ def execute_semantic_calculation_program(
         "status": "ok" if status == "ok" else "insufficient_operands",
         "semantic_status": status,
         "ledger_integrity_status": "ok",
-        "result_value": primary.get("normalized_value"),
+        "result_value": primary_slot.get("normalized_value", primary.get("normalized_value")),
+        "calculated_result_value": primary.get("normalized_value"),
         "result_unit": str(primary.get("result_unit") or ""),
         "rendered_value": str(primary.get("rendered_value") or ""),
         "formatted_result": answer,

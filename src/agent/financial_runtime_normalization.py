@@ -45,7 +45,9 @@ def resolve_unit_spec(unit: str) -> Optional[UnitSpecV1]:
         for alias, scale in dict(policy.get(policy_key) or {}).items():
             if key == re.sub(r"\s+", "", str(alias)).casefold():
                 return UnitSpecV1(dimension, float(scale), surface)
-    if key in {str(item).casefold() for item in policy.get("percent_units", ())}:
+    if key in {str(item).casefold() for item in (
+        *policy.get("percent_units", ()), *policy.get("percent_display_units", ()),
+    )}:
         return UnitSpecV1("PERCENT", 1.0, surface)
     for base_unit in KOREAN_COUNT_UNITS:
         if key == base_unit:

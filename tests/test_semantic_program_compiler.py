@@ -4,6 +4,30 @@ from tests.semantic_program_test_support import *
 
 
 class SemanticCalculationProgramCompilerTests(unittest.TestCase):
+    def test_expression_schema_requires_explicit_source_display_decision(self) -> None:
+        schema = SemanticCalculationProgram.model_json_schema()
+        expression_schema = schema["$defs"]["SemanticProgramExpression"]
+        self.assertIn("source_display_candidate_id", expression_schema["required"])
+        self.assertIn("source_display_reason", expression_schema["required"])
+        self.assertNotIn("default", expression_schema["properties"]["source_display_candidate_id"])
+        self.assertIn({"type": "null"}, expression_schema["properties"]["source_display_candidate_id"]["anyOf"])
+        expression = {
+            "obligation_id": "derived", "formula": "A",
+            "source_display_candidate_id": None,
+            "source_display_reason": "Only the operand is reported in the source.",
+        }
+        parsed = SemanticCalculationProgram.model_validate({"status": "ready", "expressions": [expression]})
+        self.assertIsNone(parsed.expressions[0].source_display_candidate_id)
+        for field in ("source_display_candidate_id", "source_display_reason"):
+            omitted = {key: value for key, value in expression.items() if key != field}
+            with self.subTest(omitted=field), self.assertRaises(ValueError):
+                SemanticCalculationProgram.model_validate({"status": "ready", "expressions": [omitted]})
+        for reason in ("", "   \t\n"):
+            with self.subTest(reason=repr(reason)), self.assertRaises(ValueError):
+                SemanticCalculationProgram.model_validate({
+                    "status": "ready", "expressions": [{**expression, "source_display_reason": reason}],
+                })
+
     def test_models_accept_open_obligations_and_restricted_program(self) -> None:
         planned = RequirementPlannerOutput.model_validate(
             {
@@ -65,6 +89,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                         ],
                         "formula": "((CURR - PREV) / PREV) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
                 "narrative_bindings": [
@@ -267,6 +293,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                     "formula": "((END / START) ** (1 / 3) - 1) * 100",
                     "result_unit": "%",
                     "constants": [{"value": 3, "origin": "query", "source_text": "3 years"}],
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
                 {
                     "obligation_id": "change_1",
@@ -276,6 +304,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                     ],
                     "formula": "((CURR - PREV) / PREV) * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
                 {
                     "obligation_id": "change_2",
@@ -285,6 +315,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                     ],
                     "formula": "((CURR - PREV) / PREV) * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
             ],
         }

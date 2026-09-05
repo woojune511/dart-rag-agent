@@ -64,14 +64,13 @@ version does not alter that wire shape.
 
 ## 3. Candidate visibility v1
 
-Compiler authority is represented by frozen, slotted standard-library
-contracts:
+Compiler authority uses frozen, slotted standard-library contracts:
 
 - `OwnerCandidateVisibility`
 - `EvidenceBundleOptionV1`
 - `EvidenceBundleConstraintV1`
 - `CandidateVisibilityV1`
-- `CompilationEnvelopeV1`
+- `CompilationEnvelopeV2`
 
 Visibility stores catalog and cohort fingerprints, all visible candidate IDs,
 and selectable IDs per obligation or requirement owner as tuples. Construction
@@ -87,6 +86,13 @@ Before execution, the executor must verify:
 2. the program fingerprint equals the validated program fingerprint;
 3. the validation fingerprint equals the envelope fingerprint;
 4. every binding is selectable for its declared owner.
+
+V2 additionally binds the complete catalog contents (sorted by candidate ID),
+ordered obligations, and query with `execution_content_fingerprint`. Changed
+normalized numbers, dimensions, scope, source bytes, spans, or physical
+provenance fail before revalidation or arithmetic as `execution_content_mismatch`.
+Production accepts no V1 envelope fallback. Existing candidate IDs and catalog
+identity fingerprints are unchanged.
 
 Any mismatch fails closed as `visibility_mismatch` or `validation_drift`.
 Execution must not overwrite immutable compile validation.
@@ -117,8 +123,10 @@ are excluded. Equal factor tiers are deterministic and source-diverse.
 bundle ID, source kind, source anchor, context fingerprint, exact contiguous
 source text, member candidate IDs, and bundle-local value spans. Prose values
 from the same source sentence share a bundle. A sentence longer than the prompt
-window is split deterministically around value spans without normalizing its
-bytes. Table values share a bundle only through the same physical table and row;
+window is split into maximal consecutive value-span groups within 420 characters;
+each group shares one window containing all its values without cutting a
+neighboring numeric span or normalizing bytes. Every value belongs to one window.
+Table values share a bundle only through the same physical table and row;
 row headers and cell provenance remain on their candidates.
 
 Numeric selection is bundle-first. Code excludes `explicit_conflict`, gives
@@ -147,6 +155,16 @@ narrative obligations keep their existing multi-evidence bindings. Meaning such
 as total, component, rate, or derived display is represented by obligation
 bindings and formula AST, not a candidate role enum or a separate reranker.
 
+Every expression explicitly supplies nullable `source_display_candidate_id` and
+a nonblank `source_display_reason`; omission is a compiler format error and
+retries the same cohort. A selected source display passes the same authority,
+scope, dimension, and exact-assertion checks as other sources. Its value and
+source spelling are primary even when they differ from recomputation. The
+answer then also labels the recalculated value. Numeric equivalence remains a
+separate scaled-precision comparison, not a condition for source authority.
+Dependency formulas consume calculated values; public primary answer slots use
+display values. Trace preserves both values and their separate provenance.
+
 Numeric owners have capacity two source bundles, narrative requirements six
 candidates, and numeric compatibility narrative capacity two. Query-wide
 visibility remains bounded by 96 unique numeric and 32 narrative candidates.
@@ -166,19 +184,13 @@ provenance and applicability.
 When two or more direct outputs have the same explicit local subject, compatible
 declared scope, and at least one physical row containing a compatible candidate
 for every output, the runtime creates an immutable evidence-bundle constraint.
-Each complete row is one option. Options are ordered by the sum of their best
-owner-cohort positions, then their worst owner position, then physical table and
-row ID. Before compilation, code selects the first option and projects every
-constrained output and requirement cohort through that physical row. Numeric
-compatibility narratives remain auxiliary selectable IDs. The compiler receives
-only the active one-option constraint and its candidate dictionary; ranked
-alternatives remain diagnostics and never enter the prompt.
+Each complete row is an option, ordered by summed best owner positions, worst
+position, then physical table/row ID. Code projects constrained cohorts through
+the first option. Compatibility narratives remain auxiliary IDs. Only the active
+option enters the prompt; ranked alternatives remain diagnostics.
 
-All constrained outputs therefore share one physical-row selection by
-construction. Mixing rows is not representable through normal compiler
-visibility, while validator and executor retain `evidence_bundle_mismatch` as a
-defense-in-depth check. This invariant is inferred independently of planner
-`coupling_key`.
+Constrained outputs share one row. Validator and executor also reject mixing
+rows as `evidence_bundle_mismatch`, independently of planner `coupling_key`.
 
 A required `source_defined_group` narrative may join that bundle across tables
 only when local subject and declared scope agree and its filing company, report
@@ -189,19 +201,9 @@ otherwise independent outputs together.
 
 ## 5. Internal graph state v2
 
-`FinancialAgentStateV2` has these phase envelopes, in order:
-
-```text
-request
-routing
-requirements
-retrieval
-candidates
-compilation
-numeric_result | narrative_result
-ledger
-final_result
-```
+`FinancialAgentStateV2` phases are `request`, `routing`, `requirements`,
+`retrieval`, `candidates`, `compilation`, `numeric_result | narrative_result`,
+`ledger`, and `final_result`.
 
 Every graph node writes exactly one top-level phase key. Diagnostics stay inside
 the phase that produced them. A phase transition moves its downstream readers in
@@ -221,7 +223,11 @@ or they are members of the same inferred evidence-bundle constraint.
 
 Unknown dependency, self-dependency, and cycle fail the affected island before a
 compiler call. A query may contain at most eight islands. All candidate
-reservations are preflighted before any compiler call.
+selectable ID unions are preflighted before any compiler call, counting a shared
+ID only once (numeric 96, narrative 32). Owner quota sums are not reservations.
+Every retry candidate replacement also checks the query-wide union, including
+already accepted and not-yet-compiled islands. An overflowing retry makes no
+provider call and preserves accepted program bytes; bundles are never truncated.
 
 Islands are ordered by original obligation order and compiled sequentially. Each
 island has one internal retry at most:
@@ -246,13 +252,8 @@ compiler prompt.
 
 ## 7. Retrieval boundary
 
-Retrieval runs in four owner-local stages without changing the external graph
-node or search-result order:
-
-1. build plan;
-2. execute searches;
-3. select evidence;
-4. build trace.
+Retrieval runs `build_plan → execute_searches → select_evidence → build_trace`
+inside one owner without changing the external graph node or search-result order.
 
 `retrieval_debug_trace` records query bundles, filters, executed and reused
 queries, selected chunks, policy decisions, and degraded mode. Seed evidence may

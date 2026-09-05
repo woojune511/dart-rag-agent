@@ -135,7 +135,8 @@
           "result_unit": "COUNT",
           "display_unit": "개",
           "display_format": "0,0",
-          "source_display_candidate_id": "",
+          "source_display_candidate_id": null,
+          "source_display_reason": "The result is calculated from the two reported operands.",
           "compatibility_candidate_ids": [],
           "constants": []
         }

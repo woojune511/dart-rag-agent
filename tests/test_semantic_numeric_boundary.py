@@ -40,6 +40,8 @@ class SemanticNumericBoundaryTests(unittest.TestCase):
                     program={"status": "ready", "expressions": [{
                         "obligation_id": "difference", "formula": "A - B", "result_unit": unit,
                         "variable_bindings": [_binding("A", left["candidate_id"], "left"), _binding("B", right["candidate_id"], "right")],
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }]}, obligations=[obligation], candidate_catalog=[left, right], query="Calculate the difference.",
                 )
                 self.assertEqual(execution["validation"]["errors"], [])
@@ -66,6 +68,8 @@ class SemanticNumericBoundaryTests(unittest.TestCase):
         program = {"status": "ready", "expressions": [{
             "obligation_id": "derived", "formula": "A + A", "result_unit": "unsupported-unit",
             "display_unit": "COUNT", "variable_bindings": [_binding("A", "candidate")],
+            "source_display_candidate_id": None,
+            "source_display_reason": "The fixture provides operands without a matching source-stated result.",
         }]}
         validation = validate_semantic_calculation_program(
             program=program, obligations=[_obligation("derived", "derived_value", "quantity")],
@@ -91,6 +95,8 @@ class SemanticNumericBoundaryTests(unittest.TestCase):
             program={"status": "ready", "expressions": [{
                 "obligation_id": "derived", "formula": "A + A", "result_unit": "COUNT",
                 "variable_bindings": [_binding("A", candidate["candidate_id"], "input")],
+                "source_display_candidate_id": None,
+                "source_display_reason": "The fixture provides operands without a matching source-stated result.",
             }]}, obligations=[_obligation("derived", "derived_value", "quantity", evidence_requirements=[_requirement("input", "quantity")])],
             candidate_catalog=[candidate], query="Double the quantity.",
         )

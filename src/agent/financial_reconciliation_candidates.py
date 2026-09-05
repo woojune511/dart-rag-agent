@@ -1148,23 +1148,17 @@ def _numeric_context_excerpt(
     return _normalise_spaces(excerpt[window_start : window_start + bounded])
 
 
-def _canonical_span_in_exact_text(
+def _canonical_spans_in_exact_text(
     canonical_text: str,
     exact_text: str,
-    span: Sequence[int],
-) -> tuple[int, int] | None:
-    """Map one canonical whitespace-normalized span back to exact source text."""
+    spans: Sequence[Sequence[int]],
+) -> List[tuple[int, int] | None]:
+    """Map canonical value spans through one exact-source offset map."""
 
     canonical = str(canonical_text or "")
     exact = str(exact_text or "")
     if not canonical or _normalise_spaces(exact) != canonical:
-        return None
-    try:
-        start, end = int(span[0]), int(span[1])
-    except (IndexError, TypeError, ValueError):
-        return None
-    if not 0 <= start < end <= len(canonical):
-        return None
+        return [None for _ in spans]
 
     offsets: List[int] = []
     tokens = list(re.finditer(r"\S+", exact))
@@ -1173,54 +1167,99 @@ def _canonical_span_in_exact_text(
             offsets.append(tokens[token_index - 1].end())
         offsets.extend(range(token.start(), token.end()))
     if len(offsets) != len(canonical):
-        return None
-    return offsets[start], offsets[end - 1] + 1
+        return [None for _ in spans]
+    mapped: List[tuple[int, int] | None] = []
+    for span in spans:
+        try:
+            start, end = int(span[0]), int(span[1])
+        except (IndexError, TypeError, ValueError):
+            mapped.append(None)
+            continue
+        mapped.append(
+            (offsets[start], offsets[end - 1] + 1)
+            if 0 <= start < end <= len(canonical)
+            else None
+        )
+    return mapped
 
 
-def _numeric_source_bundle_projection(
+def _numeric_source_bundle_projections(
     canonical_text: str,
     exact_text: str,
-    span: Sequence[int],
+    spans: Sequence[Sequence[int]],
     *,
     max_chars: int = 700,
-) -> Dict[str, Any]:
-    """Return an exact contiguous source window plus its value-local span."""
+) -> List[Dict[str, Any]]:
+    """Share bounded exact sentence windows across neighboring value spans."""
 
-    mapped = _canonical_span_in_exact_text(canonical_text, exact_text, span)
-    if mapped is None:
-        return {}
-    value_start, value_end = mapped
+    mapped = _canonical_spans_in_exact_text(canonical_text, exact_text, spans)
+    projections: List[Dict[str, Any]] = [{} for _ in spans]
     text = str(exact_text or "")
     boundary_positions = [
         match.start()
         for match in re.finditer(r"\n|[!?。]|(?<!\d)\.|\.(?!\d)", text)
     ]
-    sentence_start = max(
-        (position for position in boundary_positions if position < value_start),
-        default=-1,
-    ) + 1
-    next_boundary = min(
-        (position for position in boundary_positions if position >= value_end),
-        default=-1,
-    )
-    sentence_end = next_boundary + 1 if next_boundary >= 0 else len(text)
-
     bounded = max(1, int(max_chars))
-    if sentence_end - sentence_start <= bounded:
-        window_start, window_end = sentence_start, sentence_end
-    else:
-        window_start = max(sentence_start, value_start - bounded // 3)
-        window_start = min(window_start, sentence_end - bounded)
-        window_end = min(sentence_end, window_start + bounded)
+    values_by_sentence: Dict[tuple[int, int], List[tuple[int, int, int]]] = {}
+    for index, value_span in enumerate(mapped):
+        if value_span is None:
+            continue
+        value_start, value_end = value_span
+        if value_end - value_start > bounded:
+            raise ValueError("numeric source span exceeds source bundle window")
+        sentence_start = max(
+            (position for position in boundary_positions if position < value_start),
+            default=-1,
+        ) + 1
+        next_boundary = min(
+            (position for position in boundary_positions if position >= value_end),
+            default=-1,
+        )
+        sentence_end = next_boundary + 1 if next_boundary >= 0 else len(text)
+        values_by_sentence.setdefault((sentence_start, sentence_end), []).append(
+            (index, value_start, value_end)
+        )
 
-    return {
-        "source_bundle_text": text[window_start:window_end],
-        "source_bundle_context_span": [window_start, window_end],
-        "source_bundle_value_span": [
-            value_start - window_start,
-            value_end - window_start,
-        ],
-    }
+    for (sentence_start, sentence_end), values in values_by_sentence.items():
+        values.sort(key=lambda value: (value[1], value[2], value[0]))
+        groups: List[List[tuple[int, int, int]]] = []
+        for value in values:
+            if not groups or value[2] - groups[-1][0][1] > bounded:
+                groups.append([])
+            groups[-1].append(value)
+        for group_index, group in enumerate(groups):
+            if sentence_end - sentence_start <= bounded:
+                window_start, window_end = sentence_start, sentence_end
+            else:
+                previous_value_end = (
+                    groups[group_index - 1][-1][2]
+                    if group_index
+                    else sentence_start
+                )
+                next_value_start = (
+                    groups[group_index + 1][0][1]
+                    if group_index + 1 < len(groups)
+                    else sentence_end
+                )
+                window_start = max(
+                    sentence_start,
+                    previous_value_end,
+                    group[0][1] - bounded // 3,
+                    group[-1][2] - bounded,
+                )
+                window_end = min(
+                    sentence_end, next_value_start, window_start + bounded
+                )
+            for index, value_start, value_end in group:
+                projections[index] = {
+                    "source_bundle_text": text[window_start:window_end],
+                    "source_bundle_context_span": [window_start, window_end],
+                    "source_bundle_value_span": [
+                        value_start - window_start,
+                        value_end - window_start,
+                    ],
+                }
+    return projections
 
 
 def _narrative_numeric_rows(
@@ -1293,20 +1332,6 @@ def _narrative_numeric_rows(
             continue
         span = list(surface.get("span") or [])
         context = _numeric_context_excerpt(source_text, span)
-        source_bundle_projection = _numeric_source_bundle_projection(
-            source_text,
-            exact_source_text or source_text,
-            span,
-            max_chars=int(
-                dict(
-                    CALCULATION_PROMPT_POLICY.get(
-                        "semantic_program_prompt_limits"
-                    )
-                    or {}
-                ).get("numeric_source_chars")
-                or 420
-            ),
-        )
         local_entity_surfaces = _local_entity_surfaces(
             source_text,
             span=span,
@@ -1351,10 +1376,22 @@ def _narrative_numeric_rows(
                 "aggregation_stage": "",
                 "aggregate_label": "",
                 "source_span": span,
-                **source_bundle_projection,
                 "local_entity_surfaces": local_entity_surfaces,
             }
         )
+    projections = _numeric_source_bundle_projections(
+        source_text,
+        exact_source_text or source_text,
+        [row["source_span"] for row in rows],
+        max_chars=int(
+            dict(
+                CALCULATION_PROMPT_POLICY.get("semantic_program_prompt_limits") or {}
+            ).get("numeric_source_chars")
+            or 420
+        ),
+    )
+    for row, projection in zip(rows, projections):
+        row.update(projection)
     return rows
 
 

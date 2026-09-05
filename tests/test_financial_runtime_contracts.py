@@ -18,7 +18,7 @@ from src.agent.financial_graph import (
 )
 from src.agent.financial_runtime_contracts import (
     CandidateVisibilityV1,
-    CompilationEnvelopeV1,
+    CompilationEnvelopeV2,
 )
 
 
@@ -107,10 +107,13 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             query="Return the reported value.",
             candidate_visibility=visibility,
         )
-        envelope = CompilationEnvelopeV1.create(
+        envelope = CompilationEnvelopeV2.create(
             visibility=visibility,
             program=program,
             validation=validation,
+            candidate_catalog=catalog,
+            obligations=obligations,
+            query="Return the reported value.",
         )
 
         execution = execute_semantic_calculation_program(
@@ -145,10 +148,13 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             query="Return the reported value.",
             candidate_visibility=visibility,
         )
-        envelope = CompilationEnvelopeV1.create(
+        envelope = CompilationEnvelopeV2.create(
             visibility=visibility,
             program=program,
             validation=validation,
+            candidate_catalog=catalog,
+            obligations=obligations,
+            query="Return the reported value.",
         )
         changed_catalog = [{**catalog[0], "raw_value": "11"}]
 
@@ -183,10 +189,13 @@ class FinancialRuntimeContractTests(unittest.TestCase):
             query="Return the reported value.",
             candidate_visibility=visibility,
         )
-        envelope = CompilationEnvelopeV1.create(
+        envelope = CompilationEnvelopeV2.create(
             visibility=visibility,
             program=program,
             validation=validation,
+            candidate_catalog=catalog,
+            obligations=obligations,
+            query="Return the reported value.",
         )
 
         execution = execute_semantic_calculation_program(

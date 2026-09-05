@@ -337,6 +337,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                     ],
                     "formula": "CURRENT - PRIOR",
                     "result_unit": "",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 }
             ],
         }
@@ -419,6 +421,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         ],
                         "formula": "CURRENT - PRIOR",
                         "result_unit": "",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -505,6 +509,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         ],
                         "formula": "((CURRENT - PRIOR) / PRIOR) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
                 "source_assertions": _source_assertions(
@@ -610,9 +616,9 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         self.assertEqual(output["normalized_value"], 10.0)
         self.assertEqual(output["source_display_value"], "95.0%")
         self.assertFalse(output["source_display_matches_formula"])
-        self.assertFalse(output["source_stated_result_used"])
+        self.assertTrue(output["source_stated_result_used"])
         self.assertIn("calculated", result["answer"])
-        self.assertIn("source-stated 95.0%", result["answer"])
+        self.assertIn("95.0% (recalculated 10%)", result["answer"])
 
     def test_preserved_source_display_cannot_bypass_scope_or_unit_checks(self) -> None:
         for field, value in (
@@ -686,6 +692,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "((CURR - PREV) / PREV) * 100",
                         "result_unit": "%",
                         "source_display_candidate_id": "cand-stated",
+                        "source_display_reason": "The selected source candidate explicitly reports this derived result.",
                     }
                 ],
             },
@@ -779,6 +786,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             ],
             "formula": "A - B",
             "result_unit": "원",
+            "source_display_candidate_id": None,
+            "source_display_reason": "The fixture provides operands without a matching source-stated result.",
         }
         rejected = validate_semantic_calculation_program(
             program={"status": "ready", "expressions": [expression]},
@@ -874,6 +883,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                             _binding("B", "target-visible", "ob_derived:req_b"),
                         ],
                         "formula": "A - B",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1239,6 +1250,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "A + B + 7",
                         "result_unit": "개",
                         "constants": [],
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1485,12 +1498,16 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                     "variable_bindings": [{"variable": "B", "source_id": "b"}],
                     "formula": "B * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
                 {
                     "obligation_id": "b",
                     "variable_bindings": [{"variable": "A", "source_id": "a"}],
                     "formula": "A * 100",
                     "result_unit": "%",
+                    "source_display_candidate_id": None,
+                    "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },
             ],
         }
@@ -1548,6 +1565,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         ],
                         "formula": "(A / B) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1601,6 +1620,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "(PART / TOTAL) * 100",
                         "result_unit": "%",
                         "source_display_candidate_id": "stated",
+                        "source_display_reason": "The selected source candidate explicitly reports this derived result.",
                     }
                 ],
             },
@@ -1656,6 +1676,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                             {"variable": "A", "source_id": "finite"}
                         ],
                         "formula": "A",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             },
@@ -1697,6 +1719,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                         "formula": "(A / B) * 100",
                         "result_unit": "%",
                         "source_display_candidate_id": "not-finite-display",
+                        "source_display_reason": "The selected source candidate explicitly reports this derived result.",
                     }
                 ],
             },

@@ -121,6 +121,8 @@
               }
             ],
             "formula": "((CURRENT - PRIOR) / PRIOR) * 100",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The fixture reports period operands without a source-stated change rate.",
             "result_unit": "%"
           }
         ]

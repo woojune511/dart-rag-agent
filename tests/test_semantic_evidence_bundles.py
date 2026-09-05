@@ -7,7 +7,7 @@ from src.agent.financial_graph_calculation import (
     _semantic_candidate_visibility,
 )
 from src.agent.financial_runtime_contracts import (
-    CompilationEnvelopeV1,
+    CompilationEnvelopeV2,
     EvidenceBundleConstraintV1,
     EvidenceBundleOptionV1,
 )
@@ -425,13 +425,20 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                     "code": "evidence_bundle_mismatch",
                     "obligation_id": "ob_alpha",
                     "detail": "cand-alpha-b",
+                    "owner_id": "ob_alpha",
+                    "candidate_id": "cand-alpha-b",
+                    "location": "evidence_bundle",
+                    "repair_action": "replace_candidate",
                 }
             ],
         )
-        envelope = CompilationEnvelopeV1.create(
+        envelope = CompilationEnvelopeV2.create(
             visibility=visibility,
             program=mixed_program,
             validation=validation,
+            candidate_catalog=catalog,
+            obligations=obligations,
+            query="Return both Target Entity metrics.",
         )
         executed = execute_semantic_calculation_program(
             program=mixed_program,
@@ -535,6 +542,10 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                 "code": "candidate_not_exposed_to_compiler",
                 "obligation_id": "ob_summary",
                 "detail": "cand-summary-unknown",
+                "owner_id": "ob_summary",
+                "candidate_id": "",
+                "location": "program",
+                "repair_action": "repair_program",
             },
             validation["errors"],
         )

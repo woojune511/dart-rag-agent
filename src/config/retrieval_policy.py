@@ -171,7 +171,9 @@ NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     },
     "usd_scales": {"usd": 1.0, "$": 1.0, "달러": 1.0, "백만달러": 1_000_000.0},
     "count_scales": {"item": 1.0, "items": 1.0},
-    "percent_units": ("%", "%p", "퍼센트"),
+    # Source token boundaries are candidate identity inputs; keep them stable.
+    "percent_units": ("%", "퍼센트"),
+    "percent_display_units": ("%p",),
 }
 
 
@@ -544,7 +546,8 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
             "- formula에는 변수, 숫자 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다.\n"
             "- 0, 1, 100 이외 상수는 constants에 query 또는 deterministic_cardinality origin으로 선언합니다.\n"
-            "- 원문이 반올림된 파생 표시를 직접 제공하면 source_display_candidate_id로 지정하되 deterministic formula도 유지합니다.\n"
+            "- 모든 expression에서 source_display_candidate_id와 source_display_reason을 반드시 반환하세요. 선택한 원문 묶음에 해당 obligation과 같은 의미의 파생 결과가 직접 제시돼 있으면 그 candidate ID를 지정하고, 선택하지 않으면 null을 지정하세요. source_display_reason에는 원문 맥락상 선택하거나 선택하지 않은 구체적 이유를 쓰세요. 빈 문자열이나 필드 생략으로 판단을 대신하지 마세요.\n"
+            "- source display를 선택해도 deterministic formula와 원시 입력 바인딩을 유지하세요. 시스템은 원문 기재값을 우선 표시하고 계산값을 별도로 표시합니다. 둘의 차이를 맞추려고 원문 값이나 수식을 바꾸거나 원문에 없는 반올림 이유를 추측하지 마세요.\n"
             "- 서로 다른 회사·연결기준·부문·기준·source context를 섞어야 한다면 이를 명시적으로 뒷받침하는 narrative candidate ID를 compatibility_candidate_ids에 넣으세요.\n"
             "- narrative obligation은 근거 candidate_ids와 그 근거만으로 작성한 짧은 text를 함께 반환합니다. 숫자는 선택한 원문에 보이는 표기 그대로만 쓰고, 질문에 필수적이지 않은 숫자는 생략하세요.\n"
             "- narrative candidate의 consolidation_scope·segment·basis metadata만 unknown이고 문맥상 해당 obligation에 적용된다고 판단하면 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period는 이 선언으로 보완할 수 없습니다.\n"
@@ -563,8 +566,8 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
     'semantic_program_render_templates': {
             "item": "{label}: {value}",
             "item_sentence_ko": "{subject}{topic_particle} {value}입니다.",
-            "source_display_comparison": "calculated {calculated} (source-stated {source})",
-            "source_display_comparison_ko": "계산값 {calculated} (원문 기재: {source})",
+            "source_display_comparison": "{source} (recalculated {calculated})",
+            "source_display_comparison_ko": "{source} (재계산값 {calculated})",
             "derived_inputs": "Inputs: {items}.",
             "derived_inputs_ko": "입력값은 {items}입니다.",
             "derived_input_item": "{label} {value}",

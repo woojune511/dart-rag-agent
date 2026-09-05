@@ -650,6 +650,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                         ],
                         "formula": "((CURR - PREV) / PREV) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             }
@@ -666,6 +668,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                         ],
                         "formula": "((CURR - PREV) / PREV) * 100",
                         "result_unit": "%",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             }
@@ -1280,6 +1284,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                         ],
                         "formula": "A - B",
                         "result_unit": "개",
+                        "source_display_candidate_id": None,
+                        "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
                 ],
             }
@@ -1373,7 +1379,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(len(llm.prompts), 1)
         executed = agent._execute_semantic_calculation_program({**state, **compiled})
         self.assertEqual(executed["structured_result"]["status"], "ok")
-        self.assertIn("calculated 10% (source-stated 10.2%)", executed["answer"])
+        self.assertIn("10.2% (recalculated 10%)", executed["answer"])
         trace = executed["resolved_calculation_trace"]
         calculation_result = trace["calculation_result"]
         output = calculation_result["outputs"][0]
@@ -1387,7 +1393,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(
             validate_answer_slots_payload(calculation_result["answer_slots"])["primary_value"]["normalized_value"],
-            10.0,
+            10.2,
         )
         self.assertIn("cand-stated", executed["selected_claim_ids"])
         source_evidence = next(item for item in executed["evidence_items"] if item["evidence_id"] == "cand-stated")
@@ -1407,9 +1413,10 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             expected_calculation_result={"normalized_value": 10.0, "normalized_unit": "PERCENT", "tolerance": 0.0},
         ))
         self.assertIsNone(evaluation.error)
-        self.assertEqual(evaluation.numeric_result_correctness, 1.0)
+        # Source-first display does not change or relax a calculation-only oracle.
+        self.assertEqual(evaluation.numeric_result_correctness, 0.0)
         self.assertEqual(evaluation.grounded_rendering_correctness, 1.0)
-        self.assertEqual(evaluation.calculation_correctness, 1.0)
+        self.assertEqual(evaluation.calculation_correctness, 0.5)
         self.assertIsNone(evaluation.raw_faithfulness)
 
     def test_program_compiler_retries_once_for_missing_obligation(self) -> None:

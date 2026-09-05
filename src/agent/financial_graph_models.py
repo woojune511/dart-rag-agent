@@ -255,7 +255,16 @@ class SemanticProgramExpression(_DeferredBaseModel):
     result_unit: str = ""
     display_unit: str = ""
     display_format: str = ""
-    source_display_candidate_id: str = ""
+    source_display_candidate_id: Optional[str] = Field(
+        description=(
+            "Visible candidate reporting the same derived result as this obligation, "
+            "or null when no matching source-stated result is selected."
+        ),
+    )
+    source_display_reason: str = Field(
+        min_length=1,
+        description="Explain why the source-stated result was selected or not selected.",
+    )
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
         description=(
@@ -264,6 +273,13 @@ class SemanticProgramExpression(_DeferredBaseModel):
         ),
     )
     constants: List[SemanticProgramConstant] = Field(default_factory=list)
+
+    @field_validator("source_display_reason")
+    @classmethod
+    def _source_display_reason_is_nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("source_display_reason must be nonblank")
+        return value
 
 
 class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):

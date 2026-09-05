@@ -228,6 +228,7 @@ def _source_display_program_fixture():
                 "formula": "(CLOSE - OPEN) / OPEN * 100",
                 "result_unit": "%",
                 "source_display_candidate_id": "cand-stated",
+                "source_display_reason": "The selected source candidate explicitly reports this derived result.",
             }],
         },
         "query": "Calculate the change using the displayed opening and closing quantities.",
