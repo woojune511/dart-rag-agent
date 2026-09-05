@@ -7,12 +7,14 @@ import tempfile
 import threading
 import time
 import unittest
+import warnings
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
+from pydantic.warnings import UnsupportedFieldAttributeWarning
 from starlette.requests import Request
 
 from src.api.financial_router import get_router
@@ -153,6 +155,31 @@ def _client(services):
 
 
 class FinancialAPIContractTests(unittest.TestCase):
+    def test_first_body_validation_has_no_unsupported_field_warning(self) -> None:
+        import src.api.financial_router as router_module
+
+        services, _, _ = _services()
+        with patch.object(router_module, "_SCHEMA_MODELS", None):
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always", UnsupportedFieldAttributeWarning)
+                with _client(services) as client:
+                    ingest = client.post(
+                        "/api/ingest",
+                        json={"company": "A", "years": [2024]},
+                    )
+                    query = client.post("/api/query", json={"question": "q"})
+
+        self.assertEqual(ingest.status_code, 200)
+        self.assertEqual(query.status_code, 200)
+        self.assertEqual(
+            [
+                warning
+                for warning in caught
+                if issubclass(warning.category, UnsupportedFieldAttributeWarning)
+            ],
+            [],
+        )
+
     def test_queued_query_rechecks_readiness_after_acquiring_lock(self) -> None:
         async def scenario():
             services, agent, _ = _services()

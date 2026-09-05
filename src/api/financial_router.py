@@ -46,23 +46,23 @@ def _schema_models() -> Dict[str, type]:
     if _SCHEMA_MODELS is not None:
         return _SCHEMA_MODELS
 
-    from pydantic import BaseModel, ConfigDict, Field
+    from pydantic import BaseModel, Field
 
-    class _DeferredBaseModel(BaseModel):
-        model_config = ConfigDict(defer_build=True)
+    class _APIBaseModel(BaseModel):
+        pass
 
-    class IngestRequest(_DeferredBaseModel):
+    class IngestRequest(_APIBaseModel):
         company: str = Field(..., examples=["삼성전자"])
         years: List[int] = Field(..., examples=[[2023]])
 
-    class IngestResponse(_DeferredBaseModel):
+    class IngestResponse(_APIBaseModel):
         company: str
         years: List[int]
         files_fetched: int
         chunks_added: int
         message: str
 
-    class ReportScope(_DeferredBaseModel):
+    class ReportScope(_APIBaseModel):
         company: Optional[str] = None
         corp_name: Optional[str] = None
         year: Optional[int] = None
@@ -73,13 +73,13 @@ def _schema_models() -> Dict[str, type]:
         source_receipts: List[str] = Field(default_factory=list)
         source_reports: List[Dict[str, Any]] = Field(default_factory=list)
 
-    class QueryRequest(_DeferredBaseModel):
+    class QueryRequest(_APIBaseModel):
         question: str = Field(..., examples=["삼성전자 2023년 주요 리스크는 무엇인가요?"])
         report_scope: Optional[ReportScope] = None
         include_review_trace: bool = Field(default=False)
         include_debug_bundle: bool = Field(default=False)
 
-    class QueryResponse(_DeferredBaseModel):
+    class QueryResponse(_APIBaseModel):
         question: str
         answer: str
         query_type: str
@@ -92,16 +92,16 @@ def _schema_models() -> Dict[str, type]:
         debug_bundle: Optional[Dict[str, Any]] = None
         retrieval_readiness: Optional[Dict[str, Any]] = None
 
-    class CompanyInfo(_DeferredBaseModel):
+    class CompanyInfo(_APIBaseModel):
         name: str
         years: List[int]
         chunk_count: int
 
-    class CompaniesResponse(_DeferredBaseModel):
+    class CompaniesResponse(_APIBaseModel):
         companies: List[CompanyInfo]
         total_chunks: int
 
-    class HealthResponse(_DeferredBaseModel):
+    class HealthResponse(_APIBaseModel):
         status: str
         indexed_docs: int
         ready: bool = False

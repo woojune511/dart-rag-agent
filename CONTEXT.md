@@ -61,6 +61,9 @@ import/topology, pycompile, and diff checks pass. The local integration recheck
 also passed `878 / 878` on Python 3.14.5; the environment emitted existing
 LangChain/Pydantic compatibility warnings but no test failure. Detailed counts
 are in project status.
+The local environment is now aligned to Python 3.13.13. Removing redundant
+Pydantic deferred builds from the lazy API schema factory eliminates the
+first-request field-alias warning; full discovery passes `879 / 879`.
 Provider-free replay verifies all three saved catalog identities and unchanged
 input-file hashes:
 

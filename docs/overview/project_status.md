@@ -55,6 +55,9 @@ Python 3.13 is the verification interpreter.
   import/topology `28 / 28`, full unittest `878 / 878`.
 - Post-fast-forward integration recheck: Python 3.14.5 full unittest
   `878 / 878`; existing LangChain/Pydantic compatibility warnings only.
+- Python warning cleanup: the local environment now uses Python 3.13.13, API
+  first-body validation emits no Pydantic field-alias warning, and full unittest
+  discovery passes `879 / 879`.
 - Runtime domain audit: pass, `84` reviewed literals.
 - Import/topology, pycompile, and `git diff --check`: pass.
 - Tests inject failures into actual lower file writes, check same-process and
