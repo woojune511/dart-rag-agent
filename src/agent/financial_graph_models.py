@@ -9,8 +9,17 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 _SEMANTIC_COUPLING_KEY_MAX_CHARS = 128
 
 
-def _bounded_semantic_coupling_key(value: Any) -> str:
+def _normalise_optional_planner_text(value: Any) -> str:
+    """Collapse serialized null sentinels for planner fields that allow blank."""
+
     text = " ".join(str(value or "").split())
+    if text.casefold() in {"null", "none"}:
+        return ""
+    return text
+
+
+def _bounded_semantic_coupling_key(value: Any) -> str:
+    text = _normalise_optional_planner_text(value)
     if len(text) <= _SEMANTIC_COUPLING_KEY_MAX_CHARS:
         return text
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
@@ -153,6 +162,11 @@ class AnswerObligation(_DeferredBaseModel):
             "company, or report does not establish coupling."
         ),
     )
+
+    @field_validator("display_unit", "display_format", mode="before")
+    @classmethod
+    def _normalise_optional_display_fields(cls, value: Any) -> str:
+        return _normalise_optional_planner_text(value)
 
     @field_validator("coupling_key", mode="before")
     @classmethod

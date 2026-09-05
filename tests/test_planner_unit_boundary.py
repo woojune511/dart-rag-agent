@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from src.agent.financial_graph import FinancialAgent
+from src.agent.financial_graph_calculation import build_semantic_compilation_islands
 from src.agent.financial_graph_models import RequirementPlannerOutput, SemanticCalculationProgram
 from tests.semantic_program_test_support import _StructuredQueueLLM, _candidate
 
@@ -71,6 +72,55 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
         self.assertEqual(compiled["semantic_program"]["missing_obligation_ids"], ["ob_001"])
         self.assertEqual([row["obligation_id"] for row in compiled["semantic_program"]["direct_bindings"]], ["ob_002"])
+
+    def test_serialized_null_optional_fields_do_not_block_or_couple_obligations(self):
+        planner = RequirementPlannerOutput.model_validate({
+            "topic": "requested result and context",
+            "obligations": [
+                {
+                    "kind": "derived_value",
+                    "label": "requested rate",
+                    "display_unit": "%",
+                    "display_format": "null",
+                    "coupling_key": "rate-basis",
+                },
+                {
+                    "kind": "narrative",
+                    "label": "requested context",
+                    "display_unit": "null",
+                    "display_format": "None",
+                    "coupling_key": "null",
+                    "evidence_mode": "source_defined_group",
+                },
+            ],
+        })
+        llm = _StructuredQueueLLM(planner)
+        agent = object.__new__(FinancialAgent)
+        agent.llm = llm
+        agent.llm_routes = {}
+        agent.llm_usage_callback = None
+        planned = agent._plan_answer_obligation_program({
+            "query": "Return the requested rate and context.",
+            "report_scope": {}, "query_type": "numeric_fact",
+            "intent": "numeric_fact", "topic": "requested result and context",
+            "companies": [], "years": [],
+        })
+
+        obligations = planned["answer_obligations"]
+        self.assertEqual(obligations[0]["display_format"], "")
+        self.assertEqual(obligations[1]["display_unit"], "")
+        self.assertEqual(obligations[1]["display_format"], "")
+        self.assertEqual(obligations[1]["coupling_key"], "")
+        self.assertEqual(planned["semantic_plan"]["requirement_errors"], [])
+        islands = build_semantic_compilation_islands(obligations)
+        self.assertEqual(
+            [item["obligation_ids"] for item in islands["islands"]],
+            [["ob_001"], ["ob_002"]],
+        )
+        self.assertEqual(
+            [item["errors"] for item in islands["islands"]],
+            [[], []],
+        )
 
     def test_compiler_unit_format_error_retries_same_visible_candidates_once(self):
         def response(result_unit):
