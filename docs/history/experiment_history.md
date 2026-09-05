@@ -7548,3 +7548,23 @@ References:
   `9901c8fc...e9180`. No provider/compiler call or store write occurred. This is
   runtime trace-variant coverage only, not new retrieval, compiler-selection,
   evaluator, held-out-question, or release evidence.
+
+## Reviewed Compiler-Only Selection Gate (2026-09-06)
+
+- Admission `ef95dc95...f016` bound clean commit `e9a5be0`, five reviewed
+  questions, six compilation islands, Google Gemini 2.5 Flash, client retry 0,
+  and USD `0.12`. Two no-call receipts were byte-identical at
+  `ea2c7c1e...66d47`; no retrieval, planner, evaluator, embedding, or store work
+  was in scope.
+- The one approved process stopped after its first failing question as required.
+  `KBF_T1_017` passed. `KBF_T2_018` selected the exact reviewed 2023/2022 signed
+  candidates and narrative, with validation `ready` and execution `ok`.
+- The compiler nevertheless used `((current-prior)/abs(prior))*100`, producing
+  `-70.2809595%`; the reviewed magnitude calculation is
+  `((abs(current)-abs(prior))/abs(prior))*100 = +70.2809595%`. Structural
+  validation cannot currently distinguish these meanings, so no internal retry
+  fired. LGE, NAVER, and Celltrion were not dispatched.
+- Usage was 2 calls / 14,157 input / 4,048 output / 18,205 total tokens, with an
+  estimated USD `0.0143671`. Result SHA-256 is `496394bb...b0c90f`. No automatic
+  retry is authorized; the successor starts with a provider-free generic
+  signed-versus-magnitude formula contract rather than a question-specific rule.

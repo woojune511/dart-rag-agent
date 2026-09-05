@@ -139,12 +139,12 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    `700,691백만원`, and the four same-basis summary measures). Runtime and
    dataset/evaluator ownership remain separate; do not relax tolerance,
    faithfulness policy, or source-evidence requirements to improve a score.
-9. The next gate is compiler selection over the reviewed corpus. Its no-call
-   rehearsal passes 5/5 cases across six islands, with 146,202 prompt bytes
-   (`2f9df5b4...258e0`) and zero external calls or retry. Provider retry is off,
-   output is capped at 2,048 tokens, and the run stops on its first failed case.
-   Official-rate planning is USD `0.0198302` normally or `0.0906804` if every
-   island retries; proposed cap is USD `0.12`. External execution still requires
-   a clean-build manifest, two identical receipts, and separate approval.
+9. Compiler-only admission `ef95dc95...f016` was consumed once. KBF T1 passed;
+   KBF T2 selected every reviewed candidate but compiled signed change
+   `((current-prior)/abs(prior))*100`, yielding `-70.28%` instead of magnitude
+   growth `+70.28%`. Validation and execution were `ready/ok`, so retry stayed 0;
+   the remaining three cases did not run. Usage was 2 calls / 18,205 tokens,
+   estimated USD `0.0143671`; result hash is `496394bb...b0c90f`. The blocker is
+   signed-vs-magnitude semantics, not candidate authority or arithmetic; approval is exhausted, so fix provider-free before any successor.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

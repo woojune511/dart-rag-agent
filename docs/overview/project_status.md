@@ -114,15 +114,15 @@ That run made no fetch, ingest, document embedding, store mutation, or runner
 retry. Its admission is exhausted. Exact timing, usage, cost estimate, store and
 result hashes remain in experiment history rather than this current snapshot.
 
-The next optional gate is one bounded compiler-selection evaluation over the
-reviewed corpus. It remains separately approved provider work; it should not be
-run until its immutable manifest, transmitted source scope, and cost cap are
-presented. Its provider-free harness currently passes 5/5 cases across six
-actual compilation islands with six substituted structured outputs and no
-retry or external call. Captured prompt size is 146,202 UTF-8 bytes; the likely
-cost estimate is USD `0.0198302`, the all-island-retry planning estimate is USD
-`0.0906804`, and the proposed authorization ceiling is USD `0.12`. The live
-path disables provider-client retry and stops after the first failed question.
+Compiler-only admission `ef95dc95...f016` was consumed once. KBF T1 passed. KBF
+T2 selected both reviewed signed values and the reviewed narrative, but compiled
+`((current-prior)/abs(prior))*100`; execution therefore returned `-70.28%`
+instead of reviewed magnitude growth `+70.28%`. Structural validation was ready
+and execution was error-free, so no retry occurred. The gate stopped before LGE,
+NAVER, and Celltrion as specified. Usage was 2 calls / 18,205 tokens with an
+estimated USD `0.0143671`, below the USD `0.12` cap. This is a compiler formula-
+semantics gap, not candidate visibility or arithmetic failure. The approval is
+exhausted; a provider-free successor must precede any new manifest.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
