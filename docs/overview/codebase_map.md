@@ -54,6 +54,7 @@
 | `src/ops/replay_runtime_contract_cases.py` | read-only saved-case/counterfactual runtime contract replay; no provider/release claim |
 | `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
 | `src/ops/replay_reviewed_runtime_corpus.py` | provider-free replay of source-derived reviewed fixtures through normalization/visibility/validator/envelope/executor; no retrieval/compiler claim |
+| `src/ops/replay_reviewed_compiler_selection.py` | bounded compiler-only rehearsal/admission over reviewed source projections; no retrieval, evaluator, embedding, or store access |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
 - `src/experimental/mas/`: optional MAS facade over the single-agent runtime.
