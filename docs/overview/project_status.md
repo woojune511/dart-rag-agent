@@ -72,25 +72,36 @@ not an evaluator or release run.
 ## Provider status and next gate
 
 Release remains `HOLD`. Admission `45ef0f6e...4f03` ran exactly once on commit
-`8410691`; no automatic retry, fresh ingest, document embedding, or source
-mutation occurred. Runtime completeness was `1 / 3`:
+`8410691`. Follow-up admission `da9cd31e...0acf` ran exactly once on commit
+`e3ee77f`, targeting only the two rows that had failed on provider capacity.
+Neither run used automatic runner retry, fresh ingest, document embedding, or
+source mutation.
 
 - `HYU_T3_072` passed with `26%` and `700,691백만원` from table 82 row `9:2`,
   the four Motional values from table 90 row `21:4`, no BHAF `53%`, runtime
-  error `0`, and ledger `ok`.
-- `HYU_T2_010` and `SAM_T2_078` each stopped on Google query-embedding
-  `429 RESOURCE_EXHAUSTED` before compiler output, so the repaired source-
-  display and Samsung selection contracts were not provider-tested.
+  error `0`, and ledger `ok`. The follow-up binds this immutable same-runtime
+  result instead of paying to rerun it.
+- `SAM_T2_078` passed on the follow-up with both obligations complete. It chose
+  `cand_27da082cf5bcd0cb9f27`, rendered `28,352,769백만원`, synthesized its
+  two-source Harman narrative, recorded runtime error `0`, and kept ledger,
+  faithfulness, completeness, grounded rendering, and calculation all `ok`/`1.0`.
+- `HYU_T2_010` again stopped on Google query-embedding
+  `429 RESOURCE_EXHAUSTED`, after planning but before compiler output. Its
+  source-display contract therefore remains provider-unverified.
 
-The successful T3 trace reports USD `0.0472849`; failed-question calls and
-embedding pricing are absent, so exact total cost is unavailable. The immutable
-source hashes and complete store fingerprints are unchanged, and no disposable
-store remains. The consumed artifact is
-`benchmarks/results/runtime_contract_repair_focused_successor_envbound_2026-09-05`.
+The follow-up's accounted successful Samsung trace reports 6 LLM calls, 41,405
+tokens, 10 query-embedding calls, and USD `0.0448187` non-embedding runtime
+cost. Calls made before the T2 exception and embedding pricing are absent, so
+exact total cost is unavailable. The immutable source result/SQLite hashes and
+complete store fingerprints are unchanged, and no disposable store remains.
+Its root result SHA-256 is `d30a321c...422fd`; ignored run receipt SHA-256 is
+`0fefdb88...9ac27`.
 
-No retry is authorized. Diagnose the Google query-embedding capacity boundary
-before proposing a new exact manifest and cost approval. Reuse of either
-consumed admission is forbidden.
+The combined same-runtime gate is `2 / 3`, with T3 carried forward by exact
+artifact hashes. Both admissions are consumed and no further retry is
+authorized. Diagnose or change the Google query-embedding capacity boundary
+before proposing any new manifest; repeating the unchanged paid run is not the
+next development step.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy

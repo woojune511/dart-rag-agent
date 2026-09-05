@@ -131,6 +131,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Evidence-Scoped Atomic Tie Mining (2026-09-04)](#evidence-scoped-atomic-tie-mining-2026-09-04) | 구버전 saved obligation과 verified dataset quote의 exact source node로 current-ID hard negative 수집 | human review 4 select/2 exclude; 1 baseline error, provider 0 |
 | [Candidate Fact-Role Projection V1 (2026-09-05)](#candidate-fact-role-projection-v1-2026-09-05) | 물리 후보별 구조 role과 exact-source-grounded prose role 경계 | v5 packet 6/34; raw role context와 exact-surface rank rule은 회귀로 기각, runtime scorer disabled |
 | [Bounded Prose Semantic-Role Interpreter Harness (2026-09-05)](#bounded-prose-semantic-role-interpreter-harness-2026-09-05) | query/answer-label-free same-source role extraction contract | one request/two values; reviewed role plumbing 2/2, cross-encoder stays 1/4, provider 0 |
+| [Runtime Repair Failed-Row Provider Retry (2026-09-05)](#runtime-repair-failed-row-provider-retry-2026-09-05) | 첫 repair gate의 429 실패 두 행만 exact manifest로 재실행하고 T3 성공을 해시로 carry forward | Samsung 완전 통과, T2 query embedding 429 재발; combined same-runtime gate 2/3 HOLD, no retry |
 
 ## 보는 법
 
@@ -7398,3 +7399,32 @@ References:
   source-consistent acceptance `1 / 3`. The admission is exhausted. Next work
   is provider-free unit-boundary and source-display contract repair; no paid
   retry is authorized.
+
+## Runtime Repair Failed-Row Provider Retry (2026-09-05)
+
+- Runtime-contract repairs were first exercised by admission
+  `45ef0f6e...4f03`. T3 passed, while T2 and Samsung failed on Google query-
+  embedding `429 RESOURCE_EXHAUSTED`. Follow-up admission
+  `da9cd31e...0acf` therefore bound the immutable T3 artifact and selected only
+  `HYU_T2_010` and `SAM_T2_078`.
+- The approved follow-up runner executed once on `e3ee77f` in `187.253s` and
+  exited zero. It performed no fresh fetch, ingest, document embedding, source
+  mutation, or runner retry. Original result/SQLite hashes and complete store
+  fingerprints stayed unchanged; no disposable eval store remained.
+- Samsung completed both obligations without semantic retry. It selected
+  `cand_27da082cf5bcd0cb9f27` from the `연구개발비용 총계` row, preserved
+  `28,352,769백만원`, and grounded the Harman narrative in two sources. Runtime
+  error was zero, ledger was `ok`, and faithfulness, completeness, grounded
+  rendering, and calculation were all `1.0`.
+- T2 again received a fatal Google query-embedding `429` during retrieval after
+  planning and before semantic compilation. This is unavailable provider
+  capacity evidence, not a source-display, validator, or executor result.
+- The follow-up artifact accounts for Samsung only: 6 LLM calls / 41,405 tokens,
+  10 query-embedding calls, and USD `0.0448187` non-embedding estimate. Failed-
+  path calls and embedding pricing are not recorded, so exact total cost is
+  unavailable. Root result SHA-256 is `d30a321c...422fd`; ignored receipt is
+  `0fefdb88...9ac27`.
+- With immutable same-runtime T3 carried forward, the combined runtime gate is
+  `2 / 3`; release remains `HOLD`. The approval is consumed. Repeating the
+  unchanged provider run is not authorized and would not address the remaining
+  Google query-embedding capacity boundary.

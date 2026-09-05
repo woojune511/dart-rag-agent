@@ -64,14 +64,19 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
 1. Admission `45ef0f6e...4f03` was consumed once on this build. T3 passed all
    runtime/evidence/ledger gates; T2 and Samsung stopped on Google query-
    embedding `429 RESOURCE_EXHAUSTED` before compiler output. Runtime gate:
-   `1 / 3`; release remains `HOLD`.
-2. Do not retry under this admission. T2 source-display selection and Samsung
-   numeric selection therefore remain provider-unverified on the repaired
-   build. Preserve the failed artifact and diagnose provider capacity before
-   proposing any new exact manifest.
-3. Formula-wide rounding-error propagation is deferred. Source precision
+   `1 / 3` in that artifact.
+2. Follow-up admission `da9cd31e...0acf` was then consumed exactly once for the
+   two failed rows. Samsung passed both obligations with accepted candidate
+   `cand_27da082cf5bcd0cb9f27`, rendered `28,352,769백만원`, runtime error `0`,
+   evaluator faithfulness/completeness `1.0`, and ledger `ok`. T2 again stopped
+   on Google query-embedding `429` before compiler output.
+3. The immutable same-runtime T3 success plus the new Samsung success make the
+   combined runtime gate `2 / 3`; release remains `HOLD`. Both admissions are
+   exhausted. Do not repeat either run. The remaining blocker is provider
+   capacity at the Google query-embedding boundary, not another semantic patch.
+4. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
-4. T3 answer-key/evaluator governance is separate; do not change tolerance,
+5. T3 answer-key/evaluator governance is separate; do not change tolerance,
    faithfulness policy, dataset answers, or source evidence to improve a score.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md),
