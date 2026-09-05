@@ -12625,3 +12625,16 @@ are complete. It remains only as an audit record, not an active priority.
   T2 period/growth values, isolated T3 Motional `26%` from BHAF `53%`, and
   preserved all four previously selected Samsung candidates. No provider,
   ingest, document embedding, or store mutation was performed.
+
+## Planner evidence-dependency boundary (2026-09-05)
+
+- Commit `af9a07e` makes `AnswerObligation.depends_on` an explicit reference to
+  other user-visible answer obligations only. Raw calculation inputs remain
+  owned by `evidence_requirements` and do not become compilation-island vertices.
+- Planner projection removes a dependency only when it exactly names the current
+  obligation's own evidence requirement. Known answer-obligation IDs are mapped
+  first; unknown and self references remain available to existing fail-closed
+  preflight checks.
+- The schema description and generic planner policy now state the same rule.
+  Focused planner tests pass 5/5, semantic contracts 164/164, import/topology
+  28/28, runtime audit 84, and full Python 3.13 unittest discovery 878/878.

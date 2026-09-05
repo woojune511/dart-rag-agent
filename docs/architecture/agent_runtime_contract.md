@@ -225,13 +225,13 @@ typed results and telemetry without modifying answers, citations, or evidence.
 
 ## 6. Compilation islands
 
-Each answer obligation is a vertex. Two vertices share an island when one
-declares a dependency on the other, both have the same non-empty `coupling_key`,
-or they are members of the same inferred evidence-bundle constraint.
-
-Unknown dependency, self-dependency, and cycle fail the affected island before a
-compiler call. A query may contain at most eight islands. All candidate
-selectable ID unions are preflighted before any compiler call, counting a shared
+Each answer obligation is a vertex. Islands connect only through a dependency on
+another user-visible answer obligation, a shared non-empty `coupling_key`, or an
+inferred evidence-bundle constraint. `depends_on` never names raw inputs; those
+live in `evidence_requirements` and are not vertices. Projection drops an exact
+own-requirement reference only after known answer IDs are resolved. Unknown,
+self, and cyclic dependencies fail before compilation. At most eight islands and
+all candidate selectable ID unions are preflighted before calls, counting a shared
 ID only once (numeric 96, narrative 32). Owner quota sums are not reservations.
 Every retry candidate replacement also checks the query-wide union, including
 already accepted and not-yet-compiled islands. An overflowing retry makes no

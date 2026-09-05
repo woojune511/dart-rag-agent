@@ -133,6 +133,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Bounded Prose Semantic-Role Interpreter Harness (2026-09-05)](#bounded-prose-semantic-role-interpreter-harness-2026-09-05) | query/answer-label-free same-source role extraction contract | one request/two values; reviewed role plumbing 2/2, cross-encoder stays 1/4, provider 0 |
 | [Runtime Repair Failed-Row Provider Retry (2026-09-05)](#runtime-repair-failed-row-provider-retry-2026-09-05) | 첫 repair gate의 429 실패 두 행만 exact manifest로 재실행하고 T3 성공을 해시로 carry forward | Samsung 완전 통과, T2 query embedding 429 재발; combined same-runtime gate 2/3 HOLD, no retry |
 | [OpenAI-Store T2 Replay And Planner Null Boundary (2026-09-05)](#openai-store-t2-replay-and-planner-null-boundary-2026-09-05) | rebuilt OpenAI store에서 T2를 exact admission으로 1회 실행하고 optional planner sentinel 결함을 분리 | query embedding은 정상화되고 숫자는 완전 통과; narrative는 `display_unit="null"`로 compiler 전 차단. generic no-call fix 뒤 full 877/877, provider successor 미실행 |
+| [Optional-Null Successor T2 Replay And Dependency Projection Boundary (2026-09-05)](#optional-null-successor-t2-replay-and-dependency-projection-boundary-2026-09-05) | null-normalization successor를 exact OpenAI-store admission으로 1회 실행 | narrative는 복구됐지만 numeric raw input IDs가 `depends_on`에 중복되어 preflight 차단; generic successor `af9a07e`, full 878/878, provider 재실행 없음 |
 
 ## 보는 법
 
@@ -7465,3 +7466,35 @@ References:
 - Provider-free successor admission `6659d803...27ed5` binds the fixed HEAD and
   same immutable OpenAI store. Two production-order rehearsals produced identical
   7,632-byte receipts at `9cd6616e...8fa3`; no target or provider call was made.
+
+## Optional-Null Successor T2 Replay And Dependency Projection Boundary (2026-09-05)
+
+- Exact admission `640ef7be...986c` was consumed once on clean commit `145982f`.
+  The store-fixed `HYU_T2_010` process exited zero in `79.721s` with 30-second
+  heartbeats and no runner retry, fetch, parse, ingest, document embedding, or
+  source-store mutation.
+- OpenAI completed all 11 query embedding calls. The optional-null repair worked:
+  narrative `ob_002` had blank optional display/coupling fields, compiled once,
+  selected `cand_bbd863eb396fa724d814`, and produced the source-supported policy
+  response without an internal retry.
+- Numeric `ob_001` never reached the compiler. Its planner output declared raw
+  evidence requirements `us_sales_2023` and `us_sales_2022`, then also copied
+  those names into `depends_on`. Runtime projection assigned stable requirement
+  IDs, so compilation-island preflight correctly rejected both stale names as
+  unknown answer-obligation dependencies. Numeric call count and prompt bytes
+  were both zero despite visible candidate cohorts.
+- The result is partial with runtime error `0`, ledger `ok`, completeness `0.5`,
+  faithfulness `0.0`, and no numeric operands resolved. Usage was 5 LLM calls /
+  26,782 tokens and 11 query / 0 document embedding calls. Recorded
+  non-embedding cost is USD `0.0285496`; actual provider billing and embedding
+  cost remain unavailable.
+- Source fingerprint stayed `6231cd8e...24e9`; no disposable store remained.
+  Root result SHA-256 is `d86b650c...3040`, company result SHA-256 is
+  `6b56ab5a...26a8`, and ignored receipt SHA-256 is `859a2483...021f`.
+- Generic successor `af9a07e` reserves `depends_on` for other answer obligations
+  and removes only exact references to the current obligation's evidence inputs.
+  Known other answer dependencies take precedence; unknown and self references
+  remain fail-closed. Planner 5/5, semantic contracts 164/164, import/topology
+  28/28, runtime audit 84, pycompile/diff checks, and full unittest 878/878 pass.
+  No provider call followed the fix. The admission is exhausted; any confirmation
+  run requires a new exact clean-HEAD manifest and separate egress/cost approval.

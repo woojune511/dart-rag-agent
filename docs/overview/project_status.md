@@ -6,7 +6,7 @@ Last updated: 2026-09-05
 
 The product is the single-agent `FinancialAgent`, on
 `codex/bounded-semantic-tiebreaker`. Contract repairs start from `5e13bc6`; the
-latest optional planner-field boundary fix is `bacb9c2`.
+latest planner dependency-boundary fix is `af9a07e`.
 Public HTTP fields, `FinancialRunResultV1`, candidate identity inputs, catalog
 fingerprints, parser table structure, and stored formats remain compatible.
 
@@ -19,6 +19,9 @@ The implemented boundaries are:
   candidates; explicit candidate conflicts carry exact replacement ownership.
 - Structured-output `null`/`none` sentinels normalize to blank only for optional
   planner display/coupling text. Genuine unsupported units remain fail-closed.
+- `depends_on` is reserved for other answer obligations. Same-obligation raw
+  evidence requirement IDs are removed at planner projection, while known answer
+  dependencies, unknown IDs, and self references retain preflight validation.
 - `CompilationEnvelopeV2` checks full execution content before revalidation or
   arithmetic. Existing visibility/program/validation checks remain independent.
 - Bundle-first selection retains adjacent source values and counts the actual
@@ -47,8 +50,8 @@ Python 3.13 is the verification interpreter.
 - Numeric/compiler independent snapshot: full unittest `837 / 837`.
 - Persistence/API independent snapshot: focused + import/topology/docs `79 / 79`.
 - Final integrated source before provider replay: full unittest `874 / 874`.
-- Optional planner-field successor: planner `4 / 4`, semantic integration
-  `101 / 101`, import/topology `28 / 28`, full unittest `877 / 877`.
+- Planner dependency successor: planner `5 / 5`, semantic contracts `164 / 164`,
+  import/topology `28 / 28`, full unittest `878 / 878`.
 - Runtime domain audit: pass, `84` reviewed literals.
 - Import/topology, pycompile, and `git diff --check`: pass.
 - Tests inject failures into actual lower file writes, check same-process and
@@ -81,65 +84,40 @@ not an evaluator or release run.
 
 ## Provider status and next gate
 
-Release remains `HOLD`. Admission `45ef0f6e...4f03` ran exactly once on commit
-`8410691`. Follow-up admission `da9cd31e...0acf` ran exactly once on commit
-`e3ee77f`, targeting only the two rows that had failed on provider capacity.
-Neither run used automatic runner retry, fresh ingest, document embedding, or
-source mutation.
+Release remains `HOLD`. Immutable `HYU_T3_072` and `SAM_T2_078` successes remain
+the carried evidence, so the combined same-runtime gate is `2 / 3`.
 
-- `HYU_T3_072` passed with `26%` and `700,691백만원` from table 82 row `9:2`,
-  the four Motional values from table 90 row `21:4`, no BHAF `53%`, runtime
-  error `0`, and ledger `ok`. The follow-up binds this immutable same-runtime
-  result instead of paying to rerun it.
-- `SAM_T2_078` passed on the follow-up with both obligations complete. It chose
-  `cand_27da082cf5bcd0cb9f27`, rendered `28,352,769백만원`, synthesized its
-  two-source Harman narrative, recorded runtime error `0`, and kept ledger,
-  faithfulness, completeness, grounded rendering, and calculation all `ok`/`1.0`.
-- `HYU_T2_010` again stopped on Google query-embedding
-  `429 RESOURCE_EXHAUSTED`, after planning but before compiler output. Its
-  source-display contract therefore remains provider-unverified.
+Admission `640ef7be...986c` was consumed exactly once on clean commit `145982f`
+for OpenAI-store-fixed `HYU_T2_010`. All 11 query embeddings completed without
+the prior Google capacity error. There was no fresh fetch, parse, ingest,
+document embedding, source mutation, or automatic runner retry. Optional-null
+normalization worked: narrative `ob_002` compiled once, selected
+`cand_bbd863eb396fa724d814`, and completed without retry.
 
-The follow-up's accounted successful Samsung trace reports 6 LLM calls, 41,405
-tokens, 10 query-embedding calls, and USD `0.0448187` non-embedding runtime
-cost. Calls made before the T2 exception and embedding pricing are absent, so
-exact total cost is unavailable. The immutable source result/SQLite hashes and
-complete store fingerprints are unchanged, and no disposable store remains.
-Its root result SHA-256 is `d30a321c...422fd`; ignored run receipt SHA-256 is
-`0fefdb88...9ac27`.
+Numeric `ob_001` was blocked before compilation because the planner put its own
+raw evidence IDs `us_sales_2023` and `us_sales_2022` into `depends_on`. Evidence
+requirements were then assigned stable IDs, leaving those raw names as unknown
+answer-obligation dependencies. Island preflight therefore made zero provider
+calls and serialized zero prompt bytes for the numeric island. Visible numeric
+candidates were present, so this is a planner dependency-projection defect, not
+retrieval, ranking, embedding, compiler, or executor evidence.
 
-The combined same-runtime question gate remains `2 / 3`, with T3 carried
-forward by exact artifact hashes. The two Google eval admissions are consumed.
-Admission `10c8ca9c...2786` was then consumed once on `36fcf62` for only the
-side-by-side Hyundai OpenAI `text-embedding-3-large` store rebuild. All 28
-document batches completed with HTTP 200, external search health passed, and
-the post-health manifest makes the 1,764-vector store strictly `compatible`.
-The rebuilt source projection (chunks, metadata, parents) has exact SHA-256
-`e3cb6060...ad7f` on both stores; the immutable Google source fingerprint stays
-`5cdc0e8f...0ff6`. The USD `0.25071982` local-tokenizer estimate is below the
-approved USD `0.30` ceiling, while actual provider billing remains unavailable.
-Run receipt SHA-256 is `6fa0c805...d4719`; no automatic retry occurred. This
-approval is exhausted. A new exact admission is required for a Hyundai T2-only
-store-fixed eval against the OpenAI store.
+The process exited zero in `79.721s`; runtime error is `0`, ledger is `ok`, and
+completeness/faithfulness are `0.5 / 0.0`. Usage is 5 LLM calls / 26,782 tokens
+and 11 query / 0 document embedding calls. The recorded non-embedding estimate
+is USD `0.0285496`; actual billing and embedding cost are unavailable. The source
+store remained byte-identical at `6231cd8e...24e9`, no disposable store remains,
+root result SHA-256 is `d86b650c...3040`, and ignored receipt SHA-256 is
+`859a2483...021f`.
 
-T2 admission `9bdd8db4...30fe3` was consumed once on `b29b239`. OpenAI removed
-the query-embedding capacity blocker: 11 calls succeeded, with no document
-embedding, fresh ingest, source mutation, or retry. Numeric `ob_001` selected
-`87.0만 대`, `78.1만 대`, and `11.5%`; calculation stayed `11.395646606914212`
-/ `11.4%`.
-
-The run remained partial because narrative `ob_002` received planner
-`display_unit="null"`. Preflight interpreted that string as an unsupported unit
-and blocked the island before compilation, despite six visible narrative
-candidates and one explicit match. The artifact has runtime error `0`, ledger
-`ok`, faithfulness/completeness `0.5 / 0.5`, 5 LLM calls / 34,430 tokens, and a
-USD `0.0379082` non-embedding estimate; actual billing and embedding cost are
-unavailable. Source-store fingerprint remained
-`6231cd8e...24e9`; root result SHA-256 is `8aac48c7...32b69`, and ignored receipt
-SHA-256 is `86d21248...ead74`.
-
-Commit `bacb9c2` fixes that seam while preserving unsupported-unit failure. Local
-gates pass, but it is not provider-replayed. The prior admission is exhausted;
-completeness stays `2 / 3` pending a fresh exact manifest and explicit approval.
+Commit `af9a07e` fixes the generic seam: planner projection removes only an exact
+reference to the current obligation's evidence requirement, but preserves known
+other answer dependencies and unknown/self references for fail-closed preflight.
+Planner `5 / 5`, semantic contracts `164 / 164`, import/topology `28 / 28`, full
+unittest `878 / 878`, runtime audit, pycompile, and diff checks pass. No provider
+call followed the fix. The consumed admission cannot be reused; provider
+confirmation requires a fresh clean-HEAD manifest and separate egress/cost
+approval.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy

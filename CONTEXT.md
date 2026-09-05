@@ -6,7 +6,7 @@ Last updated: 2026-09-05
 
 - Product: single-agent `FinancialAgent`.
 - Branch: `codex/bounded-semantic-tiebreaker`; repair baseline: `5e13bc6`;
-  latest runtime-contract fix: `bacb9c2`.
+  latest runtime-contract fix: `af9a07e`.
 - Unit/retry, compiler, persistence/API, and final-state ownership repairs are
   implemented as separate changes. Git is the commit chronology.
 - HTTP shape, `FinancialRunResultV1`, candidate identity/catalog fingerprint
@@ -30,6 +30,9 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 - Optional planner text serializations `null`/`none` normalize to blank for
   display unit, display format, and coupling key. Real unsupported unit strings
   remain errors, and blank coupling keys cannot merge independent islands.
+- `depends_on` names only other answer obligations. Redundant references to the
+  same obligation's evidence requirements are removed during projection; true
+  unknown, self, and cross-obligation dependencies keep fail-closed semantics.
 - `CompilationEnvelopeV2` binds complete catalog content, ordered obligations,
   and query before executor revalidation. Production has no V1 fallback.
 - Source bundles preserve neighboring values in shared bounded windows. Actual
@@ -52,7 +55,7 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 
 ## Verification and claim boundary
 
-Python 3.13 full unittest `877 / 877`, domain audit (84 reviewed literals),
+Python 3.13 full unittest `878 / 878`, domain audit (84 reviewed literals),
 import/topology, pycompile, and diff checks pass; detailed counts are in project
 status.
 Provider-free replay verifies all three saved catalog identities and unchanged
@@ -69,49 +72,34 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
 
 ## Provider result, remaining work, and hard stops
 
-1. Admission `45ef0f6e...4f03` was consumed once on this build. T3 passed all
-   runtime/evidence/ledger gates; T2 and Samsung stopped on Google query-
-   embedding `429 RESOURCE_EXHAUSTED` before compiler output. Runtime gate:
-   `1 / 3` in that artifact.
-2. Follow-up admission `da9cd31e...0acf` was then consumed exactly once for the
-   two failed rows. Samsung passed both obligations with accepted candidate
-   `cand_27da082cf5bcd0cb9f27`, rendered `28,352,769백만원`, runtime error `0`,
-   evaluator faithfulness/completeness `1.0`, and ledger `ok`. T2 again stopped
-   on Google query-embedding `429` before compiler output.
-3. The immutable same-runtime T3 success plus the new Samsung success make the
-   combined runtime gate `2 / 3`; release remains `HOLD`. Both admissions are
-   exhausted. Do not repeat either run. The remaining blocker is provider
-   capacity at the Google query-embedding boundary, not another semantic patch.
-4. Admission `10c8ca9c...2786` was consumed once on `36fcf62` to rebuild only
-   the Hyundai store side-by-side with canonical OpenAI
-   `text-embedding-3-large`. All 28 document batches returned HTTP 200; the
-   separate-process search health passed before manifest publication. The new
-   store has 1,764 vectors and strict readiness `compatible`. Reconstructed
-   chunks, metadata, and parents match the Google source projection exactly,
-   and source fingerprint `5cdc0e8f...0ff6` is unchanged. Actual provider
-   billing is unavailable; the local-tokenizer estimate through health remains
-   USD `0.25071982` under the approved USD `0.30` ceiling. Run receipt SHA-256:
-   `6fa0c805...d4719`. The approval is exhausted; T2 eval-only needs a new exact
-   admission and is not authorized by this rebuild.
-5. Admission `9bdd8db4...30fe3` was consumed exactly once on `b29b239` for
-   OpenAI-store-fixed `HYU_T2_010`. All query embeddings completed; there was no
-   fresh ingest, document embedding, source mutation, or runner retry. The numeric
-   obligation selected `87.0만 대`, `78.1만 대`, and source display `11.5%`, while
-   preserving the calculated `11.395646606914212` as `11.4%`. The narrative
-   obligation had six visible candidates, including one explicit match, but the
-   planner serialized its absent display unit as string `"null"`; preflight
-   therefore blocked that island before a compiler call. Runtime status is
-   partial, error `0`, ledger `ok`, so the combined gate remains `2 / 3` and
-   release `HOLD`. The run used 5 LLM calls / 34,430 tokens and 11 query / 0
-   document embedding calls; local non-embedding estimate USD `0.0379082`, actual
-   billing unavailable. Root result SHA-256 is `8aac48c7...32b69`; ignored receipt
-   SHA-256 is `86d21248...ead74`.
-6. Generic successor `bacb9c2` normalizes serialized null sentinels only at the
-   optional planner-field boundary. Focused planner `4 / 4`, compiler/validator/
-   executor integration `101 / 101`, import/topology `28 / 28`, full unittest
-   `877 / 877`, audit, and pycompile pass. It has not received a provider replay;
-   the consumed `9bdd8db4...30fe3` admission must not be reused, and any successor
-   requires a fresh exact manifest and approval.
+1. Immutable T3 and Samsung successes remain the carried evidence for the
+   three-question gate. Both have runtime error `0` and ledger `ok`; together
+   they keep the current combined gate at `2 / 3` and release at `HOLD`.
+2. Admission `640ef7be...986c` was consumed exactly once on clean commit
+   `145982f` for OpenAI-store-fixed `HYU_T2_010`. All 11 query embeddings
+   completed, with no fresh ingest, document embedding, source mutation, or
+   runner retry. The optional-null fix worked: narrative `ob_002` compiled once,
+   selected `cand_bbd863eb396fa724d814`, and completed without retry.
+3. Numeric `ob_001` did not reach the compiler. The planner duplicated its own
+   raw inputs `us_sales_2023` and `us_sales_2022` into `depends_on`; after the
+   evidence requirements received stable IDs, island preflight correctly saw
+   those stale names as unknown answer-obligation dependencies. The island had
+   zero calls and zero prompt bytes. This is a planner projection/schema boundary,
+   not a retrieval, ranking, embedding, compiler, or executor failure.
+4. The run exited zero in `79.721s`, with runtime error `0`, ledger `ok`,
+   completeness `0.5`, faithfulness `0.0`, 5 LLM calls / 26,782 tokens, and
+   11 query / 0 document embedding calls. The recorded non-embedding estimate is
+   USD `0.0285496`; actual billing remains unavailable. Source-store fingerprint
+   stayed `6231cd8e...24e9`. Root result SHA-256 is `d86b650c...3040`; ignored
+   receipt SHA-256 is `859a2483...021f`.
+5. Generic successor `af9a07e` removes only exact same-obligation evidence IDs
+   from `depends_on`, while preserving real answer dependencies and fail-closed
+   unknown/self checks. Planner `5 / 5`, semantic contracts `164 / 164`,
+   import/topology `28 / 28`, full unittest `878 / 878`, audit, pycompile, and
+   diff checks pass. It has made no provider call.
+6. The `640ef7be...986c` approval is exhausted and must not be reused. A provider
+   confirmation of `af9a07e` requires a fresh clean-HEAD manifest plus separate
+   egress and cost approval; no automatic retry is authorized.
 7. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
 8. T3 answer-key/evaluator governance is separate; do not change tolerance,
