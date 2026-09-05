@@ -77,6 +77,7 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | [evaluation/runtime_contract_gate.md](evaluation/runtime_contract_gate.md) | 이전 runtime gate profile 기록 |
 | [releases/v0.1.0-runtime-contract-ready.md](releases/v0.1.0-runtime-contract-ready.md) | 과거 release checkpoint |
 | [releases/v0.2.0-portfolio-ready.md](releases/v0.2.0-portfolio-ready.md) | 과거 portfolio checkpoint |
+| [releases/v0.3.0-runtime-contract-ready.md](releases/v0.3.0-runtime-contract-ready.md) | 현재 source-bundle/runtime 계약 checkpoint |
 
 ## Maintenance Rules
 
