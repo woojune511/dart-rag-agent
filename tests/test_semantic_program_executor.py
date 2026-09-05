@@ -220,6 +220,60 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                     self.assertTrue(output["source_display_matches_formula"])
                     self.assertEqual(output["rendered_value"], "10.0%")
 
+    def test_expression_operands_preserve_requirement_role_and_period(self) -> None:
+        fixture = _source_display_program_fixture()
+        for candidate in fixture["candidate_catalog"][:2]:
+            candidate.update(
+                period="",
+                period_source="",
+                row_label="",
+                value_year=None,
+            )
+
+        result = execute_semantic_calculation_program(**fixture)
+
+        self.assertEqual(result["status"], "ok")
+        self.assertIn("cand-stated", result["selected_candidate_ids"])
+        operands_by_id = {
+            row["candidate_id"]: row for row in result["calculation_operands"]
+        }
+        expected = {
+            "cand-opening": (
+                "opening quantity",
+                "2023",
+                2023,
+                "ob_change:req_opening",
+            ),
+            "cand-closing": (
+                "closing quantity",
+                "2024",
+                2024,
+                "ob_change:req_closing",
+            ),
+        }
+        for candidate_id, (
+            label,
+            period,
+            value_year,
+            requirement_id,
+        ) in expected.items():
+            with self.subTest(candidate_id=candidate_id):
+                operand = operands_by_id[candidate_id]
+                self.assertEqual(operand["label"], label)
+                self.assertEqual(operand["period"], period)
+                self.assertEqual(operand["value_year"], value_year)
+                self.assertEqual(operand["period_source"], "requirement_scope")
+                self.assertEqual(
+                    operand["matched_operand_role"], requirement_id
+                )
+
+        output_rows = {
+            row["candidate_id"]: row
+            for row in result["outputs_by_obligation"]["ob_change"]["input_rows"]
+        }
+        for candidate_id in expected:
+            self.assertEqual(output_rows[candidate_id], operands_by_id[candidate_id])
+
     def test_source_display_discrepancy_is_labelled_in_korean(self) -> None:
         fixture = _source_display_program_fixture()
         fixture["query"] = "표시된 기초 수량과 기말 수량으로 증가율을 계산해 줘."
