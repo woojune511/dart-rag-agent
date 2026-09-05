@@ -62,8 +62,20 @@ Unchanged boundaries:
   three catalogs. T2 keeps `87.0`, `78.1`, and `11.5` in the applicable owner
   visibility; T3 exposes Motional `26%` while excluding BHAF `53%`; all four
   previously selected Samsung candidates remain visible.
-- No provider call, fresh ingest, document embedding, store mutation, benchmark
-  retry, or paid manifest execution has occurred for this change.
+- Admission `24322d93...9aaf` was consumed exactly once on commit `5c4c796`.
+  The store-fixed eval-only runner completed in `339.1s` without runner retry,
+  fresh ingest, document embedding, or source-store mutation. Estimated
+  non-embedding cost was USD `0.1187678` under the USD `0.40` ceiling.
+- Release is `HOLD`. Mechanical runtime completeness is `2 / 3`; the reviewed
+  source-consistent gate is `1 / 3`.
+- T2 kept `87.0`, `78.1`, and visible `11.5%`, but the compiler omitted the
+  source-display binding and rendered the recomputed `11.4%`.
+- T3 passed: table 82 row `9:2` supplied `26%` and `700,691백만원`, table 90
+  row `21:4` supplied the complete four-value summary, and BHAF `53%` was not
+  selected.
+- Samsung first selected accepted candidate `cand_27da082cf5bcd0cb9f27`, then
+  rejected planner `display_unit=KRW` as a display surface. The retry wrongly
+  promoted another bundle, leaving numeric obligation `ob_001` missing.
 
 Provider-free fixtures cover exact current/prior context and parentheses,
 physical row grouping, source-text deduplication, owner/bundle visibility,
@@ -72,11 +84,16 @@ promotion after candidate rejection, and pre-call capacity failure.
 
 ## Hard boundaries and next step
 
-1. Do not reuse exhausted admissions `06a40243...016` or
-   `729d1f53...4b93`.
+1. Do not reuse exhausted admissions `06a40243...016`, `729d1f53...4b93`, or
+   `24322d93...9aaf`.
 2. Do not change dataset answers, evaluator tolerances, historical artifacts,
    candidate IDs, store bytes, or parser table identity to make a gate pass.
-3. Commit the verified current-state documentation only.
-4. Then create a new store-fixed eval-only manifest and byte-stable no-call
-   rehearsal. Report its hash and cost ceiling for separate approval before any
-   provider run. Automatic retry and fresh ingest remain forbidden.
+3. Fix the unit boundary provider-free: canonical dimension symbols such as
+   `KRW` must be accepted or projected before display-unit validation, and that
+   error must not reject a correct candidate bundle.
+4. Tighten the compiler contract so a source-stated derived display visible in
+   the selected bundle is considered explicitly and preserved when it matches
+   the obligation. Do not add a keyword rule or deterministic semantic guess.
+5. Re-run focused local fixtures and the saved artifact projection. A new paid
+   run requires a new manifest and separate approval; automatic retry and fresh
+   ingest remain forbidden.

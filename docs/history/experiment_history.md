@@ -7367,3 +7367,34 @@ References:
   does not enable the tie-breaker, change candidate visibility, mutate a store,
   or establish held-out model quality. More prose cases must be reviewed
   provider-free before another model request is proposed.
+
+## Source-Bundle Compiler Three-Question Gate (2026-09-05)
+
+- Admission `24322d93...9aaf` was consumed exactly once at commit `5c4c796`.
+  The store-fixed eval-only runner completed in `339.1s` with exit code zero and
+  no runner retry. It made 18 LLM calls over 129,656 tokens and 33 query
+  embedding calls; document-embedding calls were zero. The recorded
+  non-embedding estimate was USD `0.1187678`, below the USD `0.40` ceiling.
+- Original company result files, SQLite files, and complete store fingerprints
+  matched the manifest after execution. No disposable eval store remained.
+  Root result SHA-256 is `05550b8b...596a0`; ignored run receipt SHA-256 is
+  `dbbe71b6...10584`.
+- `HYU_T2_010` completed with ledger `ok`, selected `87.0` and `78.1`, and
+  validated exact sentence assertions. Although `11.5%` was visible in the same
+  source bundle, the compiler did not bind it as the source display and the
+  answer rendered the recomputed `11.4%`. Faithfulness was `0.7` and
+  completeness `1.0`.
+- `HYU_T3_072` passed without compiler retry. Ownership `26%` and carrying value
+  `700,691백만원` came from table 82 row `9:2`; four summary profit/loss values
+  came from table 90 row `21:4`; no BHAF `53%` candidate was selected.
+  Faithfulness and completeness were both `1.0`.
+- `SAM_T2_078` first selected the accepted `28,352,769백만원` candidate
+  `cand_27da082cf5bcd0cb9f27`. Validator rejected obligation
+  `display_unit=KRW` with `direct_result_unit_mismatch`; retry then promoted a
+  different bundle and produced `non_derived_obligation_has_expression`.
+  Numeric obligation `ob_001` remained missing, while the Harman narrative and
+  ledger were valid. Completeness was `0.5`.
+- Release is `HOLD`: mechanical runtime completeness `2 / 3`, reviewed
+  source-consistent acceptance `1 / 3`. The admission is exhausted. Next work
+  is provider-free unit-boundary and source-display contract repair; no paid
+  retry is authorized.
