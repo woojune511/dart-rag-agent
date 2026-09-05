@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 ## Working source
 
@@ -41,6 +41,10 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 - Expressions explicitly select or decline a source display and give a reason.
   Source values are primary; differing calculated values are also shown.
   Downstream formulas use calculated values, with separate display provenance.
+- Formula-input execution rows keep the validated evidence-requirement role,
+  label, period, and year. A requirement-supplied period is marked as such and
+  does not masquerade as source period text; the same row reaches evaluator
+  projection unchanged.
 - Source writes publish payload union then graph atomically and memory last.
   Incomplete stores block queries but allow recovery ingest. Missing sidecars
   reuse stored text/parser metadata without context generation or embedding.
@@ -61,9 +65,8 @@ import/topology, pycompile, and diff checks pass. The local integration recheck
 also passed `878 / 878` on Python 3.14.5; the environment emitted existing
 LangChain/Pydantic compatibility warnings but no test failure. Detailed counts
 are in project status.
-The local environment is now aligned to Python 3.13.13. Removing redundant
-Pydantic deferred builds from the lazy API schema factory eliminates the
-first-request field-alias warning; full discovery passes `879 / 879`.
+The local environment is aligned to Python 3.13.13. The current full discovery,
+including the formula-input projection regression, passes `880 / 880`.
 Provider-free replay verifies all three saved catalog identities and unchanged
 input-file hashes:
 
@@ -75,6 +78,12 @@ input-file hashes:
 T2 and Samsung are explicitly counterfactual runtime-contract tests. That replay
 itself made no compiler/provider/evaluator call and is not a release claim.
 Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
+
+The 2026-09-06 provider-free successor replay keeps all three cases passing and
+restores T2's 2023/2022 formula-input metadata. Its deterministic evaluator
+projection changes operand selection from `0.0` to `1.0` without changing the
+selected IDs, formula, answer, dataset, or evaluator. The ignored receipt is
+`benchmarks/results/semantic_operand_trace_metadata_2026-09-06/runtime_contract_replay.json`.
 
 ## Provider result, remaining work, and hard stops
 

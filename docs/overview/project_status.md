@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-05
+Last updated: 2026-09-06
 
 ## Current implementation
 
@@ -29,6 +29,9 @@ The implemented boundaries are:
   query-wide unique selectable IDs, including retry replacement.
 - Source-first output and separately labelled recomputation coexist.
   Dependencies use calculated values; primary answer slots use display values.
+- Formula inputs retain their validated evidence-requirement label, period,
+  year, and role when projected into execution and evaluator operand rows.
+  Requirement-derived periods are marked separately from source period text.
 - Atomic payload-superset/graph-last persistence, failure propagation, strict
   source coverage, and provider-free sidecar recovery replace partial publication.
 - Graph-source vector rebuilds use one expected store manifest for collection,
@@ -66,6 +69,11 @@ Python 3.13 is the verification interpreter.
   public answer/structured-result/trace agreement with the final ledger artifact.
 - The graph-rebuild manifest seam passes 59/59 Python 3.13 adjacent tests,
   runtime domain audit, pycompile, topology/import coverage, and diff checks.
+- The operand-projection seam passes 135/135 semantic focused tests and the
+  three-case provider-free replay. The reviewed T2 operands now retain their
+  2023/2022 requirement context, moving deterministic operand selection from
+  `0.0` to `1.0` without changing candidates, formula, answer, or evaluator;
+  the integrated Python 3.13 suite passes `880 / 880`.
 
 New local outputs under `benchmarks/results/` are not committed.
 
@@ -87,6 +95,12 @@ validator/executor/display behavior, not that a new LLM will select the same
 program. Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
 Synthetic actual-node tests separately verify ledger integrity; the replay is
 not an evaluator or release run.
+
+The 2026-09-06 successor replay additionally verifies formula-input trace
+metadata at
+`benchmarks/results/semantic_operand_trace_metadata_2026-09-06/runtime_contract_replay.json`.
+It made no provider/compiler call or source-store write; a separate local
+deterministic evaluator projection reports operand selection `1.0` for T2.
 
 ## Provider status and next gate
 
