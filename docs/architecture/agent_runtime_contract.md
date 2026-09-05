@@ -267,74 +267,61 @@ their reason is recorded in routing trace.
 
 ## 8. Store and ingest v1
 
-`StoreManifestV1` is stored as `store_manifest.json` and contains exactly:
+`store_manifest.json` contains exactly:
+`schema_version`, `collection_name`,
+`embedding {provider, model_name, dimension}`, and
+`ingest {profile_id, parser_schema_version, chunk_size, chunk_overlap}`.
+Unknown/missing fields or non-exact identity make readiness false and query 503.
+Startup only reads identity; adopting a non-empty legacy store requires the
+separate CLI's validated dry-run followed by an explicitly approved write.
+Configured BM25-only mode is the sole identity exception and is exposed in
+readiness, response, and retrieval trace. It requires persisted BM25 sources.
 
-```text
-schema_version
-collection_name
-embedding { provider, model_name, dimension }
-ingest { profile_id, parser_schema_version, chunk_size, chunk_overlap }
-```
+A manifest-less Chroma store with zero embeddings and pending operations may
+initialize ingest after restart but is not query-ready. `IngestService` owns
+fetch, parse, context generation, indexing, and manifest recording. Multi-report
+ingest records the manifest after its first successful indexed batch so later
+failure remains resumable. `FinancialAgent` exposes no ingest methods.
 
-Query startup reads this manifest. Missing, invalid, or non-exact manifests make
-readiness false and query returns 503. Runtime must not infer or write identity
-for an existing non-empty store. Explicit BM25-only degraded mode is the sole
-exception; it must be enabled by configuration and exposed in readiness,
-response, and retrieval trace.
+Source persistence builds the next graph from a deep copy. It atomically writes
+the union of old/new payloads before replacing the graph, which is the commit
+point; memory publishes only after success. Parents also persist before publish.
+Readers load graph before payload. Missing referenced payloads and all lower
+write failures propagate; old payloads are not automatically garbage-collected.
 
-Exactness includes the complete top-level, embedding, and ingest field sets;
-unknown or missing fields make the manifest invalid.
+Startup and ingest completion check committed graph/vector coverage and payload
+references. Missing or empty payload content and unidentified vector metadata
+block readiness without blocking recovery ingest. Resume reconstructs missing
+sidecars from stored contextual text and parser metadata, without repeating
+context generation or embedding. Exact stored vector ID / parser chunk-ID
+matches permit metadata-only repair; unidentified sources otherwise fail before
+provider calls. Resume counts only actual new additions and records vector
+progress immediately after each committed batch.
 
-A manifest-less Chroma directory whose embedding and pending-operation counts
-are both zero remains eligible for ingest initialization after restart. It is
-not query-ready, and ingest writes the manifest only after indexing documents.
-
-Legacy-store adoption uses a separate CLI. Its default is dry-run; writing a
-manifest requires the explicit write flag after collection, dimension, and
-declared profile validation.
-
-`IngestService(fetcher, parser, context_generator, store)` owns fetch, parse,
-context generation, indexing, and manifest recording. A manifest is written only
-after documents are indexed. Multi-report ingest records it after the first
-successful store batch so a later failure remains resumable. A report is skipped
-only when every parsed `chunk_uid` is already present; otherwise document adds
-resume by chunk identity. Ingest results count only chunks actually added after
-resume filtering. Vector-batch progress is recorded immediately after the vector
-commit, and resume reconciles already-indexed chunks into the structure sidecar.
-`FinancialAgent` exposes no ingest method.
-
-Benchmark-only `in_progress` cache metadata may preserve a manifest-less partial
-store only when cache and store signatures match exactly and partial resume is
-enabled. It never makes that store query-ready; the store manifest remains a
-completion boundary.
+Benchmark-only in-progress cache metadata preserves a manifest-less partial
+store only with exact cache/store signatures and explicit partial-resume policy;
+it never grants query readiness.
 
 ## 9. API and optional surfaces
 
-FastAPI creates `AppServices` in lifespan and stores it on `app.state`. Query and
-ingest execute in a threadpool. `/api/health/live` reports process liveness;
-`/api/health/ready` reports strict store readiness; `/api/health` is a readiness
-alias. `QueryRequest.report_scope` is typed and passed without invented fields.
+FastAPI creates `AppServices` in lifespan on `app.state`. Query, ingest, and
+company DB reads/aggregation run in workers. The same operation lock encloses
+query readiness checking, execution, and the response readiness snapshot.
+Readiness failure is HTTP 503, not a wrapped 500. Ingest's finally-readiness
+refresh also runs in its worker and lock. Health only reads the computed state:
+`/api/health/live` is liveness; `/api/health/ready` and `/api/health` are readiness.
+Typed `QueryRequest.report_scope` is forwarded without invented fields.
 
-Repository `.env` values are resolved before application settings, with process
-environment values taking precedence and imports leaving process state
-unchanged. Query and ingest operations sharing one `AppServices` instance are
-serialized before threadpool dispatch because the agent and store are mutable.
-Readiness is refreshed inside that serialization boundary after every ingest
-attempt, including a partial failure. The experimental Streamlit path uses a
-process-wide synchronous lock on its cached `AppServices` for store inspection,
-query, ingest, and evaluation; ingest readiness refresh remains inside that
-same boundary on success or failure.
+Repository `.env` loads before settings; process environment wins and imports
+do not mutate it. Experimental Streamlit serializes cached services with a
+process-wide synchronous lock, including readiness refresh on ingest failure.
+Per-query retrieval fallback is exposed as degraded without rewriting persistent
+store readiness. Forced BM25-only startup never initializes dense embeddings;
+new/verified-empty stores retain manifest-declared dense ingest initialization.
 
-Each run projects retrieval status from all executed-query telemetry. When a
-compatible store falls back to BM25 for a query, the HTTP response exposes that
-query as degraded without changing the persistent store readiness.
-
-CORS is disabled unless an environment allowlist is configured. Streamlit and
-MAS are experimental. Evaluator dependencies load only for an actual evaluation
-action. Core runtime imports may not depend on ops or experimental modules.
-Explicit forced BM25-only startup does not initialize a dense embedding client;
-it is selected only when persisted BM25 source data exists. A new or verified
-empty store stays on the manifest-declared dense initialization and ingest path.
+CORS requires an environment allowlist. Streamlit and MAS remain experimental.
+Evaluator dependencies load only for actual evaluation; core imports may not
+depend on ops/experimental modules.
 
 ## 10. Validation and release gate
 

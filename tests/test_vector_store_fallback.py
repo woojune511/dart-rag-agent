@@ -460,7 +460,7 @@ class VectorStoreFallbackTests(unittest.TestCase):
         manager.vector_add_max_retries = 1
         manager.vector_add_retry_sleep_sec = 0.0
         manager._structure_graph = {"nodes": {}, "parents": {}, "sections": {}}
-        manager._save_structure_graph = lambda: None
+        manager._save_structure_graph = lambda graph=None: setattr(manager, "_structure_graph", graph)
         manager.persist = lambda: None
         manager._init_bm25 = lambda: None
 

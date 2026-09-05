@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Callable, Dict, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
-from src.storage.metadata_payloads import table_payload_sidecar_stats
+from src.storage.atomic_json import atomic_write_json
+from src.storage.metadata_payloads import load_table_payloads, table_payload_sidecar_stats
 from src.storage.structure_graph import empty_structure_graph, normalise_structure_graph_payload
 
 
@@ -24,21 +25,23 @@ def persist_structure_graph(
     structure_graph: Dict[str, Any],
     *,
     compact_node_for_storage: CompactNodeForStorage,
+    existing_payloads: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, Dict[str, str]]]:
-    payloads: Dict[str, Dict[str, str]] = {}
+    # Retain old content IDs so readers of the previous graph stay valid until
+    # the graph replacement commits. Readers load the graph before payloads.
+    payloads = dict(
+        load_table_payloads(table_payloads_path)
+        if existing_payloads is None else existing_payloads
+    )
     graph = dict(structure_graph or {})
     graph["nodes"] = {
         str(chunk_uid): compact_node_for_storage(dict(node or {}), payloads)
         for chunk_uid, node in dict(graph.get("nodes", {}) or {}).items()
     }
-    graph_path.write_text(
-        json.dumps(graph, ensure_ascii=False),
-        encoding="utf-8",
-    )
-
     stats = table_payload_sidecar_stats(payloads, dict(graph.get("nodes", {}) or {}))
-    table_payloads_path.write_text(
-        json.dumps({"version": 1, "payloads": payloads, "stats": stats}, ensure_ascii=False),
-        encoding="utf-8",
+    atomic_write_json(
+        table_payloads_path,
+        {"version": 1, "payloads": payloads, "stats": stats},
     )
+    atomic_write_json(graph_path, graph)
     return graph, payloads

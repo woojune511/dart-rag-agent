@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from src.storage.atomic_json import atomic_write_json
+
 
 def load_parents(path: Path) -> Dict[str, str]:
     if not path.exists():
@@ -12,10 +14,7 @@ def load_parents(path: Path) -> Dict[str, str]:
 
 
 def save_parents(path: Path, parents: Dict[str, str]) -> None:
-    path.write_text(
-        json.dumps(parents, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    atomic_write_json(path, parents)
 
 
 def merge_parents(current: Dict[str, str], new_parents: Dict[str, str]) -> Dict[str, str]:

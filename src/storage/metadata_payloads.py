@@ -70,7 +70,7 @@ def load_table_payloads(path: Optional[Path]) -> Dict[str, Dict[str, str]]:
         payload = json.loads(path.read_text(encoding="utf-8"))
         raw_payloads = payload.get("payloads", payload) if isinstance(payload, dict) else {}
         if isinstance(raw_payloads, dict):
-            return {
+            payloads = {
                 str(payload_id): {
                     key: str(value)
                     for key, value in dict(raw_payload or {}).items()
@@ -79,6 +79,9 @@ def load_table_payloads(path: Optional[Path]) -> Dict[str, Dict[str, str]]:
                 for payload_id, raw_payload in raw_payloads.items()
                 if isinstance(raw_payload, dict)
             }
+            # An ID alone is not source coverage: at least one of the actual
+            # table payload fields must survive projection.
+            return {payload_id: value for payload_id, value in payloads.items() if value}
     return {}
 
 
@@ -118,9 +121,11 @@ def compact_node_for_storage(
         payload_id = table_payload_id(table_payload)
         payloads[payload_id] = table_payload
         metadata[TABLE_PAYLOAD_ID_KEY] = payload_id
-    elif payload_id and payload_id in existing_payloads:
+    elif payload_id and existing_payloads.get(payload_id):
         payloads[payload_id] = dict(existing_payloads[payload_id])
         metadata[TABLE_PAYLOAD_ID_KEY] = payload_id
+    elif payload_id:
+        raise ValueError(f"missing referenced table payload: {payload_id}")
     else:
         metadata.pop(TABLE_PAYLOAD_ID_KEY, None)
 
