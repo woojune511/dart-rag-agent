@@ -156,15 +156,15 @@ narrative obligations keep their existing multi-evidence bindings. Meaning such
 as total, component, rate, or derived display is represented by obligation
 bindings and formula AST, not a candidate role enum or a separate reranker.
 
-Every expression explicitly supplies nullable `source_display_candidate_id` and
-a nonblank `source_display_reason`; omission is a compiler format error and
-retries the same cohort. A selected source display passes the same authority,
+Every expression supplies nullable `source_display_candidate_id` and a nonblank `source_display_reason`; omission is a compiler format error. A selected source display passes the same authority,
 scope, dimension, and exact-assertion checks as other sources. Its value and
 source spelling are primary even when they differ from recomputation. The
 answer then also labels the recalculated value. Numeric equivalence remains a
 separate scaled-precision comparison, not a condition for source authority.
 Dependency formulas consume calculated values; public primary answer slots use
-display values. Trace preserves both values and their separate provenance.
+display values. Trace preserves both values and provenance. Flattened input rows
+reuse validated requirement ID/label/period; scope fallback is marked
+`period_source=requirement_scope` while source text stays source-only.
 
 Numeric owners have capacity two source bundles, narrative requirements six
 candidates, and numeric compatibility narrative capacity two. Query-wide

@@ -2548,6 +2548,22 @@ def project_semantic_program_operand(
     candidate_id = str(candidate.get("candidate_id") or "")
     binding = dict(validated_binding or {})
     obligation_row = dict(obligation or {})
+    obligation_scope = dict(obligation_row.get("scope") or {})
+    period = str(candidate.get("period") or "")
+    period_source = str(candidate.get("period_source") or "")
+    value_year = candidate.get("value_year")
+    if not period and value_year not in (None, ""):
+        period = str(value_year)
+        period_source = period_source or "candidate_value_year"
+    if not period:
+        requirement_period = str(obligation_scope.get("period") or "")
+        if requirement_period and requirement_period.lower() != "unknown":
+            period = requirement_period
+            period_source = "requirement_scope"
+    if value_year in (None, ""):
+        period_years = re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", period)
+        if len(set(period_years)) == 1:
+            value_year = int(period_years[0])
     raw_row_headers = candidate.get("row_headers") or []
     if isinstance(raw_row_headers, (str, bytes)):
         raw_row_headers = [raw_row_headers]
@@ -2590,12 +2606,12 @@ def project_semantic_program_operand(
         "raw_unit_source": str(candidate.get("raw_unit_source") or ""),
         "normalized_value": candidate.get("normalized_value"),
         "normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
-        "period": str(candidate.get("period") or ""),
+        "period": period,
         "source_period_surface": str(
             candidate.get("source_period_surface") or ""
         ),
-        "period_source": str(candidate.get("period_source") or ""),
-        "value_year": candidate.get("value_year"),
+        "period_source": period_source,
+        "value_year": value_year,
         "table_source_id": str(candidate.get("table_source_id") or ""),
         "statement_type": str(candidate.get("statement_type") or ""),
         "consolidation_scope": str(candidate.get("consolidation_scope") or ""),
@@ -3067,6 +3083,13 @@ def execute_semantic_calculation_program(
     obligation_by_id = {
         str(item.get("obligation_id") or ""): item for item in obligation_rows
     }
+    requirement_by_id = {
+        str(requirement.get("requirement_id") or ""): dict(requirement)
+        for obligation in obligation_rows
+        for requirement in (obligation.get("evidence_requirements") or [])
+        if isinstance(requirement, Mapping)
+        and str(requirement.get("requirement_id") or "")
+    }
     candidate_by_id = {
         str(item.get("candidate_id") or ""): dict(item)
         for item in candidate_catalog
@@ -3160,9 +3183,15 @@ def execute_semantic_calculation_program(
                 except (TypeError, ValueError):
                     unavailable = source_id
                     break
+                source_requirement_id = str(
+                    binding.get("source_requirement_id") or ""
+                )
+                requirement = requirement_by_id.get(source_requirement_id)
                 operand = project_semantic_program_operand(
                     candidate,
-                    obligation_id=obligation_id,
+                    obligation_id=source_requirement_id or obligation_id,
+                    obligation=requirement or obligation,
+                    validated_binding=binding,
                 )
                 input_rows.append(operand)
                 candidate_ids.append(source_id)
@@ -3385,6 +3414,20 @@ def execute_semantic_calculation_program(
         candidate_id = str(binding.get("candidate_id") or "")
         if candidate_id and candidate_id not in direct_binding_by_candidate_id:
             direct_binding_by_candidate_id[candidate_id] = dict(binding)
+    expression_operand_by_candidate_id: Dict[str, Dict[str, Any]] = {}
+    for output in outputs.values():
+        for row in output.get("input_rows") or []:
+            candidate_id = str(row.get("candidate_id") or "")
+            if candidate_id and candidate_id not in expression_operand_by_candidate_id:
+                expression_operand_by_candidate_id[candidate_id] = dict(row)
+    display_obligation_by_candidate_id: Dict[str, str] = {}
+    for expression in validation.get("valid_expressions") or []:
+        candidate_id = str(
+            expression.get("source_display_candidate_id") or ""
+        ).strip()
+        obligation_id = str(expression.get("obligation_id") or "")
+        if candidate_id and candidate_id not in display_obligation_by_candidate_id:
+            display_obligation_by_candidate_id[candidate_id] = obligation_id
     operands: List[Dict[str, Any]] = []
     for candidate_id in selected_candidate_ids:
         candidate = candidate_by_id.get(candidate_id)
@@ -3392,6 +3435,11 @@ def execute_semantic_calculation_program(
             continue
         binding = direct_binding_by_candidate_id.get(candidate_id)
         obligation_id = str((binding or {}).get("obligation_id") or "")
+        if not binding and candidate_id in expression_operand_by_candidate_id:
+            operands.append(dict(expression_operand_by_candidate_id[candidate_id]))
+            continue
+        if not obligation_id:
+            obligation_id = display_obligation_by_candidate_id.get(candidate_id, "")
         operands.append(
             project_semantic_program_operand(
                 candidate,
