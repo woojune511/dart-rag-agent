@@ -5,8 +5,9 @@ Last updated: 2026-09-05
 ## Working source
 
 - Product: single-agent `FinancialAgent`.
-- Branch: `codex/bounded-semantic-tiebreaker`; repair baseline: `5e13bc6`;
-  latest runtime-contract fix: `af9a07e`.
+- Branch: `main`; verified development source
+  `codex/bounded-semantic-tiebreaker` was fast-forwarded at `f46e331`;
+  repair baseline: `5e13bc6`; latest runtime-contract fix: `af9a07e`.
 - Unit/retry, compiler, persistence/API, and final-state ownership repairs are
   implemented as separate changes. Git is the commit chronology.
 - HTTP shape, `FinancialRunResultV1`, candidate identity/catalog fingerprint
@@ -56,8 +57,10 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 ## Verification and claim boundary
 
 Python 3.13 full unittest `878 / 878`, domain audit (84 reviewed literals),
-import/topology, pycompile, and diff checks pass; detailed counts are in project
-status.
+import/topology, pycompile, and diff checks pass. The local integration recheck
+also passed `878 / 878` on Python 3.14.5; the environment emitted existing
+LangChain/Pydantic compatibility warnings but no test failure. Detailed counts
+are in project status.
 Provider-free replay verifies all three saved catalog identities and unchanged
 input-file hashes:
 

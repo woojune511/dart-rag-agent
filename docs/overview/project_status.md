@@ -4,9 +4,10 @@ Last updated: 2026-09-05
 
 ## Current implementation
 
-The product is the single-agent `FinancialAgent`, on
-`codex/bounded-semantic-tiebreaker`. Contract repairs start from `5e13bc6`; the
-latest planner dependency-boundary fix is `af9a07e`.
+The product is the single-agent `FinancialAgent`, on `main`. The verified
+`codex/bounded-semantic-tiebreaker` source was fast-forwarded locally at
+`f46e331`. Contract repairs start from `5e13bc6`; the latest planner
+dependency-boundary fix is `af9a07e`.
 Public HTTP fields, `FinancialRunResultV1`, candidate identity inputs, catalog
 fingerprints, parser table structure, and stored formats remain compatible.
 
@@ -52,6 +53,8 @@ Python 3.13 is the verification interpreter.
 - Final integrated source before provider replay: full unittest `874 / 874`.
 - Planner dependency successor: planner `5 / 5`, semantic contracts `164 / 164`,
   import/topology `28 / 28`, full unittest `878 / 878`.
+- Post-fast-forward integration recheck: Python 3.14.5 full unittest
+  `878 / 878`; existing LangChain/Pydantic compatibility warnings only.
 - Runtime domain audit: pass, `84` reviewed literals.
 - Import/topology, pycompile, and `git diff --check`: pass.
 - Tests inject failures into actual lower file writes, check same-process and
