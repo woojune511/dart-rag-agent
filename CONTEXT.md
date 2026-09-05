@@ -72,34 +72,29 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
 
 ## Provider result, remaining work, and hard stops
 
-1. Immutable T3 and Samsung successes remain the carried evidence for the
-   three-question gate. Both have runtime error `0` and ledger `ok`; together
-   they keep the current combined gate at `2 / 3` and release at `HOLD`.
-2. Admission `640ef7be...986c` was consumed exactly once on clean commit
-   `145982f` for OpenAI-store-fixed `HYU_T2_010`. All 11 query embeddings
-   completed, with no fresh ingest, document embedding, source mutation, or
-   runner retry. The optional-null fix worked: narrative `ob_002` compiled once,
-   selected `cand_bbd863eb396fa724d814`, and completed without retry.
-3. Numeric `ob_001` did not reach the compiler. The planner duplicated its own
-   raw inputs `us_sales_2023` and `us_sales_2022` into `depends_on`; after the
-   evidence requirements received stable IDs, island preflight correctly saw
-   those stale names as unknown answer-obligation dependencies. The island had
-   zero calls and zero prompt bytes. This is a planner projection/schema boundary,
-   not a retrieval, ranking, embedding, compiler, or executor failure.
-4. The run exited zero in `79.721s`, with runtime error `0`, ledger `ok`,
-   completeness `0.5`, faithfulness `0.0`, 5 LLM calls / 26,782 tokens, and
-   11 query / 0 document embedding calls. The recorded non-embedding estimate is
-   USD `0.0285496`; actual billing remains unavailable. Source-store fingerprint
-   stayed `6231cd8e...24e9`. Root result SHA-256 is `d86b650c...3040`; ignored
-   receipt SHA-256 is `859a2483...021f`.
-5. Generic successor `af9a07e` removes only exact same-obligation evidence IDs
-   from `depends_on`, while preserving real answer dependencies and fail-closed
-   unknown/self checks. Planner `5 / 5`, semantic contracts `164 / 164`,
-   import/topology `28 / 28`, full unittest `878 / 878`, audit, pycompile, and
-   diff checks pass. It has made no provider call.
-6. The `640ef7be...986c` approval is exhausted and must not be reused. A provider
-   confirmation of `af9a07e` requires a fresh clean-HEAD manifest plus separate
-   egress and cost approval; no automatic retry is authorized.
+1. Admission `0f0c0d52...0445` was consumed exactly once on clean commit
+   `58551c7` for OpenAI-store-fixed `HYU_T2_010`. Both obligations completed,
+   runtime error is `0`, ledger is `ok`, and evaluator faithfulness/completeness
+   are `1.0 / 1.0`. There was no fetch, ingest, document embedding, source
+   mutation, or runner retry.
+2. Numeric `ob_001` selected `87.0만 대`, `78.1만 대`, and source display
+   `11.5%`; deterministic calculation is `11.395646606914212`, rendered as
+   `11.4%`. Narrative `ob_002` selected `cand_bbd863eb396fa724d814`. Both islands
+   had empty preflight errors, confirming the dependency-projection repair.
+3. Numeric compilation used its allowed one same-cohort internal retry to repair
+   source assertions; narrative compilation was not retried. Final program is
+   ready with four selected candidates, two outputs, and no missing obligation.
+4. The run exited zero in `118.936s`, using 7 total LLM calls / 71,359 tokens and
+   11 query / 0 document embedding calls. Recorded non-embedding cost is USD
+   `0.0664263`; actual billing remains unavailable. Source-store fingerprint is
+   unchanged at `6231cd8e...24e9`, and no disposable store remains. Root result
+   SHA-256 is `a765a132...0ad9`; ignored receipt is `4dd004f2...a3b4`.
+5. With the manifest-bound immutable T3 and Samsung successes, the defined
+   source-consistent runtime release gate is now `3 / 3 PASS`: completeness 3/3,
+   runtime error 0, ledger `ok`. The mixed-question
+   `numeric_final_judgement=null` is evaluator N/A, not a runtime failure.
+6. The approval is exhausted. No further provider retry is authorized or needed
+   for this gate.
 7. Formula-wide rounding-error propagation is deferred. Source precision
    comparison currently scales only the selected source's rounding interval.
 8. T3 answer-key/evaluator governance is separate; do not change tolerance,

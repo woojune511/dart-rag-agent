@@ -134,6 +134,7 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 | [Runtime Repair Failed-Row Provider Retry (2026-09-05)](#runtime-repair-failed-row-provider-retry-2026-09-05) | 첫 repair gate의 429 실패 두 행만 exact manifest로 재실행하고 T3 성공을 해시로 carry forward | Samsung 완전 통과, T2 query embedding 429 재발; combined same-runtime gate 2/3 HOLD, no retry |
 | [OpenAI-Store T2 Replay And Planner Null Boundary (2026-09-05)](#openai-store-t2-replay-and-planner-null-boundary-2026-09-05) | rebuilt OpenAI store에서 T2를 exact admission으로 1회 실행하고 optional planner sentinel 결함을 분리 | query embedding은 정상화되고 숫자는 완전 통과; narrative는 `display_unit="null"`로 compiler 전 차단. generic no-call fix 뒤 full 877/877, provider successor 미실행 |
 | [Optional-Null Successor T2 Replay And Dependency Projection Boundary (2026-09-05)](#optional-null-successor-t2-replay-and-dependency-projection-boundary-2026-09-05) | null-normalization successor를 exact OpenAI-store admission으로 1회 실행 | narrative는 복구됐지만 numeric raw input IDs가 `depends_on`에 중복되어 preflight 차단; generic successor `af9a07e`, full 878/878, provider 재실행 없음 |
+| [Dependency-Projection Successor T2 Provider Pass (2026-09-05)](#dependency-projection-successor-t2-provider-pass-2026-09-05) | `af9a07e` successor를 exact OpenAI-store admission으로 1회 실행 | T2 두 obligation 완전 통과, 원문 `11.5%`와 재계산 `11.4%` 병기, combined runtime gate 3/3 PASS |
 
 ## 보는 법
 
@@ -7498,3 +7499,35 @@ References:
   28/28, runtime audit 84, pycompile/diff checks, and full unittest 878/878 pass.
   No provider call followed the fix. The admission is exhausted; any confirmation
   run requires a new exact clean-HEAD manifest and separate egress/cost approval.
+
+## Dependency-Projection Successor T2 Provider Pass (2026-09-05)
+
+- Admission `0f0c0d52...0445` was consumed exactly once on clean commit
+  `58551c7`. The store-fixed `HYU_T2_010` run exited zero in `118.936s`; no
+  process retry, fetch, parse, ingest, document embedding, or source mutation
+  occurred.
+- Both compilation-island preflights had no errors. Numeric `ob_001` selected
+  `cand_7d5294a9fe110c3e987f` (`87.0만 대`),
+  `cand_2edd04c9130daab86745` (`78.1만 대`), and source display
+  `cand_47bfc4cc05d682154cfa` (`11.5%`). The deterministic result
+  `11.395646606914212` was separately rendered as `11.4%`.
+- The numeric island's first compiler output had malformed source-assertion
+  coverage. Its one allowed internal retry kept the same nine visible candidates
+  and succeeded; the narrative island was not retried. Narrative `ob_002`
+  selected `cand_bbd863eb396fa724d814`. Final program status was ready with two
+  outputs, four selected candidates, and no missing obligations.
+- Runtime error is `0`, ledger is `ok`, and evaluator faithfulness/completeness,
+  context recall, retrieval hit@k, and citation coverage are all `1.0`.
+  `numeric_final_judgement=null` is N/A for this mixed question rather than a
+  runtime failure.
+- Usage was 7 total LLM calls / 71,359 tokens and 11 query / 0 document embedding
+  calls. Recorded non-embedding cost is USD `0.0664263`; actual provider billing
+  and embedding cost are unavailable.
+- Source-store fingerprint remained `6231cd8e...24e9`; no disposable store
+  remained. Root result SHA-256 is `a765a132...0ad9`, company result SHA-256 is
+  `34cb821b...a310`, and ignored run receipt SHA-256 is `4dd004f2...a3b4`.
+- Combined with manifest-bound immutable T3 and Samsung successes, the specified
+  source-consistent runtime release gate is `3 / 3 PASS`: all questions complete,
+  runtime error zero, and ledger `ok`. Dataset/evaluator governance for T3 and
+  formula-wide rounding propagation remain separate. The approval is exhausted;
+  no further provider retry is authorized or required for this gate.

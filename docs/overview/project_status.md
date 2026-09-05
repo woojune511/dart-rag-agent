@@ -84,40 +84,34 @@ not an evaluator or release run.
 
 ## Provider status and next gate
 
-Release remains `HOLD`. Immutable `HYU_T3_072` and `SAM_T2_078` successes remain
-the carried evidence, so the combined same-runtime gate is `2 / 3`.
+The defined source-consistent runtime release gate is `3 / 3 PASS`. Immutable
+`HYU_T3_072` and `SAM_T2_078` successes are carried by exact artifact hashes;
+the final row was confirmed by admission `0f0c0d52...0445`, consumed once on
+clean commit `58551c7`.
 
-Admission `640ef7be...986c` was consumed exactly once on clean commit `145982f`
-for OpenAI-store-fixed `HYU_T2_010`. All 11 query embeddings completed without
-the prior Google capacity error. There was no fresh fetch, parse, ingest,
-document embedding, source mutation, or automatic runner retry. Optional-null
-normalization worked: narrative `ob_002` compiled once, selected
-`cand_bbd863eb396fa724d814`, and completed without retry.
+OpenAI-store-fixed `HYU_T2_010` completed both obligations with runtime error `0`
+and ledger `ok`. Numeric `ob_001` selected `87.0만 대`, `78.1만 대`, and source
+display `11.5%`; it retained deterministic value `11.395646606914212` as the
+labelled recalculation `11.4%`. Narrative `ob_002` selected
+`cand_bbd863eb396fa724d814`. The final answer has faithfulness/completeness
+`1.0 / 1.0`, four selected candidates, two outputs, and no missing obligation.
 
-Numeric `ob_001` was blocked before compilation because the planner put its own
-raw evidence IDs `us_sales_2023` and `us_sales_2022` into `depends_on`. Evidence
-requirements were then assigned stable IDs, leaving those raw names as unknown
-answer-obligation dependencies. Island preflight therefore made zero provider
-calls and serialized zero prompt bytes for the numeric island. Visible numeric
-candidates were present, so this is a planner dependency-projection defect, not
-retrieval, ranking, embedding, compiler, or executor evidence.
+Both island preflights had zero errors, confirming `af9a07e`. The numeric island
+used the permitted one internal retry to correct source-assertion structure while
+keeping the same cohort; the narrative island and runner process were not
+retried. There was no fresh fetch, parse, ingest, document embedding, or source
+mutation.
 
-The process exited zero in `79.721s`; runtime error is `0`, ledger is `ok`, and
-completeness/faithfulness are `0.5 / 0.0`. Usage is 5 LLM calls / 26,782 tokens
-and 11 query / 0 document embedding calls. The recorded non-embedding estimate
-is USD `0.0285496`; actual billing and embedding cost are unavailable. The source
-store remained byte-identical at `6231cd8e...24e9`, no disposable store remains,
-root result SHA-256 is `d86b650c...3040`, and ignored receipt SHA-256 is
-`859a2483...021f`.
+The process exited zero in `118.936s`, with 7 total LLM calls / 71,359 tokens and
+11 query / 0 document embedding calls. Recorded non-embedding cost is USD
+`0.0664263`; actual billing and embedding cost are unavailable. Source store is
+unchanged at `6231cd8e...24e9`, no disposable store remains, root result SHA-256
+is `a765a132...0ad9`, and ignored receipt SHA-256 is `4dd004f2...a3b4`.
 
-Commit `af9a07e` fixes the generic seam: planner projection removes only an exact
-reference to the current obligation's evidence requirement, but preserves known
-other answer dependencies and unknown/self references for fail-closed preflight.
-Planner `5 / 5`, semantic contracts `164 / 164`, import/topology `28 / 28`, full
-unittest `878 / 878`, runtime audit, pycompile, and diff checks pass. No provider
-call followed the fix. The consumed admission cannot be reused; provider
-confirmation requires a fresh clean-HEAD manifest and separate egress/cost
-approval.
+`numeric_final_judgement=null` is N/A for this mixed question and is not a
+runtime failure because numeric execution, faithfulness, completeness, retrieval,
+error rate, and ledger are healthy. The admission is exhausted; no further
+provider retry is authorized or needed for this release gate.
 
 Deferred: formula-wide rounding-error propagation and separate T3 dataset/
 evaluator governance. Existing answer keys, tolerances, and faithfulness policy
