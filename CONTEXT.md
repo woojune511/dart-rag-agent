@@ -132,19 +132,19 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    `700,691백만원`, and the four same-basis summary measures). Runtime and
    dataset/evaluator ownership remain separate; do not relax tolerance,
    faithfulness policy, or source-evidence requirements to improve a score.
-9. Latest compiler-only admission `66af6f4d...3eef` was consumed once on `88e1760`.
-   KBF T1 failed after one internal retry; the other four questions were not called.
-   Both responses ended `STOP` and parsed. Correct values/subtraction were rejected
-   for `PERCENT_POINT`; retry omitted `nim_change` without its 2022 dependency input.
-   The paid result remains partial (SHA `7d415ab4...a766`); its two calls cost an
-   estimated USD `0.0092169`. Approval is exhausted; the artifact stays unchanged.
-10. Unit-authority repair is local-only: the captured first response now compiles
-    once without retry and executes `0.10%p` with the same two source candidates.
-    Retry now includes accepted dependency values/provenance as read-only inputs;
-    formula-error replay repairs only the target, preserving prior bindings.
-    Full unittest: 929 pass; provider/store activity remains zero. These local
-    replays are not fresh compiler-choice evidence; paid runs need new approval.
-    Gate v2 still captures final text/finish/parse/usage, not thoughts or secrets;
-    output `4096` / thinking `1024` and the one island retry remain manifest-bound.
+9. Latest compiler-only admission `9d1f74a4...1d6a` was consumed once on `14628e0`.
+   KBF T1 passed with `1.83%`, `1.73%`, and `0.10%p` in one call. KBF T2 selected
+   the reviewed negative source amounts, but `(current-prior)/abs(prior)*100`
+   produced `-70.28%` against reviewed magnitude growth `+70.28%`. Other three
+   questions were not called. Both responses ended `STOP` and parsed; validation
+   is ready, execution is ok, and runtime errors are zero. The numeric review gate failed.
+10. No internal retry ran, so dependency-input repair still has local-only evidence.
+    Both captured programs/checks/prompt hashes reproduce provider-free. The run
+    used 2 calls / 17,819 tokens in 19.38s, estimated USD `0.0114177`; no retrieval,
+    planner, evaluator, embedding, or store activity. Result SHA: `8c4b28b6...f371`.
+    Approval is exhausted. Preserve raw signs and do not auto-flip the answer;
+    next work is the compiler's signed-value versus magnitude comparison semantics,
+    not unit aliases, missing inputs, or another identical paid attempt.
+    Full local unittest remains 929; output `4096` / thinking `1024` are unchanged.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

@@ -7645,3 +7645,38 @@ References:
 - Immutable ignored result:
   `benchmarks/results/reviewed_compiler_response_capture_successor_2026-09-06/result.json`
   (SHA-256 `7d415ab44d3b6bd6dc732a0a1ffcd039cd5e27003eba246ec3751f6e747da766`).
+
+## 2026-09-06: Unit/dependency successor passes KBF T1, fails KBF T2 sign semantics
+
+- Explicitly approved admission
+  `9d1f74a4084c4cc41525a657da8a260ac68c5f7171be9547665d854724ac1d6a`
+  bound clean `14628e073ec8dc4965fb3db009381b49f0ad6150`, runtime source SHA
+  `c6c6e8290fe829201839ea03db90928381bd09657c89a581afd8a709d812f167`,
+  unchanged five-case corpus, Gemini 2.5 Flash, output/thinking `4096/1024`, and
+  USD `0.20`. Separate-process no-call receipts both hashed `74742929...1d0f`.
+- One process exited 1 in `19.38s`, before the first scheduled 30-second heartbeat.
+  KBF T1 passed with `1.83%`, `1.73%`, and `0.10%p`, using one compiler call.
+  KBF T2 then failed; LGE T1, NAV T2, and CEL T1 were not dispatched.
+- KBF T2 selected the reviewed candidates and preserved both parenthesized amounts:
+  `(3,146,409)` and `(1,847,775)` million KRW. The compiler chose
+  `((current - prior) / abs(prior)) * 100`, producing `-70.2809595324106` against
+  reviewed magnitude growth `+70.2809595324106`. Its rationale describes an
+  absolute cost increase while retaining the signed numerator.
+- Both responses ended `STOP` without parser errors. Both programs had validation
+  `ready`, execution `ok`, and no runtime errors; only T2 expected numeric outputs
+  failed. No internal retry ran, so this run does not exercise retry dependency
+  inputs. It confirms a semantic formula-selection failure, not unit/input loss.
+- Replaying both captured responses with a provider-free queue reproduced their
+  programs, checks, output comparisons, and prompt hashes exactly. No expected
+  answer was fed back to the live compiler, and runtime code was not patched.
+- Usage: 2 calls; first input/answer/thinking `6706/292/1020`, second
+  `8353/605/843`; total `15059/897/1863`, 17,819 tokens, no cached input.
+  Estimated cost USD `0.0114177`; actual billing is unavailable. Retrieval,
+  planner, evaluator, embedding, and store activity were all zero.
+- Approval is consumed; no automatic retry or fresh ingest occurred. Corpus,
+  admission, rehearsal, and predecessor hashes are unchanged. Next work must
+  isolate comparison semantics provider-free, not repeat the same paid attempt
+  or force negative percentages positive.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_unit_dependency_successor_2026-09-06/result.json`
+  (SHA-256 `8c4b28b6e895a79350acb86d297a1b59330de4df62e0a1a8485271802421f371`).

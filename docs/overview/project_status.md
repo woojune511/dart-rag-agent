@@ -120,27 +120,27 @@ That run made no fetch, ingest, document embedding, store mutation, or runner
 retry. Its admission is exhausted. Exact timing, usage, cost estimate, store and
 result hashes remain in experiment history rather than this current snapshot.
 
-Latest compiler-only admission `66af6f4d...3eef` ran once on clean `88e1760`, after
-two byte-identical no-call receipts. KBF T1 failed after its one internal retry;
-the other four questions were not dispatched. Both responses ended `STOP` and
-parsed successfully, so this failure is not output truncation.
-The first selected the correct `1.83%`/`1.73%` candidates and subtraction, but
-unsupported result unit `PERCENT_POINT` triggered `result_unit_mismatch`.
-The targeted retry exposed only the 2023 candidate, without the accepted upstream
-dependency results. It returned missing `nim_change`; two direct outputs survived,
-but that paid result remains partial. The old-code replay matched recorded prompt
-hashes; after unit-authority repair, the captured first response alone is ready/ok
-with `0.10%p`, the same candidate IDs, and no retry. This is not new model inference.
+Latest compiler-only admission `9d1f74a4...1d6a` ran once on clean `14628e0`, after
+two byte-identical no-call receipts. KBF T1 passed in one call with `1.83%`, `1.73%`,
+and `0.10%p`. KBF T2 failed the numeric review gate; LGE/NAV/CEL were not called.
+Both responses ended `STOP` and parsed. Both programs passed structural validation
+and execution with zero runtime errors and the reviewed candidate IDs.
 
-Usage: 2 calls, 10,773 input (2,908 cached), 572 answer and 1,822 thinking tokens,
-13,167 total; estimated USD `0.0092169` against USD `0.20`, not actual billing.
-Retrieval/planner/evaluator/embedding/store calls are zero. Result SHA is
-`7d415ab4...a766`; corpus and predecessor artifacts remain unchanged.
+KBF T2 preserved `(3,146,409)` and `(1,847,775)` million KRW, but the compiler chose
+`((current-prior)/abs(prior))*100`, yielding `-70.28%` rather than reviewed magnitude
+growth `+70.28%`. Its rationale describes an absolute cost increase, inconsistent with
+that signed numerator. This is a semantic formula-selection failure, not unit parsing
+or input loss. Structural validity triggered no internal retry; the dependency-input
+repair therefore remains provider-free verified, not exercised in this paid run.
 
-Gate v2 preserves final text/finish/parse/disjoint usage, not thoughts or credentials.
-Output `4096` / thinking `1024` remain bound. Approval exhausted; no new paid run.
-Retry receives executed dependencies as read-only inputs without wider candidate permissions.
-Format-error replay preserves periods/bindings, not new model-choice evidence. Paid runs need new approval.
+The captured programs, checks, and prompt hashes reproduce exactly provider-free.
+Usage: 2 calls, 15,059 input (0 cached), 897 answer and 1,863 thinking tokens,
+17,819 total in 19.38s; estimated USD `0.0114177`, not actual billing. Retrieval,
+planner, evaluator, embedding, and store calls are zero. Result SHA `8c4b28b6...f371`.
+Corpus, admission, rehearsals, and predecessor artifacts remain unchanged.
+
+Approval exhausted; no runtime patch or paid rerun followed. Next isolate comparison semantics provider-free;
+do not auto-flip negatives or relax review tolerances. Gate v2 capture and `4096/1024` budgets are unchanged.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
