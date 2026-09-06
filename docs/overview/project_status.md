@@ -140,9 +140,9 @@ Result: `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.j
 Count-unit repair excludes word prefixes, retains grammatical suffixes and rejects unsupported real counts.
 Evaluator-only replay is 2/2: `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`.
 Answers/evidence/programs/dataset unchanged; calls 0. Approval exhausted; judges unmeasured, no new release claim.
-LG/NAV: all 2,620 saved texts, 125 parents and 2,099 payloads are reusable; no missing references or changed source bytes.
-OpenAI rebuild admission `3109b537...a865` awaits USD 0.40 approval (estimate USD 0.34204443); 20 focused + 5 mock-transport tests pass.
-Two no-call receipts match (`81c9ff87...5772`); preparation: `benchmarks/results/reviewed_lge_nav_store_preparation_2026-09-07/`. Provider calls 0.
+LG/NAV rebuilt 2,620 OpenAI vectors; strict readiness and external dense health pass 2/2, degraded false. Texts/125 parents/2,099 payloads preserved.
+Admission `3109b537...a865` ran once on clean `bf512e7`: 44 calls, 146.4s, usage-estimated USD 0.34196994 < 0.40; failures/retries 0, sources unchanged.
+Result: `benchmarks/results/reviewed_lge_nav_openai_stores_2026-09-07/review.json` (`50fbc2e1...1c7c`). Approval exhausted; full-agent admission remains separate.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

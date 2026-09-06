@@ -7909,3 +7909,32 @@ References:
 - Provider requests and source writes are zero; new target stores do not exist.
   Separate data-transfer/budget approval is still required. The ignored manifest,
   scripts and receipts are under `benchmarks/results/reviewed_lge_nav_store_preparation_2026-09-07/`.
+
+## Approved LG/NAV Existing-Source Rebuild (2026-09-07)
+
+- The user explicitly approved sending saved LG 2023 and NAVER 2022/2023 DART
+  chunks and bounded health excerpts to OpenAI under manifest `3109b537...a865`,
+  one rebuild per store and USD 0.40 total. Clean checkout `bf512e7` retained the
+  manifest-bound `e1a3889` runtime bytes. Execution ran LG then NAV once.
+- LG: 783 vectors, 41 parents, 699 table payloads; 13 document calls and one
+  health query, 624,913 input tokens, usage-estimated USD 0.08123869.
+- NAV: 1,837 vectors covering the original 2022/2023 inventory, 84 parents,
+  1,400 table payloads; 29 document calls and one health query, 2,005,625 input
+  tokens, usage-estimated USD 0.26073125.
+- Total: 44 successful OpenAI embedding requests, 2,630,538 reported input tokens,
+  146.368 seconds, no 429/errors/retries. At the confirmed official USD 0.13/M
+  rate, estimated USD 0.34196994 is below the cap; billing remains unobserved.
+  Thirty-second heartbeat ended completed. No Google, generation, evaluator,
+  fresh fetch, parsing, contextualization or question execution occurred.
+- Both separate-process dense-health checks and strict manifest readiness pass;
+  degraded false. Output SQL texts, physical provenance and parent maps match
+  saved source inputs. All original store hashes remain unchanged. Both new
+  manifests have SHA `58251b09bb516a7f12c60a665d0124c4340d178614d3bb33196b02d12c159239`.
+- Socket-blocked post-run review independently rechecked SQL/manifest/provenance,
+  runtime/source hashes and usage without provider/Chroma construction or store
+  writes. This closes store readiness only, not full-agent answer quality.
+- Ignored result directory: `benchmarks/results/reviewed_lge_nav_openai_stores_2026-09-07/`.
+  Run receipt SHA `72bc11d001e9b4f3bc95130069c4bf1544c71523931670445232d47bf5608fee`;
+  read-only review SHA `50fbc2e17aa0984ff1e15a367042ab1513ac1034d7c4ab2afeb2b79053fd1c7c`.
+  Approval is exhausted. Next is a separately approved store-fixed full-agent
+  admission for LG/NAV using disposable copies; Celltrion and default KB stay out of scope.
