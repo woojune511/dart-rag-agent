@@ -119,22 +119,26 @@ Normal dependency bindings passed; retry dependency context was not exercised li
 Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
 Approval exhausted; model defaults unchanged. This is compiler-only, not fresh retrieval evidence.
 
-Full-agent preparation is blocked before provider admission:
+KB's two-case store is prepared; the full five-case integration gate still needs work:
 
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
-| KB 2023, two questions | 2,093 OpenAI vectors; reviewed sources and payload coverage present | Manifest missing |
+| KB 2023, two questions | Approved copy: 2,093 OpenAI vectors, manifest/source checks pass, stored-vector probes 3/3 | New paid admission/approval pending |
 | LG / NAV 2023 | Reviewed sources and payload coverage present | Manifest missing; legacy Google vectors are not canonical OpenAI vectors |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
 Default `data/chroma_dart` instead contains KB 2022 and has 52 missing table payloads;
 its compatible manifest alone does not establish readiness. Do not repair it for this gate.
-Read-only SQLite/sidecar inspection did not initialize Chroma or prove dense search health.
-All four inspected stores' file hashes stayed unchanged; no provider/embedding/store-write calls.
-Receipt: `benchmarks/results/reviewed_full_agent_readiness_2026-09-07/readiness.json`
-(`5fd7b775...bdcc`). Proposed first scope: KB's two questions, without dropping the other three.
-Next authority: approve a new KB store copy and manifest write only in that copy, with no
-provider/re-embedding. After readiness, prepare a new paid manifest; do not reuse old approvals.
+Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
+Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.
+Original files remain byte-identical. Chroma materialized local index files only in the copy;
+source sidecars remain unchanged. No provider, query/document embedding, or ingest occurred.
+Stored-vector self-search finds each of the three reviewed sources first at distance zero,
+including after process restart. This does not prove new-query retrieval or full-agent/API startup.
+Receipts: `benchmarks/results/reviewed_full_agent_kbf_adoption_2026-09-07/receipt.json`
+(`ea119931...7e62`) and `receipt_restart.json` (`620ca695...48a8`).
+Next: prepare a two-case store-fixed full-agent manifest/cost and obtain separate provider
+approval; do not reuse consumed approvals. The other three cases remain pending.
 
 Production Google phase routes now forward explicit output/thinking/retry/thought-text controls;
 missing settings retain defaults. Real installed SDK request tests verify both production and

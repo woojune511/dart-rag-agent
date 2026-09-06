@@ -55,8 +55,8 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13.13 is the interpreter. Route/capture/store-adoption/manifest tests pass
-`20 / 20`; full discovery passes `958 / 958`, including import/topology.
+Python 3.13.13: last runtime gate on `c28f384` passed focused `20 / 20` and full
+`958 / 958`, including import/topology. Current store-adoption/manifest checks pass `7 / 7`.
 Runtime domain audit passes with `84` reviewed literals; pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -131,16 +131,16 @@ Validation ready/execution ok, runtime errors 0; socket-blocked replay matched e
 Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
 Approval exhausted; defaults unchanged. Compiler-only success does not prove fresh retrieval.
 
-Full-agent source preparation remains blocked before provider admission:
-KB 2023 has 2,093 canonical OpenAI vectors and complete source/payload references, but no
-manifest. LG/NAV reviewed sources are present in manifest-less legacy Google stores, not
-canonical OpenAI stores. Celltrion's original HTML exists, but no local vector store was found.
-Default KB 2022 is outside scope and has 52 missing table payloads despite a matching manifest.
-SQLite/sidecar checks preserved every inspected store file hash; dense search was not tested.
-Receipt: `benchmarks/results/reviewed_full_agent_readiness_2026-09-07/readiness.json`.
-Next proposed scope: KB's two questions. First obtain approval for a new store copy and
-manifest only in the copy, without provider/re-embedding; the other three remain pending.
-Then verify readiness and prepare a new provider manifest/cost for separate approval.
+Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
+Its manifest (`58251b09...9239`) and actual Chroma/source coverage pass for 2,093 vectors.
+Use its benchmark collection name, not the API default. Three stored-vector self-searches
+return their sources first at distance zero, including after restart; new-query retrieval
+and full-agent/API startup remain untested. No provider/embedding/ingest calls occurred.
+Original bytes and copied source sidecars are intact; Chroma's local index changed only in the copy.
+Receipts: `benchmarks/results/reviewed_full_agent_kbf_adoption_2026-09-07/receipt*.json`.
+LG/NAV still need legacy Google-store handling; Celltrion has HTML but no vector store.
+Default KB 2022 is outside scope with 52 missing table payloads. Do not repair it for this gate.
+Next: prepare KB's two-case full-agent manifest/cost for separate provider approval; other cases remain pending.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
