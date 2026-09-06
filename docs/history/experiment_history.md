@@ -7881,3 +7881,31 @@ References:
   successor is `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`;
   its receipt SHA is `b7048b34b52360c7271f3d458f269e646d3da1ba22ff88e80b9011c0d3605f1b`.
   This corrects lexical scoring, not model accuracy or faithfulness; no paid rerun occurred.
+
+## LG/NAV Existing-Source Rebuild Preparation (2026-09-07)
+
+- On runtime baseline `e1a3889`, a read-only SQL/graph/payload audit verifies all
+  783 LG 2023 and 1,837 NAV 2022/2023 documents. Rebuild input text is byte-identical
+  to stored vector text; all 125 parents and 2,099 table payloads are present.
+  Source-directory hashes equal the previous readiness audit and stay unchanged.
+- NAV's 747 documents from 2022 and 1,090 from 2023 are retained: the unchanged
+  question source inventory names both reports. No answer-directed chunk subset,
+  reparse, contextualization or original-store mutation is needed. Existing Google
+  vectors cannot be adopted as OpenAI vectors by changing their manifest.
+- Exact local tokenizer volume is 2,630,085 document tokens. One <=500-character
+  stored-text health probe per store adds at most 1,026 tokens. At the official
+  OpenAI standard USD 0.13/M rate, the estimated upper cost is USD 0.34204443;
+  proposed cap USD 0.40, billing unobserved. Runtime code is unchanged.
+- New manifest `3109b537d095f1fe06c9f330fe874e7818b0a83a6cbd1e64a00680fcdb60a865`
+  binds exact texts, source hashes, runtime/packages, new targets and request plans.
+  It proposes LG then NAV, one attempt each, <=44 OpenAI embedding requests,
+  SDK/outer retries disabled, no resume and first-failure stop with artifacts retained.
+  Full-agent questions and Celltrion remain outside this store-only boundary.
+- Two separate read-only inventories match at `b5c6245d...734e`; production-order
+  no-call receipts match at `81c9ff87...5772`. They stop before target/provider
+  creation. Existing focused store tests pass 20/20; admission mock-transport tests
+  pass 5/5, including real-text batch encoding and an installed-SDK 429 single attempt.
+  Script pycompile passes. No full runtime suite rerun or new model result is claimed.
+- Provider requests and source writes are zero; new target stores do not exist.
+  Separate data-transfer/budget approval is still required. The ignored manifest,
+  scripts and receipts are under `benchmarks/results/reviewed_lge_nav_store_preparation_2026-09-07/`.

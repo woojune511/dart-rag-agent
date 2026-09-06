@@ -124,11 +124,11 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
-| LG / NAV 2023 | Reviewed sources and payload coverage present | Manifest missing; legacy Google vectors are not canonical OpenAI vectors |
+| LG 2023 / NAV 2022+2023 | 2,620 exact saved texts, 125 parents, 2,099 payloads reusable; no-call gates pass | OpenAI-only rebuild pending: manifest `3109b537...a865`, USD 0.40 cap; no new question run |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
-Default `data/chroma_dart` instead contains KB 2022 and has 52 missing table payloads;
-its compatible manifest alone does not establish readiness. Do not repair it for this gate.
+LG/NAV admission: `benchmarks/results/reviewed_lge_nav_store_preparation_2026-09-07/README.md`; estimate USD 0.34204443, calls 0 so far.
+Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.
 Original files and copied sidecars are unchanged; only the copy's local index materialized.
