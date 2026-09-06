@@ -142,7 +142,7 @@ Evaluator-only replay is 2/2: `benchmarks/results/kbf_count_unit_boundary_replay
 Answers/evidence/programs/dataset unchanged; calls 0. Approval exhausted; judges unmeasured, no new release claim.
 LG/NAV rebuilt 2,620 OpenAI vectors; strict readiness and external dense health pass 2/2, degraded false. Texts/125 parents/2,099 payloads preserved.
 Admission `3109b537...a865` ran once on clean `bf512e7`: 44 calls, 146.4s, usage-estimated USD 0.34196994 < 0.40; failures/retries 0, sources unchanged.
-Store-only approval exhausted. LG → NAV full-agent admission `461b3d43...84c8` is prepared: no-call twice identical, focused 49/49 + guard 7/7; calls 0, source hashes unchanged. Estimate USD 0.10–0.30 / cap 0.40, separate approval pending; `benchmarks/results/reviewed_full_agent_lge_nav_admission_2026-09-07/README.md`.
+Full-agent `461b3d43...84c8` ran once on `af9f060`: completeness 0/2 (LG 2/3 outputs, NAV 1/2), errors 0/ledgers ok; both arithmetic outputs hit context-fingerprint validation. 9 Gemini + 19 OpenAI calls, 119.93s, estimated USD 0.20988988; sources unchanged, exact partial replay 2/2. Approval exhausted; period-role/context seam next. `benchmarks/results/reviewed_full_agent_lge_nav_2026-09-07/README.md`.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

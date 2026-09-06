@@ -7964,3 +7964,36 @@ References:
 - No provider call, new question answer or source-store write occurred. The paid
   target remains absent; data-transfer/budget approval is still required. Ignored
   manifest/scripts/receipts: `benchmarks/results/reviewed_full_agent_lge_nav_admission_2026-09-07/`.
+
+## Approved LG/NAV Store-Fixed Full-Agent Result (2026-09-07)
+
+- Explicit data-transfer/one-shot/USD 0.40 approval for `461b3d43...84c8` ran on
+  clean `af9f060`, preserving admitted runtime `f30f0594...544d`. LG then NAV,
+  one worker, 119.93 seconds and 30-second heartbeat. Source stores were copied;
+  all immutable input/source hashes remain unchanged. No fetch/ingest/filing embedding.
+- Nine Gemini calls (4 Flash + 5 Pro), 19 OpenAI embedding calls, all completed;
+  no API errors/429 or SDK retry. Two allowed internal compiler retries, no run
+  retry. Usage-estimated USD 0.20988988 < 0.40; billing unobserved.
+- Runtime completeness is 0/2. LG completed 2/3 obligations: retained profit
+  `2,163,234백만원` and source-rounded AMPC `6,769억원`, but not the subtraction.
+  Initial missing scope witness caused binding/dependency/assertion rejection;
+  retry repaired the direct bindings, then hit `expression_context_mismatch`
+  on `context_fingerprint` between the table and prose sources. Evaluator FAIL retained.
+- NAV completed only the narrative obligation (1/2), using one Poshmark source.
+  Its first `전기` candidate of `1,801,079백만원` from the 2023 report was rejected
+  for visibility/semantic/period applicability; catalog period is relative and
+  value_year absent. Retry selected the same amount from a 2022 report, then hit
+  the same context-fingerprint error with current revenue/source display from
+  other tables. Numeric judgement null is N/A, not completion or pass.
+- Both ledgers are ok with zero integrity issues; exceptions/execution errors 0.
+  Each question has eight successful hybrid queries, no degraded fallback. The
+  gate failure is numerical-output validation, not provider transport or store health.
+- Socket-blocked catalog/validator/executor replay reproduces both saved partial
+  outputs exactly (2/2 replay checks, not 2/2 answers). Rejected raw expression
+  ASTs are absent from the pruned final program; review preserves validation
+  history and reconstructed proposed candidate metadata without inventing ASTs.
+- Independent read-only review SHA `ebe45bcee5c3a4822cacbb882c0d5b89f049c3341f96c9ce0508c6ae40572b88`.
+  Results: `benchmarks/results/reviewed_full_agent_lge_nav_2026-09-07/README.md`.
+  Approval exhausted; artifacts preserved, no runtime fix or paid rerun. Next
+  provider-free seam: relative-period resolution and source identity versus
+  semantic calculation compatibility, retaining genuine scope/provenance checks.

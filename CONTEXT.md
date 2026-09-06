@@ -124,10 +124,10 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
-| LG 2023 / NAV 2022+2023 | 2,620 OpenAI vectors; strict readiness and external dense health 2/2 | Full-agent admission `461b3d43...84c8` prepared; separate approval pending |
+| LG 2023 / NAV 2022+2023 | 2,620 OpenAI vectors; full-agent runtime completeness 0/2; ledgers ok, API errors 0 | `461b3d43...84c8` exhausted; period-role and expression-context validation remain |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
-LG/NAV admission: LG → NAV, estimate USD 0.10–0.30 / cap 0.40; no-call twice identical, focused 49 + guard 7 pass, calls 0. Details: `benchmarks/results/reviewed_full_agent_lge_nav_admission_2026-09-07/README.md`.
+LG/NAV: 119.93s, 9 Gemini + 19 OpenAI calls, estimated USD 0.20988988; sources unchanged. LG subtraction/NAV growth missing after context-fingerprint rejection; exact partial-output replay 2/2. Details: `benchmarks/results/reviewed_full_agent_lge_nav_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.
