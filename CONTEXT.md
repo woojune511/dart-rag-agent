@@ -5,9 +5,8 @@ Last updated: 2026-09-06
 ## Working source
 
 - Product: single-agent `FinancialAgent`.
-- Branch: `main`; verified development source
-  `codex/bounded-semantic-tiebreaker` was fast-forwarded at `f46e331`;
-  repair baseline: `5e13bc6`; latest runtime-contract fix: `af9a07e`.
+- Working branch: `codex/reviewed-compiler-selection-gate`; compiler-gate
+  baseline `e9a5be0`. Repair baseline: `5e13bc6`; dependency fix: `af9a07e`.
 - Unit/retry, compiler, persistence/API, and final-state ownership repairs are
   implemented as separate changes. Git is the commit chronology.
 - HTTP shape, `FinancialRunResultV1`, candidate identity/catalog fingerprint
@@ -25,6 +24,9 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 - One unit specification controls normalization, applicability, validation, and
   rendering. Currency/count scales, composite signs, canonical units, USD direct
   values, and non-finite results are covered by real-normalizer tests.
+- Compiler sign interpretation uses existing formula AST and `rationale`, not a
+  new enum. Raw signs remain intact; neither denominator `abs()` nor positive
+  growth is automatic. Undefined ratios and unresolved meaning remain unanswered.
 - Unsupported planner units retain their obligations and block affected islands.
   Compiler-format errors retry the same cohort; candidate replacement uses
   explicit typed ownership, never IDs inferred from diagnostic prose.
@@ -60,14 +62,10 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 
 ## Verification and claim boundary
 
-Python 3.13 full unittest `878 / 878`, domain audit (84 reviewed literals),
-import/topology, pycompile, and diff checks pass. The local integration recheck
-also passed `878 / 878` on Python 3.14.5; the environment emitted existing
-LangChain/Pydantic compatibility warnings but no test failure. Detailed counts
-are in project status.
-The local environment is aligned to Python 3.13.13. The current full discovery,
-including exact-trace, reviewed-corpus, and validator-order regressions, passes
-`893 / 893`.
+The verification interpreter is Python 3.13.13. Full discovery, domain audit,
+import/topology, pycompile, and diff results are recorded in project status.
+Sign counterexamples test explicit formula execution and compiler prompt wiring,
+not fresh model choices; provider improvement remains unverified.
 Provider-free replay verifies all three saved catalog identities and unchanged
 input-file hashes:
 
@@ -141,10 +139,12 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    faithfulness policy, or source-evidence requirements to improve a score.
 9. Compiler-only admission `ef95dc95...f016` was consumed once. KBF T1 passed;
    KBF T2 selected every reviewed candidate but compiled signed change
-   `((current-prior)/abs(prior))*100`, yielding `-70.28%` instead of magnitude
-   growth `+70.28%`. Validation and execution were `ready/ok`, so retry stayed 0;
+   `((current-prior)/abs(prior))*100`, yielding `-70.28%` instead of reviewed
+   `+70.28%`. Validation and execution were `ready/ok`, so retry stayed 0;
    the remaining three cases did not run. Usage was 2 calls / 18,205 tokens,
-   estimated USD `0.0143671`; result hash is `496394bb...b0c90f`. The blocker is
-   signed-vs-magnitude semantics, not candidate authority or arithmetic; approval is exhausted, so fix provider-free before any successor.
+   estimated USD `0.0143671`; result hash is `496394bb...b0c90f`. Both the signed
+   prior-denominator and magnitude formulas give the reviewed positive value for
+   this pair: it establishes formula-selection failure, not a missing sign enum.
+   Approval is exhausted; any provider successor needs separate approval.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

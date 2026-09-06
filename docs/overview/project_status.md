@@ -4,10 +4,9 @@ Last updated: 2026-09-06
 
 ## Current implementation
 
-The product is the single-agent `FinancialAgent`, on `main`. The verified
-`codex/bounded-semantic-tiebreaker` source was fast-forwarded locally at
-`f46e331`. Contract repairs start from `5e13bc6`; the latest planner
-dependency-boundary fix is `af9a07e`.
+The product is the single-agent `FinancialAgent`. The current working branch is
+`codex/reviewed-compiler-selection-gate`, with compiler-gate baseline `e9a5be0`.
+Contract repairs start from `5e13bc6`; the dependency-boundary fix is `af9a07e`.
 Public HTTP fields, `FinancialRunResultV1`, candidate identity inputs, catalog
 fingerprints, parser table structure, and stored formats remain compatible.
 
@@ -16,6 +15,10 @@ The implemented boundaries are:
 - Shared unit scales and source-preserving numeric display; canonical
   KRW/USD/PERCENT/COUNT, signed composite amounts, USD lookups, and finite-value
   checks use one normalizer contract.
+- Compiler sign interpretation uses the existing formula AST and `rationale`.
+  Raw signs stay intact; negative operands do not mandate `abs()` and growth
+  need not be positive. No sign enum, arithmetic rewrite, or validator relaxation
+  was added. Undefined ratios and ambiguous comparisons can remain unanswered.
 - Planner unit errors block only affected islands. Compiler format retries keep
   candidates; explicit candidate conflicts carry exact replacement ownership.
 - Structured-output `null`/`none` sentinels normalize to blank only for optional
@@ -50,9 +53,9 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 ## Local acceptance
 
 Python 3.13.13 is the verification interpreter. Current focused gates pass:
-semantic `166 / 166`, replay `9 / 9`, and import/topology `22 / 22`.
-Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Full unittest discovery passes `893 / 893`.
+semantic `174 / 174`, import/topology `22 / 22`, and reviewed replay/rehearsal
+`6 / 6`. Runtime domain audit passes with `84` reviewed literals; pycompile and
+`git diff --check` also pass. Full unittest discovery passes `901 / 901`.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -62,6 +65,10 @@ Runtime domain audit passes with `84` reviewed literals; pycompile and
   byte-identical receipts. Its three contract tests prove deterministic replay,
   fail-closed requirement visibility, and raw-value normalization rather than
   trusting copied normalized fields.
+- Sign tests cover negative magnitude increase/decrease, signed changes,
+  differing conventions across sign transitions, and zero denominators versus
+  valid absolute differences. Stubbed compiler choices test prompt wiring and
+  execution only; no provider improvement is established by these tests.
 
 New local outputs under `benchmarks/results/` are not committed.
 
@@ -117,12 +124,15 @@ result hashes remain in experiment history rather than this current snapshot.
 Compiler-only admission `ef95dc95...f016` was consumed once. KBF T1 passed. KBF
 T2 selected both reviewed signed values and the reviewed narrative, but compiled
 `((current-prior)/abs(prior))*100`; execution therefore returned `-70.28%`
-instead of reviewed magnitude growth `+70.28%`. Structural validation was ready
+instead of reviewed `+70.28%`. Structural validation was ready
 and execution was error-free, so no retry occurred. The gate stopped before LGE,
 NAVER, and Celltrion as specified. Usage was 2 calls / 18,205 tokens with an
-estimated USD `0.0143671`, below the USD `0.12` cap. This is a compiler formula-
-semantics gap, not candidate visibility or arithmetic failure. The approval is
-exhausted; a provider-free successor must precede any new manifest.
+estimated USD `0.0143671`, below the USD `0.12` cap. Both `(current-prior)/prior`
+and `(abs(current)-abs(prior))/abs(prior)` give the reviewed positive result for
+this same-sign pair. The failure isolates formula selection, not a demonstrated
+need for a signed/magnitude enum. The existing prompt now asks for contextual
+interpretation and a brief reason; effectiveness still needs a separately
+approved provider successor. The previous approval is exhausted.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

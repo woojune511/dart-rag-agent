@@ -2,38 +2,38 @@
 
 Status: normative
 
-This document defines only the supported v1 public/storage contracts and the v2
-internal graph contract. Superseded designs and completed migrations belong in
-[implementation_history.md](../history/implementation_history.md) and
+This document defines the supported v1 public/storage and v2 internal graph contracts.
+Superseded designs belong in [implementation_history.md](../history/implementation_history.md) and
 [experiment_history.md](../history/experiment_history.md).
 
 ## 1. Product and authority boundary
 
-The product runtime is the single-agent `FinancialAgent`. It may use an LLM to
-interpret intent and evidence, but code owns arithmetic, unit conversion,
-dependency binding, candidate authority, dedupe, ordering, validation, and
-ledger integrity.
+The single-agent `FinancialAgent` uses an LLM to interpret intent and evidence.
+Code owns arithmetic, unit conversion, dependency binding, candidate authority,
+dedupe, ordering, validation, and ledger integrity.
 
-Runtime behavior must remain generic. Company names, benchmark IDs, expected
-answers, report-specific phrases, and metric recipes may not control routing,
-retrieval, candidate selection, compilation, execution, or rendering. Domain
-vocabulary belongs in reviewed ontology, policy, configuration, or data.
+Company names, benchmark IDs, expected answers, report-specific phrases, and metric
+recipes may not control routing, retrieval, selection, compilation, execution, or
+rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data.
 
-Evidence is authoritative over generated text. A numeric value may enter an
-answer only through a registered candidate and validated program binding. Source
-display and deterministic calculated display may coexist, but their provenance
-must remain distinct.
+Evidence is authoritative over generated text. Numeric answers require registered
+candidates and validated program bindings. Source and calculated displays may
+coexist, but their provenance must remain distinct.
 
-Numeric normalization and rendering share `UnitSpecV1`: source numbers multiply
-by its scale; calculated displays divide by the same scale. Canonical currency,
-percentage, and count dimensions are valid unit declarations. Direct values keep
-the source unit, parentheses, and precision. Non-finite normalized or calculated
-values cannot produce answer slots; source precision comparisons use base units.
+Normalization and rendering share `UnitSpecV1`: source numbers multiply by its scale;
+calculated displays divide by it. Canonical currency, percentage, and count units are
+valid. Direct values keep source units, parentheses, and precision. Non-finite normalized
+or calculated values cannot yield answer slots; precision comparisons use base units.
 
-Unsupported planner units remain recorded and block the affected island. Errors
-identify owner, candidate, location, and repair action. Compiler format errors
-keep the cohort; only explicit dimension, scope, or subject conflict replaces a
-candidate. Unknown applicability and diagnostic prose never select replacements.
+Source signs stay intact. The compiler explains the comparison, denominator, and any
+`abs()` using existing formula AST and `rationale`; code never auto-flips growth signs.
+Zero denominators cannot yield percentages. Clear sign-transition comparisons remain
+valid; uncertain meaning uses missing/ambiguous, not a sign enum. Structural validation
+and provider-free formula tests do not prove that the model chose the intended meaning.
+
+Unsupported planner units remain recorded and block the affected island. Errors identify
+owner, candidate, location, and repair action. Compiler format errors keep the cohort; only
+explicit dimension/scope/subject conflicts replace candidates, never unknowns or diagnostic prose.
 Structured-output `null`/`none` means blank only for optional planner text
 (`display_unit`, `display_format`, `coupling_key`). Typed validation normalizes
 it; real non-empty unsupported units still block their island.

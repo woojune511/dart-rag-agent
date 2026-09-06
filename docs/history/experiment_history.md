@@ -7566,5 +7566,11 @@ References:
   fired. LGE, NAVER, and Celltrion were not dispatched.
 - Usage was 2 calls / 14,157 input / 4,048 output / 18,205 total tokens, with an
   estimated USD `0.0143671`. Result SHA-256 is `496394bb...b0c90f`. No automatic
-  retry is authorized; the successor starts with a provider-free generic
-  signed-versus-magnitude formula contract rather than a question-specific rule.
+  retry is authorized; the previous approval is exhausted.
+- Follow-up provider-free comparison also accepts the ordinary signed-prior
+  formula `((current-prior)/prior)*100`, with the same reviewed positive value.
+  Thus this same-sign pair does not establish which comparison convention is
+  intended in general or prove a missing signed/magnitude schema. The successor
+  strengthens the existing compiler prompt and `rationale`, with sign-transition
+  and zero-denominator counterexamples; no new enum or automatic sign correction
+  is introduced. These local checks do not establish improved provider choices.
