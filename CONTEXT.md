@@ -125,10 +125,10 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
-| LG 2023 / NAV 2022+2023 | 2,620 vectors; prior live completeness 0/2; period/context repair now passes local reconstructed-formula replay 2/2 | `461b3d43...84c8` exhausted; fresh model selection needs new approval |
+| LG 2023 / NAV 2022+2023 | 2,620 vectors; prior live 0/2; period/context local repair replay 2/2 | Successor `03f03d99...237e` prepared; USD 0.40 and data-transfer approval pending |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
-LG/NAV repair: Python 3.13 full suite 978/978; fake compiler/runtime replay 2/2, ledger ok; two-process receipts byte-identical (`d3b31544...5dcb`). Accepted LG bindings/assertion and NAV narrative preserved; LG retains approximate 6,769억원. KB 2/2 and T2/T3/Samsung 3/3 local regressions pass. Calls/store writes 0; not a provider/precision pass. `benchmarks/results/relative_period_context_repair_2026-09-07/README.md`.
+LG/NAV repair: full suite 978/978; fake compiler/runtime replay 2/2, ledger ok; independent receipts match (`d3b31544...5dcb`). Accepted LG bindings/assertion and NAV narrative preserved; approximate 6,769억원 retained. KB 2/2 and T2/T3/Samsung 3/3 local regressions pass. Successor admission: focused 48/48 + guard 7/7; two no-call receipts match `546cb74c...cfa0` (4,584 bytes), source hashes unchanged. Calls/store writes 0; not a model/precision pass. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_admission_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.
