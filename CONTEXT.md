@@ -139,12 +139,12 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    Flash again negated both inputs and answered `-125%` when the question left
    the comparison undefined. Pro declared ambiguity on its first call and retry.
    This is semantic abstention, not a unit/parser/arithmetic difference.
-10. Pending Pro-only gate uses the unchanged five-case reviewed fixture and order.
-    Ops `--model` binds model/pricing without changing runtime defaults or prompts.
-    Six initial calls, at most 12 with internal retry; stop on the first failed question.
-    Estimate USD `0.149575`; retry-bounded planning `0.62673`; proposed cap `0.70`
-    (not a billing hard stop). Output/thinking stay `4096/1024`; heartbeat is 30s.
-    Admission: `benchmarks/results/reviewed_compiler_pro_admission_2026-09-07/manifest.json`.
-    No new provider call; separate manifest/cost/transmission approval is required.
+10. Pro-only admission `dd8e92f1...42f1` ran once on clean `bd6bd49`: reviewed cases `5/5`.
+    Six calls, zero internal retries, `74.3s`; estimated USD `0.120409375`, billing unobserved.
+    All responses ended STOP and parsed; validation ready, execution ok, runtime errors 0.
+    Socket-blocked replay reproduced every program/output/check/prompt; input hashes match.
+    Normal dependency bindings passed; retry dependency context was not exercised live.
+    Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
+    Approval exhausted; model defaults unchanged. Next: assess a separate store-fixed full-agent gate.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

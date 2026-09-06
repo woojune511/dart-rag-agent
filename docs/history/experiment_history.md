@@ -7770,3 +7770,47 @@ References:
   (SHA-256 `160680c8ff1977248c122b1fda5d0eea662e31dca8d1395676c12bc5a7d6d754`).
   Captured-response replay in the same directory: `captured_response_replay.json`
   (SHA-256 `c7286a1eb104811ef4a6f61a80223041582f0fd707b5420afbcbf93ac9b5dc7e`).
+
+## 2026-09-07: Pro-only compiler gate passes all five reviewed real questions
+
+- The user explicitly approved Google transmission and admission
+  `dd8e92f1cad5814b23677a21ee091a65b0cf8dfc81b9d5ecf30bb15e3ad642f1`,
+  binding clean `bd6bd49d61e03a91406510432d516cfa6707d8e6`, runtime source SHA
+  `12a727d04e262a6ab2c429c39dd9a33d7638f0d94136992fe3469347de8ec6e6`,
+  the unchanged five-case reviewed fixture, Gemini 2.5 Pro, temperature 0,
+  output/thinking `4096/1024`, client retries 0, and USD `0.70`.
+  Both separate-process no-call receipts hashed `bb992e15...3043` (41,027 bytes).
+- One foreground process exited 0 after `74.3s`, with 30/60-second heartbeats
+  and no restart. All five cases passed in the approved order, using six islands,
+  six calls and zero internal retries. No further provider execution occurred.
+
+| Reviewed case | Observed compiler/executor result |
+| --- | --- |
+| KBF_T1_017 | `1.83%`, `1.73%`, and dependency subtraction `0.10%p` |
+| KBF_T2_018 | Negative source amounts preserved; magnitude growth `+70.2809595324106%` and reviewed narrative source |
+| LGE_T1_051 | `2,163,234 - 676,874 = 1,486,360` million KRW, using declared answer dependencies |
+| NAV_T2_006 | Source display `41.4%`, calculated trace `41.39137193937039`, and both reviewed narrative sources |
+| CEL_T1_013 | Capitalized-development ratio `52.992379963193336%`, rendered `52.99%` |
+
+- Every response ended STOP and parsed; all validations were ready, all executions
+  ok, and validation/execution errors were zero. Selected candidate sets matched
+  review. KBF T1, LGE and NAV bound declared preceding answer outputs as formula
+  inputs. No retry occurred, so this run does not test retry dependency context.
+- Replaying all six captured final responses with sockets/provider creation
+  blocked reproduced every program, output, validation/check, island diagnostic
+  and prompt byte/hash. Prompt fingerprint `372d966f...4db4` matches admission.
+  Corpus, manifest, rehearsals and predecessor comparison hashes are unchanged.
+- Usage: 6 calls; 44,767 input tokens (15,075 cached), 2,082 final-answer tokens,
+  6,059 thinking tokens, 52,908 total. Estimated cost USD `0.120409375`; actual
+  billing is unobserved. Retrieval, planning, evaluator, embedding and source-store
+  reads/writes were outside this compiler-only harness and were not performed.
+- Approval is exhausted. No runtime/prompt/default-model change, oracle adjustment,
+  fresh ingest or runner retry occurred. This is compiler selection over compact
+  source-derived reviewed fixtures, not fresh retrieval, full-agent faithfulness,
+  or a new release claim. Next work is to assess a separately approved store-fixed
+  full-agent gate, not automatically switch production models or rerun paid work.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`
+  (SHA-256 `30ba48223a416975360f91630e7286322af2b2b6cb8cd8df694e48317a534fed`).
+  Captured-response replay in the same directory: `captured_response_replay.json`
+  (SHA-256 `1c541486c80e44f56376d188a30b52f75df2f1f2d9110a08469c6642630483ba`).

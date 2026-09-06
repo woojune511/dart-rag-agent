@@ -118,29 +118,19 @@ labelled recalculation. Both obligations completed with runtime error `0`, ledge
 
 That admission is exhausted; timing, usage, cost and provenance remain in experiment history.
 
-Comparison admission `3edbcb94...1558` ran once on clean `847ebfc`, with the separately
-approved Google transmission and USD `0.60` cap. Both models saw the same initial
-prompt bytes, schema, temperature, and output/thinking `4096/1024` on all four cases.
+Earlier four-case comparison `3edbcb94...1558` on `847ebfc`: Flash `3/4`, Pro `4/4`,
+with identical initial prompts/schema and budgets. Both got explicit comparisons and
+KBF T2 `+70.28%` right. Only Flash answered an unspecified comparison with `-125%`;
+Pro declared ambiguity. This is semantic abstention, not a unit/parser/math difference.
+Comparison usage, exact-response replay and immutable hashes remain in experiment history.
 
-| Model | Reviewed cases | Calls / retries | Case time | Estimated USD |
-| --- | --- | --- | --- | --- |
-| Gemini 2.5 Flash | 3/4 | 4 / 0 | 23.73s | 0.01793832 |
-| Gemini 2.5 Pro | 4/4 | 5 / 1 | 52.98s | 0.0857055 |
-
-Both correctly returned magnitude `-75%`, signed-prior `-125%`, and reviewed KBF T2
-`+70.28%` with the correct negative sources and narrative evidence. Flash again treated
-a sign transition as negating inputs, answering `-125%` despite unspecified comparison
-criteria. Pro declared ambiguity on its first response and the existing internal retry.
-The difference is semantic abstention, not units/parser/arithmetic. Runtime errors were 0;
-all 9 responses ended STOP and parsed. Socket-blocked replay reproduced all outputs,
-programs, checks, island diagnostics and prompt hashes; immutable input hashes match.
-
-Comparison estimate USD `0.10364382`; billing unobserved; times include execution/retry, not a superiority claim.
-Pending Pro-only gate: unchanged five reviewed questions/order, 6 initial / maximum 12
-calls, first failure stops. Ops `--model` leaves runtime defaults, prompts and oracles intact.
-Estimate USD `0.149575`, retry-bounded `0.62673`, proposed cap `0.70` (not a billing hard stop).
-Admission: `benchmarks/results/reviewed_compiler_pro_admission_2026-09-07/manifest.json`.
-No new provider calls; a separate manifest/cost/transmission approval remains required.
+Latest Pro-only admission `dd8e92f1...42f1` ran once on clean `bd6bd49`: all five reviewed
+cases passed. Six calls, no retry, `74.3s`; estimated USD `0.120409375` (billing unobserved).
+Normal dependency bindings, source-first NAV display and multi-evidence narrative passed;
+retry dependency context was not exercised live. All six responses ended STOP and parsed.
+Validation ready/execution ok, runtime errors 0; socket-blocked replay matched exactly.
+Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
+Approval exhausted; defaults unchanged. Next: assess a separate store-fixed full-agent gate.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
