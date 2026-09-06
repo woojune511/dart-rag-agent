@@ -133,13 +133,13 @@ Approval exhausted; defaults unchanged. Compiler-only success does not prove fre
 
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest/source coverage passes for 2,093 vectors; keep the benchmark collection name.
-Stored-vector self-search passes 3/3 after restart, without new-query/full-agent/API evidence.
+Stored-vector self-search passes 3/3 after restart; the new run adds full-agent, not HTTP evidence.
 Original bytes and copied sidecars are intact; only the copy's local index materialized.
-Admission: `benchmarks/results/reviewed_full_agent_kbf_admission_2026-09-07/manifest.json`
-(`138b5fbc...a028`): T2 → T1, Pro compiler/evidence, Flash elsewhere, OpenAI query embeddings.
-Two process-isolated no-call receipts match (`151039e7...5cc2`); provider calls remain zero.
-Next: approve USD 0.40 cap (estimate 0.10–0.25) for one store-fixed run, 30s heartbeat;
-no paid judges, fresh ingest, filing embedding or automatic rerun. Not a faithfulness/release gate.
+Admission `138b5fbc...a028` ran once on `457d776`: T2 → T1, runtime 2/2, errors 0, ledger ok.
+T2: 70.28%, source negatives preserved. T1: 1.83%, +0.10%p; evaluator misreads `2023 명목` as headcount.
+6 Gemini + 17 OpenAI embedding calls, no retries; 107.5s, estimated USD 0.10416639 (not billing).
+Result: `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.json`; exact replay 2/2.
+Approval exhausted. Next: provider-free evaluator boundary repair; keep original FAIL. Judges skipped; no release claim.
 LG/NAV need legacy-store handling; Celltrion has no store. Default KB 2022 remains outside scope.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator

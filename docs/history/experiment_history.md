@@ -7814,3 +7814,48 @@ References:
   (SHA-256 `30ba48223a416975360f91630e7286322af2b2b6cb8cd8df694e48317a534fed`).
   Captured-response replay in the same directory: `captured_response_replay.json`
   (SHA-256 `1c541486c80e44f56376d188a30b52f75df2f1f2d9110a08469c6642630483ba`).
+
+## KB Store-Fixed Full-Agent Integration (2026-09-07)
+
+- Explicit approval bound manifest
+  `138b5fbcfcbd05cf0cda328142f1f14176b0ba4d440efd4691cfdde72251a028`,
+  unchanged dataset order `KBF_T2_018` then `KBF_T1_017`, one worker/run and USD 0.40.
+  Runtime ran on clean `457d776`, source-content hash `fa9be327...ae25`, Python 3.13.13.
+  The two no-call receipts matched (`151039e7...5cc2`) before provider dispatch.
+- The existing eval-only runner used a disposable copy of the approved 2,093-vector
+  OpenAI store. Gemini 2.5 Pro was configured for compiler/evidence extraction,
+  Flash for other phases, output/thinking 4096/1024, SDK retries disabled.
+  Paid evaluator judges and evaluator embedding metrics were deliberately skipped.
+- One process completed in 107.5 seconds with 30-second heartbeats. Both questions
+  had two completed outputs, validation ready, execution ok, runtime errors zero,
+  missing outputs zero and ledger ok with no integrity issues. No compiler retry occurred.
+  Fourteen searches used successful hybrid retrieval; two reused those exact cached queries.
+
+| Case | Source-grounded runtime answer | Unmodified numeric evaluator |
+| --- | --- | --- |
+| KBF_T2_018 | `(3,146,409)` and `(1,847,775)` million KRW retained; `(abs(A)-abs(B))/abs(B)*100 = 70.2809595324106`, rendered `70.28%`, plus retrieved risk-scenario explanation | PASS |
+| KBF_T1_017 | Same physical NIM row: `1.83%`, `1.73%`, difference `0.10%p` | FAIL: tokenizer falsely extracts `2023 명` and `2022 명` from the following word `명목순이자마진` |
+
+- T1's displayed values match source and reference. Its FAIL is caused by
+  `src/ops/evaluator.py:_extract_numeric_candidates` accepting a count-unit prefix
+  inside a following word; `_compute_numeric_equivalence` then reports unsupported
+  headcounts. Socket-blocked reproduction confirms the exact extraction and FAIL.
+  No evaluator, runtime answer, dataset, tolerance or original result was changed.
+- Six Gemini requests (four Flash, two Pro) and 17 OpenAI embedding requests all
+  completed. Embeddings were the fixed 74-query routing batch, two routing questions,
+  and 14 search queries; no filing/document ingest embedding occurred.
+  Usage-based cost without cache discounts: USD `0.10416639`, below USD 0.40;
+  actual billing is unobserved. Provider/429 errors and automatic reruns were zero.
+- Socket-blocked exact runtime replay reconstructed both catalogs and repeated
+  the saved visibility/validator/envelope/executor path: 2/2 passed. Manifest inputs,
+  source store and original result hashes remain unchanged. No extra provider call ran.
+- Runtime integration gate is 2/2; unmodified numeric evaluation remains 1 PASS / 1 FAIL.
+  Skipped judge zeros mean unmeasured, not failed faithfulness. This is not a new
+  full-release or HTTP startup claim. Approval is exhausted. Next work is a generic,
+  provider-free evaluator token-boundary regression/repair, preserving this predecessor.
+  LG/NAV store preparation and Celltrion store absence remain separate work.
+- Immutable ignored artifacts under `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/`:
+  `kb-2023/results.json` SHA `2868505060070397cada2d4ee8c043575592ac31570511c026122e17ef8b1568`;
+  `run_receipt.json` SHA `d56de29490f83e7b4406872261664b88a2c863eb0ca1a9a25b8eb82a6758e8c1`;
+  `exact_runtime_replay.json` SHA `165996c8f05be795812d3ca1cf2d861c484e89b1eeb70277c3b0904d8d7d6f71`;
+  `post_run_review.json` SHA `07849f81af392ccdea64f7473552757ad6a7365b9ec958822364dfe0354b5527`.
