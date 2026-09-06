@@ -7721,3 +7721,52 @@ References:
   (SHA-256 `14e7490ce15e00ed1f6ee81a5a489ed628543614cade690d8ce3fb7f7154a9d8`).
   Captured-response replay in the same directory: `captured_response_replay.json`
   (SHA-256 `6a3def82286dc24dfa1445c034065f7b04c355ff6251e53310026a6c75422312`).
+
+## 2026-09-06: Four-case Gemini 2.5 comparison passes Flash 3/4, Pro 4/4
+
+- Explicit Google-transmission approval consumed admission
+  `3edbcb94b94917ba7cb1c943c4eb512b79b6d53ee68fca1cfa343126ff531558`
+  once on clean `847ebfc8762af7e41d68f1924e9bdb7b2b3041fb`, runtime source SHA
+  `55196f828310b6dac8f33c61a255978b6965dd8d07401969ae3a43f974435ebc`.
+  Flash then Pro each processed unspecified transition, magnitude transition,
+  signed-prior transition, and reviewed KBF T2 in that order. Corpus field order
+  matched predecessor inputs; no-call receipts matched at `ff58c6e9...abbe2`.
+  Initial prompt bytes/schema, temperature 0, output/thinking `4096/1024`, and
+  existing max-one internal island retry were shared. Client retries were 0.
+- One foreground process exited 1 after `83.9s`, with 30/60-second heartbeats,
+  8 completed cases, 8 islands, 9 compiler calls, and no restart. Comparison mode
+  recorded the failed Flash case and still ran all remaining cases and Pro.
+  Overall 7/8 is failed because both models were required to pass all four cases;
+  there was no provider error or initialization failure.
+- Flash passed 3/4. It again interpreted the unspecified sign transition as
+  negating both inputs, choosing `(-current - (-prior)) / (-prior) * 100` and
+  returning `-125%` instead of ambiguity. Structural validation and execution
+  correctly accepted the math; the semantic review expectation failed.
+- Pro passed 4/4. It declared ambiguity on its first response and maintained
+  that decision during the existing internal retry. It produced no numeric
+  output for that case; expected invalid/incomplete is not a runtime error.
+  This retry exercised abstention, not validated predecessor dependency inputs.
+- Both models correctly returned `-75%` for magnitude and `-125%` for signed-prior
+  comparison. KBF T2 preserved `(3,146,409)` / `(1,847,775)` million KRW and used
+  `(abs(current)-abs(prior))/abs(prior)*100`, returning `+70.2809595324106%` with
+  the reviewed narrative source. No normalization, sign, or evaluator patch ran.
+- Flash: 4 calls, no retry, `23.7292215s`; input/answer/thinking tokens
+  `25760/1709/2773`, cached input `3684`, total `30242`; estimate USD `0.01793832`.
+  Pro: 5 calls, one retry, `52.9797268s`; tokens `31995/1284/4929`, cached input
+  `14594`, total `38208`; estimate USD `0.0857055`. Combined USD `0.10364382`,
+  below approved `0.60`; actual billing is unobserved. Per-model time includes
+  compilation, validation, execution and retry, not pure generation latency.
+- All nine final responses ended STOP and parsed successfully. Socket-blocked
+  replay reproduced every program/output/check, island diagnostic and prompt
+  byte/hash exactly, including the Flash failure. Initial prompts match across
+  both models. Result/input/fixture/admission/predecessor hashes are unchanged.
+  Retrieval, planner, evaluator, embedding and source-store operations were 0.
+- Approval is exhausted. No paid rerun, production model change, or runtime
+  patch occurred. One small budget-matched trial does not establish general
+  model superiority or full-agent readiness. The next proposed gate is Pro on
+  the five reviewed real questions, with a new manifest/cost/transmission approval.
+- Immutable ignored result:
+  `benchmarks/results/compiler_model_comparison_2026-09-06/result.json`
+  (SHA-256 `160680c8ff1977248c122b1fda5d0eea662e31dca8d1395676c12bc5a7d6d754`).
+  Captured-response replay in the same directory: `captured_response_replay.json`
+  (SHA-256 `c7286a1eb104811ef4a6f61a80223041582f0fd707b5420afbcbf93ac9b5dc7e`).

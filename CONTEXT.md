@@ -132,19 +132,19 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    `700,691백만원`, and the four same-basis summary measures). Runtime and
    dataset/evaluator ownership remain separate; do not relax tolerance,
    faithfulness policy, or source-evidence requirements to improve a score.
-9. Latest compiler-only admission `11b34e4b...c7dd` was consumed once on `4fefb27`.
-   Synthetic cases passed `8/9`: seven requested calculations and the zero-prior
-   ratio abstention. The ninth case explicitly left comparison target/denominator
-   unspecified, but the model negated both inputs and returned `-125%` instead of
-   declaring ambiguity. Structural validation/execution accepted that valid math;
-   the semantic review gate failed. All five real questions were not dispatched.
-10. Pending comparison: Gemini 2.5 Flash then 2.5 Pro, each over the same four frozen
-    questions (unspecified transition, magnitude, signed prior, KBF T2). Prompt/schema
-    and output/thinking `4096/1024` stay fixed. The existing runner records all case
-    failures without hiding later cases; provider errors stop the comparison.
-    Local comparison/capture gates pass; no new provider call. Estimated USD `0.14248905`,
-    retry-bounded planning `0.5343781`, proposed cap `0.60` (not a billing hard stop).
-    Admission: `benchmarks/results/compiler_model_comparison_admission_2026-09-06/manifest.json`.
-    Separate manifest/cost/transmission approval is required; one trial is not model superiority.
+9. Comparison admission `3edbcb94...1558` was consumed once on clean `847ebfc`.
+   Gemini 2.5 Flash passed `3/4`; Pro passed `4/4` on identical four-case initial
+   prompts/schema and output/thinking `4096/1024`. Both got magnitude `-75%`, signed
+   prior `-125%`, and reviewed KBF T2 `+70.28%` with its narrative evidence correct.
+   Flash again negated both inputs and answered `-125%` when the question left
+   the comparison undefined. Pro declared ambiguity on its first call and retry.
+   This is semantic abstention, not a unit/parser/arithmetic difference.
+10. Flash: 4 calls / `23.73s` / USD `0.01793832`; Pro: 5 / `52.98s` / `0.0857055`.
+    Costs are estimates; times include compilation, validation, execution and retry.
+    All 9 responses ended STOP and parsed; provider/runtime errors were zero.
+    Socket-blocked captured replay reproduced all programs/checks/prompt hashes.
+    Result: `benchmarks/results/compiler_model_comparison_2026-09-06/result.json`.
+    Approval is exhausted; no model change or paid rerun. Next: a separately approved
+    Pro gate on five reviewed real questions/dependencies, not a superiority/release claim.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

@@ -116,30 +116,31 @@ artifacts and the one approved `HYU_T2_010` run provide its evidence. T2 selecte
 labelled recalculation. Both obligations completed with runtime error `0`, ledger
 `ok`, and faithfulness/completeness `1.0 / 1.0`.
 
-That admission is exhausted. No ingest/store mutation or runner retry occurred;
-timing, usage, cost estimate, and provenance hashes remain in experiment history.
+That admission is exhausted; timing, usage, cost and provenance remain in experiment history.
 
-Latest compiler-only admission `11b34e4b...c7dd` ran once on clean `4fefb27`, after
-byte-identical no-call receipts. Synthetic cases passed `8/9`, stopping before all
-five reviewed real questions. Seven explicit calculations passed (`50%`, `-50%`,
-`-60%`, `-75%`, `125%`, `-125%`, `-90USD`), plus zero-prior ratio abstention.
+Comparison admission `3edbcb94...1558` ran once on clean `847ebfc`, with the separately
+approved Google transmission and USD `0.60` cap. Both models saw the same initial
+prompt bytes, schema, temperature, and output/thinking `4096/1024` on all four cases.
 
-The ninth question explicitly leaves the comparison target and denominator open.
-The compiler nevertheless interpreted a sign transition as negating both inputs,
-chose `((-current)-(-prior))/(-prior)*100`, and returned `-125%` instead of ambiguity.
-The formula is mathematically valid, so validation was ready and execution ok;
-this is a semantic abstention failure, not a unit, parser, or arithmetic failure.
-It does not establish whether the preceding KBF T2 real-question failure is fixed.
+| Model | Reviewed cases | Calls / retries | Case time | Estimated USD |
+| --- | --- | --- | --- | --- |
+| Gemini 2.5 Flash | 3/4 | 4 / 0 | 23.73s | 0.01793832 |
+| Gemini 2.5 Pro | 4/4 | 5 / 1 | 52.98s | 0.0857055 |
 
-Pending comparison: Gemini 2.5 Flash -> 2.5 Pro on four frozen questions: unspecified
-transition, magnitude, signed prior, and KBF T2. Inputs, schema, temperature and budgets
-`4096/1024` match; SDK fake-client tests confirm model name is the only request change.
-The comparison records failures and continues all cases, stopping on provider errors;
-single-model gates still stop at their first failure. Runtime/prompt/fixtures are unchanged.
-Estimated USD `0.14248905`; retry-bounded planning `0.5343781`; proposed cap `0.60`
-(not a billing hard stop). One trial does not establish general model superiority.
-Admission: `benchmarks/results/compiler_model_comparison_admission_2026-09-06/manifest.json`.
-Prior approval is exhausted; no new provider call. Separate manifest/cost/transmission approval required.
+Both correctly returned magnitude `-75%`, signed-prior `-125%`, and reviewed KBF T2
+`+70.28%` with the correct negative sources and narrative evidence. Flash again treated
+a sign transition as negating inputs, answering `-125%` despite unspecified comparison
+criteria. Pro declared ambiguity on its first response and the existing internal retry.
+The difference is semantic abstention, not units/parser/arithmetic. Runtime errors were 0;
+all 9 responses ended STOP and parsed. Socket-blocked replay reproduced all outputs,
+programs, checks, island diagnostics and prompt hashes; immutable input hashes match.
+
+Total estimate USD `0.10364382`; billing is unobserved. Times include compile/validate/
+execute and retry, not pure model latency. No retrieval/planner/evaluator/embedding/store
+operation occurred. Result: `benchmarks/results/compiler_model_comparison_2026-09-06/result.json`.
+Approval is exhausted; no runtime/default-model change or paid rerun. Next: separately
+approve a Pro compiler-only gate over the five reviewed real questions, including
+dependency inputs. One small trial is not general model superiority or a release claim.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
