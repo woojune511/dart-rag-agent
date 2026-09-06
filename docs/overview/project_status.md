@@ -56,7 +56,7 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 Python 3.13.13 is the verification interpreter. Focused usage/response-capture/
 reviewed replay gates pass `25 / 25`; import/topology passes `22 / 22`.
 Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Full unittest discovery passes `923 / 923`.
+`git diff --check` also pass. Full unittest discovery passes `929 / 929`.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -139,8 +139,8 @@ Retrieval/planner/evaluator/embedding/store calls are zero. Result SHA is
 
 Gate v2 preserves final text/finish/parse/disjoint usage, not thoughts or credentials.
 Output `4096` / thinking `1024` remain bound. Approval exhausted; no new paid run.
-Unit-authority repair passes provider-free; retry dependency context remains the next
-separate repair. New paid runs need separate approval after local verification.
+Retry receives executed dependencies as read-only inputs without wider candidate permissions.
+Format-error replay preserves periods/bindings, not new model-choice evidence. Paid runs need new approval.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

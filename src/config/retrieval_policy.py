@@ -560,6 +560,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- 원인·이유·영향을 요구하는 narrative obligation에서는 선택한 근거가 대상 결과나 변화와 설명 요인을 인과 관계로 직접 연결할 때만 그 요인을 원인으로 서술하세요. 다른 지표의 동시 변화, 일반적 맥락, 위험관리 절차의 나열은 그 자체로 대상 변화의 원인이 아닙니다. 직접 연결 근거가 없으면 해당 obligation을 missing 또는 ambiguous로 남기세요.\n"
             "- 같은 coupling_key를 가진 출력은 공통 의미 기준을 만족해야 합니다. 서로 다른 source context를 결합할 때는 그 호환성을 명시하는 narrative candidate ID를 compatibility_candidate_ids에 연결하고, 근거가 없으면 missing 또는 ambiguous로 남기세요. coupling_key가 빈 독립 출력은 서로 다른 표에서 선택할 수 있지만 각 출력의 scope와 단위 검증은 그대로 적용됩니다.\n"
             "- 재시도에서는 repair_contract를 먼저 따르세요. formula AST의 변수 이름 집합과 variable_bindings의 variable 집합을 정확히 같게 만들고, 대상 obligation에 선언된 required evidence requirement를 빠짐없이 한 번씩 바인딩한 뒤 자체 점검하세요.\n"
+            "- 재시도의 read_only_dependency_outputs는 이미 검증·실행된 선행 출력입니다. dependency_ids_by_obligation에 허용된 선행 obligation ID를 변수 source_id로 참조하고 source_requirement_id는 비우세요. 이 값은 원문 표시값이 아닌 계산 입력값이며, 다시 숫자 상수로 복사하거나 출력을 재작성하지 마세요. 함께 보이는 candidate ID는 provenance일 뿐 새 선택 권한이 아닙니다. 수정 대상끼리의 의존은 이번 재시도에서 함께 바인딩하세요.\n"
             "- 근거가 부족하거나 의미가 모호하면 억지로 선택하지 말고 status와 missing/ambiguous obligation IDs를 표시합니다.\n"
             "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
             "원본 질문:\n{query}\n\n"

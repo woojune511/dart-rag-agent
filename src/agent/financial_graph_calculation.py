@@ -1112,6 +1112,56 @@ def _bounded_relevance_excerpt(
     return text[start : start + bounded]
 
 
+def _retry_dependency_outputs(
+    *,
+    program: Mapping[str, Any],
+    validation: Mapping[str, Any],
+    visibility: CandidateVisibilityV1,
+    obligations: Sequence[Mapping[str, Any]],
+    catalog: Sequence[Mapping[str, Any]],
+    query: str,
+    target_obligation_ids: Sequence[str],
+) -> Dict[str, Dict[str, Any]]:
+    """Project executable dependencies as inputs, never as new selectable candidates."""
+    targets = set(target_obligation_ids)
+    dependency_ids = {
+        str(dependency)
+        for obligation in obligations
+        if str(obligation.get("obligation_id") or "") in targets
+        for dependency in obligation.get("depends_on") or []
+    } - targets
+    if not dependency_ids:
+        return {}
+    envelope = CompilationEnvelopeV2.create(
+        visibility=visibility, program=program, validation=validation,
+        candidate_catalog=catalog, obligations=obligations, query=query,
+    )
+    execution = execute_semantic_calculation_program(
+        program=program, obligations=obligations, candidate_catalog=catalog, query=query,
+        compilation_envelope=envelope, require_compilation_envelope=True,
+    )
+    outputs = execution["outputs_by_obligation"]
+    inputs: Dict[str, Dict[str, Any]] = {}
+    for obligation in obligations:
+        obligation_id = str(obligation.get("obligation_id") or "")
+        output = outputs.get(obligation_id)
+        if (obligation_id not in dependency_ids or not output
+                or output.get("status") != "ok" or output.get("normalized_value") is None):
+            continue
+        inputs[obligation_id] = {
+            "kind": output["kind"],
+            "label": output["label"],
+            "scope": dict(obligation.get("scope") or {}),
+            # For a derived output this is the calculated value, not its source display.
+            "normalized_value": output["normalized_value"],
+            "normalized_unit": output["normalized_unit"],
+            "candidate_ids": list(output["candidate_ids"]),
+            "source_row_ids": list(output["source_row_ids"]),
+            "source_anchors": list(output["source_anchors"]),
+        }
+    return inputs
+
+
 def _merge_targeted_program_retry(
     *,
     previous_validation: Dict[str, Any],
@@ -1725,6 +1775,7 @@ class FinancialAgentCalculationMixin:
             )
             retry_feedback = "-"
             retry_target_ids: List[str] = []
+            read_only_dependency_outputs: Dict[str, Dict[str, Any]] = {}
             previous_validation: Dict[str, Any] = {}
             active_cohort_plan = dict(cohort_plan)
             active_prompt_payload = dict(prompt_payload)
@@ -1857,6 +1908,10 @@ class FinancialAgentCalculationMixin:
                     {
                         "attempt": attempt + 1,
                         "target_obligation_ids": list(retry_target_ids),
+                        "read_only_dependency_ids": list(read_only_dependency_outputs),
+                        "serialized_dependency_bytes": len(json.dumps(
+                            read_only_dependency_outputs, ensure_ascii=False, indent=2,
+                        ).encode("utf-8")) if read_only_dependency_outputs else 0,
                         "visible_candidate_ids": active_prompt_candidate_ids,
                         "visible_candidate_id_fingerprint": (
                             semantic_candidate_id_fingerprint(
@@ -1941,6 +1996,11 @@ class FinancialAgentCalculationMixin:
                     catalog,
                     active_cohort_plan,
                 )
+                read_only_dependency_outputs = _retry_dependency_outputs(
+                    program=program_data, validation=validation, visibility=validation_visibility,
+                    obligations=obligations, catalog=catalog, query=query,
+                    target_obligation_ids=retry_target_ids,
+                )
                 target_owner_ids = set(retry_target_ids)
                 for obligation in obligations:
                     obligation_id = str(
@@ -2012,11 +2072,13 @@ class FinancialAgentCalculationMixin:
                         "allowed_candidate_ids_by_owner": (
                             retry_selectable_ids_by_owner
                         ),
+                        "read_only_dependency_outputs": read_only_dependency_outputs,
                         "declared_obligation_ids": [
                             str(item.get("obligation_id") or "")
                             for item in obligations
                             if str(item.get("obligation_id") or "")
-                            in target_id_set
+                            in target_id_set or str(item.get("obligation_id") or "")
+                            in read_only_dependency_outputs
                         ],
                         "declared_evidence_requirement_ids": [
                             str(requirement.get("requirement_id") or "")
@@ -2028,6 +2090,21 @@ class FinancialAgentCalculationMixin:
                         ],
                         "repair_contract": {
                             "target_obligation_ids": retry_target_ids,
+                            "dependency_ids_by_obligation": {
+                                str(item.get("obligation_id") or ""): [
+                                    str(dependency) for dependency in item.get("depends_on") or []
+                                    if str(dependency) in target_id_set
+                                    or str(dependency) in read_only_dependency_outputs
+                                ]
+                                for item in obligations
+                                if str(item.get("obligation_id") or "") in target_id_set
+                            },
+                            "dependency_input_invariant": (
+                                "Bind a dependency by its obligation ID with an empty source_requirement_id. "
+                                "Read-only dependency values are execution values, not source displays. "
+                                "Their candidate IDs are provenance only, not additional candidate permissions. "
+                                "Do not re-emit or modify accepted dependency outputs."
+                            ),
                             "evidence_requirement_ids_by_obligation": (
                                 evidence_requirement_ids_by_obligation
                             ),

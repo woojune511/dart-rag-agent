@@ -237,26 +237,26 @@ Every retry candidate replacement also checks the query-wide union, including
 already accepted and not-yet-compiled islands. An overflowing retry makes no
 provider call and preserves accepted program bytes; bundles are never truncated.
 
-Islands are ordered by original obligation order and compiled sequentially. Each
-island has one internal retry at most:
+Islands compile sequentially in obligation order, with at most one internal retry:
 
 - candidate validation failure excludes the rejected candidate's source bundle
   for that owner and promotes the next ranked bundle;
 - assertion, AST, schema, or binding format failure retains the same cohort.
 
-If any member of an evidence bundle needs retry, every obligation in that bundle
-is retried together. Candidate rejection rebuilds the bounded cohorts and bundle
-ranking. If the active row is no longer complete, the next complete option is
-selected; AST, schema, and binding-format retries retain the active option.
+If an evidence-bundle member needs retry, every member is retried together. Candidate
+rejection rebuilds bounded cohorts and promotes the next complete row option when needed;
+AST/schema/binding-format repairs retain the active option.
 
-Accepted program JSON from an island that is not retried must remain byte-for-byte
-identical. Final programs, missing/ambiguous IDs, and diagnostics merge in
-original obligation order. `semantic_candidate_stage_diagnostics_v9` records
-owner factor counts, selected bundle IDs, bundle/member counts and fingerprint,
-the active physical-row constraint, island composition, call/retry counts,
-attempt-visible IDs, prompt bytes, and assertion coverage/errors.
-Ranking diagnostics are observability-only and are not serialized into the
-compiler prompt.
+Retry targets alone remain editable. Their accepted `depends_on` outputs are read-only
+inputs projected through the same V2-authorized executor, using calculated rather than
+source-display values. Failed execution yields no input. Dependency obligation IDs may
+be bound as sources; attached candidate provenance never widens owner selection authority.
+
+Unretried island program JSON stays byte-identical. Programs, missing/ambiguous IDs,
+and diagnostics merge in obligation order. `semantic_candidate_stage_diagnostics_v9`
+records owner factors, bundle/member counts and fingerprints, row constraints, islands,
+call/retry counts, attempt-visible and read-only dependency IDs/bytes, and assertion errors.
+Ranking diagnostics are observability-only, never compiler prompt input.
 
 ## 7. Retrieval boundary
 

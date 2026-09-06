@@ -134,16 +134,16 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    faithfulness policy, or source-evidence requirements to improve a score.
 9. Latest compiler-only admission `66af6f4d...3eef` was consumed once on `88e1760`.
    KBF T1 failed after one internal retry; the other four questions were not called.
-   Both responses ended `STOP` and parsed successfully. The first selected the
-   correct `1.83%`/`1.73%` values and subtraction, but unsupported result unit
-   `PERCENT_POINT` triggered `result_unit_mismatch`. Retry exposed only the 2023
-   candidate and no accepted dependency results; the model omitted `nim_change`.
+   Both responses ended `STOP` and parsed. Correct values/subtraction were rejected
+   for `PERCENT_POINT`; retry omitted `nim_change` without its 2022 dependency input.
    The paid result remains partial (SHA `7d415ab4...a766`); its two calls cost an
    estimated USD `0.0092169`. Approval is exhausted; the artifact stays unchanged.
 10. Unit-authority repair is local-only: the captured first response now compiles
     once without retry and executes `0.10%p` with the same two source candidates.
-    Full unittest: 923 pass; no provider/store activity. Retry dependency-input
-    context remains a separate defect to repair before a new paid proposal.
+    Retry now includes accepted dependency values/provenance as read-only inputs;
+    formula-error replay repairs only the target, preserving prior bindings.
+    Full unittest: 929 pass; provider/store activity remains zero. These local
+    replays are not fresh compiler-choice evidence; paid runs need new approval.
     Gate v2 still captures final text/finish/parse/usage, not thoughts or secrets;
     output `4096` / thinking `1024` and the one island retry remain manifest-bound.
 
