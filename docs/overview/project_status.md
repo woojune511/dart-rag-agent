@@ -38,8 +38,8 @@ The implemented boundaries are:
 - Formula inputs retain their validated evidence-requirement label, period,
   year, and role when projected into execution and evaluator operand rows.
   Requirement-derived periods are marked separately from source period text.
-- Annual relative cell labels resolve against report year before generic roles/table focus;
-  ambiguity stays unknown. Bound formulas may span sources without physical-ID equality,
+- Located calendar/relative cell labels precede source-period fields; unbound parser focus/labels
+  cannot assign value years. Unknown numeric periods cannot borrow filing scope, including via witnesses. Bound formulas may span sources without physical-ID equality,
   while scope conflicts, assertions, visibility, coupling and row contracts stay enforced; assertion owner order is stable.
 - Atomic payload-superset/graph-last persistence, failure propagation, strict
   source coverage, and provider-free sidecar recovery replace partial publication.
@@ -57,7 +57,7 @@ mutation, evaluator relaxation, or dataset correction. MAS/Streamlit remain expe
 
 ## Local acceptance
 
-Python 3.13.13: filing-identity full suite `1004 / 1004` (29.105s), focused `160 / 160`, new regressions `11 / 11`, import/topology `22 / 22`, docs `2 / 2`.
+Python 3.13.13: period-evidence full suite `1018 / 1018` (25.544s), semantic focused `251 / 251`, new regressions `14 / 14`, import/topology `22 / 22`, docs `2 / 2`.
 Runtime domain audit passes (`84` reviewed literals); pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -143,7 +143,7 @@ Successor `03f03d99...237e` ran once on clean `5fe3a5f`: required-output complet
 LG completes 3/3 outputs, preserving original bindings/assertion: precise profit minus approximate 6,769억원 = 1,486,334,000,000원. Numeric FAIL remains: no atomic accepted source/scope/precision variant; do not treat it as a transport or arithmetic failure.
 NAV completes 2/2 outputs without retry: same-row 당기/전기 resolve to 2023/2022, calculation 41.39574110852439%, source display 41.4%. Its new narrative only describes Poshmark service positioning, not acquisition performance; heuristic completeness 0.625, judges unmeasured. An out-of-island missing-ID diagnostic remains in attempt history, not final validation.
 Socket-blocked exact replay 2/2; runtime/input/store hashes unchanged. Review SHA `66d5b927...a051`. Approval exhausted; no runtime/evaluator/dataset edit or paid rerun. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
-Source-context/query-spelling and filing-identity repairs now preserve precise LG components and NAV acquisition-performance evidence, separating receipt-local tables before dedupe. Raw table/row/cell IDs remain alongside qualified provenance in prompt/execution evidence. Socket-blocked successor: LG 567 candidates/537 physical cells; NAV 345 → 462 candidates, 218 → 331 physical cells. Every predecessor cell value/period/unit remains; no cross-filing row bundle exists. Catalog contents/fingerprints, owner IDs and prompts match under source reversal and retrieved/seed swap. Numeric/narrative visibility stays 4/3 and 10/6; caps 96/32, provider/store writes 0, 11 input hashes unchanged. New table IDs intentionally differ; old exact-ID receipts are not silently migrated. No fresh compiler or quality-pass claim. Receipt SHA `cbcb383a...3920`; report: `benchmarks/results/filing_table_identity_2026-09-07/README.md`. Next: inspect LG period/source contract versus evaluator governance before paid admission; `공시금액` and source/scope constraints remain unresolved, not relaxed.
+Source-context/query-spelling and filing-identity repairs preserve precise LG components and NAV acquisition-performance evidence with qualified raw provenance. Current period-evidence successor retains all 567/462 candidates, candidate IDs/catalog fingerprints, source text/spans and physical cells. Non-temporal headers are no longer periods; unlocated parser labels/focus cannot imply a numeric value year. Explicit NAV column dates correct two row-relative misassignments; 50 other relative-period values remain. Reverse/swap catalogs, cohorts and prompts agree; numeric/narrative visibility 4/3 and 11/6 stays within 96/32. Socket-blocked receipt `9b42ac1d...3663`, 16 immutable input hashes unchanged, provider/store writes 0: `benchmarks/results/value_period_evidence_2026-09-07/README.md`. LG note components remain visible but their missing located period context now blocks unsupported direct execution, not candidate admission. Next: exact table-leading period provenance and structural header scope via a separately designed parser/store successor, then independent evaluator period/label/source governance. No quality-pass claim or new paid admission.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

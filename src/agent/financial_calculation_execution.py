@@ -22,7 +22,9 @@ from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
 )
 from src.agent.financial_row_surfaces import strip_financial_label_annotations
-from src.agent.financial_scope_policies import relative_period_offsets
+from src.agent.financial_scope_policies import (
+    annual_period_evidence, explicit_period_years, relative_period_offsets,
+)
 from src.agent.financial_text_surface import topic_particle
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
@@ -464,84 +466,71 @@ def _direct_subject_resolution(
     }
 
 
-def _candidate_relative_period(candidate: Mapping[str, Any]) -> Tuple[bool, Optional[int]]:
-    """Resolve legacy cell labels without mistaking the filing year for a value."""
+def _candidate_value_period(candidate: Mapping[str, Any]) -> Tuple[bool, Optional[int]]:
+    """Use source period evidence; the filing year is only a relative anchor."""
 
-    offsets = relative_period_offsets(
+    # Current projections have already applied cell-before-source precedence.
+    # Raw source labels remain provenance, not a second competing resolution.
+    if candidate.get("period_source") in {
+        "explicit_period", "relative_period_label", "fiscal_period", "value_role", "source_period_text",
+    } and candidate.get("value_year") is not None:
+        try:
+            return True, int(candidate["value_year"])
+        except (TypeError, ValueError):
+            return True, None
+    has_period, value_year = annual_period_evidence(
         candidate.get("period"), candidate.get("source_period_surface"),
         *(candidate.get("column_headers") or []),
+        report_year=candidate.get("year"),
     )
-    if not offsets:
-        return False, None
+    if has_period:
+        return True, value_year
     try:
-        report_year = int(candidate.get("year"))
+        return True, int(candidate.get("value_year"))
     except (TypeError, ValueError):
-        return True, None
-    return True, report_year + next(iter(offsets)) if len(offsets) == 1 else None
+        return False, None
 
 
-def _period_scope_matches(expected: str, candidate: Mapping[str, Any]) -> bool:
+def _period_scope_state(
+    expected: str, candidate: Mapping[str, Any], *, allow_filing_scope: bool = True,
+) -> str:
     wanted = _normalise_spaces(str(expected or "")).lower()
     if not wanted or wanted == "unknown":
-        return True
+        return "match"
 
-    observed = _normalise_spaces(str(candidate.get("period") or "")).lower()
-    if observed and _scope_surface_matches(wanted, observed):
-        return True
-
-    expected_years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", wanted))
+    expected_years = explicit_period_years(wanted)
     if not expected_years:
-        return _scope_matches(wanted, observed, candidate)
-
-    explicit_surfaces = [
-        observed,
-        *[
-            _normalise_spaces(str(item)).lower()
-            for item in (candidate.get("column_headers") or [])
-            if _normalise_spaces(str(item))
-        ],
-    ]
-    explicit_years = {
-        year
-        for surface in explicit_surfaces
-        for year in re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", surface)
-    }
-    if explicit_years:
-        return bool(expected_years & explicit_years)
-
-    value_year = _normalise_spaces(str(candidate.get("value_year") or ""))
-    if value_year:
-        return value_year in expected_years
-
-    has_relative_period, relative_year = _candidate_relative_period(candidate)
-    if has_relative_period:
-        return relative_year is not None and str(relative_year) in expected_years
-
-    value_role = _normalise_spaces(str(candidate.get("value_role") or "")).lower()
-    prior_role = any(
-        marker in value_role
-        for marker in ("prior", "previous", "opening", "begin")
-    )
-    if prior_role:
-        return False
-
-    has_opaque_numeric_period = any(
-        re.search(r"\d", surface) for surface in explicit_surfaces if surface
-    )
-    current_role = any(
-        marker in value_role
-        for marker in ("current", "closing", "ending", "end")
-    )
-    if has_opaque_numeric_period and not current_role:
-        return False
-
-    context_surface = _normalise_spaces(
-        " ".join(
-            str(candidate.get(key) or "")
-            for key in ("year", "source_anchor")
+        _, expected_year = annual_period_evidence(wanted, report_year=candidate.get("year"))
+        if expected_year is not None:
+            expected_years = {expected_year}
+    has_period, value_year = _candidate_value_period(candidate)
+    if value_year is not None and expected_years:
+        return "match" if value_year in expected_years else "conflict"
+    if not expected_years:
+        wanted_offsets = relative_period_offsets(wanted)
+        observed_surfaces = (
+            candidate.get("period"), candidate.get("source_period_surface"),
+            *(candidate.get("column_headers") or []),
         )
-    ).lower()
-    return any(year in context_surface for year in expected_years)
+        observed_offsets = relative_period_offsets(*observed_surfaces)
+        if not explicit_period_years(*observed_surfaces) and len(wanted_offsets) == len(observed_offsets) == 1:
+            return "match" if wanted_offsets == observed_offsets else "conflict"
+    if has_period and value_year is None:
+        return "unknown"
+    if not expected_years:
+        observed = _normalise_spaces(str(candidate.get("period") or "")).lower()
+        if observed and has_period:
+            return "match" if _scope_surface_matches(wanted, observed) else "conflict"
+    # A narrative can describe the filing as a whole. This document scope must
+    # never serve as a numeric value's period, including through a witness.
+    if allow_filing_scope and candidate.get("kind") == "narrative" and expected_years:
+        try:
+            report_year = int(candidate.get("year"))
+        except (TypeError, ValueError):
+            return "unknown"
+        else:
+            return "match" if report_year in expected_years else "conflict"
+    return "unknown"
 
 
 def _scope_errors(
@@ -616,25 +605,17 @@ def _same_source_context(
 
 
 def _direct_scope_gap_is_bridgeable(
-    candidate: Mapping[str, Any], detail: str
+    candidate: Mapping[str, Any], detail: str, *,
+    witnesses: Sequence[Mapping[str, Any]] = (), expected_period: str = "",
 ) -> bool:
     field = str(detail or "").rsplit(":", 1)[-1].strip()
     if field == "period":
-        explicit_surfaces = [
-            _normalise_spaces(str(candidate.get("period") or "")),
-            *[
-                _normalise_spaces(str(item))
-                for item in (candidate.get("column_headers") or [])
-                if _normalise_spaces(str(item))
-            ],
-        ]
-        explicit_years = {
-            year
-            for surface in explicit_surfaces
-            for year in re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", surface)
-        }
-        _, relative_year = _candidate_relative_period(candidate)
-        return not explicit_years and not candidate.get("value_year") and relative_year is None
+        has_period, _ = _candidate_value_period(candidate)
+        return not has_period and any(
+            _same_source_context(candidate, witness)
+            and _period_scope_state(expected_period, witness, allow_filing_scope=False) == "match"
+            for witness in witnesses
+        )
     actual = _normalise_spaces(str(candidate.get(field) or "")).lower()
     return actual in {"", "unknown"} and field in {
         "consolidation_scope",
@@ -652,27 +633,7 @@ def _scope_match_state(
     if not wanted or wanted == "unknown":
         return "match"
     if field == "period":
-        if _period_scope_matches(wanted, candidate):
-            return "match"
-        explicit_year = candidate.get("value_year")
-        period_surface = _normalise_spaces(
-            " ".join(
-                [
-                    str(candidate.get("period") or ""),
-                    *[str(item) for item in (candidate.get("column_headers") or [])],
-                ]
-            )
-        )
-        if explicit_year not in (None, "") or re.search(
-            r"(?<!\d)(?:19|20)\d{2}(?!\d)", period_surface
-        ):
-            return "conflict"
-        has_relative_period, relative_year = _candidate_relative_period(candidate)
-        if has_relative_period:
-            return "conflict" if relative_year is not None else "unknown"
-        if candidate.get("year") not in (None, ""):
-            return "conflict"
-        return "unknown"
+        return _period_scope_state(wanted, candidate)
 
     actual = _normalise_spaces(str(candidate.get(field) or "")).lower()
     if actual and actual != "unknown":
@@ -1298,7 +1259,10 @@ def validate_semantic_calculation_program(
                 scope_details = [
                     detail
                     for detail in scope_details
-                    if not _direct_scope_gap_is_bridgeable(candidate, detail)
+                    if not _direct_scope_gap_is_bridgeable(
+                        candidate, detail, witnesses=compatibility_candidates,
+                        expected_period=str((obligation.get("scope") or {}).get("period") or ""),
+                    )
                 ]
             for detail in scope_details:
                 error("candidate_scope_mismatch", obligation_id, detail,
@@ -2521,6 +2485,8 @@ def project_semantic_program_operand(
             candidate.get("source_period_surface") or ""
         ),
         "period_source": period_source,
+        "period_label_surfaces": list(candidate.get("period_label_surfaces") or []),
+        "period_label_scope": str(candidate.get("period_label_scope") or ""),
         "value_year": value_year,
         "table_source_id": str(candidate.get("table_source_id") or ""),
         **{key: candidate[key] for key in (

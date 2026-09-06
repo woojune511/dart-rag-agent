@@ -24,7 +24,7 @@
 | `src/agent/financial_graph_planning.py` | routing/requirements and query-written bilingual subject spellings |
 | `src/agent/financial_retrieval_pipeline.py` | retrieval plan, searches, selection, trace |
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified table/row/cell identity with raw provenance, source/catalog construction, attached prose and exact row context |
-| `src/agent/financial_scope_policies.py` | shared report/consolidation scope and policy-owned annual relative-period labels |
+| `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence and physical-row source bundles |
 | `src/agent/financial_candidate_matching.py` | typed owner applicability and deterministic bundle rank inputs |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, islands, targeted retry with read-only executed dependency inputs |

@@ -101,9 +101,11 @@ class ExpressionSourceContextContractTests(unittest.TestCase):
         catalog = _catalog_from_document(
             "The reported proportion is 20%.", {"company": "sample", "year": 2024, "is_table": False})
         candidate = next(c for c in catalog if c["kind"] == "numeric")
-        direct = _obligation("z_source", "direct_value", "quantity", scope=_scope(period="2024"))
+        # This source asserts a quantity, not its calendar year. Owner-order
+        # coverage must not rely on the filing-year fallback being tested below.
+        direct = _obligation("z_source", "direct_value", "quantity")
         derived = _obligation("a_copy", "derived_value", "copied quantity",
-                              scope=_scope(period="2024"), depends_on=["z_source"])
+                              depends_on=["z_source"])
         program = {
             "status": "ready", "direct_bindings": [
                 {"obligation_id": "z_source", "candidate_id": candidate["candidate_id"]}],

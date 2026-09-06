@@ -597,7 +597,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in invalid_field["errors"]},
         )
 
-    def test_period_scope_uses_report_year_only_for_non_temporal_cell_labels(self) -> None:
+    def test_non_temporal_cell_labels_cannot_borrow_the_report_year(self) -> None:
         obligation = _obligation(
             "value",
             "direct_value",
@@ -618,7 +618,10 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             candidate_catalog=[generic_period],
             query="Return the 2023 value.",
         )
-        self.assertEqual(ready["status"], "ready")
+        self.assertEqual(ready["status"], "invalid")
+        self.assertTrue(any(error["code"] == "candidate_scope_mismatch"
+                            and error["repair_action"] == "repair_program"
+                            for error in ready["errors"]))
 
         conflicting_period = {**generic_period, "candidate_id": "conflict", "period": "2022"}
         rejected = validate_semantic_calculation_program(

@@ -10,7 +10,9 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
 from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
-from src.agent.financial_scope_policies import relative_period_offsets
+from src.agent.financial_scope_policies import (
+    annual_period_evidence, explicit_period_years, relative_period_offsets,
+)
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
@@ -498,10 +500,11 @@ def _candidate_consolidation_scope(
     return "unknown", "unknown"
 
 
-def _cell_explicit_year(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> Optional[int]:
-    surface = _candidate_period_surface(cell, metadata)
-    years = list(dict.fromkeys(re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", surface)))
-    return int(years[0]) if len(years) == 1 else None
+def _cell_explicit_year(cell: Mapping[str, Any]) -> Optional[int]:
+    years = explicit_period_years(
+        cell.get("period_text") or cell.get("period"), *(cell.get("column_headers") or []),
+    )
+    return next(iter(years)) if len(years) == 1 else None
 
 
 def _fiscal_ordinal(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> Optional[int]:
@@ -513,50 +516,9 @@ def _fiscal_ordinal(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> Opt
     return int(match.group(1)) if match else None
 
 
-def _candidate_period_role(
+def _candidate_period_labels(
     cell: Mapping[str, Any], metadata: Mapping[str, Any]
-) -> str:
-    explicit_role = _normalise_spaces(
-        str(cell.get("value_role") or metadata.get("value_role") or "")
-    ).lower()
-    if _candidate_period_role_kind(explicit_role):
-        return explicit_role
-    return _normalise_spaces(
-        " ".join(str(item or "") for item in (cell.get("column_headers") or []))
-    ).lower()
-
-
-def _candidate_period_role_kind(role: str) -> str:
-    if any(marker in role for marker in ("current", "closing", "ending")):
-        return "current"
-    if any(
-        marker in role
-        for marker in ("prior", "previous", "opening", "begin")
-    ):
-        return "prior"
-    return ""
-
-
-def _candidate_period_focus(
-    cell: Mapping[str, Any], metadata: Mapping[str, Any]
-) -> str:
-    """Return the parser-projected current/prior role when it is explicit."""
-
-    for raw_value in (
-        cell.get("period_role"),
-        metadata.get("period_role"),
-        cell.get("period_focus"),
-        metadata.get("period_focus"),
-    ):
-        value = _normalise_spaces(str(raw_value or "")).lower()
-        if value in {"current", "prior"}:
-            return value
-    return _candidate_period_role_kind(_candidate_period_role(cell, metadata))
-
-
-def _candidate_period_label_surfaces(
-    cell: Mapping[str, Any], metadata: Mapping[str, Any]
-) -> List[str]:
+) -> tuple[List[str], str]:
     """Preserve parser-owned period labels without making them identity material."""
 
     def surfaces(*raw_items: Any) -> List[str]:
@@ -568,16 +530,18 @@ def _candidate_period_label_surfaces(
                 values.extend(raw_values)
         return _normalized_string_list(values)
 
-    source_surface = _candidate_period_surface(cell, metadata)
-    if (
-        _cell_explicit_year(cell, metadata) is not None
-        or _fiscal_ordinal(cell, metadata) is not None
-    ):
-        return _normalized_string_list([source_surface])
+    cell_surfaces = surfaces(cell.get("period_text") or cell.get("period"), cell.get("column_headers"))
+    located_labels = [surface for surface in cell_surfaces
+                      if annual_period_evidence(surface)[0]
+                      or _fiscal_ordinal({"period_text": surface}, {}) is not None]
+    if located_labels:
+        return located_labels, "cell"
     cell_values = surfaces(cell.get("period_labels"), cell.get("period_text"))
     if cell_values:
-        return cell_values
-    return surfaces(metadata.get("period_labels"), metadata.get("period_text"))
+        return cell_values, "cell"
+    if metadata.get("period_text"):
+        return surfaces(metadata["period_text"]), "source_period"
+    return surfaces(metadata.get("period_labels")), "unbound_table"
 
 
 def _candidate_projected_period_role(
@@ -595,9 +559,7 @@ def _candidate_projected_period_role(
             return "current"
         if value_year < report_year:
             return "prior"
-    if _cell_relative_period_offsets(cell):
-        return ""
-    return _candidate_period_focus(cell, metadata)
+    return ""
 
 
 def _cell_relative_period_offsets(cell: Mapping[str, Any]) -> set[int]:
@@ -607,75 +569,31 @@ def _cell_relative_period_offsets(cell: Mapping[str, Any]) -> set[int]:
     )
 
 
-def _candidate_has_competing_periods(
-    cells: Sequence[Mapping[str, Any]], metadata: Mapping[str, Any]
-) -> bool:
-    temporal_keys: set[str] = set()
-    period_surfaces = [
-        _candidate_period_surface(cell, metadata) for cell in cells
-    ]
-    period_surfaces.extend(
-        _normalise_spaces(str(item or ""))
-        for item in (metadata.get("period_labels") or [])
-    )
-    for surface in period_surfaces:
-        temporal_keys.update(
-            f"year:{year}"
-            for year in re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", surface)
-        )
-        ordinal_match = re.search(
-            str(
-                SEMANTIC_CANDIDATE_POLICY.get("fiscal_period_ordinal_pattern")
-                or r"$^"
-            ),
-            surface,
-        )
-        if ordinal_match:
-            temporal_keys.add(f"ordinal:{ordinal_match.group(1)}")
-    for cell in cells:
-        temporal_keys.update(
-            f"offset:{offset}" for offset in _cell_relative_period_offsets(cell)
-        )
-        role_kind = _candidate_period_role_kind(
-            _candidate_period_role(cell, metadata)
-        )
-        if role_kind:
-            temporal_keys.add(f"role:{role_kind}")
-    return len(temporal_keys) > 1
-
-
 def _candidate_value_year(
     cells: Sequence[Mapping[str, Any]],
     cell_index: int,
     metadata: Mapping[str, Any],
 ) -> Optional[int]:
     cell = cells[cell_index]
-    explicit_year = _cell_explicit_year(cell, metadata)
-    if explicit_year is not None:
-        return explicit_year
+    has_period, value_year = annual_period_evidence(
+        cell.get("period_text") or cell.get("period"),
+        *(cell.get("column_headers") or []),
+        report_year=metadata.get("year"),
+    )
+    if has_period:
+        return value_year
 
     try:
         report_year = int(metadata.get("year"))
     except (TypeError, ValueError):
-        return None
+        report_year = None
 
-    offsets = _cell_relative_period_offsets(cell)
-    if offsets:
-        return report_year + next(iter(offsets)) if len(offsets) == 1 else None
-
-    period_focus = _candidate_period_focus(cell, metadata)
-    if not _candidate_has_competing_periods(cells, metadata):
-        if period_focus == "current":
-            return report_year
-        if period_focus == "prior":
-            return report_year - 1
-
-    explicit_role = _candidate_period_role(cell, metadata)
-    role_kind = _candidate_period_role_kind(explicit_role)
-    if role_kind == "current":
-        return report_year
-    if role_kind == "prior":
-        return report_year - 1
+    has_role, role_year = annual_period_evidence(
+        cell.get("period_role") or cell.get("value_role") or metadata.get("value_role"),
+        report_year=report_year,
+    )
+    if has_role:
+        return role_year
 
     ordinals = [
         ordinal
@@ -683,16 +601,16 @@ def _candidate_value_year(
         if ordinal is not None
     ]
     value_ordinal = _fiscal_ordinal(cell, metadata)
-    if ordinals and value_ordinal is not None:
+    if ordinals and value_ordinal is not None and report_year is not None:
         current_ordinal = max(ordinals)
         offset = current_ordinal - value_ordinal
         if 0 <= offset <= 20:
             return report_year - offset
-    if _normalise_spaces(str(metadata.get("period_focus") or "")).lower() != "current":
-        return None
-    if _candidate_has_competing_periods(cells, metadata):
-        return None
-    return report_year
+    # A scoped source-period field is distinct from the parser's unlocated
+    # period_labels/focus, which also include dates collected from table bodies.
+    return annual_period_evidence(
+        metadata.get("period_text"), report_year=report_year,
+    )[1]
 
 
 def _candidate_period_projection(
@@ -702,24 +620,20 @@ def _candidate_period_projection(
     value_year: Optional[int],
 ) -> tuple[str, str, str]:
     source_surface = _candidate_period_surface(cell, metadata)
-    if _cell_explicit_year(cell, metadata) is not None:
-        return source_surface, source_surface, "explicit_period"
+    if value_year is not None and _cell_explicit_year(cell) == value_year:
+        return str(value_year), source_surface, "explicit_period"
     if _fiscal_ordinal(cell, metadata) is not None:
         return source_surface, source_surface, "fiscal_period"
-    role_kind = _candidate_period_role_kind(_candidate_period_role(cell, metadata))
-    period_focus = _candidate_period_focus(cell, metadata)
     if value_year is not None:
         period_source = (
             "relative_period_label"
             if _cell_relative_period_offsets(cell)
             else "value_role"
-            if role_kind
-            else "table_period_focus"
-            if period_focus == "prior"
-            else "report_current"
+            if relative_period_offsets(cell.get("period_role") or cell.get("value_role") or metadata.get("value_role"))
+            else "source_period_text"
         )
         return str(value_year), source_surface, period_source
-    return source_surface, source_surface, (
+    return "", source_surface, (
         "source_surface_unresolved" if source_surface else "unknown"
     )
 
@@ -2315,6 +2229,7 @@ def build_semantic_candidate_catalog(
                 metadata,
                 value_year=value_year,
             )
+            period_labels, period_label_scope = _candidate_period_labels(cell, metadata)
             column_headers = [
                 _normalise_spaces(str(item))
                 for item in (cell.get("column_headers") or [])
@@ -2401,10 +2316,8 @@ def build_semantic_candidate_catalog(
                         metadata,
                         value_year=value_year,
                     ),
-                    "period_label_surfaces": _candidate_period_label_surfaces(
-                        cell,
-                        metadata,
-                    ),
+                    "period_label_surfaces": period_labels,
+                    "period_label_scope": period_label_scope,
                     "value_year": value_year,
                     "column_headers": column_headers,
                     "value_role": _candidate_value_role(

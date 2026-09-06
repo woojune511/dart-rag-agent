@@ -1439,11 +1439,13 @@ class FinancialAgentCalculationMixin:
                 "raw_unit": str(item.get("raw_unit") or ""),
                 "normalized_unit": str(item.get("normalized_unit") or ""),
                 "period": str(item.get("period") or ""),
+                "source_period_surface": str(item.get("source_period_surface") or ""),
                 "period_role": str(item.get("period_role") or ""),
                 "period_label_surfaces": list(
                     item.get("period_label_surfaces") or []
                 ),
                 "period_source": str(item.get("period_source") or ""),
+                "period_label_scope": str(item.get("period_label_scope") or ""),
                 "year": item.get("year"),
                 "value_year": item.get("value_year"),
                 "company": str(item.get("company") or ""),

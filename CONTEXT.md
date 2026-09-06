@@ -48,8 +48,8 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
   label, period, and year. A requirement-supplied period is marked as such and
   does not masquerade as source period text; the same row reaches evaluator
   projection unchanged.
-- Annual cell-relative periods override generic roles/table focus; ambiguous or
-  unanchored labels stay unknown. Bound formulas may span scope-compatible sources;
+- Located cell periods override unbound table hints; ambiguous/unanchored numeric periods
+  cannot borrow filing-year scope, even via a narrative witness. Bound formulas may span scope-compatible sources;
   coupling/physical-row contracts remain enforced; assertion coverage has stable owner order.
 - Source writes publish payload union then graph atomically and memory last.
   Incomplete stores block queries but allow recovery ingest. Missing sidecars
@@ -85,8 +85,6 @@ Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/re
 The successor replay retains all three cases and T2 operand metadata. Its
 deterministic evaluator projection changes operand selection from `0.0` to `1.0`
 without changing selected IDs, formula, answer, dataset, or evaluator.
-
-Historical exact-trace replay: `9/9` (6 complete, 3 partial), 3 questions; no new compiler/provider evidence.
 
 A separate reviewed-fixture corpus adds five distinct real questions outside
 that three-question inventory: `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
@@ -128,7 +126,9 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | LG 2023 / NAV 2022+2023 | 2,620 vectors; successor full-agent required-output completion 2/2, errors 0, ledgers ok | LG numeric-variant FAIL and NAV impact coverage remain; approval exhausted |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
-LG/NAV successor `03f03d99...237e` ran once on `5fe3a5f`: completion 2/2, errors 0, ledgers ok; estimated USD 0.17174414, billing unobserved. LG precision/provenance and NAV impact-quality failures remain historical, approval exhausted. Source-context/query-spelling repair retains precise LG components and NAV acquisition-performance evidence. Filing-qualified identity now separates 2022/2023 tables before dedupe; raw parser IDs remain provenance, not global identity. New projections change table candidate IDs without rewriting old artifacts. Socket-blocked LG/NAV replay retains every predecessor cell value and restores 113 NAV cells; catalog contents/fingerprints, cohorts and prompts are invariant under reverse/swap of source streams. Numeric/narrative visibility stays 4/3 and 10/6 within 96/32. No new compiler/retrieval/quality claim. Old exact-ID receipts are predecessor evidence, not current-ID compatibility. Next: inspect LG period/source contract versus evaluator governance before any new paid admission. `benchmarks/results/filing_table_identity_2026-09-07/README.md`.
+Latest LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
+Current period-evidence repair preserves 567/462 candidates, IDs, fingerprints, raw values and qualified provenance. Socket-blocked replay corrects two NAV column years and retains 50 relative-period values. Numeric/narrative visibility is 4/3 and 11/6; reverse/swap projections agree.
+LG's precise note candidates remain visible but lack located period context in the existing store: now unknown, not silently 2023. Next: retain/recover exact table-leading period context and correct structural header scope via a separately designed parser/store successor; evaluator period/label/source governance stays separate. No fresh model/quality-pass claim. `benchmarks/results/value_period_evidence_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.

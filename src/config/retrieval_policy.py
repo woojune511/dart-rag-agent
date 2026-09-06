@@ -552,6 +552,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"
             "- direct candidate의 범위 metadata가 unknown이지만 같은 원문·표의 narrative candidate가 그 범위를 명시하면 direct binding의 compatibility_candidate_ids에 넣으세요. 명시적으로 반대인 범위는 이렇게 덮어쓸 수 없습니다.\n"
             "- 계산에 필요한 원시 입력은 derived_value obligation의 evidence_requirements에 미리 선언되어 있어야 합니다. candidate_id 변수에는 그 입력의 source_requirement_id도 함께 바인딩하고, 앞서 생성된 obligation_id를 참조할 때는 비워 두세요.\n"
+            "- year는 공시 연도이며 값의 기간은 period/value_year와 그 근거인 period_source로 확인합니다. source_period_surface는 원래 열/기간 표기이고, period_label_scope=unbound_table인 period_label_surfaces는 본문 날짜가 섞인 힌트일 뿐 값의 기간 근거가 아닙니다. 불명확한 기간을 공시 연도로 채우지 마세요.\n"
             "- 계산 변수 candidate의 segment 또는 basis metadata만 unknown이고 그 candidate의 로컬 원문이 해당 input requirement에 적용된다고 판단하면 variable binding의 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period, consolidation_scope는 이 선언으로 보완할 수 없습니다.\n"
             "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
             "- formula에는 변수, 숫자 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다.\n"
@@ -617,6 +618,8 @@ ANNUAL_RELATIVE_PERIOD_LABEL_POLICY = (
     (0, r"(?<!\w)당기(?:말)?(?!\w)"),
     (-1, r"(?<!\w)전기(?:말)?(?!\w)"),
     (-2, r"(?<!\w)전전기(?:말)?(?!\w)"),
+    (0, r"(?i)^(?:current|closing|ending)(?:[ _](?:period|balance))?$"),
+    (-1, r"(?i)^(?:prior|previous|opening|beginning)(?:[ _](?:period|balance))?$"),
 )
 
 

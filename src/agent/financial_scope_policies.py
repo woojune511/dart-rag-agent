@@ -29,6 +29,38 @@ def relative_period_offsets(*surfaces: Any) -> set[int]:
     }
 
 
+def explicit_period_years(*surfaces: Any) -> set[int]:
+    """Collect calendar years from caller-scoped period evidence only."""
+    return {
+        int(year)
+        for surface in surfaces
+        for year in re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", str(surface or ""))
+    }
+
+
+def annual_period_evidence(
+    *surfaces: Any, report_year: Any = None,
+) -> tuple[bool, int | None]:
+    """Resolve located period labels, not filing/body-wide date inventories.
+
+    Repeated spellings of one calendar year/offset are one period. A calendar
+    year overrides a relative label; multiple calendar years stay unresolved.
+    The boolean distinguishes missing evidence from ambiguous/unanchored labels.
+    """
+
+    years = explicit_period_years(*surfaces)
+    if years:
+        return True, next(iter(years)) if len(years) == 1 else None
+    offsets = relative_period_offsets(*surfaces)
+    if not offsets:
+        return False, None
+    try:
+        anchor = int(report_year)
+    except (TypeError, ValueError):
+        return True, None
+    return True, anchor + next(iter(offsets)) if len(offsets) == 1 else None
+
+
 def is_scope_only_period_surface(surface: str, scope: Dict[str, Any]) -> bool:
     """Return whether a hint contributes only an already-declared period."""
 

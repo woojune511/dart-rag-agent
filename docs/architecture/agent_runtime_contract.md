@@ -105,10 +105,10 @@ Each obligation/requirement may declare `SemanticTargetV1`: `local_subjects`, on
 and query-visible `metric_surfaces`. Keep query-written bilingual parenthetical spellings of a selected subject;
 do not invent translations/entities. `scope.company` is a filing boundary, not a local subject; unknown concept keys get a planner note.
 
-Cell-local annual relative labels use policy-owned offsets anchored to report `year`;
-explicit calendar years win. Generic value roles/table focus cannot hide these labels.
-Ambiguous/unanchored labels stay unknown. Source period surfaces, IDs and catalog
-fingerprints stay unchanged; derived years record `period_source=relative_period_label`.
+Located cell/calendar labels precede source `period_text`; relative labels use policy offsets anchored to report `year`. Equivalent labels resolve once; explicit column years win over row-derived relative text.
+For calendar-year owners, ambiguous/unanchored numeric periods stay `unknown_only`, not a report-year match/conflict. Relative-only comparisons need no invented year. Parser-wide `period_labels`/`period_focus` are unlocated hints, never value-year authority.
+Non-temporal headers stay in `source_period_surface`/`column_headers`, not `period`. `period_label_scope` distinguishes cell/source-period evidence from `unbound_table` hints in catalog, prompt and operand trace; IDs/raw bytes/catalog fingerprints stay intact.
+Narratives may use filing-year document scope, but that scope cannot bridge a numeric period. A numeric period witness needs located period evidence and the same source context; missing period evidence requests program repair, not candidate exclusion.
 
 The complete immutable candidate catalog is projected into generic fact views.
 Owner matching then evaluates independent scope, local-subject, owner-kind,
