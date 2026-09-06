@@ -7611,3 +7611,37 @@ References:
   now preserves pre-parser final text, finish reasons, and disjoint usage, and
   binds explicit output/thinking budgets. No historical bytes were rewritten and
   no additional provider run was made.
+
+## Compiler Response-Capture Successor (2026-09-06)
+
+- Admission `66af6f4de025f986b6c57a2e2babd52ee925ee4760a137c3c5ecde0e491b3eef`
+  bound clean `88e1760`, the unchanged five-case reviewed corpus, Gemini 2.5 Flash,
+  inclusive output limit 4,096, thinking budget 1,024, client retry 0, and USD
+  `0.20`. Separate-process no-call receipts matched at `a999ef92...e867`. The
+  user explicitly approved the exact manifest and Google API transmission.
+- One process exited 1 after the first failed question, `KBF_T1_017`. One allowed
+  internal island retry ran; the other four questions were never dispatched.
+  Both responses ended `STOP`, with no structured-output parsing error.
+- First response: correct `1.83%` and `1.73%` direct bindings and subtraction,
+  but `result_unit=PERCENT_POINT` is unsupported. Validation reported
+  `result_unit_mismatch` at `expression.result_unit`, with `repair_program`.
+- The targeted retry contained only `nim_change` and the 2023 candidate. Its
+  `depends_on` still named the two upstream obligations, but their accepted
+  results were not supplied and `declared_obligation_ids` listed only the target.
+  The model returned missing `nim_change` because it could not see the 2022
+  candidate. Final direct values survived; validation/execution remained partial.
+- Provider-free replay of the two captured final responses reproduced both
+  prompt hashes and the final program exactly. This confirms a unit-vocabulary
+  trigger followed by incomplete retry dependency context, not truncation in this
+  run. It does not resolve the older uncaptured failure or measure T2 sign choice.
+- Usage: 2 calls; first input/answer/thinking `6450/436/918`, second
+  `4323/136/904` (2,908 cached input). Total: 10,773 input, 572 answer, 1,822
+  thinking, 13,167 tokens. Estimated cost USD `0.0092169`; billing is unobserved.
+  No retrieval, planner, evaluator, embedding, or source-store calls occurred.
+- Corpus SHA `2af019ff...bb33`, both predecessor result hashes, and admission/
+  rehearsal bytes remain unchanged. Runtime code was not patched and the paid
+  run was not repeated. The approval is exhausted; next work is provider-free
+  unit-vocabulary/retry-dependency repair, not another paid attempt.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_response_capture_successor_2026-09-06/result.json`
+  (SHA-256 `7d415ab44d3b6bd6dc732a0a1ffcd039cd5e27003eba246ec3751f6e747da766`).

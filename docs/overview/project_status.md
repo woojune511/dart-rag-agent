@@ -119,27 +119,27 @@ That run made no fetch, ingest, document embedding, store mutation, or runner
 retry. Its admission is exhausted. Exact timing, usage, cost estimate, store and
 result hashes remain in experiment history rather than this current snapshot.
 
-Latest compiler-only admission `7060c8b7...8c08` ran once on `5d33c99` after two
-byte-identical no-call receipts. KBF T1 passed; KBF T2 remained incomplete after
-its one internal retry. The final response failed structured-output parsing:
-`formula`, `source_display_candidate_id`, and `source_display_reason` were absent.
-It produced no executable T2 output. LGE/NAVER/Celltrion were not dispatched.
-Usage was 3 calls / 29,147 tokens, estimated USD `0.0216669` against USD `0.12`.
-Retrieval, planner, evaluator, embedding, and store calls were zero; predecessor
-result/corpus hashes are unchanged. New result SHA is `f9edebb2...4679`.
-The old output field did not separate thinking tokens. Truncation remains
-unproven: that artifact lacks per-call response text, finish reasons, and usage.
-The sign prompt's effect is still unmeasured; the approval is exhausted.
+Latest compiler-only admission `66af6f4d...3eef` ran once on clean `88e1760`, after
+two byte-identical no-call receipts. KBF T1 failed after its one internal retry;
+the other four questions were not dispatched. Both responses ended `STOP` and
+parsed successfully, so this failure is not output truncation.
+The first selected the correct `1.83%`/`1.73%` candidates and subtraction, but
+unsupported result unit `PERCENT_POINT` triggered `result_unit_mismatch`.
+The targeted retry exposed only the 2023 candidate, without the accepted upstream
+dependency results. It returned missing `nim_change`; two direct outputs survived,
+but validation/execution are partial. Provider-free replay matches both recorded
+prompt hashes and the final program. No formula or validation change was made.
 
-Compiler-gate v2 now captures final AIMessage text before parsing (not wire bytes),
-finish reason, parse errors, and per-call answer/thinking/cache counts. Prompt
-fingerprints exclude responses. Thought content/signatures and credentials are
-not saved. New manifests bind configurable total output `4096` / thinking `1024`
-defaults; thinking is guidance within the inclusive output cap, not a guaranteed
-partition. Cost estimates count it once; the larger default exceeds the old
-USD `0.12` planning cap. The SDK and island retry counts are unchanged. No new
-provider run occurred. A successor requires a new manifest and separate approval;
-arithmetic, validation, fixtures, and prior result bytes remain unchanged.
+Usage: 2 calls, 10,773 input (2,908 cached), 572 answer and 1,822 thinking tokens,
+13,167 total; estimated USD `0.0092169` against USD `0.20`, not actual billing.
+Retrieval/planner/evaluator/embedding/store calls are zero. Result SHA is
+`7d415ab4...a766`; corpus and predecessor artifacts remain unchanged.
+
+Gate v2 preserves pre-parser final text (not wire bytes), finish reasons, parse
+errors, and disjoint usage; no thought content/signatures or credentials are saved.
+It binds output `4096` / thinking `1024`; thinking is guidance within the total cap.
+Approval exhausted. Next fix unit vocabulary and retry dependency context provider-free,
+preserving accepted outputs and strict validation. New paid runs need separate approval.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

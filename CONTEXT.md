@@ -131,20 +131,20 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    `700,691백만원`, and the four same-basis summary measures). Runtime and
    dataset/evaluator ownership remain separate; do not relax tolerance,
    faithfulness policy, or source-evidence requirements to improve a score.
-9. Latest compiler-only admission `7060c8b7...8c08` was consumed once on `5d33c99`.
-   KBF T1 passed. KBF T2 remained incomplete after one internal retry; the final
-   response could not parse because formula/source-display fields were missing.
-   No T2 output was executable, so sign-selection improvement is unmeasured.
-   LGE/NAVER/Celltrion were not called. Usage: 3 calls / 29,147 tokens, estimated
-   USD `0.0216669`; result SHA `f9edebb2...4679`. No retrieval/embedding/store work.
-   Token exhaustion remains unproven because that artifact lacks per-call output
-   and finish reasons; its old output field does not separate thinking tokens.
+9. Latest compiler-only admission `66af6f4d...3eef` was consumed once on `88e1760`.
+   KBF T1 failed after one internal retry; the other four questions were not called.
+   Both responses ended `STOP` and parsed successfully. The first selected the
+   correct `1.83%`/`1.73%` values and subtraction, but unsupported result unit
+   `PERCENT_POINT` triggered `result_unit_mismatch`. Retry exposed only the 2023
+   candidate and no accepted dependency results; the model omitted `nim_change`.
+   Final validation/execution are partial. Exact prompt-hash replay confirms this
+   provider-free. Two calls cost an estimated USD `0.0092169`; approval is exhausted.
 10. Compiler-gate v2 now records pre-parser final AIMessage text, finish reason,
     parsing error, and disjoint answer/thinking/cache counts for every response.
     No thought text/signatures or credentials are recorded. Defaults are explicit
     total output `4096` / thinking budget `1024`, configurable and manifest-bound;
     costs include thinking once. The existing island retry limit is unchanged.
-    Local tests pass; no new provider call was made. Prepare a new manifest and
-    seek separate cost/transmission approval before any successor run.
+    Next repair the generic unit vocabulary and retry dependency-input projection
+    provider-free before any new paid proposal. Result SHA: `7d415ab4...a766`.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.
