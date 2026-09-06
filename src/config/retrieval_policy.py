@@ -545,6 +545,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- 계산 변수 candidate의 segment 또는 basis metadata만 unknown이고 그 candidate의 로컬 원문이 해당 input requirement에 적용된다고 판단하면 variable binding의 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period, consolidation_scope는 이 선언으로 보완할 수 없습니다.\n"
             "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
             "- formula에는 변수, 숫자 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다.\n"
+            "- 계산 차원은 원문 operand 단위와 formula에서 코드가 추론합니다. 별도의 result_unit은 선언하지 마세요. display_unit에는 질문에 맞는 표시 의도만 지정하세요. 비율(%)과 비율의 차이(%p)는 문맥으로 구분하고 그 의미에 맞는 수식을 작성하세요. 입력의 원문 규모 배율은 이미 정규화되어 있으므로 formula에 재적용하지 마세요. 나눗셈 비율을 백분율로 나타낼 때는 formula에 * 100을 포함하세요. 표시 단계에서는 백분율의 * 100을 추가하지 않습니다.\n"
             "- 원문 숫자의 부호와 질문이 비교하려는 대상을 구분하세요. 부호 있는 값 자체의 변화인지 절댓값 크기의 변화인지 문맥으로 판단하고, 부호·절댓값 변환은 candidate를 수정하지 않고 formula에만 표현하세요.\n"
             "- 음수라는 이유만으로 분모에 abs()를 적용하거나 증가율이라는 이유만으로 결과를 양수로 바꾸지 마세요. 각 파생 obligation에 대해 rationale에 비교 대상과 분모 선택 이유를 한 문장으로 요약하고, abs()를 사용했다면 왜 그 위치에 필요한지 설명하세요.\n"
             "- 분모가 0인 비율은 임의의 작은 상수로 보정하지 말고 해당 obligation을 missing으로 남기세요. 부호 전환 자체는 계산 금지 사유가 아니지만, 질문·원문만으로 비교 의미를 결정할 수 없으면 해당 obligation을 ambiguous로 남기세요.\n"

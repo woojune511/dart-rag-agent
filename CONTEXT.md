@@ -22,8 +22,9 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 ## Current runtime
 
 - One unit specification controls normalization, applicability, validation, and
-  rendering. Currency/count scales, composite signs, canonical units, USD direct
-  values, and non-finite results are covered by real-normalizer tests.
+  rendering. Compiler chooses formula/display intent; code infers calculation units.
+  Redundant `result_unit` is absent from the schema and ignored in legacy inputs.
+  Real scale, sign, currency, display compatibility, and finite-value checks remain.
 - Compiler sign interpretation uses existing formula AST and `rationale`, not a
   new enum. Raw signs remain intact; neither denominator `abs()` nor positive
   growth is automatic. Undefined ratios and unresolved meaning remain unanswered.
@@ -137,14 +138,13 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    correct `1.83%`/`1.73%` values and subtraction, but unsupported result unit
    `PERCENT_POINT` triggered `result_unit_mismatch`. Retry exposed only the 2023
    candidate and no accepted dependency results; the model omitted `nim_change`.
-   Final validation/execution are partial. Exact prompt-hash replay confirms this
-   provider-free. Two calls cost an estimated USD `0.0092169`; approval is exhausted.
-10. Compiler-gate v2 now records pre-parser final AIMessage text, finish reason,
-    parsing error, and disjoint answer/thinking/cache counts for every response.
-    No thought text/signatures or credentials are recorded. Defaults are explicit
-    total output `4096` / thinking budget `1024`, configurable and manifest-bound;
-    costs include thinking once. The existing island retry limit is unchanged.
-    Next repair the generic unit vocabulary and retry dependency-input projection
-    provider-free before any new paid proposal. Result SHA: `7d415ab4...a766`.
+   The paid result remains partial (SHA `7d415ab4...a766`); its two calls cost an
+   estimated USD `0.0092169`. Approval is exhausted; the artifact stays unchanged.
+10. Unit-authority repair is local-only: the captured first response now compiles
+    once without retry and executes `0.10%p` with the same two source candidates.
+    Full unittest: 923 pass; no provider/store activity. Retry dependency-input
+    context remains a separate defect to repair before a new paid proposal.
+    Gate v2 still captures final text/finish/parse/usage, not thoughts or secrets;
+    output `4096` / thinking `1024` and the one island retry remain manifest-bound.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

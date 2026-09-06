@@ -273,8 +273,14 @@ class SemanticProgramExpression(_DeferredBaseModel):
     obligation_id: str
     variable_bindings: List[SemanticProgramVariableBinding] = Field(default_factory=list)
     formula: str
-    result_unit: str = ""
-    display_unit: str = ""
+    display_unit: str = Field(
+        default="",
+        description=(
+            "Requested display unit, including percent versus percentage-point intent. "
+            "Leave blank to use the obligation display unit or the inferred base unit. "
+            "Calculation dimensions and scale conversion are inferred by runtime code."
+        ),
+    )
     display_format: str = ""
     source_display_candidate_id: Optional[str] = Field(
         description=(
@@ -294,6 +300,14 @@ class SemanticProgramExpression(_DeferredBaseModel):
         ),
     )
     constants: List[SemanticProgramConstant] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _discard_legacy_result_unit(cls, value: Any) -> Any:
+        """Read historical programs without giving their old unit declaration authority."""
+        if isinstance(value, dict) and "result_unit" in value:
+            return {key: item for key, item in value.items() if key != "result_unit"}
+        return value
 
     @field_validator("source_display_reason")
     @classmethod

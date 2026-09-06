@@ -66,8 +66,8 @@ class SemanticNumericBoundaryTests(unittest.TestCase):
 
     def test_compiler_unit_error_does_not_evict_candidate(self):
         program = {"status": "ready", "expressions": [{
-            "obligation_id": "derived", "formula": "A + A", "result_unit": "unsupported-unit",
-            "display_unit": "COUNT", "variable_bindings": [_binding("A", "candidate")],
+            "obligation_id": "derived", "formula": "A + A",
+            "display_unit": "unsupported-unit", "variable_bindings": [_binding("A", "candidate")],
             "source_display_candidate_id": None,
             "source_display_reason": "The fixture provides operands without a matching source-stated result.",
         }]}

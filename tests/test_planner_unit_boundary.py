@@ -123,11 +123,11 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         )
 
     def test_compiler_unit_format_error_retries_same_visible_candidates_once(self):
-        def response(result_unit):
+        def response(display_unit):
             return SemanticCalculationProgram.model_validate({
                 "expressions": [{
                     "obligation_id": "ob_001", "formula": "VALUE + VALUE",
-                    "result_unit": result_unit, "display_unit": "COUNT",
+                    "display_unit": display_unit,
                     "variable_bindings": [{
                         "variable": "VALUE", "source_id": "cand_quantity",
                         "source_requirement_id": "ob_001:req_001",
@@ -153,7 +153,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertTrue(history[0]["errors"])
         self.assertEqual(
             {(error["code"], error["location"]) for error in history[0]["errors"]},
-            {("result_unit_mismatch", "expression.result_unit")},
+            {("result_unit_mismatch", "expression.display_unit")},
         )
         for error in history[0]["errors"]:
             self.assertEqual(error["repair_action"], "repair_program")

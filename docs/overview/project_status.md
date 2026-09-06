@@ -14,7 +14,8 @@ The implemented boundaries are:
 
 - Shared unit scales and source-preserving numeric display; canonical
   KRW/USD/PERCENT/COUNT, signed composite amounts, USD lookups, and finite-value
-  checks use one normalizer contract.
+  checks use one normalizer contract. Compiler emits formula/display intent only;
+  code infers dimensions. Legacy `result_unit` has no validation/render authority.
 - Compiler sign interpretation uses the existing formula AST and `rationale`.
   Raw signs stay intact; negative operands do not mandate `abs()` and growth
   need not be positive. No sign enum, arithmetic rewrite, or validator relaxation
@@ -55,7 +56,7 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 Python 3.13.13 is the verification interpreter. Focused usage/response-capture/
 reviewed replay gates pass `25 / 25`; import/topology passes `22 / 22`.
 Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Full unittest discovery passes `915 / 915`.
+`git diff --check` also pass. Full unittest discovery passes `923 / 923`.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -127,24 +128,23 @@ The first selected the correct `1.83%`/`1.73%` candidates and subtraction, but
 unsupported result unit `PERCENT_POINT` triggered `result_unit_mismatch`.
 The targeted retry exposed only the 2023 candidate, without the accepted upstream
 dependency results. It returned missing `nim_change`; two direct outputs survived,
-but validation/execution are partial. Provider-free replay matches both recorded
-prompt hashes and the final program. No formula or validation change was made.
+but that paid result remains partial. The old-code replay matched recorded prompt
+hashes; after unit-authority repair, the captured first response alone is ready/ok
+with `0.10%p`, the same candidate IDs, and no retry. This is not new model inference.
 
 Usage: 2 calls, 10,773 input (2,908 cached), 572 answer and 1,822 thinking tokens,
 13,167 total; estimated USD `0.0092169` against USD `0.20`, not actual billing.
 Retrieval/planner/evaluator/embedding/store calls are zero. Result SHA is
 `7d415ab4...a766`; corpus and predecessor artifacts remain unchanged.
 
-Gate v2 preserves pre-parser final text (not wire bytes), finish reasons, parse
-errors, and disjoint usage; no thought content/signatures or credentials are saved.
-It binds output `4096` / thinking `1024`; thinking is guidance within the total cap.
-Approval exhausted. Next fix unit vocabulary and retry dependency context provider-free,
-preserving accepted outputs and strict validation. New paid runs need separate approval.
+Gate v2 preserves final text/finish/parse/disjoint usage, not thoughts or credentials.
+Output `4096` / thinking `1024` remain bound. Approval exhausted; no new paid run.
+Unit-authority repair passes provider-free; retry dependency context remains the next
+separate repair. New paid runs need separate approval after local verification.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
 separate, and tolerances and faithfulness policy are unchanged.
 
-See [runtime contract](../architecture/agent_runtime_contract.md),
-[checked topology](runtime_flow_roles.md), and
+See [runtime contract](../architecture/agent_runtime_contract.md), [checked topology](runtime_flow_roles.md), and
 [experiment history](../history/experiment_history.md).

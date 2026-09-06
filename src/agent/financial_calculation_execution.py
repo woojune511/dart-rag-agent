@@ -310,10 +310,22 @@ def _formula_dimension(node: ast.AST, units: Mapping[str, str]) -> str:
     raise ValueError(f"unsupported formula node: {type(node).__name__}")
 
 
-def _result_unit_valid(result_unit: str, dimension: str) -> bool:
-    cleaned = _normalise_spaces(str(result_unit or ""))
+def _expression_display_unit(
+    expression: Mapping[str, Any], obligation: Mapping[str, Any], dimension: str,
+) -> str:
+    """Choose presentation only; the formula and operands own the dimension."""
+    for value in (expression.get("display_unit"), obligation.get("display_unit")):
+        cleaned = _normalise_spaces(str(value or ""))
+        if cleaned:
+            return cleaned
+    spec = resolve_unit_spec("PERCENT" if dimension == "RATIO" else dimension)
+    return spec.display_unit if spec is not None else ""
+
+
+def _display_unit_valid(display_unit: str, dimension: str) -> bool:
+    cleaned = _normalise_spaces(str(display_unit or ""))
     if not cleaned:
-        return dimension in {"SCALAR", "RATIO", "UNKNOWN"}
+        return dimension in {"COUNT", "SCALAR", "RATIO", "UNKNOWN"}
     spec = resolve_unit_spec(cleaned)
     normalized = spec.normalized_dimension if spec is not None else "UNKNOWN"
     if spec is None and cleaned.upper() != "UNKNOWN":
@@ -1379,7 +1391,7 @@ def validate_semantic_calculation_program(
             display_unit = _normalise_spaces(
                 str(obligation.get("display_unit") or "")
             )
-            if display_unit and not _result_unit_valid(
+            if display_unit and not _display_unit_valid(
                 display_unit,
                 _candidate_dimension(candidate),
             ):
@@ -1675,19 +1687,10 @@ def validate_semantic_calculation_program(
             except ValueError as exc:
                 error("formula_unit_mismatch", obligation_id, str(exc))
                 continue
-            result_unit = str(
-                expression.get("display_unit")
-                or expression.get("result_unit")
-                or (obligation or {}).get("display_unit")
-                or ""
-            )
-            declared_result_unit = str(expression.get("result_unit") or "")
-            if declared_result_unit and not _result_unit_valid(declared_result_unit, dimension):
-                error("result_unit_mismatch", obligation_id, f"{dimension} -> {declared_result_unit}",
-                      location="expression.result_unit")
-                continue
-            if not _result_unit_valid(result_unit, dimension):
-                error("result_unit_mismatch", obligation_id, f"{dimension} -> {result_unit}")
+            display_unit = _expression_display_unit(expression, obligation or {}, dimension)
+            if not _display_unit_valid(display_unit, dimension):
+                error("result_unit_mismatch", obligation_id, f"{dimension} -> {display_unit}",
+                      location="expression.display_unit")
                 continue
             display_candidate: Optional[Mapping[str, Any]] = None
             display_id = str(expression.get("source_display_candidate_id") or "").strip()
@@ -3261,12 +3264,7 @@ def execute_semantic_calculation_program(
         normalized_unit = "PERCENT" if dimension == "RATIO" else (
             "UNKNOWN" if dimension == "SCALAR" else dimension
         )
-        display_unit = str(
-            expression.get("display_unit")
-            or expression.get("result_unit")
-            or obligation.get("display_unit")
-            or ""
-        )
+        display_unit = _expression_display_unit(expression, obligation, dimension)
         slot = build_calculated_value_slot(
             label=str(obligation.get("label") or obligation_id),
             normalized_value=value,

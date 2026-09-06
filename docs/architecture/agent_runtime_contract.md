@@ -21,15 +21,15 @@ candidates and validated program bindings. Source and calculated displays may
 coexist, but their provenance must remain distinct.
 
 Normalization and rendering share `UnitSpecV1`: source numbers multiply by its scale;
-calculated displays divide by it. Canonical currency, percentage, and count units are
-valid. Direct values keep source units, parentheses, and precision. Non-finite normalized
-or calculated values cannot yield answer slots; precision comparisons use base units.
+calculated displays divide by it. Direct values preserve source units/signs/precision;
+non-finite values cannot yield slots, and precision comparisons use base units.
+Compiler emits formula and `display_unit`, not `result_unit`; code infers dimensions.
+Display priority: expression -> obligation -> inferred canonical unit (count: unitless).
+Legacy `result_unit` is discarded on copied model ingress; public display fields stay intact.
 
-Source signs stay intact. The compiler explains the comparison, denominator, and any
-`abs()` using existing formula AST and `rationale`; code never auto-flips growth signs.
-Zero denominators cannot yield percentages. Clear sign-transition comparisons remain
-valid; uncertain meaning uses missing/ambiguous, not a sign enum. Structural validation
-and provider-free formula tests do not prove that the model chose the intended meaning.
+Source signs stay intact. Compiler explains comparison, denominator, and `abs()` in formula/rationale;
+code never auto-flips signs. Zero denominators cannot yield percentages; uncertain comparisons
+remain missing/ambiguous. Structural tests do not prove the model chose the intended meaning.
 
 Unsupported planner units remain recorded and block the affected island. Errors identify
 owner, candidate, location, and repair action. Compiler format errors keep the cohort; only

@@ -27,7 +27,7 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence and physical-row source bundles |
 | `src/agent/financial_candidate_matching.py` | typed owner applicability and deterministic bundle rank inputs |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compiler payload, islands, targeted retry |
-| `src/agent/financial_calculation_execution.py` | validation/execution facts and separate pure final-assembly projection |
+| `src/agent/financial_calculation_execution.py` | evidence/formula-owned dimensions, shared display selection, validation/execution, pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |
