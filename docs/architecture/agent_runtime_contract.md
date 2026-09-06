@@ -27,9 +27,9 @@ Compiler emits formula and `display_unit`, not `result_unit`; code infers dimens
 Display priority: expression -> obligation -> inferred canonical unit (count: unitless).
 Legacy `result_unit` is discarded on copied model ingress; public display fields stay intact.
 
-Source signs stay intact. Compiler explains comparison, denominator, and `abs()` in formula/rationale;
-code never auto-flips signs. Zero denominators cannot yield percentages; uncertain comparisons
-remain missing/ambiguous. Structural tests do not prove the model chose the intended meaning.
+Source signs stay intact. Compiler explains comparison target, transformations/operations, and
+formula in existing per-obligation `rationale`, with generic contrasts instead of a role enum.
+Code never flips signs; undefined/uncertain comparisons stay unanswered. Offline oracles never drive retries or prove model accuracy.
 
 Unsupported planner units remain recorded and block the affected island. Errors identify
 owner, candidate, location, and repair action. Compiler format errors keep the cohort; only

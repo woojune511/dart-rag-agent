@@ -122,7 +122,8 @@ class SemanticProgramSignInterpretationTests(unittest.TestCase):
         self.assertIn('"raw_value": "(150)"', prompt)
         self.assertEqual(prompt.count("balance | 2024: (150) USD | 2023: (100) USD"), 1)
         for guidance in (
-            "음수라는 이유만으로 분모에 abs()",
+            "계산 해석 순서",
+            "원문 부호는 유지하고 필요한 변환은 formula에만",
             "rationale에 비교 대상",
             "분모가 0인 비율",
         ):

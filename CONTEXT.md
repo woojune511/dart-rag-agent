@@ -25,9 +25,9 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
   rendering. Compiler chooses formula/display intent; code infers calculation units.
   Redundant `result_unit` is absent from the schema and ignored in legacy inputs.
   Real scale, sign, currency, display compatibility, and finite-value checks remain.
-- Compiler sign interpretation uses existing formula AST and `rationale`, not a
-  new enum. Raw signs remain intact; neither denominator `abs()` nor positive
-  growth is automatic. Undefined ratios and unresolved meaning remain unanswered.
+- Compiler prompt leads with comparison target, input transformations, and formula,
+  using generic contrast examples and existing `rationale`, not a new enum.
+  Raw signs stay intact; undefined ratios and unresolved meaning remain unanswered.
 - Unsupported planner units retain their obligations and block affected islands.
   Compiler-format errors retry the same cohort; candidate replacement uses
   explicit typed ownership, never IDs inferred from diagnostic prose.
@@ -65,8 +65,8 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 
 The verification interpreter is Python 3.13.13. Full discovery, domain audit,
 import/topology, pycompile, and diff results are recorded in project status.
-Sign counterexamples test explicit formula execution and compiler prompt wiring,
-not fresh model choices; provider improvement remains unverified.
+Nine synthetic comparison contrasts cover signed/magnitude changes, sign transitions,
+and explicit abstentions. Their rehearsals do not establish fresh model accuracy.
 Provider-free replay verifies all three saved catalog identities and unchanged
 input-file hashes:
 
@@ -142,9 +142,9 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
     Both captured programs/checks/prompt hashes reproduce provider-free. The run
     used 2 calls / 17,819 tokens in 19.38s, estimated USD `0.0114177`; no retrieval,
     planner, evaluator, embedding, or store activity. Result SHA: `8c4b28b6...f371`.
-    Approval is exhausted. Preserve raw signs and do not auto-flip the answer;
-    next work is the compiler's signed-value versus magnitude comparison semantics,
-    not unit aliases, missing inputs, or another identical paid attempt.
-    Full local unittest remains 929; output `4096` / thinking `1024` are unchanged.
+    Approval is exhausted. Pending gate: 9 synthetic contrasts, then 5 unchanged reviewed
+    cases; stop at the first failed question. New manifest/cost approval is required.
+    Admission: `benchmarks/results/semantic_comparison_compiler_admission_2026-09-06/manifest.json`.
+    No new provider call; output `4096` / thinking `1024` and predecessor bytes stay unchanged.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

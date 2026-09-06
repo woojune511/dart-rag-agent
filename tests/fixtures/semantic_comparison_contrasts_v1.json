@@ -1,0 +1,1505 @@
+{
+  "schema_version": "reviewed_runtime_replay_corpus_v1",
+  "fixture_origin": "synthetic_comparison_contrasts",
+  "claim_boundary": "Synthetic intent contrasts. Programs and expected results are offline oracles, never compiler input. Rehearsal tests harness/execution, not model choice. No DART filing claims.",
+  "cases": [
+    {
+      "case_id": "magnitude_increase",
+      "question_id": "comparison_magnitude_increase",
+      "question": "2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (180) USD | 2023년: (120) USD",
+          "raw_value": "(180)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -180,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (180) USD | 2023년: (120) USD",
+          "raw_value": "(120)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -120,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand-current",
+                "source_requirement_id": "change:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand-prior",
+                "source_requirement_id": "change:prior"
+              }
+            ],
+            "formula": "(abs(CURRENT) - abs(PRIOR)) / abs(PRIOR) * 100",
+            "display_unit": "%",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The synthetic row contains inputs only."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_magnitude_increase: 2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [
+          "cand-current",
+          "cand-prior"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "change",
+            "normalized_value": 50,
+            "calculated_value": 50,
+            "normalized_unit": "PERCENT"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "signed_difference",
+      "question_id": "comparison_signed_difference",
+      "question": "2024년과 2023년의 부호 있는 잔액 차이를 구하고, 2023년 잔액의 절댓값을 기준으로 백분율로 나타내 줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (180) USD | 2023년: (120) USD",
+          "raw_value": "(180)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -180,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (180) USD | 2023년: (120) USD",
+          "raw_value": "(120)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -120,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand-current",
+                "source_requirement_id": "change:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand-prior",
+                "source_requirement_id": "change:prior"
+              }
+            ],
+            "formula": "(CURRENT - PRIOR) / abs(PRIOR) * 100",
+            "display_unit": "%",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The synthetic row contains inputs only."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_signed_difference: 2024년과 2023년의 부호 있는 잔액 차이를 구하고, 2023년 잔액의 절댓값을 기준으로 백분율로 나타내 줘."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [
+          "cand-current",
+          "cand-prior"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "change",
+            "normalized_value": -50,
+            "calculated_value": -50,
+            "normalized_unit": "PERCENT"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "magnitude_decrease",
+      "question_id": "comparison_magnitude_decrease",
+      "question": "2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (80) USD | 2023년: (200) USD",
+          "raw_value": "(80)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -80,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (80) USD | 2023년: (200) USD",
+          "raw_value": "(200)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -200,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand-current",
+                "source_requirement_id": "change:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand-prior",
+                "source_requirement_id": "change:prior"
+              }
+            ],
+            "formula": "(abs(CURRENT) - abs(PRIOR)) / abs(PRIOR) * 100",
+            "display_unit": "%",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The synthetic row contains inputs only."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_magnitude_decrease: 2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [
+          "cand-current",
+          "cand-prior"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "change",
+            "normalized_value": -60,
+            "calculated_value": -60,
+            "normalized_unit": "PERCENT"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "transition_magnitude",
+      "question_id": "comparison_transition_magnitude",
+      "question": "2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "40",
+          "raw_unit": "USD",
+          "expected_normalized_value": 40,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "(160)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -160,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand-current",
+                "source_requirement_id": "change:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand-prior",
+                "source_requirement_id": "change:prior"
+              }
+            ],
+            "formula": "(abs(CURRENT) - abs(PRIOR)) / abs(PRIOR) * 100",
+            "display_unit": "%",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The synthetic row contains inputs only."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_transition_magnitude: 2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [
+          "cand-current",
+          "cand-prior"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "change",
+            "normalized_value": -75,
+            "calculated_value": -75,
+            "normalized_unit": "PERCENT"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "transition_prior_magnitude",
+      "question_id": "comparison_transition_prior_magnitude",
+      "question": "2024년과 2023년의 부호 있는 잔액 차이를 구하고, 2023년 잔액의 절댓값을 기준으로 백분율로 나타내 줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "40",
+          "raw_unit": "USD",
+          "expected_normalized_value": 40,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "(160)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -160,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand-current",
+                "source_requirement_id": "change:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand-prior",
+                "source_requirement_id": "change:prior"
+              }
+            ],
+            "formula": "(CURRENT - PRIOR) / abs(PRIOR) * 100",
+            "display_unit": "%",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The synthetic row contains inputs only."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_transition_prior_magnitude: 2024년과 2023년의 부호 있는 잔액 차이를 구하고, 2023년 잔액의 절댓값을 기준으로 백분율로 나타내 줘."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [
+          "cand-current",
+          "cand-prior"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "change",
+            "normalized_value": 125,
+            "calculated_value": 125,
+            "normalized_unit": "PERCENT"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "transition_signed_prior",
+      "question_id": "comparison_transition_signed_prior",
+      "question": "2024년과 2023년의 부호 있는 잔액 차이를 2023년의 부호 있는 잔액 자체로 나눈 백분율을 구해 줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "40",
+          "raw_unit": "USD",
+          "expected_normalized_value": 40,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "(160)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -160,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand-current",
+                "source_requirement_id": "change:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand-prior",
+                "source_requirement_id": "change:prior"
+              }
+            ],
+            "formula": "(CURRENT - PRIOR) / PRIOR * 100",
+            "display_unit": "%",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The synthetic row contains inputs only."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_transition_signed_prior: 2024년과 2023년의 부호 있는 잔액 차이를 2023년의 부호 있는 잔액 자체로 나눈 백분율을 구해 줘."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [
+          "cand-current",
+          "cand-prior"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "change",
+            "normalized_value": -125,
+            "calculated_value": -125,
+            "normalized_unit": "PERCENT"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "zero_prior_ratio",
+      "question_id": "comparison_zero_prior_ratio",
+      "question": "2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (90) USD | 2023년: 0 USD",
+          "raw_value": "(90)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -90,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (90) USD | 2023년: 0 USD",
+          "raw_value": "0",
+          "raw_unit": "USD",
+          "expected_normalized_value": 0,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "incomplete",
+        "direct_bindings": [],
+        "expressions": [],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [
+          "change"
+        ],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_zero_prior_ratio: 2024년 잔액의 크기(절댓값)는 2023년에 비해 몇 % 변했는가? 증가와 감소를 구분해 줘."
+      },
+      "expected": {
+        "validation_status": "invalid",
+        "execution_status": "incomplete",
+        "missing_obligation_ids": [
+          "change"
+        ],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [],
+        "outputs": []
+      }
+    },
+    {
+      "case_id": "zero_prior_difference",
+      "question_id": "comparison_zero_prior_difference",
+      "question": "2024년의 부호 있는 잔액에서 2023년의 부호 있는 잔액을 뺀 금액을 USD로 알려줘.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "USD",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (90) USD | 2023년: 0 USD",
+          "raw_value": "(90)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -90,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: (90) USD | 2023년: 0 USD",
+          "raw_value": "0",
+          "raw_unit": "USD",
+          "expected_normalized_value": 0,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ready",
+        "direct_bindings": [],
+        "expressions": [
+          {
+            "obligation_id": "change",
+            "variable_bindings": [
+              {
+                "variable": "CURRENT",
+                "source_id": "cand-current",
+                "source_requirement_id": "change:current"
+              },
+              {
+                "variable": "PRIOR",
+                "source_id": "cand-prior",
+                "source_requirement_id": "change:prior"
+              }
+            ],
+            "formula": "CURRENT - PRIOR",
+            "display_unit": "USD",
+            "source_display_candidate_id": null,
+            "source_display_reason": "The synthetic row contains inputs only."
+          }
+        ],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "rationale": "ORACLE_ONLY_zero_prior_difference: 2024년의 부호 있는 잔액에서 2023년의 부호 있는 잔액을 뺀 금액을 USD로 알려줘."
+      },
+      "expected": {
+        "validation_status": "ready",
+        "execution_status": "ok",
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [],
+        "selected_candidate_ids": [
+          "cand-current",
+          "cand-prior"
+        ],
+        "outputs": [
+          {
+            "obligation_id": "change",
+            "normalized_value": -90,
+            "calculated_value": -90,
+            "normalized_unit": "USD"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "unspecified_transition",
+      "question_id": "comparison_unspecified_transition",
+      "question": "부호가 바뀐 잔액의 증감률을 알려줘. 부호 있는 값과 크기 중 어느 것을 비교하고 어떤 분모를 쓸지는 정해져 있지 않아.",
+      "review": {
+        "status": "synthetic",
+        "basis": "Explicit comparison intent; not a filing or human-reviewed real-question answer.",
+        "source_references": [
+          "This fixture's synthetic balance table."
+        ]
+      },
+      "obligations": [
+        {
+          "obligation_id": "change",
+          "kind": "derived_value",
+          "label": "잔액 비교",
+          "required": true,
+          "display_unit": "%",
+          "scope": {
+            "company": "Example",
+            "period": "2024",
+            "consolidation_scope": "consolidated",
+            "segment": "",
+            "basis": ""
+          },
+          "evidence_requirements": [
+            {
+              "requirement_id": "change:current",
+              "label": "2024년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2024",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            },
+            {
+              "requirement_id": "change:prior",
+              "label": "2023년 잔액",
+              "required": true,
+              "scope": {
+                "company": "Example",
+                "period": "2023",
+                "consolidation_scope": "consolidated",
+                "segment": "",
+                "basis": ""
+              }
+            }
+          ],
+          "depends_on": [],
+          "coupling_key": ""
+        }
+      ],
+      "candidate_catalog": [
+        {
+          "candidate_id": "cand-current",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:current",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:current",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2024년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2024",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "40",
+          "raw_unit": "USD",
+          "expected_normalized_value": 40,
+          "expected_normalized_unit": "USD"
+        },
+        {
+          "candidate_id": "cand-prior",
+          "kind": "numeric",
+          "candidate_kind": "structured_row",
+          "source_candidate_id": "synthetic:balance:prior",
+          "evidence_id": "synthetic:balance",
+          "source_anchor": "[Synthetic fixture | Example | 2024 | balance table]",
+          "source_row_id": "synthetic:balance:row",
+          "table_source_id": "synthetic:balance:table",
+          "physical_table_id": "synthetic:balance:table",
+          "physical_row_id": "synthetic:balance:row",
+          "physical_cell_id": "synthetic:balance:prior",
+          "row_label": "잔액",
+          "row_headers": [
+            "잔액"
+          ],
+          "column_headers": [
+            "2023년"
+          ],
+          "statement_type": "unknown",
+          "company": "Example",
+          "year": 2024,
+          "period": "2023",
+          "consolidation_scope": "consolidated",
+          "segment": "",
+          "basis": "",
+          "context_fingerprint": "synthetic:balance:table|consolidated",
+          "source_text": "Synthetic balance table (USD); parentheses indicate negative values.\n잔액 | 2024년: 40 USD | 2023년: (160) USD",
+          "raw_value": "(160)",
+          "raw_unit": "USD",
+          "expected_normalized_value": -160,
+          "expected_normalized_unit": "USD"
+        }
+      ],
+      "program": {
+        "status": "ambiguous",
+        "direct_bindings": [],
+        "expressions": [],
+        "narrative_bindings": [],
+        "source_assertions": [],
+        "missing_obligation_ids": [],
+        "ambiguous_obligation_ids": [
+          "change"
+        ],
+        "rationale": "ORACLE_ONLY_unspecified_transition: 부호가 바뀐 잔액의 증감률을 알려줘. 부호 있는 값과 크기 중 어느 것을 비교하고 어떤 분모를 쓸지는 정해져 있지 않아."
+      },
+      "expected": {
+        "validation_status": "invalid",
+        "execution_status": "incomplete",
+        "missing_obligation_ids": [
+          "change"
+        ],
+        "ambiguous_obligation_ids": [
+          "change"
+        ],
+        "selected_candidate_ids": [],
+        "outputs": []
+      }
+    }
+  ]
+}

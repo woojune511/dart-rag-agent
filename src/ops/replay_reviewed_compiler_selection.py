@@ -324,7 +324,11 @@ def _reviewed_response_queue(corpus: Mapping[str, Any]) -> list[SemanticCalculat
             continue
         program = dict(case.get("program") or {})
         for obligation_ids in _island_obligation_ids(case):
-            responses.append(_program_for_obligations(program, obligation_ids))
+            response = _program_for_obligations(program, obligation_ids)
+            # A declared abstention still takes the runtime's one internal retry.
+            # This only schedules offline substitutes; it never drives live retries.
+            abstains = response.missing_obligation_ids or response.ambiguous_obligation_ids
+            responses.extend([response] * (2 if abstains else 1))
     return responses
 
 
@@ -437,20 +441,31 @@ def evaluate_reviewed_compiler_selection(
                 bool(item.get("value_matches")) and bool(item.get("unit_matches"))
                 for item in normalization
             ),
-            "validation_ready": validation.get("status") == "ready",
-            "execution_ok": execution.get("status") == "ok",
+            "validation_matches_expectation": (
+                validation.get("status") == expected.get("validation_status", "ready")
+            ),
+            "execution_matches_expectation": (
+                execution.get("status") == expected.get("execution_status", "ok")
+            ),
+            "resolution_matches_expectation": all(
+                list(validation.get(field) or []) == list(expected.get(field) or [])
+                for field in ("missing_obligation_ids", "ambiguous_obligation_ids")
+            ),
             "selected_candidate_ids_expected": (
                 len(selected_ids) == len(expected_ids)
                 and set(selected_ids) == set(expected_ids)
             ),
             "expected_outputs_match": (
-                bool(output_checks) and all(item["matches"] for item in output_checks)
+                all(item["matches"] for item in output_checks)
+                if expected_outputs
+                else expected.get("execution_status", "ok") != "ok" and not actual_by_owner
             ),
             "compiler_calls_bounded": (
                 island_count <= compiler_call_count <= island_count * 2
             ),
             "prompt_capture_matches_calls": len(case_prompts) == compiler_call_count,
             "execution_errors_zero": not list(execution.get("execution_errors") or []),
+            "validation_errors_zero": not list(validation.get("errors") or []),
         }
         passed = all(checks.values())
         results.append(
@@ -507,6 +522,7 @@ def evaluate_reviewed_compiler_selection(
         ),
         "corpus_path": path.as_posix(),
         "corpus_sha256": _sha256_file(path),
+        "fixture_origin": corpus.get("fixture_origin", "source_derived_reviewed"),
         "provider_network_calls": 0 if run_mode == "rehearsal" else None,
         "retrieval_calls": 0,
         "planner_calls": 0,
@@ -616,7 +632,8 @@ def build_admission_manifest(
     rehearsal = rehearse_reviewed_compiler_selection(corpus_abs)
     if rehearsal["status"] != "passed":
         raise ValueError("reviewed compiler rehearsal must pass before admission")
-    initial_calls = int(rehearsal["summary"]["compiler_invocation_count"])
+    initial_calls = int(rehearsal["summary"]["compiler_island_count"])
+    rehearsal_calls = int(rehearsal["summary"]["compiler_invocation_count"])
     maximum_calls = initial_calls * 2
     prompt_bytes = int(rehearsal["summary"]["prompt_bytes"])
     reviewed_output_bytes = sum(
@@ -632,7 +649,7 @@ def build_admission_manifest(
         + likely_output_tokens
         / 1_000_000
         * OFFICIAL_STANDARD_PRICING["output_per_million_tokens_usd"]
-        + initial_calls
+        + rehearsal_calls
         * thinking_budget
         / 1_000_000
         * OFFICIAL_STANDARD_PRICING["thinking_per_million_tokens_usd"]
@@ -721,7 +738,7 @@ def build_admission_manifest(
             "likely_estimate_usd": likely_cost,
             "retry_bounded_planning_estimate_usd": retry_bounded_planning_cost,
             "estimate_method": (
-                "likely uses rehearsal UTF-8 bytes divided by three plus each initial "
+                "likely uses rehearsal UTF-8 bytes divided by three plus each rehearsed "
                 "call's thinking budget; retry-bounded "
                 "planning doubles likely input and prices every allowed call at "
                 "the configured inclusive output-token maximum (thinking not added twice)"
@@ -734,6 +751,7 @@ def build_admission_manifest(
                 "path": corpus_rel,
                 "sha256": _sha256_file(corpus_abs),
                 "case_count": len(case_ids),
+                "origin": corpus.get("fixture_origin", "source_derived_reviewed"),
             },
             "runtime_build": dict(runtime_build or _tracked_runtime_build()),
             "prompt_contract": "semantic_program_candidate_payload_v5",
@@ -742,18 +760,18 @@ def build_admission_manifest(
                 "compiler_island_count": rehearsal["summary"][
                     "compiler_island_count"
                 ],
-                "compiler_invocation_count": initial_calls,
+                "compiler_invocation_count": rehearsal_calls,
                 "prompt_fingerprint": rehearsal["summary"]["prompt_fingerprint"],
             },
         },
         "transmission_scope": {
             "destination": "Google Gemini API",
             "included": [
-                "five question texts",
+                f"{len(case_ids)} question texts",
                 "ordered answer obligations",
                 "compact source-bundle excerpts",
                 "candidate raw values and provenance metadata",
-                "retry validation feedback only when an island fails",
+                "retry validation feedback and validated read-only dependency outputs only when an island fails",
             ],
             "excluded": [
                 "full DART filings",
@@ -774,9 +792,9 @@ def build_admission_manifest(
             "automatic_runner_or_provider_retry",
         ],
         "acceptance": {
-            "all_five_cases_pass": True,
-            "validation_status": "ready",
-            "execution_status": "ok",
+            "all_cases_match_declared_expectations": True,
+            "validation_and_execution_status": "per_case_corpus_expectation",
+            "missing_and_ambiguous_obligation_ids_match_expectation": True,
             "runtime_error_count": 0,
             "selected_candidate_set_matches_review": True,
             "derived_outputs_match_reviewed_tolerance": True,

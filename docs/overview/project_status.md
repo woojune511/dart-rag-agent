@@ -16,10 +16,10 @@ The implemented boundaries are:
   KRW/USD/PERCENT/COUNT, signed composite amounts, USD lookups, and finite-value
   checks use one normalizer contract. Compiler emits formula/display intent only;
   code infers dimensions. Legacy `result_unit` has no validation/render authority.
-- Compiler sign interpretation uses the existing formula AST and `rationale`.
-  Raw signs stay intact; negative operands do not mandate `abs()` and growth
-  need not be positive. No sign enum, arithmetic rewrite, or validator relaxation
-  was added. Undefined ratios and ambiguous comparisons can remain unanswered.
+- Compiler prompt leads with comparison target, transformations/operations, then
+  formula; generic contrasts use existing `rationale`, not a role enum or new call.
+  Raw signs stay intact; no arithmetic rewrite or validator relaxation was added.
+  Undefined ratios and ambiguous comparisons can remain unanswered.
 - Planner unit errors block only affected islands. Compiler format retries keep
   candidates; explicit candidate conflicts carry exact replacement ownership.
 - Structured-output `null`/`none` sentinels normalize to blank only for optional
@@ -53,10 +53,10 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13.13 is the verification interpreter. Focused usage/response-capture/
-reviewed replay gates pass `25 / 25`; import/topology passes `22 / 22`.
+Python 3.13.13 is the verification interpreter. Semantic focused tests pass
+`198 / 198`; import/topology passes `22 / 22`.
 Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Full unittest discovery passes `929 / 929`.
+`git diff --check` also pass. Full unittest discovery passes `939 / 939`.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -66,10 +66,10 @@ Runtime domain audit passes with `84` reviewed literals; pycompile and
   byte-identical receipts. Its three contract tests prove deterministic replay,
   fail-closed requirement visibility, and raw-value normalization rather than
   trusting copied normalized fields.
-- Sign tests cover negative magnitude increase/decrease, signed changes,
-  differing conventions across sign transitions, and zero denominators versus
-  valid absolute differences. Stubbed compiler choices test prompt wiring and
-  execution only; no provider improvement is established by these tests.
+- `semantic_comparison_contrasts_v1.json` adds 9 synthetic cases: 7 calculations
+  and 2 explicit abstentions. Identical inputs/different intents distinguish valid
+  math from intended math. Offline expected values never drive runtime retry;
+  rehearsals test harness/execution only, not model accuracy or DART evidence.
 - Installed Gemini/LangChain adapters run with a fake client and external sockets
   blocked. Tests distinguish `MAX_TOKENS` from `STOP`/missing fields, preserve
   successful and failed responses across retry, exclude private metadata, and
@@ -139,8 +139,8 @@ Usage: 2 calls, 15,059 input (0 cached), 897 answer and 1,863 thinking tokens,
 planner, evaluator, embedding, and store calls are zero. Result SHA `8c4b28b6...f371`.
 Corpus, admission, rehearsals, and predecessor artifacts remain unchanged.
 
-Approval exhausted; no runtime patch or paid rerun followed. Next isolate comparison semantics provider-free;
-do not auto-flip negatives or relax review tolerances. Gate v2 capture and `4096/1024` budgets are unchanged.
+Pending gate: 9 synthetic contrasts -> 5 unchanged reviewed cases; first failure stops. Separate approval required.
+Admission: `benchmarks/results/semantic_comparison_compiler_admission_2026-09-06/manifest.json`; if it fails, compare models rather than add warnings.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
