@@ -342,9 +342,9 @@ Every runtime change runs focused tests, runtime-domain audit, import/topology
 checks, pycompile, and `git diff --check`. Candidate, compilation, and public
 result boundary changes additionally run full unittest discovery.
 
-Provider validation is never implied by local success. It requires separate
-approval for a new manifest hash and cost estimate, then one store-fixed
-eval-only run with a 30-second heartbeat. Automatic retry and fresh ingest are
-forbidden. A release requires runtime completeness for all approved questions,
-zero runtime errors, and ledger integrity `ok`. Dataset answer-key governance and
-evaluator tolerance are separate work.
+Provider validation requires separate manifest/cost approval, then one store-fixed
+eval-only run with a 30-second heartbeat; no automatic retry or fresh ingest.
+A release needs all approved questions complete, zero runtime errors, and ledger `ok`;
+dataset governance and evaluator tolerance remain separate. Local success is not provider evidence.
+Opt-in compiler model comparisons are diagnostic: fixed inputs/budgets, retained failures,
+and no release claim. They never relax production validation or single-model stop conditions.

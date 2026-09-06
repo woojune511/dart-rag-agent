@@ -122,6 +122,20 @@ class CompilerResponseCaptureTests(unittest.TestCase):
         # google-genai converts attempts=0 to one attempt, i.e. no SDK retry.
         self.assertEqual(config.http_options.retry_options.attempts, 0)
 
+    def test_comparison_models_use_identical_sdk_schema_and_generation_controls(self) -> None:
+        self.generate.return_value = _response('{"status":"ready"}')
+        requests = []
+        for model in ("gemini-2.5-flash", "gemini-2.5-pro"):
+            llm = _create_google_compiler({
+                "model": model, "temperature": 0, "max_output_tokens": 4096,
+                "thinking_budget": 1024, "provider_client_retries": 0,
+            }, GeminiUsageCallbackHandler())
+            _RecordingLLM(llm).with_structured_output(SemanticCalculationProgram).invoke("same prompt")
+            request = self.generate.call_args.kwargs
+            self.assertEqual(request["model"], model)
+            requests.append({k:v for k,v in request.items() if k != "model"})
+        self.assertEqual(requests[0], requests[1])
+
     def test_truncated_and_missing_field_failures_remain_distinguishable(self) -> None:
         partial = '{"status":"ready","expressions":[{"obligation_id":"change","variable_bindings":[{"variable_name":"current","source_id":"'
         closed = '{"status":"ready","expressions":[{"obligation_id":"change","variable_bindings":[{"variable_name":"current","source_id":""}]}]}'

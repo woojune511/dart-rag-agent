@@ -138,13 +138,13 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    unspecified, but the model negated both inputs and returned `-125%` instead of
    declaring ambiguity. Structural validation/execution accepted that valid math;
    the semantic review gate failed. All five real questions were not dispatched.
-10. All 10 responses ended `STOP` and parsed; runtime errors are zero. The only
-    internal retry repeated the zero-prior abstention, not dependency input repair.
-    Captured outputs and prompt hashes reproduce exactly with network blocked.
-    Estimated USD `0.0408142`; retrieval/planner/evaluator/embedding/store activity
-    is zero. Result SHA `14e7490c...a9d8`; approval is exhausted. No automatic rerun.
-    Result: `benchmarks/results/semantic_comparison_compiler_successor_2026-09-06/result.json`.
-    Inputs and runtime are unchanged. Next: compare models on the frozen ambiguity
-    case, with separate manifest/cost/transmission approval, not more warning rules.
+10. Pending comparison: Gemini 2.5 Flash then 2.5 Pro, each over the same four frozen
+    questions (unspecified transition, magnitude, signed prior, KBF T2). Prompt/schema
+    and output/thinking `4096/1024` stay fixed. The existing runner records all case
+    failures without hiding later cases; provider errors stop the comparison.
+    Local comparison/capture gates pass; no new provider call. Estimated USD `0.14248905`,
+    retry-bounded planning `0.5343781`, proposed cap `0.60` (not a billing hard stop).
+    Admission: `benchmarks/results/compiler_model_comparison_admission_2026-09-06/manifest.json`.
+    Separate manifest/cost/transmission approval is required; one trial is not model superiority.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

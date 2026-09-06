@@ -53,10 +53,10 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13.13 is the verification interpreter. Semantic focused tests pass
-`198 / 198`; import/topology passes `22 / 22`.
+Python 3.13.13 is the verification interpreter. Compiler/comparison/capture tests
+pass `35 / 35`; import/topology passes `22 / 22`.
 Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Full unittest discovery passes `939 / 939`.
+`git diff --check` also pass. Full unittest discovery passes `949 / 949`.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -131,15 +131,15 @@ The formula is mathematically valid, so validation was ready and execution ok;
 this is a semantic abstention failure, not a unit, parser, or arithmetic failure.
 It does not establish whether the preceding KBF T2 real-question failure is fixed.
 
-All 10 responses ended `STOP` and parsed, with zero runtime errors. The only internal
-retry repeated the zero-prior abstention; dependency-input repair remains local-only
-verified. Captured programs, outputs, checks, islands, and prompt hashes reproduce exactly
-with network blocked. Usage: 67,246 tokens in 55.1s; estimated USD `0.0408142`, not billing.
-Retrieval/planner/evaluator/embedding/store activity is zero; inputs are unchanged.
-Result: `benchmarks/results/semantic_comparison_compiler_successor_2026-09-06/result.json`.
-
-Approval is exhausted; no runtime patch or rerun. Next: compare models on the frozen
-ambiguity case with separate manifest/cost/transmission approval, not more warning rules.
+Pending comparison: Gemini 2.5 Flash -> 2.5 Pro on four frozen questions: unspecified
+transition, magnitude, signed prior, and KBF T2. Inputs, schema, temperature and budgets
+`4096/1024` match; SDK fake-client tests confirm model name is the only request change.
+The comparison records failures and continues all cases, stopping on provider errors;
+single-model gates still stop at their first failure. Runtime/prompt/fixtures are unchanged.
+Estimated USD `0.14248905`; retry-bounded planning `0.5343781`; proposed cap `0.60`
+(not a billing hard stop). One trial does not establish general model superiority.
+Admission: `benchmarks/results/compiler_model_comparison_admission_2026-09-06/manifest.json`.
+Prior approval is exhausted; no new provider call. Separate manifest/cost/transmission approval required.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

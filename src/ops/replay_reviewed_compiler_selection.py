@@ -15,6 +15,7 @@ import json
 import math
 import os
 import subprocess
+from time import perf_counter
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
@@ -48,6 +49,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ADMISSION_SCHEMA_VERSION = "reviewed_compiler_selection_admission_v2"
 REHEARSAL_SCHEMA_VERSION = "reviewed_compiler_selection_rehearsal_v2"
 RESULT_SCHEMA_VERSION = "reviewed_compiler_selection_result_v2"
+COMPARISON_ADMISSION_SCHEMA_VERSION = "reviewed_compiler_model_comparison_admission_v1"
+COMPARISON_RESULT_SCHEMA_VERSION = "reviewed_compiler_model_comparison_result_v1"
+COMPARISON_REHEARSAL_SCHEMA_VERSION = "reviewed_compiler_model_comparison_rehearsal_v1"
 DEFAULT_PROVIDER = "google"
 DEFAULT_MODEL = "gemini-2.5-flash"
 DEFAULT_MAX_OUTPUT_TOKENS = 4096
@@ -58,6 +62,15 @@ OFFICIAL_STANDARD_PRICING = {
     "thinking_per_million_tokens_usd": 2.50,
 }
 OFFICIAL_PRICING_URL = "https://ai.google.dev/gemini-api/docs/pricing"
+# Reviewed standard text pricing for the bounded <= 200k-token comparison lane.
+COMPARISON_MODEL_PRICING = {
+    "gemini-2.5-pro": {
+        "input_per_million_tokens_usd": 1.25,
+        "output_per_million_tokens_usd": 10.0,
+        "thinking_per_million_tokens_usd": 10.0,
+        "cached_input_per_million_tokens_usd": 0.125,
+    },
+}
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -361,6 +374,7 @@ def evaluate_reviewed_compiler_selection(
     run_mode: str,
     usage_callback: GeminiUsageCallbackHandler | None = None,
     stop_on_case_failure: bool = False,
+    stop_on_provider_error: bool = False,
 ) -> dict[str, Any]:
     """Run current compilation islands over reviewed inputs and execute them."""
 
@@ -373,6 +387,7 @@ def evaluate_reviewed_compiler_selection(
         if not isinstance(raw_case, Mapping):
             continue
         case = deepcopy(dict(raw_case))
+        started = perf_counter() if run_mode == "provider" else None
         catalog, normalization = _materialize_catalog(
             [
                 dict(item)
@@ -498,7 +513,10 @@ def evaluate_reviewed_compiler_selection(
                 "islands": diagnostics,
             }
         )
-        if stop_on_case_failure and not passed:
+        if started is not None:
+            results[-1]["elapsed_seconds"] = perf_counter() - started
+        provider_error = any(record.get("invocation_error_type") for record in case_prompts)
+        if (stop_on_provider_error and provider_error) or (stop_on_case_failure and not passed):
             break
 
     passed_count = sum(item["status"] == "passed" for item in results)
@@ -507,7 +525,7 @@ def evaluate_reviewed_compiler_selection(
         for result in results
         for record in result["prompt_records"]
     )
-    return {
+    result = {
         "schema_version": RESULT_SCHEMA_VERSION,
         "run_mode": run_mode,
         "status": (
@@ -549,6 +567,12 @@ def evaluate_reviewed_compiler_selection(
         },
         "cases": results,
     }
+    if stop_on_provider_error:
+        result["stopped_for_provider_error"] = any(
+            record.get("invocation_error_type")
+            for case in results for record in case["prompt_records"]
+        )
+    return result
 
 
 def rehearse_reviewed_compiler_selection(corpus_path: Path) -> dict[str, Any]:
@@ -616,6 +640,13 @@ def _validate_token_budgets(max_output_tokens: Any, thinking_budget: Any) -> Non
         raise ValueError("thinking_budget must be explicit, non-negative, and below max_output_tokens")
 
 
+def _validate_comparison_model(model: str, max_output_tokens: int, thinking_budget: int) -> None:
+    if model not in COMPARISON_MODEL_PRICING:
+        raise ValueError("comparison model must differ from the baseline and have reviewed pricing")
+    if not 128 <= thinking_budget <= 24576 or max_output_tokens > 65536:
+        raise ValueError("shared comparison budgets require thinking 128..24576 and output <= 65536")
+
+
 def build_admission_manifest(
     *,
     corpus_path: Path,
@@ -625,8 +656,14 @@ def build_admission_manifest(
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
     thinking_budget: int = DEFAULT_THINKING_BUDGET,
     runtime_build: Mapping[str, Any] | None = None,
+    comparison_model: str | None = None,
 ) -> dict[str, Any]:
     _validate_token_budgets(max_output_tokens, thinking_budget)
+    model_rates = {DEFAULT_MODEL: OFFICIAL_STANDARD_PRICING}
+    if comparison_model is not None:
+        _validate_comparison_model(comparison_model, max_output_tokens, thinking_budget)
+        model_rates[DEFAULT_MODEL] = {**OFFICIAL_STANDARD_PRICING, "cached_input_per_million_tokens_usd": 0.03}
+        model_rates[comparison_model] = COMPARISON_MODEL_PRICING[comparison_model]
     corpus_abs = Path(corpus_path).resolve()
     corpus = _load_corpus(corpus_abs)
     rehearsal = rehearse_reviewed_compiler_selection(corpus_abs)
@@ -642,28 +679,23 @@ def build_admission_manifest(
     )
     likely_input_tokens = math.ceil(prompt_bytes / 3)
     likely_output_tokens = math.ceil(reviewed_output_bytes / 3)
-    likely_cost = (
-        likely_input_tokens
-        / 1_000_000
-        * OFFICIAL_STANDARD_PRICING["input_per_million_tokens_usd"]
-        + likely_output_tokens
-        / 1_000_000
-        * OFFICIAL_STANDARD_PRICING["output_per_million_tokens_usd"]
-        + rehearsal_calls
-        * thinking_budget
-        / 1_000_000
-        * OFFICIAL_STANDARD_PRICING["thinking_per_million_tokens_usd"]
-    )
-    retry_bounded_planning_cost = (
-        likely_input_tokens
-        * 2
-        / 1_000_000
-        * OFFICIAL_STANDARD_PRICING["input_per_million_tokens_usd"]
-        + maximum_calls
-        * max_output_tokens
-        / 1_000_000
-        * OFFICIAL_STANDARD_PRICING["output_per_million_tokens_usd"]
-    )
+    by_model = {
+        model: {
+            **rates,
+            "likely_estimate_usd": (
+                likely_input_tokens / 1_000_000 * rates["input_per_million_tokens_usd"]
+                + likely_output_tokens / 1_000_000 * rates["output_per_million_tokens_usd"]
+                + rehearsal_calls * thinking_budget / 1_000_000 * rates["thinking_per_million_tokens_usd"]
+            ),
+            "retry_bounded_planning_estimate_usd": (
+                likely_input_tokens * 2 / 1_000_000 * rates["input_per_million_tokens_usd"]
+                + maximum_calls * max_output_tokens / 1_000_000 * rates["output_per_million_tokens_usd"]
+            ),
+        }
+        for model, rates in model_rates.items()
+    }
+    likely_cost = sum(p["likely_estimate_usd"] for p in by_model.values())
+    retry_bounded_planning_cost = sum(p["retry_bounded_planning_estimate_usd"] for p in by_model.values())
     if float(cost_cap_usd) < retry_bounded_planning_cost:
         raise ValueError("cost cap is below the retry-bounded planning estimate")
     dotenv = {
@@ -679,7 +711,7 @@ def build_admission_manifest(
         for item in (corpus.get("cases") or [])
         if isinstance(item, Mapping)
     ]
-    return {
+    manifest = {
         "schema": ADMISSION_SCHEMA_VERSION,
         "prepared_on": date.today().isoformat(),
         "authorization": {
@@ -805,6 +837,37 @@ def build_admission_manifest(
             "sources only; it is not retrieval, full-agent, evaluator, or release evidence."
         ),
     }
+    if comparison_model is not None:
+        manifest["schema"] = COMPARISON_ADMISSION_SCHEMA_VERSION
+        manifest["provider"].pop("model")
+        manifest["provider"]["models"] = list(model_rates)
+        manifest["execution"].update({
+            "mode": "reviewed_compiler_model_comparison",
+            "initial_compiler_calls": initial_calls * len(model_rates),
+            "maximum_compiler_calls_with_internal_retry": maximum_calls * len(model_rates),
+            "stop_after_first_failed_question": False,
+            "stop_after_provider_error": True,
+            "case_failure_policy": "record failures and continue bounded comparison; never promote them to passes",
+            "progress_heartbeat_sec": 30,
+            "heartbeat_mechanism": "foreground subprocess monitor; never restart the runner",
+        })
+        for field in OFFICIAL_STANDARD_PRICING:
+            manifest["pricing"].pop(field)
+        manifest["pricing"]["by_model"] = by_model
+        manifest["pricing"]["input_price_tier"] = "standard text, each request <= 200000 input tokens"
+        manifest["comparison_controls"] = {
+            "varied": ["model"],
+            "fixed": ["corpus", "question_order", "initial_prompt", "schema", "temperature", "output_budget", "thinking_budget", "internal_retry_policy"],
+            "retry_inputs": "model-specific validation feedback and validated read-only dependencies",
+            "trials_per_model": 1,
+            "rehearsal_counts_are_per_model": True,
+            "latency_scope": "per-case compilation, validation, and execution; paid run only",
+        }
+        manifest["claim_boundary"] = (
+            "One budget-matched diagnostic trial per model, not general model superiority, "
+            "retrieval, full-agent, evaluator, or release evidence. Failed cases remain failed."
+        )
+    return manifest
 
 
 def _verify_manifest(
@@ -818,10 +881,15 @@ def _verify_manifest(
     if approved_sha256 is not None and approved_sha256 != manifest_sha256:
         raise ValueError("approved manifest SHA-256 does not match manifest bytes")
     manifest = json.loads(manifest_bytes.decode("utf-8"))
-    if manifest.get("schema") != ADMISSION_SCHEMA_VERSION:
+    if manifest.get("schema") not in (ADMISSION_SCHEMA_VERSION, COMPARISON_ADMISSION_SCHEMA_VERSION):
         raise ValueError("unsupported compiler selection admission schema")
     provider = dict(manifest.get("provider") or {})
     _validate_token_budgets(provider.get("max_output_tokens"), provider.get("thinking_budget"))
+    if manifest["schema"] == COMPARISON_ADMISSION_SCHEMA_VERSION:
+        models = provider.get("models") or []
+        if len(models) != 2 or models[0] != DEFAULT_MODEL:
+            raise ValueError("comparison requires the baseline and one reviewed model")
+        _validate_comparison_model(models[1], provider["max_output_tokens"], provider["thinking_budget"])
     corpus_info = dict(dict(manifest.get("inputs") or {}).get("corpus") or {})
     corpus_path = PROJECT_ROOT / str(corpus_info.get("path") or "")
     if _sha256_file(corpus_path) != str(corpus_info.get("sha256") or ""):
@@ -839,7 +907,12 @@ def _verify_manifest(
 def rehearse_admission_manifest(manifest_path: Path) -> dict[str, Any]:
     manifest, manifest_sha256 = _verify_manifest(manifest_path)
     corpus_path = PROJECT_ROOT / manifest["inputs"]["corpus"]["path"]
-    result = rehearse_reviewed_compiler_selection(corpus_path)
+    comparison = manifest["schema"] == COMPARISON_ADMISSION_SCHEMA_VERSION
+    result = (
+        _evaluate_model_comparison(manifest, run_mode="rehearsal")
+        if comparison else rehearse_reviewed_compiler_selection(corpus_path)
+    )
+    observations = result["model_results"] if comparison else [result]
     expected = dict(manifest["inputs"]["rehearsal"])
     checks = {
         "manifest_pending_approval": (
@@ -848,21 +921,18 @@ def rehearse_admission_manifest(manifest_path: Path) -> dict[str, Any]:
         ),
         "provider_network_calls_zero": result["provider_network_calls"] == 0,
         "compiler_calls_match": (
-            result["summary"]["compiler_invocation_count"]
-            == expected["compiler_invocation_count"]
+            all(item["summary"]["compiler_invocation_count"] == expected["compiler_invocation_count"] for item in observations)
         ),
         "islands_match": (
-            result["summary"]["compiler_island_count"]
-            == expected["compiler_island_count"]
+            all(item["summary"]["compiler_island_count"] == expected["compiler_island_count"] for item in observations)
         ),
         "prompt_fingerprint_matches": (
-            result["summary"]["prompt_fingerprint"]
-            == expected["prompt_fingerprint"]
+            all(item["summary"]["prompt_fingerprint"] == expected["prompt_fingerprint"] for item in observations)
         ),
         "all_cases_pass": result["status"] == "passed",
     }
     return {
-        "schema": REHEARSAL_SCHEMA_VERSION,
+        "schema": COMPARISON_REHEARSAL_SCHEMA_VERSION if comparison else REHEARSAL_SCHEMA_VERSION,
         "status": "passed" if all(checks.values()) else "failed",
         "manifest_sha256": manifest_sha256,
         "checks": checks,
@@ -883,6 +953,10 @@ def run_approved_manifest(
         manifest_path,
         approved_sha256=approved_manifest_sha256,
     )
+    if manifest["schema"] == COMPARISON_ADMISSION_SCHEMA_VERSION:
+        result = _evaluate_model_comparison(manifest, run_mode="provider", provider_factory=provider_factory)
+        result["manifest_sha256"] = manifest_sha256
+        return result
     provider_spec = dict(manifest.get("provider") or {})
     callback = GeminiUsageCallbackHandler()
     callback.reset_current_thread()
@@ -911,6 +985,66 @@ def run_approved_manifest(
         manifest["authorization"]["maximum"]
     )
     return result
+
+
+def _evaluate_model_comparison(
+    manifest: Mapping[str, Any],
+    *,
+    run_mode: str,
+    provider_factory: Callable[..., Any] | None = None,
+) -> dict[str, Any]:
+    """Same compiler path and inputs; fresh queue/client and usage owner per model."""
+    corpus_path = PROJECT_ROOT / manifest["inputs"]["corpus"]["path"]
+    model_results = []
+    initialization_error = None
+    for model in manifest["provider"]["models"]:
+        callback = GeminiUsageCallbackHandler()
+        callback.reset_current_thread()
+        spec = {key: value for key, value in manifest["provider"].items() if key != "models"}
+        spec["model"] = model
+        if run_mode == "rehearsal":
+            llm = _ReviewedProgramQueue(_reviewed_response_queue(_load_corpus(corpus_path)))
+        else:
+            try:
+                llm = (provider_factory or _create_google_compiler)(spec, callback)
+            except Exception as error:
+                # Keep completed model evidence even if the next client cannot start.
+                initialization_error = {"model": model, "type": type(error).__name__}
+                break
+        observation = evaluate_reviewed_compiler_selection(
+            corpus_path, llm, run_mode=run_mode,
+            usage_callback=callback if run_mode == "provider" else None,
+            stop_on_case_failure=False, stop_on_provider_error=True,
+        )
+        usage = callback.snapshot_global()
+        observation.update({
+            "provider_model": model,
+            "provider_network_calls": int(usage.get("api_calls") or 0),
+            "usage": usage,
+            "estimated_cost_usd": estimate_gemini_cost_usd(usage, manifest["pricing"]["by_model"][model]),
+        })
+        if run_mode == "rehearsal" and llm.remaining_response_count:
+            observation["status"] = "failed"
+        model_results.append(observation)
+        if observation["stopped_for_provider_error"]:
+            break
+    return {
+        "schema_version": COMPARISON_RESULT_SCHEMA_VERSION,
+        "run_mode": run_mode,
+        "status": "passed" if len(model_results) == len(manifest["provider"]["models"])
+        and all(item["status"] == "passed" for item in model_results) else "failed",
+        "claim_boundary": manifest["claim_boundary"],
+        "provider_initialization_error": initialization_error,
+        "provider_network_calls": sum(item["provider_network_calls"] for item in model_results),
+        "estimated_cost_usd": sum(item["estimated_cost_usd"] for item in model_results),
+        "cost_authorization_maximum_usd": manifest["authorization"]["maximum"],
+        "summary": {
+            key: sum(item["summary"][key] for item in model_results)
+            for key in ("executed_case_count", "passed_case_count", "failed_case_count",
+                        "compiler_island_count", "compiler_invocation_count", "compiler_retry_count")
+        },
+        "model_results": model_results,
+    }
 
 
 def _create_google_compiler(
@@ -953,6 +1087,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     prepare.add_argument("--cost-cap-usd", type=float, required=True)
     prepare.add_argument("--max-output-tokens", type=int, default=DEFAULT_MAX_OUTPUT_TOKENS)
     prepare.add_argument("--thinking-budget", type=int, default=DEFAULT_THINKING_BUDGET)
+    prepare.add_argument("--comparison-model", choices=tuple(COMPARISON_MODEL_PRICING))
 
     rehearse = subparsers.add_parser("rehearse")
     rehearse.add_argument("--manifest", type=Path, required=True)
@@ -974,6 +1109,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             cost_cap_usd=args.cost_cap_usd,
             max_output_tokens=args.max_output_tokens,
             thinking_budget=args.thinking_budget,
+            comparison_model=args.comparison_model,
         )
         _write_new_json(args.manifest, manifest)
         print(
