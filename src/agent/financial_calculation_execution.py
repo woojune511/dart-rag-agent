@@ -597,6 +597,14 @@ def _evidence_requirement_scope_conflicts(
 def _same_source_context(
     candidate: Mapping[str, Any], witness: Mapping[str, Any]
 ) -> bool:
+    left_document = str(candidate.get("source_document_id") or "")
+    right_document = str(witness.get("source_document_id") or "")
+    if left_document and right_document and left_document != right_document:
+        return False
+    left_table = str(candidate.get("physical_table_id") or "")
+    right_table = str(witness.get("physical_table_id") or "")
+    if left_table and right_table:
+        return left_table == right_table
     for field in ("evidence_id", "table_source_id", "context_fingerprint"):
         left = _normalise_spaces(str(candidate.get(field) or ""))
         right = _normalise_spaces(str(witness.get(field) or ""))
@@ -2515,6 +2523,10 @@ def project_semantic_program_operand(
         "period_source": period_source,
         "value_year": value_year,
         "table_source_id": str(candidate.get("table_source_id") or ""),
+        **{key: candidate[key] for key in (
+            "source_document_id", "physical_table_id", "physical_row_id",
+            "physical_cell_id", "physical_value_id", "physical_cell_key",
+        ) if candidate.get(key)},
         "statement_type": str(candidate.get("statement_type") or ""),
         "consolidation_scope": str(candidate.get("consolidation_scope") or ""),
         "consolidation_scope_source": str(

@@ -90,7 +90,7 @@ V2 additionally binds the complete catalog contents (sorted by candidate ID),
 ordered obligations, and query with `execution_content_fingerprint`. Changed
 normalized numbers, dimensions, scope, source bytes, spans, or physical
 provenance fail before revalidation or arithmetic as `execution_content_mismatch`.
-Production has no V1 fallback; existing candidate IDs and catalog fingerprints are unchanged.
+Production has no V1 fallback. Historical catalogs/programs are never silently remapped to new identities.
 
 Any mismatch fails closed as `visibility_mismatch` or `validation_drift`.
 Execution must not overwrite immutable compile validation; validator-selected
@@ -126,7 +126,7 @@ Table bundles share a physical table/row and retain row headers/cell provenance.
 also retain separate prose slices; table cells and metadata prefixes are not re-extracted as prose values.
 Uniquely located numeric rows may carry adjacent textual rows within 420 characters, with exact source ID/span
 in `source_context_provenance`. Context is not a new cell/role; it may supply existing text-match factors.
-Repeated attachments select context deterministically within the same report/scope/cells; IDs and fingerprint algorithms stay intact.
+Repeated attachments select context deterministically within the same report/scope/cells; context enrichment does not rewrite cell identity.
 
 Numeric selection is bundle-first: exclude `explicit_conflict`, prefer `compatible`
 over `unknown_only`, and rank by the best member's existing factor vector. Each numeric
@@ -175,10 +175,10 @@ physical sources, including a separately sourced display. Formula compatibility 
 semantic company/scope/segment/basis, not `context_fingerprint` equality. Owner visibility,
 periods, units, assertions, explicit coupling and physical-row contracts remain enforced.
 
-Physical table, row, and cell identity and existing candidate IDs/fingerprints
-remain stable. `document_company` is metadata, not proof of a value's local
-subject. Row headers and local entity surfaces remain part of candidate
-provenance and applicability.
+Physical table identity namespaces report-local `table_source_id` by explicit receipt/document ID before row/cell dedupe.
+Raw parser IDs remain provenance; qualified IDs bind bundles, context checks, prompt and execution evidence. New table candidate IDs change; old artifacts do not.
+Anonymous legacy tables use report scope plus content, not chunk order; indistinguishable anonymous copies cannot prove distinct filings. Hash algorithms stay intact.
+`document_company` is not a value's local subject. Row headers/local entity surfaces remain provenance and applicability; a scope witness cannot cross known filing identity.
 
 When two or more direct outputs have the same explicit local subject, compatible
 declared scope, and at least one physical row containing a compatible candidate

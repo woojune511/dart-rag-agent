@@ -125,11 +125,12 @@ class SemanticSourceContextTests(unittest.TestCase):
         earlier = document("other result | 123,456\ntotal | 900,000", source_id="old-report")
         earlier.metadata["year"] = 2023
         current = document(TABLE)
-        # Legacy cross-report ID dedupe remains a separate identity repair;
-        # enriching the surviving row must not borrow another report's text.
-        target = next(r for r in catalog(earlier, current) if r.get("physical_row_id") == "r0")
-        self.assertEqual(target["year"], 2023)
-        self.assertNotIn(NOTE, target["source_bundle_text"])
+        targets = [r for r in catalog(earlier, current) if r.get("physical_row_id") == "r0"]
+        self.assertEqual(len(targets), 2)
+        by_year = {r["year"]: r for r in targets}
+        self.assertNotIn(NOTE, by_year[2023]["source_bundle_text"])
+        self.assertIn(NOTE, by_year[2024]["source_bundle_text"])
+        self.assertNotEqual(by_year[2023]["physical_table_id"], by_year[2024]["physical_table_id"])
 
     def test_adjacent_context_respects_existing_numeric_window(self):
         text = "other result | 123,456\nExplanation | " + "long context " * 60 + "\ntotal | 900,000"

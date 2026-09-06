@@ -720,7 +720,8 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
             semantic_candidate_catalog_fingerprint(second_catalog),
         )
         target = next(item for item in first_numeric if item["raw_value"] == "26")
-        self.assertEqual(target["physical_table_id"], table_source_id)
+        self.assertEqual(target["table_source_id"], table_source_id)
+        self.assertTrue(target["physical_table_id"].startswith("physical_table_v1_"))
         self.assertEqual(target["physical_row_id"], "2:0")
         self.assertEqual(target["physical_cell_id"], "2:0:2")
         self.assertEqual(

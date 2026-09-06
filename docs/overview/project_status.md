@@ -7,8 +7,8 @@ Last updated: 2026-09-07
 The product is the single-agent `FinancialAgent`. The current working branch is
 `codex/reviewed-compiler-selection-gate`, with compiler-gate baseline `e9a5be0`.
 Contract repairs start from `5e13bc6`; the dependency-boundary fix is `af9a07e`.
-Public HTTP fields, `FinancialRunResultV1`, candidate identity inputs, catalog
-fingerprints, parser table structure, and stored formats remain compatible.
+Public HTTP fields, `FinancialRunResultV1`, parser/store formats and ID/fingerprint hashing stay intact.
+New table candidate IDs are filing-qualified; old catalogs/programs remain immutable predecessor artifacts.
 
 The implemented boundaries are:
 
@@ -31,8 +31,8 @@ The implemented boundaries are:
   dependencies, unknown IDs, and self references retain preflight validation.
 - `CompilationEnvelopeV2` checks full execution content before revalidation or
   arithmetic. Existing visibility/program/validation checks remain independent.
-- Bundle-first selection retains adjacent source values, table-attached prose and exact row-note context;
-  query-written bilingual subject spellings survive planning. Unique selectable-ID caps include retries.
+- Bundle-first selection retains adjacent source values, attached prose and row notes; query-written bilingual spellings survive planning.
+  Physical identity includes explicit filing provenance before dedupe; raw parser IDs remain traceable. Unique selectable-ID caps include retries.
 - Source-first output and separately labelled recomputation coexist.
   Dependencies use calculated values; primary answer slots use display values.
 - Formula inputs retain their validated evidence-requirement label, period,
@@ -57,7 +57,7 @@ mutation, evaluator relaxation, or dataset correction. MAS/Streamlit remain expe
 
 ## Local acceptance
 
-Python 3.13.13: source-context/query-spelling repair full suite `993 / 993`, new regressions `15 / 15`, focused `136 / 136`, import/topology `22 / 22`, docs `2 / 2`.
+Python 3.13.13: filing-identity full suite `1004 / 1004` (29.105s), focused `160 / 160`, new regressions `11 / 11`, import/topology `22 / 22`, docs `2 / 2`.
 Runtime domain audit passes (`84` reviewed literals); pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -80,9 +80,9 @@ Runtime domain audit passes (`84` reviewed literals); pycompile and `git diff --
 
 ## Read-only saved-case replay
 
-`src.ops.replay_runtime_contract_cases` reads immutable results without creating
-a provider, vector store, agent, or benchmark runner. All three catalog
-identities verify and input SHA-256 values remain unchanged.
+`src.ops.replay_runtime_contract_cases` reads immutable results without providers or store writes.
+The following exact-ID receipts predate filing-qualified identity; they are historical evidence,
+not current-ID compatibility. Current exact replay still rejects a mismatched catalog; inputs are unchanged.
 
 | Case | Provider-free result | Claim limit |
 | --- | --- | --- |
@@ -92,7 +92,7 @@ identities verify and input SHA-256 values remain unchanged.
 
 The modified programs are counterfactual validator/executor/display tests, not
 new LLM or release evidence. The successor also verifies T2 operand metadata.
-The generic exact-trace audit passes all 9 current-schema variants, skips 2 old
+The predecessor generic exact-trace audit passed 9 then-current-schema variants, skipped 2 old
 schemas, and covers only 3 questions; reversed inputs produce byte-identical
 receipts (`9901c8fc...e9180`) with no provider/compiler/store activity.
 
@@ -104,14 +104,14 @@ outside the three-question exact-trace inventory:
 Raw values, source excerpts, receipt/row/table provenance, owner visibility, and
 programs go through the real normalizer, validator, `CompilationEnvelopeV2`, and executor.
 
-All 5/5 pass with byte-identical receipts (`fc530335...304f`) and zero provider,
+The saved 5/5 receipt (`fc530335...304f`) had zero provider,
 compiler, retrieval, or store-write calls. Four cases project historical
 filing-linked selections; Celltrion uses manually verified dataset filing evidence.
 This proves downstream contracts, not exact candidate replay or fresh compiler choices.
 
 ## Provider status and next gate
 
-The source-consistent release gate remains `3 / 3 PASS`; immutable T3/Samsung
+The historical source-consistent release gate reached `3 / 3 PASS`; immutable T3/Samsung
 artifacts and the one approved `HYU_T2_010` run provide its evidence. T2 selected
 `87.0만 대`, `78.1만 대`, and source display `11.5%`, retaining `11.4%` as the
 labelled recalculation. Both obligations completed with runtime error `0`, ledger
@@ -143,7 +143,7 @@ Successor `03f03d99...237e` ran once on clean `5fe3a5f`: required-output complet
 LG completes 3/3 outputs, preserving original bindings/assertion: precise profit minus approximate 6,769억원 = 1,486,334,000,000원. Numeric FAIL remains: no atomic accepted source/scope/precision variant; do not treat it as a transport or arithmetic failure.
 NAV completes 2/2 outputs without retry: same-row 당기/전기 resolve to 2023/2022, calculation 41.39574110852439%, source display 41.4%. Its new narrative only describes Poshmark service positioning, not acquisition performance; heuristic completeness 0.625, judges unmeasured. An out-of-island missing-ID diagnostic remains in attempt history, not final validation.
 Socket-blocked exact replay 2/2; runtime/input/store hashes unchanged. Review SHA `66d5b927...a051`. Approval exhausted; no runtime/evaluator/dataset edit or paid rerun. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
-Source-context/query-spelling repair is implemented: preserve non-table body slices, bounded exact adjacent-row text/provenance and question-written bilingual names; existing factor scores/caps/cell IDs stay intact. Provider-free successor exposes both precise LG 676,874백만원 cells and NAV's acquisition-performance evidence. Original-order physical IDs remain; newly restored prose adds catalog entries. No fresh planner/compiler or quality-pass claim, inputs unchanged. Reversed NAV sources expose a pre-existing cross-report table-ID collision, also reproduced with the new paths disabled; new context cannot merge across report scope. Next: repair that identity boundary before paid admission, separately from LG evaluator source/scope and `공시금액` period governance. Report: `benchmarks/results/source_context_preservation_2026-09-07/README.md`.
+Source-context/query-spelling and filing-identity repairs now preserve precise LG components and NAV acquisition-performance evidence, separating receipt-local tables before dedupe. Raw table/row/cell IDs remain alongside qualified provenance in prompt/execution evidence. Socket-blocked successor: LG 567 candidates/537 physical cells; NAV 345 → 462 candidates, 218 → 331 physical cells. Every predecessor cell value/period/unit remains; no cross-filing row bundle exists. Catalog contents/fingerprints, owner IDs and prompts match under source reversal and retrieved/seed swap. Numeric/narrative visibility stays 4/3 and 10/6; caps 96/32, provider/store writes 0, 11 input hashes unchanged. New table IDs intentionally differ; old exact-ID receipts are not silently migrated. No fresh compiler or quality-pass claim. Receipt SHA `cbcb383a...3920`; report: `benchmarks/results/filing_table_identity_2026-09-07/README.md`. Next: inspect LG period/source contract versus evaluator governance before paid admission; `공시금액` and source/scope constraints remain unresolved, not relaxed.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

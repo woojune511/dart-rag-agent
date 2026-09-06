@@ -820,7 +820,8 @@ def _semantic_catalog_context_fingerprint(
     )[0]
     parts = [
         str(
-            metadata.get("table_source_id")
+            metadata.get("physical_table_id")
+            or metadata.get("table_source_id")
             or metadata.get("source_table_id")
             or metadata.get("table_id")
             or source_root
@@ -983,12 +984,30 @@ def _legacy_table_material(
     return material
 
 
-def _physical_table_id(
+def _source_document_id(metadata: Mapping[str, Any]) -> str:
+    """Use explicit document provenance, never a company/year as a receipt."""
+
+    for key in ("rcept_no", "document_id"):
+        value = str(metadata.get(key) or "").strip()
+        if value and value != "unknown":
+            return f"{key}:{value}"
+    return str(metadata.get("source_document_id") or "").strip()
+
+
+def _table_identity_metadata(
     metadata: Mapping[str, Any],
     table_object: Mapping[str, Any],
     rows: Sequence[Mapping[str, Any]],
     values: Sequence[Mapping[str, Any]],
-) -> str:
+    text: str,
+) -> Dict[str, str]:
+    """Qualify report-local parser IDs before any row/cell deduplication.
+
+    Legacy sources without document identity use available report scope and
+    table content. Indistinguishable anonymous copies remain indistinguishable;
+    chunk IDs and retrieval population never pretend to establish filing identity.
+    """
+
     explicit = _normalise_spaces(
         str(
             metadata.get("table_source_id")
@@ -998,9 +1017,29 @@ def _physical_table_id(
             or ""
         )
     )
-    if explicit:
-        return explicit
-    return f"legacy_table_{_stable_material_digest(_legacy_table_material(rows, values))}"
+    document_id = _source_document_id(metadata)
+    material = []
+    if not explicit or not document_id:
+        material = _legacy_table_material(rows, values) if rows or values else [
+            _normalise_spaces(line) for line in str(text or "").splitlines()
+            if _normalise_spaces(line) and "|" in line
+        ]
+        material = sorted(material, key=lambda item: json.dumps(item, sort_keys=True, ensure_ascii=False))
+    local_table_id = explicit or f"legacy_table_{_stable_material_digest(material)}"
+    identity: Dict[str, Any] = {
+        "source_document_id": document_id, "table_source_id": local_table_id,
+    }
+    if not document_id:
+        identity["legacy_report_scope"] = {
+            key: _normalise_spaces(str(metadata.get(key) or ""))
+            for key in ("company", "corp_code", "year", "report_type")
+        }
+        identity["legacy_table_content"] = material
+    return {
+        "table_source_id": local_table_id,
+        "physical_table_id": f"physical_table_v1_{_stable_material_digest(identity)}",
+        "source_document_id": document_id,
+    }
 
 
 def _physical_row_identity(
@@ -1532,7 +1571,8 @@ def _structured_source_candidates(
 
     base_metadata = dict(metadata or {})
     table_object, rows, value_records = _table_record_bundle(base_metadata)
-    table_id = _physical_table_id(base_metadata, table_object, rows, value_records)
+    table_identity = _table_identity_metadata(base_metadata, table_object, rows, value_records, text)
+    table_id = table_identity["physical_table_id"]
     origin_source_id = str(candidate_id_prefix or "").split("::", 1)[0].strip()
     projection_metadata = {
         key: value
@@ -1546,8 +1586,7 @@ def _structured_source_candidates(
     }
     projection_metadata.update(
         {
-            "table_source_id": table_id,
-            "physical_table_id": table_id,
+            **table_identity,
             "origin_source_id": origin_source_id,
         }
     )
@@ -1841,14 +1880,6 @@ def _structured_source_candidates(
         for line in str(text or "").splitlines()
         if _normalise_spaces(line) and "|" in line
     ]
-    if not (
-        base_metadata.get("table_source_id")
-        or base_metadata.get("source_table_id")
-        or base_metadata.get("table_id")
-    ) and pipe_rows:
-        table_id = f"legacy_table_{_stable_material_digest(pipe_rows)}"
-        projection_metadata["table_source_id"] = table_id
-        projection_metadata["physical_table_id"] = table_id
     for index, row_text in enumerate(pipe_rows):
         row_label = _normalise_spaces(row_text.split("|", 1)[0])
         cells = parse_unstructured_table_row_cells(row_text, base_metadata)
@@ -2003,13 +2034,12 @@ def build_semantic_source_candidates(
             candidates.extend(_preserved_prose_sources(
                 text=text, source_id=candidate_id, source_anchor=anchor, metadata=metadata,
             ))
-            table_object, rows, value_records = _table_record_bundle(metadata)
-            table_id = _physical_table_id(
-                metadata,
-                table_object,
-                rows,
-                value_records,
-            )
+            table_object, _rows, _value_records = _table_record_bundle(metadata)
+            table_identity = {
+                key: projected_candidates[0]["metadata"][key]
+                for key in ("table_source_id", "physical_table_id", "source_document_id")
+            }
+            table_id = table_identity["physical_table_id"]
             context_text = _table_context_text(metadata, table_object)
             context_id = (
                 f"table_{_stable_material_digest(table_id)}::context"
@@ -2028,8 +2058,7 @@ def build_semantic_source_candidates(
                 }
                 context_metadata.update(
                     {
-                        "table_source_id": table_id,
-                        "physical_table_id": table_id,
+                        **table_identity,
                         "origin_source_id": candidate_id,
                     }
                 )
@@ -2202,8 +2231,7 @@ def build_semantic_candidate_catalog(
             "source_row_id": source_row_id,
             "table_source_id": _normalise_spaces(
                 str(
-                    metadata.get("physical_table_id")
-                    or metadata.get("table_source_id")
+                    metadata.get("table_source_id")
                     or metadata.get("source_table_id")
                     or metadata.get("table_id")
                     or ""
@@ -2241,6 +2269,9 @@ def build_semantic_candidate_catalog(
         }
         if metadata.get("source_context_provenance"):
             base_record["source_context_provenance"] = dict(metadata["source_context_provenance"])
+        document_id = _source_document_id(metadata)
+        if document_id:
+            base_record["source_document_id"] = document_id
         if metadata.get("row_context_text"):
             row_context = str(metadata["row_context_text"])
             base_record.update({

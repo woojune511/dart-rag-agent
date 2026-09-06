@@ -1458,6 +1458,8 @@ class FinancialAgentCalculationMixin:
                 "statement_type": str(item.get("statement_type") or ""),
                 "table_context": str(item.get("table_context") or "")[:160],
                 "table_source_id": str(item.get("table_source_id") or ""),
+                **({"source_document_id": item["source_document_id"]}
+                   if item.get("source_document_id") else {}),
                 "physical_table_id": str(item.get("physical_table_id") or ""),
                 "physical_row_id": str(item.get("physical_row_id") or ""),
                 "physical_cell_id": str(item.get("physical_cell_id") or ""),
@@ -1633,6 +1635,8 @@ class FinancialAgentCalculationMixin:
                             "company", "year", "value_year", "period",
                             "consolidation_scope", "consolidation_scope_source", "segment",
                             "basis", "table_source_id", "statement_type", "context_fingerprint",
+                            "source_document_id", "physical_table_id", "physical_row_id",
+                            "physical_cell_id", "physical_value_id", "physical_cell_key",
                         )
                         if candidate.get(key) not in (None, "")
                     },

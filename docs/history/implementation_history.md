@@ -12670,3 +12670,26 @@ are complete. It remains only as an audit record, not an active priority.
   676,874백만원. Precision-aware source selection remains separate. All successor
   artifacts stay ignored under `relative_period_context_repair_2026-09-07`;
   fresh provider validation requires a new manifest/cost approval.
+
+## Filing-qualified physical table identity (2026-09-07)
+
+- Baseline `6ed51fd`. Parser-local table IDs collided across filings before row/cell
+  deduplication. Synthetic regressions reproduced four source cells becoming two,
+  including distinct receipts for the same company/year and identical values.
+- New physical IDs bind explicit receipt/document provenance plus the raw table ID.
+  Anonymous legacy tables use available report scope and table content; indistinguishable
+  anonymous copies do not prove distinct filings. Parser and stored formats are unchanged.
+- Raw IDs remain beside qualified provenance in bundles, prompt, operands and evidence.
+  Scope witnesses cannot bridge known different filings through a shared local ID/anchor.
+  Candidate hashing is unchanged but new table identity inputs produce new IDs; historical
+  programs/catalogs are not remapped and exact replay still rejects identity mismatches.
+- Python 3.13.13: new regressions 11/11, focused 160/160, full suite 1004/1004 in
+  29.105s, domain audit 84, import/topology 22/22, docs 2/2, pycompile and diff checks pass.
+- Two socket-blocked successor projection processes produced identical receipts
+  (`cbcb383a...3920`). All predecessor LG/NAV cell values/periods/units survive;
+  NAV gains 113 formerly collapsed cells. Reversing or swapping retrieved/seed inputs
+  preserves catalog contents/fingerprints, owner IDs and payloads, with no mixed-filing rows.
+- Provider/store writes 0; 11 watched result/store/dataset/predecessor hashes unchanged.
+  Ignored artifacts: `benchmarks/results/filing_table_identity_2026-09-07/`.
+  This verifies source projection, not new compiler choices or quality acceptance.
+  LG period/source interpretation versus evaluator governance remains separate pending work.

@@ -7,10 +7,10 @@ Last updated: 2026-09-07
 - Product: single-agent `FinancialAgent`.
 - Working branch: `codex/reviewed-compiler-selection-gate`; compiler-gate
   baseline `e9a5be0`. Repair baseline: `5e13bc6`; dependency fix: `af9a07e`.
-- Unit/retry, compiler, persistence/API, final-state, relative periods, source-context
-  preservation and query-written bilingual subject repairs are implemented. Git is the chronology.
-- HTTP shape, `FinancialRunResultV1`, candidate identity/catalog fingerprint
-  inputs, parser table identity, and storage formats remain unchanged.
+- Unit/retry, compiler, persistence/API, final-state, relative periods, source-context,
+  query spellings and filing-qualified table identity are implemented. Git is the chronology.
+- HTTP shape, `FinancialRunResultV1`, parser/store formats and ID/fingerprint hashing stay intact;
+  new table candidate IDs use filing-qualified physical identity. Historical IDs are not rewritten.
 - Historical results, datasets, stores, caches, and review packets are immutable.
   New local replay/gate outputs remain ignored and uncommitted.
 
@@ -50,7 +50,7 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
   projection unchanged.
 - Annual cell-relative periods override generic roles/table focus; ambiguous or
   unanchored labels stay unknown. Bound formulas may span scope-compatible sources;
-  coupling/physical-row contracts and IDs remain unchanged; assertion coverage has stable owner order.
+  coupling/physical-row contracts remain enforced; assertion coverage has stable owner order.
 - Source writes publish payload union then graph atomically and memory last.
   Incomplete stores block queries but allow recovery ingest. Missing sidecars
   reuse stored text/parser metadata without context generation or embedding.
@@ -70,7 +70,7 @@ The verification interpreter is Python 3.13.13. Full discovery, domain audit,
 import/topology, pycompile, and diff results are recorded in project status.
 Nine synthetic comparison contrasts cover signed/magnitude changes, sign transitions,
 and explicit abstentions. Their rehearsals do not establish fresh model accuracy.
-Provider-free replay verifies all three saved catalog identities and unchanged
+Predecessor provider-free replay verified three saved catalog identities and unchanged
 input-file hashes:
 
 - T2: explicit source-display copy renders `11.5% (재계산값 11.4%)`.
@@ -128,7 +128,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | LG 2023 / NAV 2022+2023 | 2,620 vectors; successor full-agent required-output completion 2/2, errors 0, ledgers ok | LG numeric-variant FAIL and NAV impact coverage remain; approval exhausted |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
-LG/NAV successor `03f03d99...237e` ran once on clean `5fe3a5f`: runtime completion 2/2, errors 0, ledgers ok; 8 Gemini + 19 OpenAI calls, one internal compiler retry; usage-estimated USD 0.17174414 < 0.40, billing unobserved. Its LG precision/provenance and NAV impact-quality failures remain immutable, judges unmeasured, approval exhausted. Source-context/query-spelling repair now retains table-attached prose and source-linked adjacent text without duplicating cells or adding scoring terms/calls. Provider-free successor exposes LG's two precise 676,874백만원 candidates and NAV's acquisition-performance evidence inside existing caps. Production-order physical candidate IDs survive; new prose changes the catalog population, not the fingerprint algorithm. No fresh model/answer-quality claim. Next: fix pre-existing cross-report table-ID collisions (2022/2023 order sensitivity) as a separate identity-contract change before another paid admission; current context merging cannot cross report scope. LG evaluator period/source constraints remain separate governance work. `benchmarks/results/source_context_preservation_2026-09-07/README.md`.
+LG/NAV successor `03f03d99...237e` ran once on `5fe3a5f`: completion 2/2, errors 0, ledgers ok; estimated USD 0.17174414, billing unobserved. LG precision/provenance and NAV impact-quality failures remain historical, approval exhausted. Source-context/query-spelling repair retains precise LG components and NAV acquisition-performance evidence. Filing-qualified identity now separates 2022/2023 tables before dedupe; raw parser IDs remain provenance, not global identity. New projections change table candidate IDs without rewriting old artifacts. Socket-blocked LG/NAV replay retains every predecessor cell value and restores 113 NAV cells; catalog contents/fingerprints, cohorts and prompts are invariant under reverse/swap of source streams. Numeric/narrative visibility stays 4/3 and 10/6 within 96/32. No new compiler/retrieval/quality claim. Old exact-ID receipts are predecessor evidence, not current-ID compatibility. Next: inspect LG period/source contract versus evaluator governance before any new paid admission. `benchmarks/results/filing_table_identity_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.
