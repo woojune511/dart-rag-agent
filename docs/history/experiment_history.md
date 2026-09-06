@@ -7938,3 +7938,29 @@ References:
   read-only review SHA `50fbc2e17aa0984ff1e15a367042ab1513ac1034d7c4ab2afeb2b79053fd1c7c`.
   Approval is exhausted. Next is a separately approved store-fixed full-agent
   admission for LG/NAV using disposable copies; Celltrion and default KB stay out of scope.
+
+## LG/NAV Store-Fixed Full-Agent Admission Preparation (2026-09-07)
+
+- On clean `70fc65f`, prepared manifest
+  `461b3d4300edbfa25fe9c0ffeb8f37ded801488d3ca3682bc3deb135c2ad84c8`
+  for `LGE_T1_051` then `NAV_T2_006`, one existing matrix-runner eval-only attempt.
+  Runtime source is unchanged. Both complete OpenAI stores match the successful
+  rebuild review; disposable copies preserve all 2,620 vectors and report inventory.
+- Configuration/report inventory is projected from legacy results, but embedding
+  identity comes exclusively from the new OpenAI manifests. Neither legacy Google
+  metadata nor old evaluation/ingest claims are carried into the new experiment.
+- Reuses KB's tested Pro compilation/evidence extraction and Flash other-phase
+  routes, 4096/1024 budgets, zero SDK retries and at most one internal island retry.
+  Search/canonical routing use OpenAI; fresh filing embedding/ingest, paid judges,
+  evaluator embedding metrics, source mutation and automatic run retry are forbidden.
+- Proposed shared cap USD 0.40; planning range USD 0.10–0.30 from earlier KB/Pro
+  usage, not measured LG/NAV request volume or billing. Official Google/OpenAI
+  rates were rechecked; the existing budget guard/self-tests are reused byte-for-byte.
+- Focused runner/routing/provider/embedding tests pass 49/49, guard tests 7/7.
+  Two network-blocked separate-process rehearsals verify company/store/question
+  dispatch and matching model controls. Receipts match at
+  `ca500b8804fd30c98706490fc96b0beab79b354d1a12f14932ac58f8d379db5f`
+  (4,554 bytes); source files remain unchanged and scripts pass pycompile.
+- No provider call, new question answer or source-store write occurred. The paid
+  target remains absent; data-transfer/budget approval is still required. Ignored
+  manifest/scripts/receipts: `benchmarks/results/reviewed_full_agent_lge_nav_admission_2026-09-07/`.
