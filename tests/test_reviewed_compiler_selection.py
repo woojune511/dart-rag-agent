@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+from contextlib import redirect_stdout
+from io import StringIO
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
 from src.ops.replay_reviewed_compiler_selection import (
+    _canonical_bytes,
+    _sha256_bytes,
     _sha256_file,
     _write_new_json,
     build_admission_manifest,
+    main,
     rehearse_admission_manifest,
     rehearse_reviewed_compiler_selection,
     run_approved_manifest,
@@ -59,7 +65,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
                 corpus_path=FIXTURE_PATH,
                 manifest_path=manifest_path,
                 result_path=result_path,
-                cost_cap_usd=0.12,
+                cost_cap_usd=0.20,
                 runtime_build=runtime_build,
             )
             self.assertEqual(manifest["execution"]["initial_compiler_calls"], 6)
@@ -68,7 +74,10 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
                 12,
             )
             self.assertEqual(manifest["provider"]["provider_client_retries"], 0)
-            self.assertEqual(manifest["provider"]["max_output_tokens"], 2048)
+            self.assertEqual(manifest["provider"]["max_output_tokens"], 4096)
+            self.assertEqual(manifest["provider"]["thinking_budget"], 1024)
+            self.assertEqual(manifest["schema"], "reviewed_compiler_selection_admission_v2")
+            self.assertGreater(manifest["pricing"]["retry_bounded_planning_estimate_usd"], 0.12)
             self.assertFalse(manifest["provider"]["credential_value_recorded"])
             self.assertEqual(manifest["inputs"]["runtime_build"], runtime_build)
             self.assertTrue(
@@ -108,7 +117,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
                 corpus_path=FIXTURE_PATH,
                 manifest_path=manifest_path,
                 result_path=result_path,
-                cost_cap_usd=0.12,
+                cost_cap_usd=0.20,
                 runtime_build=runtime_build,
             )
             _write_new_json(manifest_path, manifest)
@@ -126,6 +135,89 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
                 )
             self.assertEqual(calls, [])
             self.assertNotEqual(_sha256_file(manifest_path), "0" * 64)
+
+    def test_rehearsal_response_unavailable_and_prompt_hash_excludes_responses(self) -> None:
+        result = rehearse_reviewed_compiler_selection(FIXTURE_PATH)
+        records = [record for case in result["cases"] for record in case["prompt_records"]]
+        for record in records:
+            self.assertFalse(record["response"]["raw_response_available"])
+            self.assertIsNone(record["response"]["final_text"])
+            self.assertIsNone(record["response"]["finish_reason"])
+            self.assertIsNone(record["response"]["usage"])
+        prompts_only = [{
+            "prompt_bytes": record["prompt_bytes"],
+            "prompt_sha256": record["prompt_sha256"],
+        } for record in records]
+        self.assertEqual(result["summary"]["prompt_fingerprint"],
+                         _sha256_bytes(_canonical_bytes(prompts_only)))
+
+    def test_configurable_budgets_change_estimate_and_cannot_reuse_old_cap(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd()) as temp_dir:
+            args = {
+                "corpus_path": FIXTURE_PATH,
+                "manifest_path": Path(temp_dir) / "manifest.json",
+                "result_path": Path(temp_dir) / "result.json",
+                "runtime_build": {"algorithm": "test"},
+            }
+            with self.assertRaisesRegex(ValueError, "cost cap"):
+                build_admission_manifest(**args, cost_cap_usd=0.12)
+            smaller = build_admission_manifest(
+                **args, cost_cap_usd=0.12, max_output_tokens=2048, thinking_budget=512,
+            )
+            larger = build_admission_manifest(**args, cost_cap_usd=0.20)
+            # The total output cap includes thinking; do not add it a second time.
+            self.assertAlmostEqual(
+                larger["pricing"]["retry_bounded_planning_estimate_usd"]
+                - smaller["pricing"]["retry_bounded_planning_estimate_usd"],
+                12 * 2048 / 1_000_000 * 2.5,
+            )
+            self.assertGreater(larger["pricing"]["likely_estimate_usd"],
+                               smaller["pricing"]["likely_estimate_usd"])
+            self.assertEqual(smaller["provider"]["max_output_tokens"], 2048)
+            self.assertEqual(smaller["provider"]["thinking_budget"], 512)
+
+    def test_missing_budget_stops_before_provider_factory(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd()) as temp_dir:
+            manifest_path = Path(temp_dir) / "manifest.json"
+            _write_new_json(manifest_path, {
+                "schema": "reviewed_compiler_selection_admission_v2",
+                "provider": {"max_output_tokens": 4096},
+            })
+            with patch("src.ops.replay_reviewed_compiler_selection._create_google_compiler") as factory:
+                with self.assertRaisesRegex(ValueError, "thinking_budget"):
+                    run_approved_manifest(
+                        manifest_path, approved_manifest_sha256=_sha256_file(manifest_path),
+                    )
+                factory.assert_not_called()
+
+    def test_invalid_budget_fails_before_rehearsal(self) -> None:
+        for output, thinking in ((0, 0), (4096, -1), (4096, 4096), (True, 0), (4096, 1.5)):
+            with self.subTest(output=output, thinking=thinking):
+                with patch("src.ops.replay_reviewed_compiler_selection.rehearse_reviewed_compiler_selection") as rehearsal:
+                    with self.assertRaisesRegex(ValueError, "token|budget"):
+                        build_admission_manifest(
+                            corpus_path=FIXTURE_PATH, manifest_path=Path("unused.json"),
+                            result_path=Path("unused-result.json"), cost_cap_usd=0.20,
+                            max_output_tokens=output, thinking_budget=thinking,
+                        )
+                    rehearsal.assert_not_called()
+
+    def test_prepare_cli_binds_explicit_zero_thinking_budget(self) -> None:
+        with TemporaryDirectory(dir=Path.cwd()) as temp_dir:
+            manifest_path = Path(temp_dir) / "manifest.json"
+            with patch("src.ops.replay_reviewed_compiler_selection._tracked_runtime_build",
+                       return_value={"algorithm": "test"}), redirect_stdout(StringIO()):
+                status = main([
+                    "prepare", "--corpus", str(FIXTURE_PATH),
+                    "--manifest", str(manifest_path),
+                    "--result", str(Path(temp_dir) / "result.json"),
+                    "--cost-cap-usd", "0.12", "--max-output-tokens", "2048",
+                    "--thinking-budget", "0",
+                ])
+            self.assertEqual(status, 0)
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            self.assertEqual(manifest["provider"]["max_output_tokens"], 2048)
+            self.assertEqual(manifest["provider"]["thinking_budget"], 0)
 
 
 if __name__ == "__main__":

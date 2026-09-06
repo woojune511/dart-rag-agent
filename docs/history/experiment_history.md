@@ -7604,3 +7604,10 @@ References:
 - Immutable ignored result:
   `benchmarks/results/reviewed_compiler_sign_interpretation_successor_2026-09-06/result.json`
   (SHA-256 `f9edebb2bfe273f0666d2e2e6be7c5be986f29f01bc73bea8ce7d855a2654679`).
+- Subsequent provider-free SDK inspection showed that LangChain's old recorded
+  output count includes thinking; the missing split cannot be reconstructed from
+  this artifact. Partial-JSON repair and genuinely absent fields can yield the
+  same parser exception, so token exhaustion remains a hypothesis. The v2 runner
+  now preserves pre-parser final text, finish reasons, and disjoint usage, and
+  binds explicit output/thinking budgets. No historical bytes were rewritten and
+  no additional provider run was made.

@@ -38,16 +38,20 @@ from src.ops.replay_reviewed_runtime_corpus import (
     _output_matches,
 )
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
-from src.utils.gemini_usage_counts import estimate_gemini_cost_usd
+from src.utils.gemini_usage_counts import (
+    estimate_gemini_cost_usd,
+    extract_gemini_usage_counts,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ADMISSION_SCHEMA_VERSION = "reviewed_compiler_selection_admission_v1"
-REHEARSAL_SCHEMA_VERSION = "reviewed_compiler_selection_rehearsal_v1"
-RESULT_SCHEMA_VERSION = "reviewed_compiler_selection_result_v1"
+ADMISSION_SCHEMA_VERSION = "reviewed_compiler_selection_admission_v2"
+REHEARSAL_SCHEMA_VERSION = "reviewed_compiler_selection_rehearsal_v2"
+RESULT_SCHEMA_VERSION = "reviewed_compiler_selection_result_v2"
 DEFAULT_PROVIDER = "google"
 DEFAULT_MODEL = "gemini-2.5-flash"
-DEFAULT_MAX_OUTPUT_TOKENS = 2048
+DEFAULT_MAX_OUTPUT_TOKENS = 4096
+DEFAULT_THINKING_BUDGET = 1024
 OFFICIAL_STANDARD_PRICING = {
     "input_per_million_tokens_usd": 0.30,
     "output_per_million_tokens_usd": 2.50,
@@ -108,6 +112,19 @@ def _prompt_bytes(prompt: Any) -> bytes:
     return _canonical_bytes(projection)
 
 
+def _final_response_text(raw: Any) -> str:
+    """Keep only final text, never thought blocks, signatures, or SDK metadata."""
+    content = getattr(raw, "content", "")
+    if isinstance(content, str):
+        return content
+    return "".join(
+        block if isinstance(block, str) else str(block.get("text") or "")
+        for block in content or []
+        if isinstance(block, str)
+        or (isinstance(block, Mapping) and block.get("type") == "text")
+    )
+
+
 class _RecordingStructuredInvoker:
     def __init__(self, delegate: Any, records: list[dict[str, Any]]) -> None:
         self._delegate = delegate
@@ -115,13 +132,44 @@ class _RecordingStructuredInvoker:
 
     def invoke(self, prompt: Any) -> Any:
         payload = _prompt_bytes(prompt)
-        self._records.append(
-            {
-                "prompt_bytes": len(payload),
-                "prompt_sha256": _sha256_bytes(payload),
+        record: dict[str, Any] = {
+            "prompt_bytes": len(payload),
+            "prompt_sha256": _sha256_bytes(payload),
+            "response": {
+                "raw_response_available": False,
+                "capture_source": "langchain_ai_message_before_parser",
+                "final_text": None,
+                "finish_reason": None,
+                "usage": None,
+                "parsing_error": None,
+            },
+        }
+        self._records.append(record)
+        try:
+            result = self._delegate.invoke(prompt)
+        except Exception as error:
+            # Transport errors can contain URLs/headers. Keep only their class;
+            # parser errors below are restricted to the final structured output.
+            record["invocation_error_type"] = type(error).__name__
+            raise
+        raw = result["raw"]
+        parsing_error = result["parsing_error"]
+        response = record["response"]
+        if raw is not None:
+            response.update({
+                "raw_response_available": True,
+                "final_text": _final_response_text(raw),
+                "finish_reason": raw.response_metadata.get("finish_reason"),
+                "usage": extract_gemini_usage_counts(raw),
+            })
+        if parsing_error is not None:
+            response["parsing_error"] = {
+                "type": type(parsing_error).__name__,
+                "message": str(parsing_error),
             }
-        )
-        return self._delegate.invoke(prompt)
+            # Preserve the compiler's existing single-island retry behavior.
+            raise parsing_error
+        return result["parsed"]
 
 
 class _RecordingLLM:
@@ -131,7 +179,7 @@ class _RecordingLLM:
 
     def with_structured_output(self, model: Any) -> _RecordingStructuredInvoker:
         return _RecordingStructuredInvoker(
-            self._delegate.with_structured_output(model),
+            self._delegate.with_structured_output(model, include_raw=True),
             self.records,
         )
 
@@ -143,14 +191,16 @@ class _ReviewedProgramQueue:
         self._responses = list(responses)
         self.requested_models: list[str] = []
 
-    def with_structured_output(self, model: Any) -> "_ReviewedProgramQueue":
+    def with_structured_output(self, model: Any, *, include_raw: bool) -> "_ReviewedProgramQueue":
+        if not include_raw:
+            raise AssertionError("rehearsal must exercise the raw-response adapter")
         self.requested_models.append(str(getattr(model, "__name__", "")))
         return self
 
-    def invoke(self, _prompt: Any) -> SemanticCalculationProgram:
+    def invoke(self, _prompt: Any) -> dict[str, Any]:
         if not self._responses:
             raise AssertionError("unexpected reviewed compiler rehearsal invocation")
-        return self._responses.pop(0)
+        return {"raw": None, "parsed": self._responses.pop(0), "parsing_error": None}
 
     @property
     def remaining_response_count(self) -> int:
@@ -475,7 +525,10 @@ def evaluate_reviewed_compiler_selection(
             ),
             "prompt_bytes": prompt_bytes,
             "prompt_fingerprint": _sha256_bytes(
-                _canonical_bytes(recording_llm.records)
+                _canonical_bytes([
+                    {key: record[key] for key in ("prompt_bytes", "prompt_sha256")}
+                    for record in recording_llm.records
+                ])
             ),
         },
         "cases": results,
@@ -540,14 +593,24 @@ def _tracked_runtime_build() -> dict[str, Any]:
     }
 
 
+def _validate_token_budgets(max_output_tokens: Any, thinking_budget: Any) -> None:
+    if type(max_output_tokens) is not int or max_output_tokens <= 0:
+        raise ValueError("max_output_tokens must be a positive integer")
+    if type(thinking_budget) is not int or not 0 <= thinking_budget < max_output_tokens:
+        raise ValueError("thinking_budget must be explicit, non-negative, and below max_output_tokens")
+
+
 def build_admission_manifest(
     *,
     corpus_path: Path,
     manifest_path: Path,
     result_path: Path,
     cost_cap_usd: float,
+    max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
+    thinking_budget: int = DEFAULT_THINKING_BUDGET,
     runtime_build: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
+    _validate_token_budgets(max_output_tokens, thinking_budget)
     corpus_abs = Path(corpus_path).resolve()
     corpus = _load_corpus(corpus_abs)
     rehearsal = rehearse_reviewed_compiler_selection(corpus_abs)
@@ -569,6 +632,10 @@ def build_admission_manifest(
         + likely_output_tokens
         / 1_000_000
         * OFFICIAL_STANDARD_PRICING["output_per_million_tokens_usd"]
+        + initial_calls
+        * thinking_budget
+        / 1_000_000
+        * OFFICIAL_STANDARD_PRICING["thinking_per_million_tokens_usd"]
     )
     retry_bounded_planning_cost = (
         likely_input_tokens
@@ -576,7 +643,7 @@ def build_admission_manifest(
         / 1_000_000
         * OFFICIAL_STANDARD_PRICING["input_per_million_tokens_usd"]
         + maximum_calls
-        * DEFAULT_MAX_OUTPUT_TOKENS
+        * max_output_tokens
         / 1_000_000
         * OFFICIAL_STANDARD_PRICING["output_per_million_tokens_usd"]
     )
@@ -632,9 +699,16 @@ def build_admission_manifest(
             "name": DEFAULT_PROVIDER,
             "model": DEFAULT_MODEL,
             "temperature": 0,
-            "max_output_tokens": DEFAULT_MAX_OUTPUT_TOKENS,
+            "max_output_tokens": max_output_tokens,
+            "thinking_budget": thinking_budget,
+            "token_budget_semantics": (
+                "max_output_tokens includes final text and thinking; thinking_budget "
+                "is guidance, not a guaranteed reservation for either component"
+            ),
             "provider_client_retries": 0,
             "structured_output": "SemanticCalculationProgram",
+            "response_capture": "final_text_finish_reason_usage_and_parsing_error",
+            "thought_content_recorded": False,
             "required_credential_name": "GOOGLE_API_KEY",
             "credential_present": bool(
                 os.environ.get("GOOGLE_API_KEY") or dotenv.get("GOOGLE_API_KEY")
@@ -647,9 +721,10 @@ def build_admission_manifest(
             "likely_estimate_usd": likely_cost,
             "retry_bounded_planning_estimate_usd": retry_bounded_planning_cost,
             "estimate_method": (
-                "likely uses rehearsal UTF-8 bytes divided by three; retry-bounded "
+                "likely uses rehearsal UTF-8 bytes divided by three plus each initial "
+                "call's thinking budget; retry-bounded "
                 "planning doubles likely input and prices every allowed call at "
-                "the configured output-token maximum"
+                "the configured inclusive output-token maximum (thinking not added twice)"
             ),
             "rehearsal_prompt_bytes": prompt_bytes,
             "rehearsal_reviewed_output_bytes": reviewed_output_bytes,
@@ -727,6 +802,8 @@ def _verify_manifest(
     manifest = json.loads(manifest_bytes.decode("utf-8"))
     if manifest.get("schema") != ADMISSION_SCHEMA_VERSION:
         raise ValueError("unsupported compiler selection admission schema")
+    provider = dict(manifest.get("provider") or {})
+    _validate_token_budgets(provider.get("max_output_tokens"), provider.get("thinking_budget"))
     corpus_info = dict(dict(manifest.get("inputs") or {}).get("corpus") or {})
     corpus_path = PROJECT_ROOT / str(corpus_info.get("path") or "")
     if _sha256_file(corpus_path) != str(corpus_info.get("sha256") or ""):
@@ -801,7 +878,9 @@ def run_approved_manifest(
         usage_callback=callback,
         stop_on_case_failure=True,
     )
-    usage = callback.snapshot_current_thread()
+    # include_raw runs the model in LangChain's RunnableParallel worker. This
+    # callback belongs only to this run; its global snapshot includes that worker.
+    usage = callback.snapshot_global()
     result["schema_version"] = RESULT_SCHEMA_VERSION
     result["manifest_sha256"] = manifest_sha256
     result["provider_network_calls"] = int(usage.get("api_calls") or 0)
@@ -820,6 +899,7 @@ def _create_google_compiler(
     provider_spec: Mapping[str, Any],
     callback: GeminiUsageCallbackHandler,
 ) -> Any:
+    _validate_token_budgets(provider_spec.get("max_output_tokens"), provider_spec.get("thinking_budget"))
     dotenv = {
         key: str(value)
         for key, value in dotenv_values(PROJECT_ROOT / ".env").items()
@@ -835,9 +915,9 @@ def _create_google_compiler(
     return ChatGoogleGenerativeAI(
         model=str(provider_spec.get("model") or DEFAULT_MODEL),
         temperature=float(provider_spec.get("temperature") or 0),
-        max_tokens=int(
-            provider_spec.get("max_output_tokens") or DEFAULT_MAX_OUTPUT_TOKENS
-        ),
+        max_tokens=provider_spec["max_output_tokens"],
+        thinking_budget=provider_spec["thinking_budget"],
+        include_thoughts=False,
         retries=int(provider_spec.get("provider_client_retries") or 0),
         google_api_key=api_key,
         callbacks=[callback],
@@ -853,6 +933,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     prepare.add_argument("--manifest", type=Path, required=True)
     prepare.add_argument("--result", type=Path, required=True)
     prepare.add_argument("--cost-cap-usd", type=float, required=True)
+    prepare.add_argument("--max-output-tokens", type=int, default=DEFAULT_MAX_OUTPUT_TOKENS)
+    prepare.add_argument("--thinking-budget", type=int, default=DEFAULT_THINKING_BUDGET)
 
     rehearse = subparsers.add_parser("rehearse")
     rehearse.add_argument("--manifest", type=Path, required=True)
@@ -872,6 +954,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             manifest_path=args.manifest,
             result_path=args.result,
             cost_cap_usd=args.cost_cap_usd,
+            max_output_tokens=args.max_output_tokens,
+            thinking_budget=args.thinking_budget,
         )
         _write_new_json(args.manifest, manifest)
         print(

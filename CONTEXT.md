@@ -78,19 +78,13 @@ T2 and Samsung are explicitly counterfactual runtime-contract tests. That replay
 itself made no compiler/provider/evaluator call and is not a release claim.
 Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
 
-The 2026-09-06 provider-free successor replay keeps all three cases passing and
-restores T2's 2023/2022 formula-input metadata. Its deterministic evaluator
-projection changes operand selection from `0.0` to `1.0` without changing the
-selected IDs, formula, answer, dataset, or evaluator. The ignored receipt is
-`benchmarks/results/semantic_operand_trace_metadata_2026-09-06/runtime_contract_replay.json`.
+The successor replay retains all three cases and T2 operand metadata. Its
+deterministic evaluator projection changes operand selection from `0.0` to `1.0`
+without changing selected IDs, formula, answer, dataset, or evaluator.
 
-The generic exact saved-trace audit now replays every current-schema semantic
-program found in the v6-v9 result inventory through the current catalog,
-visibility, validator, envelope, and executor contracts. It passes 9/9 variants
-(`6 ready/ok`, `3 partial/partial`), skips 2 schema-old programs without
-migration, and covers 3 unique questions. Reverse-order receipts are
-byte-identical at `9901c8fc...e9180`; this is not new compiler/provider evidence.
-Ignored receipt: `benchmarks/results/exact_saved_runtime_trace_replay_2026-09-06/replay_final.json`.
+Exact saved-trace replay: `9/9` (`6 ready/ok`, `3 partial/partial`), 3 questions,
+2 old schemas skipped; reversed receipts match (`9901c8fc...e9180`), without new
+compiler/provider evidence. Receipt: `benchmarks/results/exact_saved_runtime_trace_replay_2026-09-06/replay_final.json`.
 
 A separate reviewed-fixture corpus adds five distinct real questions outside
 that three-question inventory: `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
@@ -143,8 +137,14 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    No T2 output was executable, so sign-selection improvement is unmeasured.
    LGE/NAVER/Celltrion were not called. Usage: 3 calls / 29,147 tokens, estimated
    USD `0.0216669`; result SHA `f9edebb2...4679`. No retrieval/embedding/store work.
-   Token exhaustion is plausible, not proven: per-call raw output and finish
-   reasons are not recorded. Inspect output-budget/response capture provider-free
-   before proposing a successor; this approval is exhausted. History has details.
+   Token exhaustion remains unproven because that artifact lacks per-call output
+   and finish reasons; its old output field does not separate thinking tokens.
+10. Compiler-gate v2 now records pre-parser final AIMessage text, finish reason,
+    parsing error, and disjoint answer/thinking/cache counts for every response.
+    No thought text/signatures or credentials are recorded. Defaults are explicit
+    total output `4096` / thinking budget `1024`, configurable and manifest-bound;
+    costs include thinking once. The existing island retry limit is unchanged.
+    Local tests pass; no new provider call was made. Prepare a new manifest and
+    seek separate cost/transmission approval before any successor run.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

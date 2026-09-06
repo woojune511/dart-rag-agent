@@ -52,10 +52,10 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13.13 is the verification interpreter. Current focused gates pass:
-semantic `174 / 174`, import/topology `22 / 22`, and reviewed replay/rehearsal
-`6 / 6`. Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Full unittest discovery passes `901 / 901`.
+Python 3.13.13 is the verification interpreter. Focused usage/response-capture/
+reviewed replay gates pass `25 / 25`; import/topology passes `22 / 22`.
+Runtime domain audit passes with `84` reviewed literals; pycompile and
+`git diff --check` also pass. Full unittest discovery passes `915 / 915`.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -69,6 +69,10 @@ semantic `174 / 174`, import/topology `22 / 22`, and reviewed replay/rehearsal
   differing conventions across sign transitions, and zero denominators versus
   valid absolute differences. Stubbed compiler choices test prompt wiring and
   execution only; no provider improvement is established by these tests.
+- Installed Gemini/LangChain adapters run with a fake client and external sockets
+  blocked. Tests distinguish `MAX_TOKENS` from `STOP`/missing fields, preserve
+  successful and failed responses across retry, exclude private metadata, and
+  verify worker-thread token totals without making a provider request.
 
 New local outputs under `benchmarks/results/` are not committed.
 
@@ -92,22 +96,16 @@ receipts (`9901c8fc...e9180`) with no provider/compiler/store activity.
 
 ## Reviewed provider-free corpus
 
-`tests/fixtures/reviewed_runtime_replay_corpus_v1.json` adds five distinct real
-questions not present in the exact current-schema trace inventory:
+`tests/fixtures/reviewed_runtime_replay_corpus_v1.json` adds five reviewed questions
+outside the three-question exact-trace inventory:
 `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`, `NAV_T2_006`, and `CEL_T1_013`.
-The fixture preserves reviewed raw values, source excerpts, receipt/row/table
-provenance, owner visibility, and current structured programs. The replay uses
-the real unit normalizer and then the current validator,
-`CompilationEnvelopeV2`, and executor.
+Raw values, source excerpts, receipt/row/table provenance, owner visibility, and
+programs go through the real normalizer, validator, `CompilationEnvelopeV2`, and executor.
 
-All 5/5 cases pass. Two independently written receipts have the same SHA-256,
-`fc5303358b0236675f2a3aca1444b010e18e97444968160127d652900a47304f`.
-There are zero provider, compiler, retrieval, or store-write calls. Four cases
-project historical filing-linked runtime selections into compact reviewed
-fixtures; the Celltrion case uses the manually verified curated-dataset filing
-evidence. Therefore this is downstream contract and numeric generalization
-evidence, not exact candidate-catalog replay and not evidence that a fresh
-compiler will select the same sources.
+All 5/5 pass with byte-identical receipts (`fc530335...304f`) and zero provider,
+compiler, retrieval, or store-write calls. Four cases project historical
+filing-linked selections; Celltrion uses manually verified dataset filing evidence.
+This proves downstream contracts, not exact candidate replay or fresh compiler choices.
 
 ## Provider status and next gate
 
@@ -129,12 +127,19 @@ It produced no executable T2 output. LGE/NAVER/Celltrion were not dispatched.
 Usage was 3 calls / 29,147 tokens, estimated USD `0.0216669` against USD `0.12`.
 Retrieval, planner, evaluator, embedding, and store calls were zero; predecessor
 result/corpus hashes are unchanged. New result SHA is `f9edebb2...4679`.
-The 2,048-token output limit is a possible truncation cause, not a confirmed one:
-the artifact lacks per-call raw responses, finish reasons, and token breakdowns.
-The sign prompt's effect is still unmeasured. Next inspect output-budget and
-response capture provider-free; do not change arithmetic, relax validation, or
-retry the paid run. This approval is exhausted. The earlier same-sign failure
-also did not establish a need for a new sign enum; history retains its evidence.
+The old output field did not separate thinking tokens. Truncation remains
+unproven: that artifact lacks per-call response text, finish reasons, and usage.
+The sign prompt's effect is still unmeasured; the approval is exhausted.
+
+Compiler-gate v2 now captures final AIMessage text before parsing (not wire bytes),
+finish reason, parse errors, and per-call answer/thinking/cache counts. Prompt
+fingerprints exclude responses. Thought content/signatures and credentials are
+not saved. New manifests bind configurable total output `4096` / thinking `1024`
+defaults; thinking is guidance within the inclusive output cap, not a guaranteed
+partition. Cost estimates count it once; the larger default exceeds the old
+USD `0.12` planning cap. The SDK and island retry counts are unchanged. No new
+provider run occurred. A successor requires a new manifest and separate approval;
+arithmetic, validation, fixtures, and prior result bytes remain unchanged.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

@@ -8,6 +8,52 @@ from src.utils.gemini_usage_counts import (
 
 
 class GeminiUsageTests(unittest.TestCase):
+    def test_langchain_reasoning_is_a_subset_of_output_not_extra_tokens(self) -> None:
+        usage = extract_gemini_usage_counts({
+            "usage_metadata": {
+                "input_tokens": 100,
+                "output_tokens": 2048,
+                "output_token_details": {"reasoning": 2000},
+                "input_token_details": {"cache_read": 40},
+            },
+        })
+        native = extract_gemini_usage_counts({
+            "usageMetadata": {
+                "promptTokenCount": 100,
+                "candidatesTokenCount": 48,
+                "thoughtsTokenCount": 2000,
+                "cachedContentTokenCount": 40,
+            },
+        })
+
+        self.assertEqual(usage, native)
+        self.assertEqual(usage["output_tokens"], 48)
+        self.assertEqual(usage["thoughts_tokens"], 2000)
+        self.assertEqual(usage["cached_tokens"], 40)
+        self.assertEqual(usage["total_tokens"], 2148)
+        pricing = {
+            "input_per_million_tokens_usd": 1.0,
+            "cached_input_per_million_tokens_usd": 0.25,
+            "output_per_million_tokens_usd": 3.0,
+            "thinking_per_million_tokens_usd": 2.0,
+        }
+        self.assertAlmostEqual(estimate_gemini_cost_usd(usage, pricing), 0.004214)
+
+    def test_zero_reasoning_keeps_all_output_and_supplied_total(self) -> None:
+        for details in ({}, {"output_token_details": {"reasoning": 0}}):
+            with self.subTest(details=details):
+                usage = extract_gemini_usage_counts({
+                    "input_tokens": 10,
+                    "output_tokens": 3,
+                    "total_tokens": 13,
+                    "input_token_details": {"cache_read": 4},
+                    **details,
+                })
+                self.assertEqual(usage["output_tokens"], 3)
+                self.assertEqual(usage["thoughts_tokens"], 0)
+                self.assertEqual(usage["cached_tokens"], 4)
+                self.assertEqual(usage["total_tokens"], 13)
+
     def test_extracts_langchain_and_gemini_usage_metadata(self) -> None:
         response = SimpleNamespace(
             usage_metadata={
