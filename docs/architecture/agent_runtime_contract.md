@@ -98,17 +98,17 @@ IDs follow declared obligation order with first-occurrence dedupe.
 
 ## 4. Candidate applicability and coupling
 
-Candidate applicability has exactly three states:
+Candidate applicability has exactly three states: `compatible`, `unknown_only`,
+and `explicit_conflict`.
 
-- `compatible`
-- `unknown_only`
-- `explicit_conflict`
+Each obligation/requirement may declare `SemanticTargetV1`: `local_subjects`, ontology-backed
+`concept_keys`, and query-visible `metric_surfaces`. `scope.company` is the filing boundary,
+never an inferred local subject. Unknown concept keys are discarded with a planner note.
 
-Each obligation and evidence requirement may declare `SemanticTargetV1` with
-`local_subjects`, ontology-backed `concept_keys`, and query-visible
-`metric_surfaces`. `scope.company` remains the filing boundary and is never
-silently copied into local subject identity. Unknown concept keys are discarded
-with a planner note rather than becoming runtime vocabulary.
+Cell-local annual relative labels use policy-owned offsets anchored to report `year`;
+explicit calendar years win. Generic value roles/table focus cannot hide these labels.
+Ambiguous/unanchored labels stay unknown. Source period surfaces, IDs and catalog
+fingerprints stay unchanged; derived years record `period_source=relative_period_label`.
 
 The complete immutable candidate catalog is projected into generic fact views.
 Owner matching then evaluates independent scope, local-subject, owner-kind,
@@ -128,28 +128,23 @@ neighboring numeric span or normalizing bytes. Every value belongs to one window
 Table values share a bundle only through the same physical table and row;
 row headers and cell provenance remain on their candidates.
 
-Numeric selection is bundle-first. Code excludes `explicit_conflict`, gives
-`compatible` bundles precedence over `unknown_only`, and ranks a bundle by its
-best member's existing factor vector. Each numeric owner receives at most two
-bundles. Every non-conflicting numeric member of a selected bundle is visible to
-that owner so period pairs, signs, and neighboring operands are not separated by
-an arbitrary top-one cutoff. Selecting the same bundle for more than one owner
-does not duplicate its source text in one compiler payload.
+Numeric selection is bundle-first: exclude `explicit_conflict`, prefer `compatible`
+over `unknown_only`, and rank by the best member's existing factor vector. Each numeric
+owner gets at most two bundles with every non-conflicting member visible together.
+Period pairs/signs/neighboring operands are not split by a top-one cutoff; a shared
+bundle's source text appears once per compiler payload, even across owners.
 
-`semantic_program_candidate_payload_v5` stores source text once in
-`source_bundles_by_id`. Candidate rows retain their existing IDs and metadata,
-refer to `source_bundle_id`, and carry a bundle-local value span instead of a
-repeated source excerpt. The prompt receives the factor projection but does not
-perform a second ranking pass. Validation recomputes applicability for declared
-semantic targets and rejects a visible but conflicting ID as
-`candidate_semantic_target_mismatch`.
+`semantic_program_candidate_payload_v5` stores source text once in `source_bundles_by_id`.
+Candidate rows keep IDs/metadata plus `source_bundle_id` and local value spans, not repeated
+excerpts. The prompt receives factors without reranking. Validation recomputes declared
+semantic-target applicability; a visible conflict is `candidate_semantic_target_mismatch`.
 
 When the compiler selects a prose `sentence_value` as a direct binding,
 expression source, or source display, `source_assertions` must identify the
 bundle and selected candidate IDs and copy an exact contiguous source substring
 covering every referenced value span. Code verifies bundle membership, owner
 visibility, exact bytes, and span coverage before execution and fingerprints the
-validated assertion. Table cells use physical row/cell provenance instead;
+validated assertion; coverage follows declared obligation order. Table cells use row/cell provenance;
 narrative obligations keep their existing multi-evidence bindings. Meaning such
 as total, component, rate, or derived display is represented by obligation
 bindings and formula AST, not a candidate role enum or a separate reranker.
@@ -174,6 +169,11 @@ Coupling applies only when two or more distinct obligations share the same
 non-empty `coupling_key`. Multiple period operands of one derived obligation do
 not create a cross-obligation coupling mismatch. A true coupled basis conflict
 must fail validation.
+
+Formula inputs bound to declared requirements or validated dependencies may span
+physical sources, including a separately sourced display. Formula compatibility checks
+semantic company/scope/segment/basis, not `context_fingerprint` equality. Owner visibility,
+periods, units, assertions, explicit coupling and physical-row contracts remain enforced.
 
 Physical table, row, and cell identity and existing candidate IDs/fingerprints
 remain stable. `document_company` is metadata, not proof of a value's local

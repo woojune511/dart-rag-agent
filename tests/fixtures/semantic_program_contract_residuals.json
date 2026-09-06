@@ -8,10 +8,10 @@
     "expression_compatibility.declared_cross_period_inputs",
     "canonical_operand_projection.inline_unit_precedence",
     "canonical_operand_projection.row_subject",
-    "canonical_operand_projection.current_report_period"
+    "canonical_operand_projection.current_report_period",
+    "expression_compatibility.scope_compatible_sources"
   ],
   "remaining_characterizations": [
-    "expression_compatibility",
     "candidate_admission",
     "direct_binding.display_unit_conversion"
   ],
@@ -369,9 +369,7 @@
           "ambiguous_obligation_ids": []
         },
         "expected_current": {
-          "status": "invalid",
-          "error_code": "expression_context_mismatch",
-          "detail": "context_fingerprint"
+          "status": "ready"
         }
       }
     ]

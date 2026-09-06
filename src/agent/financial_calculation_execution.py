@@ -22,6 +22,7 @@ from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
 )
 from src.agent.financial_row_surfaces import strip_financial_label_annotations
+from src.agent.financial_scope_policies import relative_period_offsets
 from src.agent.financial_text_surface import topic_particle
 from src.agent.financial_runtime_normalization import (
     _clean_source_row_ids,
@@ -463,6 +464,22 @@ def _direct_subject_resolution(
     }
 
 
+def _candidate_relative_period(candidate: Mapping[str, Any]) -> Tuple[bool, Optional[int]]:
+    """Resolve legacy cell labels without mistaking the filing year for a value."""
+
+    offsets = relative_period_offsets(
+        candidate.get("period"), candidate.get("source_period_surface"),
+        *(candidate.get("column_headers") or []),
+    )
+    if not offsets:
+        return False, None
+    try:
+        report_year = int(candidate.get("year"))
+    except (TypeError, ValueError):
+        return True, None
+    return True, report_year + next(iter(offsets)) if len(offsets) == 1 else None
+
+
 def _period_scope_matches(expected: str, candidate: Mapping[str, Any]) -> bool:
     wanted = _normalise_spaces(str(expected or "")).lower()
     if not wanted or wanted == "unknown":
@@ -495,6 +512,10 @@ def _period_scope_matches(expected: str, candidate: Mapping[str, Any]) -> bool:
     value_year = _normalise_spaces(str(candidate.get("value_year") or ""))
     if value_year:
         return value_year in expected_years
+
+    has_relative_period, relative_year = _candidate_relative_period(candidate)
+    if has_relative_period:
+        return relative_year is not None and str(relative_year) in expected_years
 
     value_role = _normalise_spaces(str(candidate.get("value_role") or "")).lower()
     prior_role = any(
@@ -604,7 +625,8 @@ def _direct_scope_gap_is_bridgeable(
             for surface in explicit_surfaces
             for year in re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", surface)
         }
-        return not explicit_years and not candidate.get("value_year")
+        _, relative_year = _candidate_relative_period(candidate)
+        return not explicit_years and not candidate.get("value_year") and relative_year is None
     actual = _normalise_spaces(str(candidate.get(field) or "")).lower()
     return actual in {"", "unknown"} and field in {
         "consolidation_scope",
@@ -624,7 +646,7 @@ def _scope_match_state(
     if field == "period":
         if _period_scope_matches(wanted, candidate):
             return "match"
-        explicit_year = candidate.get("value_year") or candidate.get("year")
+        explicit_year = candidate.get("value_year")
         period_surface = _normalise_spaces(
             " ".join(
                 [
@@ -636,6 +658,11 @@ def _scope_match_state(
         if explicit_year not in (None, "") or re.search(
             r"(?<!\d)(?:19|20)\d{2}(?!\d)", period_surface
         ):
+            return "conflict"
+        has_relative_period, relative_year = _candidate_relative_period(candidate)
+        if has_relative_period:
+            return "conflict" if relative_year is not None else "unknown"
+        if candidate.get("year") not in (None, ""):
             return "conflict"
         return "unknown"
 
@@ -808,7 +835,11 @@ def _collective_narrative_scope_errors(
 def _expression_context_conflicts(
     candidates: Sequence[Mapping[str, Any]],
 ) -> List[str]:
-    """Return semantic context fields that disagree across formula inputs."""
+    """Compare semantic scopes, not the physical locations of bound inputs.
+
+    Owner binding, source assertions and explicit physical/coupling contracts
+    are validated separately; a formula need not live inside one source.
+    """
 
     conflicts: List[str] = []
     for field in (
@@ -816,7 +847,6 @@ def _expression_context_conflicts(
         "consolidation_scope",
         "segment",
         "basis",
-        "context_fingerprint",
     ):
         values = {
             _normalise_spaces(str(candidate.get(field) or "")).lower()
@@ -827,120 +857,6 @@ def _expression_context_conflicts(
         if len(values) > 1:
             conflicts.append(field)
     return conflicts
-
-
-def _declared_cross_period_context_is_compatible(
-    *,
-    candidate_requirement_bindings: Sequence[
-        Tuple[Mapping[str, Any], Mapping[str, Any]]
-    ],
-    numeric_context_candidates: Sequence[Mapping[str, Any]],
-    obligation: Mapping[str, Any],
-    source_display_candidate: Optional[Mapping[str, Any]] = None,
-) -> bool:
-    """Allow context identity to vary only across declared period inputs.
-
-    A comparison across periods is not a semantic-context mix when every
-    physical input is bound to its own explicitly scoped requirement and the
-    candidates remain context-consistent inside each period partition. Other
-    scope dimensions and undeclared/dependency sources remain fail-closed.
-    """
-
-    bindings = [
-        (dict(candidate), dict(requirement))
-        for candidate, requirement in candidate_requirement_bindings
-        if isinstance(candidate, Mapping) and isinstance(requirement, Mapping)
-    ]
-    if len(bindings) < 2:
-        return False
-
-    contexts_by_period: Dict[str, List[Dict[str, Any]]] = {}
-    bound_candidate_ids: set[str] = set()
-    for candidate, requirement in bindings:
-        requirement_scope = dict(requirement.get("scope") or {})
-        period = _normalise_spaces(
-            str(requirement_scope.get("period") or "")
-        ).lower()
-        if period in {"", "unknown"}:
-            return False
-        if _scope_match_state("period", period, candidate) != "match":
-            return False
-        candidate_id = str(candidate.get("candidate_id") or "").strip()
-        if not candidate_id:
-            return False
-        bound_candidate_ids.add(candidate_id)
-        contexts_by_period.setdefault(period, []).append(candidate)
-
-    if len(contexts_by_period) < 2:
-        return False
-
-    for field in ("company", "consolidation_scope", "segment", "basis"):
-        declared_values = {
-            _normalise_spaces(
-                str(dict(requirement.get("scope") or {}).get(field) or "")
-            ).lower()
-            for _candidate, requirement in bindings
-            if _normalise_spaces(
-                str(dict(requirement.get("scope") or {}).get(field) or "")
-            ).lower()
-            not in {"", "unknown"}
-        }
-        if len(declared_values) > 1:
-            return False
-
-    for candidates in contexts_by_period.values():
-        fingerprints = {
-            _normalise_spaces(str(candidate.get("context_fingerprint") or "")).lower()
-            for candidate in candidates
-            if _normalise_spaces(
-                str(candidate.get("context_fingerprint") or "")
-            ).lower()
-            not in {"", "unknown"}
-        }
-        if len(fingerprints) > 1:
-            return False
-
-    display_id = ""
-    if source_display_candidate is not None:
-        display_id = str(
-            source_display_candidate.get("candidate_id") or ""
-        ).strip()
-    allowed_candidate_ids = set(bound_candidate_ids)
-    if display_id:
-        allowed_candidate_ids.add(display_id)
-    context_candidate_ids = {
-        str(candidate.get("candidate_id") or "").strip()
-        for candidate in numeric_context_candidates
-        if str(candidate.get("candidate_id") or "").strip()
-    }
-    if not context_candidate_ids or not context_candidate_ids.issubset(
-        allowed_candidate_ids
-    ):
-        return False
-
-    if source_display_candidate is not None:
-        output_period = _normalise_spaces(
-            str(dict(obligation.get("scope") or {}).get("period") or "")
-        ).lower()
-        if output_period in {"", "unknown"}:
-            return False
-        if (
-            _scope_match_state(
-                "period",
-                output_period,
-                source_display_candidate,
-            )
-            != "match"
-        ):
-            return False
-        same_period_inputs = contexts_by_period.get(output_period, [])
-        if not same_period_inputs or not any(
-            _same_source_context(source_display_candidate, candidate)
-            for candidate in same_period_inputs
-        ):
-            return False
-
-    return True
 
 
 def _ungrounded_narrative_numbers(
@@ -1546,9 +1462,6 @@ def validate_semantic_calculation_program(
             variable_units: Dict[str, str] = {}
             source_candidates: List[str] = []
             bound_requirement_ids: set[str] = set()
-            candidate_requirement_bindings: List[
-                Tuple[Mapping[str, Any], Mapping[str, Any]]
-            ] = []
             if not invalid:
                 for binding in bindings:
                     variable = str(binding.get("variable") or "").strip()
@@ -1635,9 +1548,6 @@ def validate_semantic_calculation_program(
                                 )
                                 invalid = True
                             bound_requirement_ids.add(source_requirement_id)
-                            candidate_requirement_bindings.append(
-                                (candidate, requirement)
-                            )
                             for detail in _scope_errors(
                                 candidate,
                                 {"scope": dict(requirement.get("scope") or {})},
@@ -1796,17 +1706,6 @@ def validate_semantic_calculation_program(
             context_conflicts = _expression_context_conflicts(
                 numeric_context_candidates
             )
-            if (
-                context_conflicts == ["context_fingerprint"]
-                and obligation
-                and _declared_cross_period_context_is_compatible(
-                    candidate_requirement_bindings=candidate_requirement_bindings,
-                    numeric_context_candidates=numeric_context_candidates,
-                    obligation=obligation,
-                    source_display_candidate=display_candidate,
-                )
-            ):
-                context_conflicts = []
             if context_conflicts and not compatibility_ids:
                 error(
                     "expression_context_mismatch",
@@ -2319,7 +2218,9 @@ def validate_semantic_calculation_program(
     )
     selected_obligations_by_candidate: Dict[str, List[str]] = {}
     required_assertion_ids_by_obligation: Dict[str, List[str]] = {}
-    for obligation_id in produced:
+    for obligation_id in obligation_by_id:
+        if obligation_id not in produced:
+            continue
         for candidate_id in sources_by_output.get(obligation_id, []):
             candidate = candidate_by_id.get(candidate_id)
             if not candidate or str(candidate.get("kind") or "") != "numeric":
@@ -2361,15 +2262,12 @@ def validate_semantic_calculation_program(
             )
         )
         evidence_text = str(assertion.get("evidence_text") or "")
-        related_obligation_ids = list(
-            dict.fromkeys(
-                obligation_id
-                for candidate_id in candidate_ids
-                for obligation_id in selected_obligations_by_candidate.get(
-                    candidate_id, []
-                )
-            )
-        )
+        related_obligation_ids = [
+            obligation_id
+            for obligation_id in obligation_by_id
+            if any(obligation_id in selected_obligations_by_candidate.get(candidate_id, [])
+                   for candidate_id in candidate_ids)
+        ]
 
         assertion_error = ""
         detail = source_bundle_id

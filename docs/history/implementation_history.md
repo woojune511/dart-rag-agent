@@ -12638,3 +12638,35 @@ are complete. It remains only as an audit record, not an active priority.
 - The schema description and generic planner policy now state the same rule.
   Focused planner tests pass 5/5, semantic contracts 164/164, import/topology
   28/28, runtime audit 84, and full Python 3.13 unittest discovery 878/878.
+
+## Relative cell periods and bound cross-source formulas (2026-09-07)
+
+- Baseline `46bc658` documented the exhausted LG/NAV live admission, with two
+  missing arithmetic outputs despite healthy retrieval/API/ledger signals.
+  Regression tests reproduced generic `detail` roles hiding annual relative
+  period labels and physical source fingerprints acting as formula scope.
+- Policy-owned cell/header labels now resolve annual offsets against report
+  year. Explicit calendar years win; ambiguity or missing anchors remain unknown.
+  Source labels, candidate IDs/catalog fingerprints and physical provenance are
+  preserved. Legacy candidate applicability uses the same label policy.
+- Bound requirements and validated dependency values may compose across sources.
+  Formula checks retain company/consolidation/segment/basis; source-display scope,
+  units, assertions, visibility, explicit coupling and physical-row constraints
+  remain enforced. The cross-period-only exception was removed as redundant.
+- A two-process replay exposed set-order drift when one prose assertion covers
+  a direct value and a dependent calculation. Coverage now follows declared owner
+  order, keeping validation fingerprints deterministic without changing assertions.
+- Python 3.13.13: focused 187/187, audit 84, import/topology 22/22, docs 2/2,
+  pycompile/diff checks pass; final full discovery 978/978 in 29.075 seconds.
+  Generic fixtures changed only obsolete physical-equality expectations, not facts.
+- Socket-blocked exact live catalog replay with explicitly reconstructed formulas
+  and fake compiler responses completes LG/NAV 2/2, ledger ok, internal retries 0.
+  Accepted LG bindings/assertion and NAV narrative JSON stay byte-identical.
+  Final independent-process receipts match `d3b31544...5dcb`; original result and
+  source-store file hashes are unchanged. KB exact replay 2/2 and the existing
+  T2/T3/Samsung contract projections 3/3 also pass.
+- These are local contracts, not new provider/evaluator/release evidence. LG keeps
+  its selected approximate 6,769억원 component, not the precise reviewed-fixture
+  676,874백만원. Precision-aware source selection remains separate. All successor
+  artifacts stay ignored under `relative_period_context_repair_2026-09-07`;
+  fresh provider validation requires a new manifest/cost approval.

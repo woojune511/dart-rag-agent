@@ -1239,7 +1239,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
 
         self.assertEqual(exclusions, {})
 
-    def test_structural_context_retry_reuses_identical_candidate_payload(self) -> None:
+    def test_scope_compatible_statement_note_expression_needs_no_retry(self) -> None:
         obligations = [
             _obligation(
                 "ob_mix",
@@ -1289,14 +1289,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 ],
             }
         )
-        retry_program = SemanticCalculationProgram.model_validate(
-            {
-                "status": "ambiguous",
-                "ambiguous_obligation_ids": ["ob_mix"],
-                "rationale": "The disclosed contexts are not explicitly compatible.",
-            }
-        )
-        llm = _StructuredQueueLLM(first_program, retry_program)
+        llm = _StructuredQueueLLM(first_program)
         agent = self._agent(llm)
         state = {
             "query": "Subtract the second amount from the first amount.",
@@ -1334,20 +1327,10 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         attempts = compiled["resolved_calculation_trace"]["calculation_plan"][
             "candidate_stage_diagnostics"
         ]["attempts"]
-        self.assertEqual(compiled["semantic_program_retry_count"], 1)
-        self.assertEqual(len(attempts), 2)
-        self.assertEqual(
-            attempts[0]["visible_candidate_ids"],
-            attempts[1]["visible_candidate_ids"],
-        )
-        self.assertEqual(
-            attempts[0]["visible_candidate_id_fingerprint"],
-            attempts[1]["visible_candidate_id_fingerprint"],
-        )
-        self.assertEqual(
-            attempts[0]["serialized_candidate_bytes"],
-            attempts[1]["serialized_candidate_bytes"],
-        )
+        self.assertEqual(compiled["semantic_program_retry_count"], 0)
+        self.assertEqual(len(attempts), 1)
+        self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
+        self.assertEqual(compiled["semantic_program_validation"]["errors"], [])
 
     def test_source_and_formula_displays_survive_graph_trace_ledger_and_numeric_evaluation(self) -> None:
         from src.agent.financial_task_artifacts import project_task_artifact_trace

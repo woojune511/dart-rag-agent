@@ -38,6 +38,9 @@ The implemented boundaries are:
 - Formula inputs retain their validated evidence-requirement label, period,
   year, and role when projected into execution and evaluator operand rows.
   Requirement-derived periods are marked separately from source period text.
+- Annual relative cell labels resolve against report year before generic roles/table focus;
+  ambiguity stays unknown. Bound formulas may span sources without physical-ID equality,
+  while scope conflicts, assertions, visibility, coupling and row contracts stay enforced; assertion owner order is stable.
 - Atomic payload-superset/graph-last persistence, failure propagation, strict
   source coverage, and provider-free sidecar recovery replace partial publication.
 - Graph-source vector rebuilds use one expected store manifest for collection,
@@ -49,15 +52,13 @@ The implemented boundaries are:
   Numeric/narrative owners return facts; final assembly precedes ledger assembly.
   `run()` does not rebuild the answer. TypedDicts are not immutability guarantees.
 
-No role classifier, cross-encoder, metric-specific runtime branch, new provider
-call, source-store mutation, evaluator relaxation, or dataset correction is part
-of these repairs. MAS and Streamlit remain experimental, without physical moves.
+No role classifier, cross-encoder, metric-specific branch, new provider call, source-store
+mutation, evaluator relaxation, or dataset correction. MAS/Streamlit remain experimental.
 
 ## Local acceptance
 
-Python 3.13.13: last runtime full gate on `c28f384` passed `958 / 958`.
-Current count-unit evaluator gate: focused `129 / 129`, import/topology `22 / 22`, documentation `2 / 2`.
-Runtime domain audit passes with `84` reviewed literals; pycompile and `git diff --check` pass.
+Python 3.13.13: relative-period/context repair full suite `978 / 978`, focused `187 / 187`, import/topology `22 / 22`, docs `2 / 2`.
+Runtime domain audit passes (`84` reviewed literals); pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -76,8 +77,6 @@ Runtime domain audit passes with `84` reviewed literals; pycompile and `git diff
   successful and failed responses across retry, exclude private metadata, and
   verify worker-thread token totals without making a provider request. Both model
   factories preserve explicit budgets; the installed SDK stops after one simulated 429.
-
-New local outputs under `benchmarks/results/` are not committed.
 
 ## Read-only saved-case replay
 
@@ -142,7 +141,8 @@ Evaluator-only replay is 2/2: `benchmarks/results/kbf_count_unit_boundary_replay
 Answers/evidence/programs/dataset unchanged; calls 0. Approval exhausted; judges unmeasured, no new release claim.
 LG/NAV rebuilt 2,620 OpenAI vectors; strict readiness and external dense health pass 2/2, degraded false. Texts/125 parents/2,099 payloads preserved.
 Admission `3109b537...a865` ran once on clean `bf512e7`: 44 calls, 146.4s, usage-estimated USD 0.34196994 < 0.40; failures/retries 0, sources unchanged.
-Full-agent `461b3d43...84c8` ran once on `af9f060`: completeness 0/2 (LG 2/3 outputs, NAV 1/2), errors 0/ledgers ok; both arithmetic outputs hit context-fingerprint validation. 9 Gemini + 19 OpenAI calls, 119.93s, estimated USD 0.20988988; sources unchanged, exact partial replay 2/2. Approval exhausted; period-role/context seam next. `benchmarks/results/reviewed_full_agent_lge_nav_2026-09-07/README.md`.
+Full-agent `461b3d43...84c8` on `af9f060`: completeness 0/2, errors 0/ledgers ok; 9 Gemini + 19 OpenAI calls, 119.93s, estimated USD 0.20988988. Approval exhausted; immutable failure evidence remains in `benchmarks/results/reviewed_full_agent_lge_nav_2026-09-07/README.md`.
+Repair replay: exact catalogs/reconstructed formulas/fake compiler, 2/2 complete, ledger ok, retries 0; accepted LG bindings/assertion and NAV narrative preserved. Independent-process receipts match `d3b31544...5dcb`; KB 2/2 and T2/T3/Samsung 3/3 local regressions pass. LG keeps approximate 6,769억원, not a precision fix. No provider/store writes. `benchmarks/results/relative_period_context_repair_2026-09-07/README.md`. Fresh model selection needs new manifest/approval.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

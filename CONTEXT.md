@@ -7,8 +7,8 @@ Last updated: 2026-09-07
 - Product: single-agent `FinancialAgent`.
 - Working branch: `codex/reviewed-compiler-selection-gate`; compiler-gate
   baseline `e9a5be0`. Repair baseline: `5e13bc6`; dependency fix: `af9a07e`.
-- Unit/retry, compiler, persistence/API, and final-state ownership repairs are
-  implemented as separate changes. Git is the commit chronology.
+- Unit/retry, compiler, persistence/API, final-state, and relative-period/context
+  repairs are implemented. Git is the commit chronology.
 - HTTP shape, `FinancialRunResultV1`, candidate identity/catalog fingerprint
   inputs, parser table identity, and storage formats remain unchanged.
 - Historical results, datasets, stores, caches, and review packets are immutable.
@@ -48,6 +48,9 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
   label, period, and year. A requirement-supplied period is marked as such and
   does not masquerade as source period text; the same row reaches evaluator
   projection unchanged.
+- Annual cell-relative periods override generic roles/table focus; ambiguous or
+  unanchored labels stay unknown. Bound formulas may span scope-compatible sources;
+  coupling/physical-row contracts and IDs remain unchanged; assertion coverage has stable owner order.
 - Source writes publish payload union then graph atomically and memory last.
   Incomplete stores block queries but allow recovery ingest. Missing sidecars
   reuse stored text/parser metadata without context generation or embedding.
@@ -83,9 +86,7 @@ The successor replay retains all three cases and T2 operand metadata. Its
 deterministic evaluator projection changes operand selection from `0.0` to `1.0`
 without changing selected IDs, formula, answer, dataset, or evaluator.
 
-Exact saved-trace replay: `9/9` (`6 ready/ok`, `3 partial/partial`), 3 questions,
-2 old schemas skipped; reversed receipts match (`9901c8fc...e9180`), without new
-compiler/provider evidence. Receipt: `benchmarks/results/exact_saved_runtime_trace_replay_2026-09-06/replay_final.json`.
+Historical exact-trace replay: `9/9` (6 complete, 3 partial), 3 questions; no new compiler/provider evidence.
 
 A separate reviewed-fixture corpus adds five distinct real questions outside
 that three-question inventory: `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
@@ -124,10 +125,10 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
-| LG 2023 / NAV 2022+2023 | 2,620 OpenAI vectors; full-agent runtime completeness 0/2; ledgers ok, API errors 0 | `461b3d43...84c8` exhausted; period-role and expression-context validation remain |
+| LG 2023 / NAV 2022+2023 | 2,620 vectors; prior live completeness 0/2; period/context repair now passes local reconstructed-formula replay 2/2 | `461b3d43...84c8` exhausted; fresh model selection needs new approval |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
-LG/NAV: 119.93s, 9 Gemini + 19 OpenAI calls, estimated USD 0.20988988; sources unchanged. LG subtraction/NAV growth missing after context-fingerprint rejection; exact partial-output replay 2/2. Details: `benchmarks/results/reviewed_full_agent_lge_nav_2026-09-07/README.md`.
+LG/NAV repair: Python 3.13 full suite 978/978; fake compiler/runtime replay 2/2, ledger ok; two-process receipts byte-identical (`d3b31544...5dcb`). Accepted LG bindings/assertion and NAV narrative preserved; LG retains approximate 6,769억원. KB 2/2 and T2/T3/Samsung 3/3 local regressions pass. Calls/store writes 0; not a provider/precision pass. `benchmarks/results/relative_period_context_repair_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.
@@ -141,9 +142,7 @@ Result: `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.j
 Exact runtime replay passes 2/2; inputs/store unchanged; judges skipped. Both answers pass evaluator-only replay.
 Evaluator-only successor: `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`.
 
-Production Google phase routes now forward explicit output/thinking/retry/thought-text controls;
-missing settings retain defaults. Real installed SDK request tests verify both production and
-compiler-only factories; zero SDK retries stop after one simulated 429 attempt.
+Google routes forward explicit output/thinking/retry/thought-text controls; installed-SDK tests cover both factories and a single simulated 429 with retries disabled.
 Formula-wide rounding-error propagation remains deferred. T3 dataset governance is complete;
 runtime/dataset ownership, tolerances, faithfulness, and source-evidence requirements stay separate.
 

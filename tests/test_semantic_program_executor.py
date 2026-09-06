@@ -402,7 +402,7 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
             narrative_result["answer"],
         )
 
-    def test_declared_cross_period_inputs_are_distinct_from_same_period_context_mix(self) -> None:
+    def test_declared_inputs_allow_scope_compatible_sources_within_or_across_periods(self) -> None:
         fixture = _contract_residual_fixture()["expression_compatibility"]
 
         for case in fixture["cases"]:
@@ -431,7 +431,7 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                     {"expression_context_mismatch"},
                 )
 
-    def test_declared_cross_period_source_display_stays_with_output_period_context(self) -> None:
+    def test_source_display_requires_output_period_not_output_table_identity(self) -> None:
         fixture = _source_display_program_fixture()
         opening, closing, stated = fixture["candidate_catalog"]
         opening.update(
@@ -456,10 +456,12 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
             context_fingerprint="unrelated-2024-context",
             table_source_id="unrelated-2024-context",
         )
+        self.assertEqual(validate_semantic_calculation_program(**fixture)["status"], "ready")
+        stated.update(period="2022", value_year=2022, column_headers=["2022"])
         rejected = validate_semantic_calculation_program(**fixture)
         self.assertEqual(rejected["status"], "invalid")
         self.assertIn(
-            "expression_context_mismatch",
+            "source_display_scope_mismatch",
             {item["code"] for item in rejected["errors"]},
         )
 

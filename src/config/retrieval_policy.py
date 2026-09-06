@@ -612,6 +612,14 @@ SEMANTIC_REQUIRED_EVIDENCE_POLICY: Dict[str, int] = {
 }
 
 
+ANNUAL_RELATIVE_PERIOD_LABEL_POLICY = (
+    # Cell/header labels only; do not match these inside prose or subject words.
+    (0, r"(?<!\w)당기(?:말)?(?!\w)"),
+    (-1, r"(?<!\w)전기(?:말)?(?!\w)"),
+    (-2, r"(?<!\w)전전기(?:말)?(?!\w)"),
+)
+
+
 SEMANTIC_CANDIDATE_POLICY: Dict[str, Any] = {
     "fiscal_period_ordinal_pattern": r"제\s*(\d+)\s*기",
     "local_subject_clause_pattern": (

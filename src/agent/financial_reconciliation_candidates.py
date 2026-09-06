@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
 from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
+from src.agent.financial_scope_policies import relative_period_offsets
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
@@ -517,7 +518,7 @@ def _candidate_period_role(
     explicit_role = _normalise_spaces(
         str(cell.get("value_role") or metadata.get("value_role") or "")
     ).lower()
-    if explicit_role:
+    if _candidate_period_role_kind(explicit_role):
         return explicit_role
     return _normalise_spaces(
         " ".join(str(item or "") for item in (cell.get("column_headers") or []))
@@ -584,12 +585,6 @@ def _candidate_projected_period_role(
     *,
     value_year: Optional[int],
 ) -> str:
-    for raw_value in (cell.get("period_role"), metadata.get("period_role")):
-        role = _candidate_period_role_kind(
-            _normalise_spaces(str(raw_value or "")).lower()
-        )
-        if role:
-            return role
     try:
         report_year = int(metadata.get("year"))
     except (TypeError, ValueError):
@@ -599,7 +594,16 @@ def _candidate_projected_period_role(
             return "current"
         if value_year < report_year:
             return "prior"
+    if _cell_relative_period_offsets(cell):
+        return ""
     return _candidate_period_focus(cell, metadata)
+
+
+def _cell_relative_period_offsets(cell: Mapping[str, Any]) -> set[int]:
+    return relative_period_offsets(
+        cell.get("period_text") or cell.get("period"),
+        *(cell.get("column_headers") or []),
+    )
 
 
 def _candidate_has_competing_periods(
@@ -628,6 +632,9 @@ def _candidate_has_competing_periods(
         if ordinal_match:
             temporal_keys.add(f"ordinal:{ordinal_match.group(1)}")
     for cell in cells:
+        temporal_keys.update(
+            f"offset:{offset}" for offset in _cell_relative_period_offsets(cell)
+        )
         role_kind = _candidate_period_role_kind(
             _candidate_period_role(cell, metadata)
         )
@@ -650,6 +657,10 @@ def _candidate_value_year(
         report_year = int(metadata.get("year"))
     except (TypeError, ValueError):
         return None
+
+    offsets = _cell_relative_period_offsets(cell)
+    if offsets:
+        return report_year + next(iter(offsets)) if len(offsets) == 1 else None
 
     period_focus = _candidate_period_focus(cell, metadata)
     if not _candidate_has_competing_periods(cells, metadata):
@@ -698,7 +709,9 @@ def _candidate_period_projection(
     period_focus = _candidate_period_focus(cell, metadata)
     if value_year is not None:
         period_source = (
-            "value_role"
+            "relative_period_label"
+            if _cell_relative_period_offsets(cell)
+            else "value_role"
             if role_kind
             else "table_period_focus"
             if period_focus == "prior"

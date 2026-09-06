@@ -1,4 +1,4 @@
-"""Generic report-scope and consolidation helpers used during retrieval."""
+"""Shared report, candidate-period and consolidation scope helpers."""
 
 from __future__ import annotations
 
@@ -6,7 +6,27 @@ import re
 from typing import Any, Dict, List
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.config.retrieval_policy import CONSOLIDATION_SCOPE_POLICY
+from src.config.retrieval_policy import (
+    ANNUAL_RELATIVE_PERIOD_LABEL_POLICY,
+    CONSOLIDATION_SCOPE_POLICY,
+)
+
+
+def relative_period_offsets(*surfaces: Any) -> set[int]:
+    """Read annual offsets from cell-local labels, retaining ambiguity.
+
+    Callers supply period/header surfaces only, never row subjects or prose.
+    An offset needs a report-year anchor before it can become a value year.
+    """
+
+    return {
+        offset
+        for offset, pattern in ANNUAL_RELATIVE_PERIOD_LABEL_POLICY
+        if any(
+            re.search(pattern, _normalise_spaces(str(surface or "")))
+            for surface in surfaces
+        )
+    }
 
 
 def is_scope_only_period_surface(surface: str, scope: Dict[str, Any]) -> bool:
