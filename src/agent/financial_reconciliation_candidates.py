@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections import Counter
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
@@ -1076,6 +1077,113 @@ def _table_context_text(
     return _normalise_spaces(" ".join(parts))
 
 
+def _source_body_lines(text: str) -> List[tuple[int, int, List[str]]]:
+    """Retain exact offsets, excluding parser/context metadata prefix lines."""
+
+    lines: List[tuple[int, int, List[str]]] = []
+    in_prefix = True
+    for match in re.finditer(r"[^\r\n]+", text):
+        if not match.group().strip():
+            continue
+        if in_prefix and re.fullmatch(r"\s*(?:\[[^\]\n]+:[^\]\n]*\]\s*)+", match.group()):
+            continue
+        in_prefix = False
+        lines.append((match.start(), match.end(), [
+            _normalise_spaces(part) for part in match.group().split("|")
+        ]))
+    return lines
+
+
+def _preserve_row_context(
+    projected: Sequence[Dict[str, Any]], *, text: str, source_id: str,
+) -> None:
+    """Attach adjacent textual rows as context, never as new cell identities."""
+
+    lines = _source_body_lines(text)
+    row_matches: List[List[int]] = []
+    for candidate in projected:
+        metadata = candidate["metadata"]
+        label = _normalise_spaces(str(metadata.get("row_label") or ""))
+        values = Counter(
+            _normalise_spaces(str(cell.get("value_text") or ""))
+            for cell in metadata.get("structured_cells") or []
+            if str(cell.get("value_text") or "")
+        )
+        row_matches.append([
+            index for index, (_start, _end, parts) in enumerate(lines)
+            if len(parts) > 1 and label in parts[:-1] and values and Counter(parts) >= values
+        ])
+    numeric_lines = {index for matches in row_matches for index in matches}
+    limit = int(CALCULATION_PROMPT_POLICY["semantic_program_prompt_limits"]["numeric_source_chars"])
+    for candidate, matches in zip(projected, row_matches):
+        if len(matches) != 1:
+            continue
+        index = matches[0]
+        start, end, _parts = lines[index]
+        row_end = end
+        for following in range(index + 1, len(lines)):
+            next_start, next_end, parts = lines[following]
+            if (
+                following in numeric_lines or len(parts) < 2
+                or not any(char.isalpha() for char in parts[-1])
+                or _normalise_operand_value(parts[-1], "")[0] is not None
+                or text[end:next_start].strip()
+                or next_end - start > limit
+            ):
+                break
+            end = next_end
+        if end == row_end:
+            continue
+        candidate["metadata"].update({
+            "row_context_text": text[start:end],
+            "source_context_provenance": {
+                "source_id": source_id, "source_span": [start, end],
+                "relation": "adjacent_table_text",
+            },
+        })
+
+
+def _preserved_prose_sources(
+    *, text: str, source_id: str, source_anchor: str, metadata: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """Preserve non-table paragraphs independently of attached numeric records."""
+
+    if not (
+        metadata.get("is_table") is False
+        or str(metadata.get("block_type") or "").lower() not in {"", "table", "table_row"}
+    ):
+        return []
+    spans: List[tuple[int, int]] = []
+    for start, end, parts in _source_body_lines(text):
+        if len(parts) != 1:
+            continue
+        if spans and re.fullmatch(r"[^\S\r\n]*\r?\n[^\S\r\n]*", text[spans[-1][1]:start]):
+            spans[-1] = (spans[-1][0], end)
+        else:
+            spans.append((start, end))
+    prose_metadata = {
+        key: value for key, value in metadata.items()
+        if not key.startswith(("table_", "physical_", "structured_"))
+        and key not in {
+            "source_table_id", "row_id", "source_row_id", "row_label", "row_headers",
+            "row_text", "semantic_label", "local_entity_surfaces", "unit_hint",
+        }
+    }
+    return [
+        _semantic_source_candidate(
+            candidate_id=f"{source_id}::prose:{start}:{end}", source_anchor=source_anchor,
+            text=text[start:end], evidence_id=source_id, origin_source_id=source_id,
+            candidate_kind="chunk", metadata={
+                **prose_metadata, "source_row_id": source_id,
+                "source_context_provenance": {
+                    "source_id": source_id, "source_span": [start, end], "relation": "source_paragraph",
+                },
+            },
+        )
+        for start, end in spans
+    ]
+
+
 def _local_entity_surfaces(
     source_text: str,
     *,
@@ -1867,6 +1975,7 @@ def build_semantic_source_candidates(
                 ]
             )
 
+    source_by_id = {str(item["candidate_id"]): item for item in candidates}
     doc_stream = [
         *list(state.get("retrieved_docs") or []),
         *list(state.get("seed_retrieved_docs") or []),
@@ -1890,6 +1999,10 @@ def build_semantic_source_candidates(
             metadata=metadata,
         )
         if projected_candidates:
+            _preserve_row_context(projected_candidates, text=text, source_id=candidate_id)
+            candidates.extend(_preserved_prose_sources(
+                text=text, source_id=candidate_id, source_anchor=anchor, metadata=metadata,
+            ))
             table_object, rows, value_records = _table_record_bundle(metadata)
             table_id = _physical_table_id(
                 metadata,
@@ -1943,9 +2056,34 @@ def build_semantic_source_candidates(
             )
         for projected in projected_candidates:
             projected_id = str(projected.get("candidate_id") or "")
+            existing = source_by_id.get(projected_id)
+            if existing is not None:
+                # Repeated attachments may expose different adjacent text. Choose
+                # one exact context deterministically without rewriting cell metadata.
+                def context_order(item: Mapping[str, Any]) -> tuple[int, str]:
+                    details = dict(item.get("metadata") or {})
+                    context = str(details.get("row_context_text") or "")
+                    return -len(context), json.dumps(details.get("source_context_provenance") or {}, sort_keys=True)
+
+                context_owner_fields = (
+                    "rcept_no", "company", "year", "consolidation_scope",
+                    "basis", "segment_label", "structured_cells",
+                )
+                same_context_owner = all(
+                    existing["metadata"].get(key) == projected["metadata"].get(key)
+                    for key in context_owner_fields
+                )
+                if (
+                    same_context_owner and projected["metadata"].get("row_context_text")
+                    and context_order(projected) < context_order(existing)
+                ):
+                    for key in ("row_context_text", "source_context_provenance"):
+                        existing["metadata"][key] = projected["metadata"][key]
+                continue
             if not projected_id or projected_id in seen:
                 continue
             seen.add(projected_id)
+            source_by_id[projected_id] = projected
             candidates.append(projected)
     return candidates
 
@@ -2101,6 +2239,16 @@ def build_semantic_candidate_catalog(
             "source_bundle_context_span": [0, len(source_bundle_text)],
             "candidate_kind": candidate_kind,
         }
+        if metadata.get("source_context_provenance"):
+            base_record["source_context_provenance"] = dict(metadata["source_context_provenance"])
+        if metadata.get("row_context_text"):
+            row_context = str(metadata["row_context_text"])
+            base_record.update({
+                "row_context_text": row_context,
+                "source_text": row_context,
+                "source_bundle_text": row_context,
+                "source_bundle_context_span": [0, len(row_context)],
+            })
 
         cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
         if not cells and str(current.get("candidate_kind") or "") in {"table_row", "evidence_row"}:

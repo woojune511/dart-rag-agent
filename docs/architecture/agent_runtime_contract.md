@@ -101,9 +101,9 @@ IDs follow declared obligation order with first-occurrence dedupe.
 Candidate applicability has exactly three states: `compatible`, `unknown_only`,
 and `explicit_conflict`.
 
-Each obligation/requirement may declare `SemanticTargetV1`: `local_subjects`, ontology-backed
-`concept_keys`, and query-visible `metric_surfaces`. `scope.company` is the filing boundary,
-never an inferred local subject. Unknown concept keys are discarded with a planner note.
+Each obligation/requirement may declare `SemanticTargetV1`: `local_subjects`, ontology-backed `concept_keys`,
+and query-visible `metric_surfaces`. Keep query-written bilingual parenthetical spellings of a selected subject;
+do not invent translations/entities. `scope.company` is a filing boundary, not a local subject; unknown concept keys get a planner note.
 
 Cell-local annual relative labels use policy-owned offsets anchored to report `year`;
 explicit calendar years win. Generic value roles/table focus cannot hide these labels.
@@ -118,15 +118,15 @@ explicit scope, subject, or unit conflict. Within each owner cohort,
 `compatible` candidates always rank before `unknown_only`; explicit conflicts
 are excluded. Equal factor tiers are deterministic and source-diverse.
 
-`SourceBundleV1` is the compiler's source-reading unit. It has a deterministic
-bundle ID, source kind, source anchor, context fingerprint, exact contiguous
-source text, member candidate IDs, and bundle-local value spans. Prose values
-from the same source sentence share a bundle. A sentence longer than the prompt
-window is split into maximal consecutive value-span groups within 420 characters;
-each group shares one window containing all its values without cutting a
-neighboring numeric span or normalizing bytes. Every value belongs to one window.
-Table values share a bundle only through the same physical table and row;
-row headers and cell provenance remain on their candidates.
+`SourceBundleV1` is the source-reading unit: deterministic ID, source kind/anchor, context fingerprint,
+exact contiguous text, member IDs and local value spans. Same-source sentence values share a bundle.
+Long sentences split into maximal consecutive value-span groups within 420 characters; each window
+covers every member without cutting adjacent numeric spans or normalizing bytes. Each value has one window.
+Table bundles share a physical table/row and retain row headers/cell provenance. Table-attached paragraphs
+also retain separate prose slices; table cells and metadata prefixes are not re-extracted as prose values.
+Uniquely located numeric rows may carry adjacent textual rows within 420 characters, with exact source ID/span
+in `source_context_provenance`. Context is not a new cell/role; it may supply existing text-match factors.
+Repeated attachments select context deterministically within the same report/scope/cells; IDs and fingerprint algorithms stay intact.
 
 Numeric selection is bundle-first: exclude `explicit_conflict`, prefer `compatible`
 over `unknown_only`, and rank by the best member's existing factor vector. Each numeric

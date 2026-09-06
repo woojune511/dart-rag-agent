@@ -31,8 +31,8 @@ The implemented boundaries are:
   dependencies, unknown IDs, and self references retain preflight validation.
 - `CompilationEnvelopeV2` checks full execution content before revalidation or
   arithmetic. Existing visibility/program/validation checks remain independent.
-- Bundle-first selection retains adjacent source values and counts the actual
-  query-wide unique selectable IDs, including retry replacement.
+- Bundle-first selection retains adjacent source values, table-attached prose and exact row-note context;
+  query-written bilingual subject spellings survive planning. Unique selectable-ID caps include retries.
 - Source-first output and separately labelled recomputation coexist.
   Dependencies use calculated values; primary answer slots use display values.
 - Formula inputs retain their validated evidence-requirement label, period,
@@ -57,7 +57,7 @@ mutation, evaluator relaxation, or dataset correction. MAS/Streamlit remain expe
 
 ## Local acceptance
 
-Python 3.13.13: relative-period/context repair full suite `978 / 978`, focused `187 / 187`, import/topology `22 / 22`, docs `2 / 2`.
+Python 3.13.13: source-context/query-spelling repair full suite `993 / 993`, new regressions `15 / 15`, focused `136 / 136`, import/topology `22 / 22`, docs `2 / 2`.
 Runtime domain audit passes (`84` reviewed literals); pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -143,7 +143,7 @@ Successor `03f03d99...237e` ran once on clean `5fe3a5f`: required-output complet
 LG completes 3/3 outputs, preserving original bindings/assertion: precise profit minus approximate 6,769억원 = 1,486,334,000,000원. Numeric FAIL remains: no atomic accepted source/scope/precision variant; do not treat it as a transport or arithmetic failure.
 NAV completes 2/2 outputs without retry: same-row 당기/전기 resolve to 2023/2022, calculation 41.39574110852439%, source display 41.4%. Its new narrative only describes Poshmark service positioning, not acquisition performance; heuristic completeness 0.625, judges unmeasured. An out-of-island missing-ID diagnostic remains in attempt history, not final validation.
 Socket-blocked exact replay 2/2; runtime/input/store hashes unchanged. Review SHA `66d5b927...a051`. Approval exhausted; no runtime/evaluator/dataset edit or paid rerun. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
-Next is provider-free LG precision/provenance and NAV narrative evidence-coverage review. Required-output completion does not establish answer-quality acceptance.
+Source-context/query-spelling repair is implemented: preserve non-table body slices, bounded exact adjacent-row text/provenance and question-written bilingual names; existing factor scores/caps/cell IDs stay intact. Provider-free successor exposes both precise LG 676,874백만원 cells and NAV's acquisition-performance evidence. Original-order physical IDs remain; newly restored prose adds catalog entries. No fresh planner/compiler or quality-pass claim, inputs unchanged. Reversed NAV sources expose a pre-existing cross-report table-ID collision, also reproduced with the new paths disabled; new context cannot merge across report scope. Next: repair that identity boundary before paid admission, separately from LG evaluator source/scope and `공시금액` period governance. Report: `benchmarks/results/source_context_preservation_2026-09-07/README.md`.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

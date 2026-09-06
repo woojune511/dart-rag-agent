@@ -31,6 +31,45 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def preserve_query_subject_surfaces(query: str, subjects: List[str]) -> List[str]:
+    """Keep query-written bilingual spellings of an already selected subject.
+
+    The planner still chooses the entity. This only copies a parenthetical
+    alternate spelling, not arbitrary parenthetical explanations or numbers.
+    """
+
+    surfaces = list(dict.fromkeys(_normalise_spaces(str(item)) for item in subjects if item))
+
+    def writing_system(surface: str) -> str:
+        letters = [char for char in surface if char.isalpha()]
+        if not letters or any(not (char.isalpha() or char in " &.,'-") for char in surface):
+            return ""
+        if all(char.isascii() for char in letters):
+            return "ascii"
+        if all(not char.isascii() for char in letters):
+            return "non_ascii"
+        return ""
+
+    def keep_pair(left: str, right: str) -> None:
+        left, right = _normalise_spaces(left), _normalise_spaces(right)
+        if {writing_system(left), writing_system(right)} != {"ascii", "non_ascii"}:
+            return
+        for surface in (left, right):
+            if surface not in surfaces:
+                surfaces.append(surface)
+
+    for subject in list(surfaces):
+        escaped = re.escape(subject)
+        for match in re.finditer(rf"(?<!\w){escaped}\s*[（(]([^()（）]+)[)）]", query):
+            keep_pair(subject, match.group(1))
+        for match in re.finditer(rf"([^\W\d_]+)\s*[（(]\s*{escaped}\s*[)）]", query):
+            keep_pair(match.group(1), subject)
+        pair = re.fullmatch(r"([^()（）]+)[（(]([^()（）]+)[)）]", subject)
+        if pair and subject in query:
+            keep_pair(pair.group(1), pair.group(2))
+    return surfaces
+
+
 def _normalise_optional_scope_value(value: Any) -> str:
     cleaned = _normalise_spaces(str(value or ""))
     if cleaned.lower() in {
@@ -247,7 +286,9 @@ class FinancialAgentPlanningMixin:
                         f"unknown_semantic_target_concept:{concept_key}"
                     )
             return {
-                "local_subjects": normalized_values(target.get("local_subjects")),
+                "local_subjects": preserve_query_subject_surfaces(
+                    query, normalized_values(target.get("local_subjects")),
+                ),
                 "concept_keys": list(dict.fromkeys(known_concepts)),
                 "metric_surfaces": normalized_values(target.get("metric_surfaces")),
             }
