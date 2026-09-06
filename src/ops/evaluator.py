@@ -930,6 +930,17 @@ def _build_numeric_candidate(
     }
 
 
+# A count unit may end the token or take Korean grammatical suffixes. The
+# complete suffix must reach a word boundary; a unit prefix inside a noun is
+# not a quantity. Keep suffixes outside the candidate's exact value span.
+_COUNT_UNIT_END = re.compile(
+    r"(?:이었습니다|였습니다|입니다|이었다|였다|이다|이며|이고|이면|인데|이지만|"
+    r"이라고|이라는|이라서|이라면|이라도|이므로|이어서|이든지|인|"
+    r"에게서|에서|에게|으로|까지|부터|보다|처럼|만큼|가량|정도|내외|"
+    r"은|는|이|가|을|를|의|와|과|도|만|로|에|씩|당|뿐|나)*(?!\w)"
+)
+
+
 def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
     if not text:
         return []
@@ -983,6 +994,8 @@ def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
         for match in pattern.finditer(text):
             start, end = match.span()
             if _is_overlapping(start, end, occupied_spans):
+                continue
+            if kind == "count" and _COUNT_UNIT_END.match(text, end) is None:
                 continue
             raw_value = _parse_number(match.group("value"))
             unit = match.group("unit")

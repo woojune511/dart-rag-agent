@@ -7859,3 +7859,25 @@ References:
   `run_receipt.json` SHA `d56de29490f83e7b4406872261664b88a2c863eb0ca1a9a25b8eb82a6758e8c1`;
   `exact_runtime_replay.json` SHA `165996c8f05be795812d3ca1cf2d861c484e89b1eeb70277c3b0904d8d7d6f71`;
   `post_run_review.json` SHA `07849f81af392ccdea64f7473552757ad6a7365b9ec958822364dfe0354b5527`.
+
+## Count-Unit Boundary Evaluator Repair (2026-09-07)
+
+- The saved T1 false FAIL was reproduced before repair. The evaluator's `명/개/곳`
+  extractor now requires a complete token or supported Korean grammatical suffixes,
+  so a following word cannot contribute just its first character as a count unit.
+  Candidate spans exclude the suffix, and signs/precision stay unchanged.
+- Regression coverage includes word prefixes, attached/spaced counts, postpositions,
+  copulas, exact spans and unsupported real counts. This is evaluator-only parsing:
+  no company/question branch, runtime change, dataset edit or tolerance relaxation.
+- Focused evaluator/math tests pass 129/129; import/topology 22/22, documentation 2/2,
+  domain audit (84 reviewed literals), pycompile and diff checks pass. The full runtime
+  suite was not repeated for this isolated evaluator seam; its last gate remains 958/958.
+- The existing `replay_full_eval_from_results` scorer processed only the two saved
+  KB answers, with sockets and provider factories blocked. Disabling only the new
+  boundary reproduces original PASS/FAIL; current scoring gives PASS/PASS. Grounding
+  is inherited from the saved result, not a new judge call. Answer, evidence, program,
+  original-result and dataset hashes remain unchanged; no agent/provider/store activity.
+- Original full-agent results still contain T1 FAIL. The ignored evaluator-only
+  successor is `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`;
+  its receipt SHA is `b7048b34b52360c7271f3d458f269e646d3da1ba22ff88e80b9011c0d3605f1b`.
+  This corrects lexical scoring, not model accuracy or faithfulness; no paid rerun occurred.

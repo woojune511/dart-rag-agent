@@ -55,8 +55,8 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13.13: last runtime gate on `c28f384` passed focused `20 / 20` and full
-`958 / 958`, including import/topology. Admission-local `7 / 7` and related focused `51 / 51` pass.
+Python 3.13.13: last runtime full gate on `c28f384` passed `958 / 958`.
+Current count-unit evaluator gate: focused `129 / 129`, import/topology `22 / 22`, documentation `2 / 2`.
 Runtime domain audit passes with `84` reviewed literals; pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -132,14 +132,14 @@ Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
 Approval exhausted; defaults unchanged. Compiler-only success does not prove fresh retrieval.
 
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
-Manifest/source coverage passes for 2,093 vectors; keep the benchmark collection name.
-Stored-vector self-search passes 3/3 after restart; the new run adds full-agent, not HTTP evidence.
-Original bytes and copied sidecars are intact; only the copy's local index materialized.
+2,093 vectors; manifest/source coverage and pre-run self-search 3/3 pass. Original store/sidecar bytes are intact.
 Admission `138b5fbc...a028` ran once on `457d776`: T2 → T1, runtime 2/2, errors 0, ledger ok.
-T2: 70.28%, source negatives preserved. T1: 1.83%, +0.10%p; evaluator misreads `2023 명목` as headcount.
+T2: 70.28%, source negatives preserved. T1: 1.83%, +0.10%p; original evaluator headcount false FAIL retained.
 6 Gemini + 17 OpenAI embedding calls, no retries; 107.5s, estimated USD 0.10416639 (not billing).
 Result: `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.json`; exact replay 2/2.
-Approval exhausted. Next: provider-free evaluator boundary repair; keep original FAIL. Judges skipped; no release claim.
+Count-unit repair excludes word prefixes, retains grammatical suffixes and rejects unsupported real counts.
+Evaluator-only replay is 2/2: `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`.
+Answers/evidence/programs/dataset unchanged; calls 0. Approval exhausted; judges unmeasured, no new release claim.
 LG/NAV need legacy-store handling; Celltrion has no store. Default KB 2022 remains outside scope.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator

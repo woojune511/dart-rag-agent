@@ -123,7 +123,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
-| KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | T1 evaluator token-boundary false FAIL; approval exhausted |
+| KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
 | LG / NAV 2023 | Reviewed sources and payload coverage present | Manifest missing; legacy Google vectors are not canonical OpenAI vectors |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
@@ -135,11 +135,11 @@ Original files and copied sidecars are unchanged; only the copy's local index ma
 Adoption receipt: `benchmarks/results/reviewed_full_agent_kbf_adoption_2026-09-07/receipt_restart.json`.
 Admission `138b5fbc...a028` ran once on `457d776`: T2 → T1, runtime 2/2, ledger ok.
 T2 renders 70.28% with negative source inputs; T1 renders 1.83% and +0.10%p.
-T1's numeric FAIL is an evaluator false count: `2023 명목` becomes `2023 명`.
+T1's original false FAIL is preserved; count-unit token boundaries now prevent `2023 명목` → `2023 명`.
 6 Gemini + 17 OpenAI embedding calls, no retries; 107.5s, estimated USD 0.10416639.
 Result: `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.json`.
-Exact runtime replay passes 2/2; inputs/store unchanged. Paid judges were skipped.
-Next: provider-free evaluator token-boundary repair; preserve the original FAIL. No paid rerun.
+Exact runtime replay passes 2/2; inputs/store unchanged; judges skipped. Both answers pass evaluator-only replay.
+Evaluator-only successor: `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`.
 
 Production Google phase routes now forward explicit output/thinking/retry/thought-text controls;
 missing settings retain defaults. Real installed SDK request tests verify both production and
