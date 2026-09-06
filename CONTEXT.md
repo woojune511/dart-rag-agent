@@ -125,10 +125,10 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
-| LG 2023 / NAV 2022+2023 | 2,620 vectors; prior live 0/2; period/context local repair replay 2/2 | Successor `03f03d99...237e` prepared; USD 0.40 and data-transfer approval pending |
+| LG 2023 / NAV 2022+2023 | 2,620 vectors; successor full-agent required-output completion 2/2, errors 0, ledgers ok | LG numeric-variant FAIL and NAV impact coverage remain; approval exhausted |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
-LG/NAV repair: full suite 978/978; fake compiler/runtime replay 2/2, ledger ok; independent receipts match (`d3b31544...5dcb`). Accepted LG bindings/assertion and NAV narrative preserved; approximate 6,769억원 retained. KB 2/2 and T2/T3/Samsung 3/3 local regressions pass. Successor admission: focused 48/48 + guard 7/7; two no-call receipts match `546cb74c...cfa0` (4,584 bytes), source hashes unchanged. Calls/store writes 0; not a model/precision pass. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_admission_2026-09-07/README.md`.
+LG/NAV successor `03f03d99...237e` ran once on clean `5fe3a5f`: 8 Gemini + 19 OpenAI calls, 116.909s, one allowed internal compiler retry, no API failure/run retry; usage-estimated USD 0.17174414 < 0.40 (billing unobserved). Exact socket-blocked replay 2/2; inputs/source stores unchanged. Runtime completion is not answer-quality acceptance: LG combines precise profit with approximate 6,769억원 and fails the atomic source/scope variant check; NAV gives 41.4% from the same row's resolved 2023/2022 values, but its narrative describes service positioning instead of acquisition performance. Judges unmeasured. Next: provider-free LG precision/provenance and NAV evidence-coverage review, not another paid run. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.

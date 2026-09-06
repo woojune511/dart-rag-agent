@@ -7997,3 +7997,51 @@ References:
   Approval exhausted; artifacts preserved, no runtime fix or paid rerun. Next
   provider-free seam: relative-period resolution and source identity versus
   semantic calculation compatibility, retaining genuine scope/provenance checks.
+
+## Approved LG/NAV Period-Context Successor Result (2026-09-07)
+
+- Explicit data-transfer/one-shot/USD 0.40 approval for manifest
+  `03f03d99ff816a3fb64e671008578b9d07771fba254f73f4d6f8554ae194237e`
+  ran on clean `5fe3a5f`, with source repairs from `1e562fb` and admitted runtime
+  SHA `39c427b28dcf485366a244750e47b36b635b415e8cff1dc69d9faecfa53ce6a5`.
+  Separate-process no-call receipts matched `546cb74c...cfa0` before dispatch.
+- LG then NAV, one worker, 116.909 seconds and 30-second heartbeat. Eight Gemini
+  requests (4 Flash + 4 Pro), 19 OpenAI embedding requests, all completed. One
+  allowed LG internal compiler retry; no provider failures, SDK/run retry, new
+  filing embedding, fetch, ingest, or source-store write. Usage estimate includes
+  80,048 input tokens and 12,320 output/thinking tokens: USD 0.17174414 < 0.40;
+  actual provider billing remains unobserved.
+- Runtime required-output completion improves from 0/2 to 2/2. Final validation
+  is ready and execution ok for both; exceptions/execution errors 0, both ledgers
+  ok with zero integrity issues. Eight hybrid queries per question have positive
+  vector results with no degraded fallback. This is not two quality-approved answers.
+- LG preserves the three selected source IDs and exact source assertion from its
+  predecessor. Its first missing-scope-witness error is repaired within the one
+  allowed retry. The cross-source subtraction now completes all three obligations:
+  `2,163,234백만원 - 6,769억원 = 1,486,334,000,000원`.
+  The input is still approximate AMPC, not precise `676,874백만원`. Numeric FAIL
+  remains `no_atomic_accepted_calculation_variant`: displayed claims match the
+  rounded answer variant, but the trace does not match either atomic variant's
+  value/label, source-anchor and scope constraints. No evaluator tolerance,
+  dataset, output, or provenance was changed to force acceptance.
+- NAV uses `cand_2027eeef0a303f1e006c` and `cand_1f4468e30585e0368482` from the same
+  physical row: source labels 당기/전기 stay intact and resolve to 2023/2022.
+  `(A - B) / abs(B) * 100` yields 41.39574110852439%; source display
+  `cand_3536af4636a8d67fcb56` supplies 41.4%. No compiler retry is needed.
+  Its narrative selects `cand_48a6308b60133927a222`, replacing the predecessor's
+  financial-impact excerpt with generic service positioning. It does not explain
+  acquisition performance; heuristic completeness is 0.625. Numeric judgement
+  null is mixed-question N/A. The narrative island also declared another island's
+  obligation missing; `unknown_program_obligation_id` remains in attempt history
+  while merged final validation has no errors. No new execution authority leaked.
+- Socket-blocked exact saved-program/catalog/visibility/validator/executor replay
+  passes 2/2 without changing decisions or generating another answer. All manifest
+  input, admitted runtime and original store hashes remain unchanged. Judge metrics
+  were not measured; console zeros are not measured faithfulness failures.
+- Ignored outputs: `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/`.
+  Run receipt SHA `f7579da2706a811d4ad00d65101205d67cebf59511f5ed2376f0fed4b1636155`;
+  exact replay SHA `f904e397fa15097983502f8e6e02448c4df1a76a2d3621ae48a0c59980c35a7b`;
+  independent read-only review SHA `66d5b9270a96b1633387a03b46967bf74e0ed74232c3a7bf9f6bc205b58da051`.
+  Approval exhausted. No source fix or paid rerun; next bounded work is provider-free
+  LG precision/provenance and NAV narrative evidence-coverage review. Celltrion,
+  default KB 2022, broad release claims and fresh provider work remain out of scope.
