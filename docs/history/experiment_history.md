@@ -7574,3 +7574,33 @@ References:
   strengthens the existing compiler prompt and `rationale`, with sign-transition
   and zero-denominator counterexamples; no new enum or automatic sign correction
   is introduced. These local checks do not establish improved provider choices.
+
+## Compiler Sign-Interpretation Successor (2026-09-06)
+
+- Admission `7060c8b7...8c08` bound clean commit `5d33c99`, the unchanged five-case
+  reviewed corpus, Gemini 2.5 Flash, output limit 2,048, client retry 0, and USD
+  `0.12`. Independent no-call receipts were byte-identical at `a838804b...15d5`.
+  The user separately approved the exact manifest and Google API transmission.
+- One process ran and stopped at its first failed question. `KBF_T1_017` passed
+  with the reviewed NIM candidates and `0.10%p`. `KBF_T2_018` used its one allowed
+  internal retry but yielded no executable numeric or narrative output. The
+  remaining LGE, NAVER, and Celltrion questions were not dispatched.
+- The final retry's recorded parser exception contains a partial expression
+  whose variable binding has an empty source ID, with required `formula`,
+  `source_display_candidate_id`, and `source_display_reason` absent. Final
+  validation is `invalid`, execution `incomplete`; no arithmetic ran for T2.
+  Unlike the predecessor's wrong signed formula, this failure prevents measuring
+  the sign-interpretation prompt's effect.
+- Token exhaustion is a hypothesis, not an observed finish reason. The runner
+  records prompt hashes and aggregate usage, but not per-call raw responses,
+  finish reasons, or the initial response. Inspect the output-budget/response
+  boundary provider-free before another paid proposal; no formula or validator
+  patch is justified by this artifact alone.
+- Usage: 3 API calls, 23,273 input and 5,874 output tokens, 29,147 total; estimated
+  cost USD `0.0216669`. Retrieval, planner, evaluator, embedding, and store calls
+  are zero. Corpus SHA `2af019ff...bb33` and predecessor result SHA
+  `496394bb...b0c90f` remain unchanged. The approval is exhausted; no further
+  provider attempt occurred or is authorized.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_sign_interpretation_successor_2026-09-06/result.json`
+  (SHA-256 `f9edebb2bfe273f0666d2e2e6be7c5be986f29f01bc73bea8ce7d855a2654679`).

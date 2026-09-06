@@ -137,14 +137,14 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    `700,691백만원`, and the four same-basis summary measures). Runtime and
    dataset/evaluator ownership remain separate; do not relax tolerance,
    faithfulness policy, or source-evidence requirements to improve a score.
-9. Compiler-only admission `ef95dc95...f016` was consumed once. KBF T1 passed;
-   KBF T2 selected every reviewed candidate but compiled signed change
-   `((current-prior)/abs(prior))*100`, yielding `-70.28%` instead of reviewed
-   `+70.28%`. Validation and execution were `ready/ok`, so retry stayed 0;
-   the remaining three cases did not run. Usage was 2 calls / 18,205 tokens,
-   estimated USD `0.0143671`; result hash is `496394bb...b0c90f`. Both the signed
-   prior-denominator and magnitude formulas give the reviewed positive value for
-   this pair: it establishes formula-selection failure, not a missing sign enum.
-   Approval is exhausted; any provider successor needs separate approval.
+9. Latest compiler-only admission `7060c8b7...8c08` was consumed once on `5d33c99`.
+   KBF T1 passed. KBF T2 remained incomplete after one internal retry; the final
+   response could not parse because formula/source-display fields were missing.
+   No T2 output was executable, so sign-selection improvement is unmeasured.
+   LGE/NAVER/Celltrion were not called. Usage: 3 calls / 29,147 tokens, estimated
+   USD `0.0216669`; result SHA `f9edebb2...4679`. No retrieval/embedding/store work.
+   Token exhaustion is plausible, not proven: per-call raw output and finish
+   reasons are not recorded. Inspect output-budget/response capture provider-free
+   before proposing a successor; this approval is exhausted. History has details.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

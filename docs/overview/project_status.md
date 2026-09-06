@@ -121,18 +121,20 @@ That run made no fetch, ingest, document embedding, store mutation, or runner
 retry. Its admission is exhausted. Exact timing, usage, cost estimate, store and
 result hashes remain in experiment history rather than this current snapshot.
 
-Compiler-only admission `ef95dc95...f016` was consumed once. KBF T1 passed. KBF
-T2 selected both reviewed signed values and the reviewed narrative, but compiled
-`((current-prior)/abs(prior))*100`; execution therefore returned `-70.28%`
-instead of reviewed `+70.28%`. Structural validation was ready
-and execution was error-free, so no retry occurred. The gate stopped before LGE,
-NAVER, and Celltrion as specified. Usage was 2 calls / 18,205 tokens with an
-estimated USD `0.0143671`, below the USD `0.12` cap. Both `(current-prior)/prior`
-and `(abs(current)-abs(prior))/abs(prior)` give the reviewed positive result for
-this same-sign pair. The failure isolates formula selection, not a demonstrated
-need for a signed/magnitude enum. The existing prompt now asks for contextual
-interpretation and a brief reason; effectiveness still needs a separately
-approved provider successor. The previous approval is exhausted.
+Latest compiler-only admission `7060c8b7...8c08` ran once on `5d33c99` after two
+byte-identical no-call receipts. KBF T1 passed; KBF T2 remained incomplete after
+its one internal retry. The final response failed structured-output parsing:
+`formula`, `source_display_candidate_id`, and `source_display_reason` were absent.
+It produced no executable T2 output. LGE/NAVER/Celltrion were not dispatched.
+Usage was 3 calls / 29,147 tokens, estimated USD `0.0216669` against USD `0.12`.
+Retrieval, planner, evaluator, embedding, and store calls were zero; predecessor
+result/corpus hashes are unchanged. New result SHA is `f9edebb2...4679`.
+The 2,048-token output limit is a possible truncation cause, not a confirmed one:
+the artifact lacks per-call raw responses, finish reasons, and token breakdowns.
+The sign prompt's effect is still unmeasured. Next inspect output-budget and
+response capture provider-free; do not change arithmetic, relax validation, or
+retry the paid run. This approval is exhausted. The earlier same-sign failure
+also did not establish a need for a new sign enum; history retains its evidence.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
