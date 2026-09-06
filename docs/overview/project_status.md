@@ -56,7 +56,7 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 ## Local acceptance
 
 Python 3.13.13: last runtime gate on `c28f384` passed focused `20 / 20` and full
-`958 / 958`, including import/topology. Current store-adoption/manifest checks pass `7 / 7`.
+`958 / 958`, including import/topology. Admission-local `7 / 7` and related focused `51 / 51` pass.
 Runtime domain audit passes with `84` reviewed literals; pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -132,15 +132,15 @@ Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
 Approval exhausted; defaults unchanged. Compiler-only success does not prove fresh retrieval.
 
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
-Its manifest (`58251b09...9239`) and actual Chroma/source coverage pass for 2,093 vectors.
-Use its benchmark collection name, not the API default. Three stored-vector self-searches
-return their sources first at distance zero, including after restart; new-query retrieval
-and full-agent/API startup remain untested. No provider/embedding/ingest calls occurred.
-Original bytes and copied source sidecars are intact; Chroma's local index changed only in the copy.
-Receipts: `benchmarks/results/reviewed_full_agent_kbf_adoption_2026-09-07/receipt*.json`.
-LG/NAV still need legacy Google-store handling; Celltrion has HTML but no vector store.
-Default KB 2022 is outside scope with 52 missing table payloads. Do not repair it for this gate.
-Next: prepare KB's two-case full-agent manifest/cost for separate provider approval; other cases remain pending.
+Manifest/source coverage passes for 2,093 vectors; keep the benchmark collection name.
+Stored-vector self-search passes 3/3 after restart, without new-query/full-agent/API evidence.
+Original bytes and copied sidecars are intact; only the copy's local index materialized.
+Admission: `benchmarks/results/reviewed_full_agent_kbf_admission_2026-09-07/manifest.json`
+(`138b5fbc...a028`): T2 → T1, Pro compiler/evidence, Flash elsewhere, OpenAI query embeddings.
+Two process-isolated no-call receipts match (`151039e7...5cc2`); provider calls remain zero.
+Next: approve USD 0.40 cap (estimate 0.10–0.25) for one store-fixed run, 30s heartbeat;
+no paid judges, fresh ingest, filing embedding or automatic rerun. Not a faithfulness/release gate.
+LG/NAV need legacy-store handling; Celltrion has no store. Default KB 2022 remains outside scope.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
