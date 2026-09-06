@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-06
+Last updated: 2026-09-07
 
 ## Current implementation
 
@@ -53,10 +53,10 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13.13 is the verification interpreter. Compiler/comparison/capture tests
+Python 3.13.13 is the interpreter. Pro admission/compiler/capture/dependency tests
 pass `35 / 35`; import/topology passes `22 / 22`.
 Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Full unittest discovery passes `949 / 949`.
+`git diff --check` also pass. Last full discovery: `949 / 949` on `847ebfc`.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -135,12 +135,12 @@ The difference is semantic abstention, not units/parser/arithmetic. Runtime erro
 all 9 responses ended STOP and parsed. Socket-blocked replay reproduced all outputs,
 programs, checks, island diagnostics and prompt hashes; immutable input hashes match.
 
-Total estimate USD `0.10364382`; billing is unobserved. Times include compile/validate/
-execute and retry, not pure model latency. No retrieval/planner/evaluator/embedding/store
-operation occurred. Result: `benchmarks/results/compiler_model_comparison_2026-09-06/result.json`.
-Approval is exhausted; no runtime/default-model change or paid rerun. Next: separately
-approve a Pro compiler-only gate over the five reviewed real questions, including
-dependency inputs. One small trial is not general model superiority or a release claim.
+Comparison estimate USD `0.10364382`; billing unobserved; times include execution/retry, not a superiority claim.
+Pending Pro-only gate: unchanged five reviewed questions/order, 6 initial / maximum 12
+calls, first failure stops. Ops `--model` leaves runtime defaults, prompts and oracles intact.
+Estimate USD `0.149575`, retry-bounded `0.62673`, proposed cap `0.70` (not a billing hard stop).
+Admission: `benchmarks/results/reviewed_compiler_pro_admission_2026-09-07/manifest.json`.
+No new provider calls; a separate manifest/cost/transmission approval remains required.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

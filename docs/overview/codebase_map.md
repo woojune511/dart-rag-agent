@@ -54,7 +54,7 @@
 | `src/ops/replay_runtime_contract_cases.py` | read-only saved-case/counterfactual runtime contract replay; no provider/release claim |
 | `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
 | `src/ops/replay_reviewed_runtime_corpus.py` | provider-free replay of source-derived reviewed fixtures through normalization/visibility/validator/envelope/executor; no retrieval/compiler claim |
-| `src/ops/replay_reviewed_compiler_selection.py` | single-model v2 gate and opt-in budget-matched model-comparison v1; shared compiler/capture, frozen inputs, explicit answer/abstention expectations; no retrieval/evaluator/embedding/store access |
+| `src/ops/replay_reviewed_compiler_selection.py` | explicit Flash/Pro single-model v2 gate and opt-in comparison v1; model-bound pricing, shared compiler/capture, frozen inputs and expectations; no retrieval/evaluator/embedding/store access |
 | `src/utils/gemini_usage_counts.py` | dependency-light answer/thinking/cache normalization and cost accounting; no double-counted reasoning |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 

@@ -656,11 +656,17 @@ def build_admission_manifest(
     max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
     thinking_budget: int = DEFAULT_THINKING_BUDGET,
     runtime_build: Mapping[str, Any] | None = None,
+    model: str = DEFAULT_MODEL,
     comparison_model: str | None = None,
 ) -> dict[str, Any]:
     _validate_token_budgets(max_output_tokens, thinking_budget)
-    model_rates = {DEFAULT_MODEL: OFFICIAL_STANDARD_PRICING}
+    if model != DEFAULT_MODEL:
+        _validate_comparison_model(model, max_output_tokens, thinking_budget)
+    selected_model_rates = OFFICIAL_STANDARD_PRICING if model == DEFAULT_MODEL else COMPARISON_MODEL_PRICING[model]
+    model_rates = {model: selected_model_rates}
     if comparison_model is not None:
+        if model != DEFAULT_MODEL:
+            raise ValueError("comparison baseline must remain the default model")
         _validate_comparison_model(comparison_model, max_output_tokens, thinking_budget)
         model_rates[DEFAULT_MODEL] = {**OFFICIAL_STANDARD_PRICING, "cached_input_per_million_tokens_usd": 0.03}
         model_rates[comparison_model] = COMPARISON_MODEL_PRICING[comparison_model]
@@ -729,6 +735,8 @@ def build_admission_manifest(
             "maximum_compiler_calls_with_internal_retry": maximum_calls,
             "internal_retry": "at_most_one_per_failed_compilation_island",
             "stop_after_first_failed_question": True,
+            "progress_heartbeat_sec": 30,
+            "heartbeat_mechanism": "foreground subprocess monitor; never restart the runner",
             "manifest_path": manifest_rel,
             "result_path": result_rel,
             "runner_args": [
@@ -746,7 +754,7 @@ def build_admission_manifest(
         },
         "provider": {
             "name": DEFAULT_PROVIDER,
-            "model": DEFAULT_MODEL,
+            "model": model,
             "temperature": 0,
             "max_output_tokens": max_output_tokens,
             "thinking_budget": thinking_budget,
@@ -765,7 +773,7 @@ def build_admission_manifest(
             "credential_value_recorded": False,
         },
         "pricing": {
-            **OFFICIAL_STANDARD_PRICING,
+            **selected_model_rates,
             "source": OFFICIAL_PRICING_URL,
             "likely_estimate_usd": likely_cost,
             "retry_bounded_planning_estimate_usd": retry_bounded_planning_cost,
@@ -848,8 +856,6 @@ def build_admission_manifest(
             "stop_after_first_failed_question": False,
             "stop_after_provider_error": True,
             "case_failure_policy": "record failures and continue bounded comparison; never promote them to passes",
-            "progress_heartbeat_sec": 30,
-            "heartbeat_mechanism": "foreground subprocess monitor; never restart the runner",
         })
         for field in OFFICIAL_STANDARD_PRICING:
             manifest["pricing"].pop(field)
@@ -890,6 +896,8 @@ def _verify_manifest(
         if len(models) != 2 or models[0] != DEFAULT_MODEL:
             raise ValueError("comparison requires the baseline and one reviewed model")
         _validate_comparison_model(models[1], provider["max_output_tokens"], provider["thinking_budget"])
+    elif provider.get("model", DEFAULT_MODEL) != DEFAULT_MODEL:
+        _validate_comparison_model(provider["model"], provider["max_output_tokens"], provider["thinking_budget"])
     corpus_info = dict(dict(manifest.get("inputs") or {}).get("corpus") or {})
     corpus_path = PROJECT_ROOT / str(corpus_info.get("path") or "")
     if _sha256_file(corpus_path) != str(corpus_info.get("sha256") or ""):
@@ -1087,6 +1095,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     prepare.add_argument("--cost-cap-usd", type=float, required=True)
     prepare.add_argument("--max-output-tokens", type=int, default=DEFAULT_MAX_OUTPUT_TOKENS)
     prepare.add_argument("--thinking-budget", type=int, default=DEFAULT_THINKING_BUDGET)
+    prepare.add_argument("--model", choices=(DEFAULT_MODEL, *COMPARISON_MODEL_PRICING), default=DEFAULT_MODEL)
     prepare.add_argument("--comparison-model", choices=tuple(COMPARISON_MODEL_PRICING))
 
     rehearse = subparsers.add_parser("rehearse")
@@ -1109,6 +1118,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             cost_cap_usd=args.cost_cap_usd,
             max_output_tokens=args.max_output_tokens,
             thinking_budget=args.thinking_budget,
+            model=args.model,
             comparison_model=args.comparison_model,
         )
         _write_new_json(args.manifest, manifest)
