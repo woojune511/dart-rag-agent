@@ -10,9 +10,11 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from google.genai import types
+from google.genai import _api_client, errors, types
 from langchain_core.exceptions import OutputParserException
+from tenacity import Retrying, wait_none
 
+from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.ops.replay_reviewed_compiler_selection import (
     _RecordingLLM,
@@ -113,14 +115,39 @@ class CompilerResponseCaptureTests(unittest.TestCase):
 
     def test_request_forwards_both_manifest_budgets_without_enabling_thought_text(self) -> None:
         self.generate.return_value = _response('{"status":"ready"}')
-        _RecordingLLM(self.llm).with_structured_output(SemanticCalculationProgram).invoke("test")
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm_usage_callback = self.callback
+        production_llm = agent._create_chat_model({
+            "model": "gemini-2.5-pro", "max_output_tokens": 4096,
+            "thinking_budget": 1024, "provider_client_retries": 0,
+            "include_thoughts": False,
+        }, phase="program_compilation")
+        for name, llm in (("compiler_only", self.llm), ("production", production_llm)):
+            with self.subTest(factory=name):
+                _RecordingLLM(llm).with_structured_output(SemanticCalculationProgram).invoke("test")
+                config = self.generate.call_args.kwargs["config"]
+                self.assertEqual(config.max_output_tokens, 4096)
+                self.assertEqual(config.thinking_config.thinking_budget, 1024)
+                self.assertFalse(config.thinking_config.include_thoughts)
+                self.assertEqual(config.http_options.retry_options.attempts, 0)
+                retry = _api_client.retry_args(config.http_options.retry_options)
+                self.assertEqual(retry["stop"].max_attempt_number, 1)
 
+    def test_zero_sdk_retries_stop_after_one_429_attempt(self) -> None:
+        self.generate.return_value = _response('{"status":"ready"}')
+        _RecordingLLM(self.llm).with_structured_output(SemanticCalculationProgram).invoke("test")
         config = self.generate.call_args.kwargs["config"]
-        self.assertEqual(config.max_output_tokens, 4096)
-        self.assertEqual(config.thinking_config.thinking_budget, 1024)
-        self.assertFalse(config.thinking_config.include_thoughts)
-        # google-genai converts attempts=0 to one attempt, i.e. no SDK retry.
-        self.assertEqual(config.http_options.retry_options.attempts, 0)
+        retry_options = _api_client.retry_args(config.http_options.retry_options)
+        retry_options["wait"] = wait_none()
+        attempts = []
+
+        def rate_limited_request():
+            attempts.append(1)
+            raise errors.ClientError(429, {"error": {"message": "synthetic rate limit"}})
+
+        with self.assertRaises(errors.ClientError):
+            Retrying(**retry_options)(rate_limited_request)
+        self.assertEqual(len(attempts), 1)
 
     def test_comparison_models_use_identical_sdk_schema_and_generation_controls(self) -> None:
         self.generate.return_value = _response('{"status":"ready"}')

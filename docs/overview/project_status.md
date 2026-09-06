@@ -20,6 +20,8 @@ The implemented boundaries are:
   formula; generic contrasts use existing `rationale`, not a role enum or new call.
   Raw signs stay intact; no arithmetic rewrite or validator relaxation was added.
   Undefined ratios and ambiguous comparisons can remain unanswered.
+- Google phase routes forward explicit output/thinking/retry/thought-text controls;
+  missing settings retain defaults, and explicit zero/false values survive.
 - Planner unit errors block only affected islands. Compiler format retries keep
   candidates; explicit candidate conflicts carry exact replacement ownership.
 - Structured-output `null`/`none` sentinels normalize to blank only for optional
@@ -53,10 +55,9 @@ of these repairs. MAS and Streamlit remain experimental, without physical moves.
 
 ## Local acceptance
 
-Python 3.13.13 is the interpreter. Pro admission/compiler/capture/dependency tests
-pass `35 / 35`; import/topology passes `22 / 22`.
-Runtime domain audit passes with `84` reviewed literals; pycompile and
-`git diff --check` also pass. Last full discovery: `949 / 949` on `847ebfc`.
+Python 3.13.13 is the interpreter. Route/capture/store-adoption/manifest tests pass
+`20 / 20`; full discovery passes `958 / 958`, including import/topology.
+Runtime domain audit passes with `84` reviewed literals; pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
   restart recovery, and prove no context/embedding calls during sidecar repair.
@@ -73,7 +74,8 @@ Runtime domain audit passes with `84` reviewed literals; pycompile and
 - Installed Gemini/LangChain adapters run with a fake client and external sockets
   blocked. Tests distinguish `MAX_TOKENS` from `STOP`/missing fields, preserve
   successful and failed responses across retry, exclude private metadata, and
-  verify worker-thread token totals without making a provider request.
+  verify worker-thread token totals without making a provider request. Both model
+  factories preserve explicit budgets; the installed SDK stops after one simulated 429.
 
 New local outputs under `benchmarks/results/` are not committed.
 
@@ -118,19 +120,27 @@ labelled recalculation. Both obligations completed with runtime error `0`, ledge
 
 That admission is exhausted; timing, usage, cost and provenance remain in experiment history.
 
-Earlier four-case comparison `3edbcb94...1558` on `847ebfc`: Flash `3/4`, Pro `4/4`,
-with identical initial prompts/schema and budgets. Both got explicit comparisons and
-KBF T2 `+70.28%` right. Only Flash answered an unspecified comparison with `-125%`;
-Pro declared ambiguity. This is semantic abstention, not a unit/parser/math difference.
-Comparison usage, exact-response replay and immutable hashes remain in experiment history.
+Earlier four-case comparison `3edbcb94...1558`: Flash `3/4`, Pro `4/4` on identical
+prompts/budgets; only Flash answered an unspecified comparison instead of abstaining.
 
 Latest Pro-only admission `dd8e92f1...42f1` ran once on clean `bd6bd49`: all five reviewed
-cases passed. Six calls, no retry, `74.3s`; estimated USD `0.120409375` (billing unobserved).
+cases passed. Six calls, no internal retry, `74.3s`; estimated USD `0.120409375` (billing unobserved).
 Normal dependency bindings, source-first NAV display and multi-evidence narrative passed;
 retry dependency context was not exercised live. All six responses ended STOP and parsed.
 Validation ready/execution ok, runtime errors 0; socket-blocked replay matched exactly.
 Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
-Approval exhausted; defaults unchanged. Next: assess a separate store-fixed full-agent gate.
+Approval exhausted; defaults unchanged. Compiler-only success does not prove fresh retrieval.
+
+Full-agent source preparation remains blocked before provider admission:
+KB 2023 has 2,093 canonical OpenAI vectors and complete source/payload references, but no
+manifest. LG/NAV reviewed sources are present in manifest-less legacy Google stores, not
+canonical OpenAI stores. Celltrion's original HTML exists, but no local vector store was found.
+Default KB 2022 is outside scope and has 52 missing table payloads despite a matching manifest.
+SQLite/sidecar checks preserved every inspected store file hash; dense search was not tested.
+Receipt: `benchmarks/results/reviewed_full_agent_readiness_2026-09-07/readiness.json`.
+Next proposed scope: KB's two questions. First obtain approval for a new store copy and
+manifest only in the copy, without provider/re-embedding; the other three remain pending.
+Then verify readiness and prepare a new provider manifest/cost for separate approval.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain

@@ -3,8 +3,7 @@
 Status: normative
 
 This document defines the supported v1 public/storage and v2 internal graph contracts.
-Superseded designs belong in [implementation_history.md](../history/implementation_history.md) and
-[experiment_history.md](../history/experiment_history.md).
+Superseded designs belong in [implementation history](../history/implementation_history.md) and [experiment history](../history/experiment_history.md).
 
 ## 1. Product and authority boundary
 
@@ -34,9 +33,8 @@ Code never flips signs; undefined/uncertain comparisons stay unanswered. Offline
 Unsupported planner units remain recorded and block the affected island. Errors identify
 owner, candidate, location, and repair action. Compiler format errors keep the cohort; only
 explicit dimension/scope/subject conflicts replace candidates, never unknowns or diagnostic prose.
-Structured-output `null`/`none` means blank only for optional planner text
-(`display_unit`, `display_format`, `coupling_key`). Typed validation normalizes
-it; real non-empty unsupported units still block their island.
+Typed validation normalizes `null`/`none` only for optional planner text
+(`display_unit`, `display_format`, `coupling_key`); real unsupported units still block their island.
 
 ## 2. Public result v1
 
@@ -225,6 +223,10 @@ typed results and telemetry without modifying answers, citations, or evidence.
 
 ## 6. Compilation islands
 
+Google phase routes forward explicit `max_output_tokens`, `thinking_budget`,
+`provider_client_retries`, and `include_thoughts` to the SDK; zero/false must survive.
+Omitted controls retain defaults. A zero-retry setting must permit only the initial HTTP attempt.
+
 Each answer obligation is a vertex. Islands connect only through a dependency on
 another user-visible answer obligation, a shared non-empty `coupling_key`, or an
 inferred evidence-bundle constraint. `depends_on` never names raw inputs; those
@@ -338,13 +340,11 @@ depend on ops/experimental modules.
 
 ## 10. Validation and release gate
 
-Every runtime change runs focused tests, runtime-domain audit, import/topology
-checks, pycompile, and `git diff --check`. Candidate, compilation, and public
-result boundary changes additionally run full unittest discovery.
+Every runtime change runs focused tests, domain audit, import/topology, pycompile,
+and `git diff --check`; candidate/compilation/public-result changes also run full unittest.
 
 Provider validation requires separate manifest/cost approval, then one store-fixed
 eval-only run with a 30-second heartbeat; no automatic retry or fresh ingest.
 A release needs all approved questions complete, zero runtime errors, and ledger `ok`;
 dataset governance and evaluator tolerance remain separate. Local success is not provider evidence.
-Opt-in compiler model comparisons are diagnostic: fixed inputs/budgets, retained failures,
-and no release claim. They never relax production validation or single-model stop conditions.
+Opt-in compiler comparisons fix inputs/budgets and retain failures; they confer no release claim or relaxation of validation/stop conditions.

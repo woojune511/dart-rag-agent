@@ -12,7 +12,7 @@
 | `main.py` | FastAPI lifespan과 환경 기반 CORS |
 | `src/api/services.py` | `AppServices`, strict readiness, dependency assembly |
 | `src/api/financial_router.py` | HTTP schema, readiness gate, threadpool dispatch |
-| `src/agent/financial_graph.py` | `FinancialAgent`, explicit phase inputs, final assembly then ledger; run packages only |
+| `src/agent/financial_graph.py` | `FinancialAgent`, explicit phase inputs/provider controls, final assembly then ledger; run packages only |
 | `src/agent/financial_graph_state.py` | concrete phase input/output TypedDicts and `FinancialAgentStateV2` |
 | `src/agent/financial_runtime_contracts.py` | immutable visibility and V2 full execution-content fingerprint |
 | `src/agent/financial_run_result.py` | versioned `FinancialRunResultV1` |

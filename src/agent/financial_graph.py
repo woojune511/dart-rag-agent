@@ -301,11 +301,22 @@ class FinancialAgent(
                 raise ValueError(f"GOOGLE_API_KEY environment variable is required for LLM route '{phase}'.")
             from langchain_google_genai import ChatGoogleGenerativeAI
 
+            generation_options = {
+                target: spec[source]
+                for source, target in (
+                    ("max_output_tokens", "max_tokens"),
+                    ("thinking_budget", "thinking_budget"),
+                    ("provider_client_retries", "retries"),
+                    ("include_thoughts", "include_thoughts"),
+                )
+                if source in spec
+            }
             return ChatGoogleGenerativeAI(
                 model=model,
                 temperature=temperature,
                 google_api_key=api_key,
                 callbacks=[self.llm_usage_callback],
+                **generation_options,
             )
         if provider in {"openai", "openrouter"}:
             key_name = "OPENROUTER_API_KEY" if provider == "openrouter" else "OPENAI_API_KEY"

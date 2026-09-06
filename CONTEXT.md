@@ -102,49 +102,44 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
 
 ## Provider result, remaining work, and hard stops
 
-1. Admission `0f0c0d52...0445` was consumed exactly once on clean commit
-   `58551c7` for OpenAI-store-fixed `HYU_T2_010`. Both obligations completed,
-   runtime error is `0`, ledger is `ok`, and evaluator faithfulness/completeness
-   are `1.0 / 1.0`. There was no fetch, ingest, document embedding, source
-   mutation, or runner retry.
-2. Numeric `ob_001` selected `87.0만 대`, `78.1만 대`, and source display
-   `11.5%`; deterministic calculation is `11.395646606914212`, rendered as
-   `11.4%`. Narrative `ob_002` selected `cand_bbd863eb396fa724d814`. Both islands
-   had empty preflight errors, confirming the dependency-projection repair.
-3. Numeric compilation used its allowed one same-cohort internal retry to repair
-   source assertions; narrative compilation was not retried. Final program is
-   ready with four selected candidates, two outputs, and no missing obligation.
-4. The run exited zero in `118.936s`, using 7 total LLM calls / 71,359 tokens and
-   11 query / 0 document embedding calls. Recorded non-embedding cost is USD
-   `0.0664263`; actual billing remains unavailable. Source-store fingerprint is
-   unchanged at `6231cd8e...24e9`, and no disposable store remains. Root result
-   SHA-256 is `a765a132...0ad9`; ignored receipt is `4dd004f2...a3b4`.
-5. With the manifest-bound immutable T3 and Samsung successes, the defined
-   source-consistent runtime release gate is now `3 / 3 PASS`: completeness 3/3,
-   runtime error 0, ledger `ok`. The mixed-question
-   `numeric_final_judgement=null` is evaluator N/A, not a runtime failure.
-6. The approval is exhausted. No further provider retry is authorized or needed
-   for this gate.
-7. Formula-wide rounding-error propagation is deferred. Source precision
-   comparison currently scales only the selected source's rounding interval.
-8. T3 dataset governance completed on 2026-09-03: the active curated answer and
-   evaluator canonical reference use one consolidated Motional tuple (`26%`,
-   `700,691백만원`, and the four same-basis summary measures). Runtime and
-   dataset/evaluator ownership remain separate; do not relax tolerance,
-   faithfulness policy, or source-evidence requirements to improve a score.
-9. Comparison admission `3edbcb94...1558` was consumed once on clean `847ebfc`.
-   Gemini 2.5 Flash passed `3/4`; Pro passed `4/4` on identical four-case initial
-   prompts/schema and output/thinking `4096/1024`. Both got magnitude `-75%`, signed
-   prior `-125%`, and reviewed KBF T2 `+70.28%` with its narrative evidence correct.
-   Flash again negated both inputs and answered `-125%` when the question left
-   the comparison undefined. Pro declared ambiguity on its first call and retry.
-   This is semantic abstention, not a unit/parser/arithmetic difference.
-10. Pro-only admission `dd8e92f1...42f1` ran once on clean `bd6bd49`: reviewed cases `5/5`.
-    Six calls, zero internal retries, `74.3s`; estimated USD `0.120409375`, billing unobserved.
-    All responses ended STOP and parsed; validation ready, execution ok, runtime errors 0.
-    Socket-blocked replay reproduced every program/output/check/prompt; input hashes match.
-    Normal dependency bindings passed; retry dependency context was not exercised live.
-    Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
-    Approval exhausted; model defaults unchanged. Next: assess a separate store-fixed full-agent gate.
+The earlier source-consistent release gate remains `3 / 3 PASS`: immutable T3/Samsung
+successes plus admission `0f0c0d52...0445` on `58551c7` for `HYU_T2_010`.
+T2 selected `87.0만 대`, `78.1만 대`, source display `11.5%`, and the existing
+narrative evidence, with labelled recalculation `11.4%`. Both obligations completed,
+runtime error 0, ledger `ok`, faithfulness/completeness `1.0 / 1.0`; no source mutation.
+That approval is exhausted. Mixed-question `numeric_final_judgement=null` is evaluator N/A.
+
+Comparison `3edbcb94...1558` on `847ebfc`: Flash `3/4`, Pro `4/4` on identical prompts
+and `4096/1024` budgets. Only Flash answered the unspecified comparison; Pro abstained.
+Pro-only admission `dd8e92f1...42f1` ran once on clean `bd6bd49`: reviewed cases `5/5`.
+Six calls, zero internal retries, `74.3s`; estimated USD `0.120409375`, billing unobserved.
+All responses ended STOP and parsed; validation ready, execution ok, runtime errors 0.
+Socket-blocked replay reproduced every program/output/check/prompt; input hashes match.
+Normal dependency bindings passed; retry dependency context was not exercised live.
+Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
+Approval exhausted; model defaults unchanged. This is compiler-only, not fresh retrieval evidence.
+
+Full-agent preparation is blocked before provider admission:
+
+| Scope | Existing source | Blocker |
+| --- | --- | --- |
+| KB 2023, two questions | 2,093 OpenAI vectors; reviewed sources and payload coverage present | Manifest missing |
+| LG / NAV 2023 | Reviewed sources and payload coverage present | Manifest missing; legacy Google vectors are not canonical OpenAI vectors |
+| Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
+
+Default `data/chroma_dart` instead contains KB 2022 and has 52 missing table payloads;
+its compatible manifest alone does not establish readiness. Do not repair it for this gate.
+Read-only SQLite/sidecar inspection did not initialize Chroma or prove dense search health.
+All four inspected stores' file hashes stayed unchanged; no provider/embedding/store-write calls.
+Receipt: `benchmarks/results/reviewed_full_agent_readiness_2026-09-07/readiness.json`
+(`5fd7b775...bdcc`). Proposed first scope: KB's two questions, without dropping the other three.
+Next authority: approve a new KB store copy and manifest write only in that copy, with no
+provider/re-embedding. After readiness, prepare a new paid manifest; do not reuse old approvals.
+
+Production Google phase routes now forward explicit output/thinking/retry/thought-text controls;
+missing settings retain defaults. Real installed SDK request tests verify both production and
+compiler-only factories; zero SDK retries stop after one simulated 429 attempt.
+Formula-wide rounding-error propagation remains deferred. T3 dataset governance is complete;
+runtime/dataset ownership, tolerances, faithfulness, and source-evidence requirements stay separate.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.
