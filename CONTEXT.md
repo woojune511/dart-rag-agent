@@ -132,19 +132,19 @@ Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receip
    `700,691백만원`, and the four same-basis summary measures). Runtime and
    dataset/evaluator ownership remain separate; do not relax tolerance,
    faithfulness policy, or source-evidence requirements to improve a score.
-9. Latest compiler-only admission `9d1f74a4...1d6a` was consumed once on `14628e0`.
-   KBF T1 passed with `1.83%`, `1.73%`, and `0.10%p` in one call. KBF T2 selected
-   the reviewed negative source amounts, but `(current-prior)/abs(prior)*100`
-   produced `-70.28%` against reviewed magnitude growth `+70.28%`. Other three
-   questions were not called. Both responses ended `STOP` and parsed; validation
-   is ready, execution is ok, and runtime errors are zero. The numeric review gate failed.
-10. No internal retry ran, so dependency-input repair still has local-only evidence.
-    Both captured programs/checks/prompt hashes reproduce provider-free. The run
-    used 2 calls / 17,819 tokens in 19.38s, estimated USD `0.0114177`; no retrieval,
-    planner, evaluator, embedding, or store activity. Result SHA: `8c4b28b6...f371`.
-    Approval is exhausted. Pending gate: 9 synthetic contrasts, then 5 unchanged reviewed
-    cases; stop at the first failed question. New manifest/cost approval is required.
-    Admission: `benchmarks/results/semantic_comparison_compiler_admission_2026-09-06/manifest.json`.
-    No new provider call; output `4096` / thinking `1024` and predecessor bytes stay unchanged.
+9. Latest compiler-only admission `11b34e4b...c7dd` was consumed once on `4fefb27`.
+   Synthetic cases passed `8/9`: seven requested calculations and the zero-prior
+   ratio abstention. The ninth case explicitly left comparison target/denominator
+   unspecified, but the model negated both inputs and returned `-125%` instead of
+   declaring ambiguity. Structural validation/execution accepted that valid math;
+   the semantic review gate failed. All five real questions were not dispatched.
+10. All 10 responses ended `STOP` and parsed; runtime errors are zero. The only
+    internal retry repeated the zero-prior abstention, not dependency input repair.
+    Captured outputs and prompt hashes reproduce exactly with network blocked.
+    Estimated USD `0.0408142`; retrieval/planner/evaluator/embedding/store activity
+    is zero. Result SHA `14e7490c...a9d8`; approval is exhausted. No automatic rerun.
+    Result: `benchmarks/results/semantic_comparison_compiler_successor_2026-09-06/result.json`.
+    Inputs and runtime are unchanged. Next: compare models on the frozen ambiguity
+    case, with separate manifest/cost/transmission approval, not more warning rules.
 
 Historical evidence stays in [implementation history](docs/history/implementation_history.md), [experiment history](docs/history/experiment_history.md), and Git.

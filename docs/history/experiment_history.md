@@ -7680,3 +7680,44 @@ References:
 - Immutable ignored result:
   `benchmarks/results/reviewed_compiler_unit_dependency_successor_2026-09-06/result.json`
   (SHA-256 `8c4b28b6e895a79350acb86d297a1b59330de4df62e0a1a8485271802421f371`).
+
+## 2026-09-06: Synthetic comparison successor passes 8/9, fails ambiguity abstention
+
+- The user explicitly approved Google transmission and admission
+  `11b34e4b3cb9a391ce2907100d28573490504d9b785fefdc0fd86ccdd142c7dd`,
+  binding clean `4fefb273b50c646ea8d5d1f37d2a87f4803ca827`, runtime source SHA
+  `887b5b0eb99982e3cbe35097544ebb6f835c685f1fc1622d31a68ba4d83c8f78`,
+  nine synthetic contrasts followed by five unchanged reviewed real questions,
+  Gemini 2.5 Flash, inclusive output/thinking budgets `4096/1024`, client retry 0,
+  and USD `0.40`. No-call receipts matched at `d2c68c82...6573c`.
+- One process exited 1 in `55.1s`, with a running heartbeat at 30 seconds and no
+  runner restart. Seven numeric cases produced the expected `50%`, `-50%`, `-60%`,
+  `-75%`, `125%`, `-125%`, and `-90USD`. The zero-prior ratio correctly remained
+  incomplete with no output on both its initial call and one allowed internal retry.
+- Case nine, `comparison_unspecified_transition`, explicitly leaves comparison
+  target and denominator unspecified for current `40USD` and prior `(160)USD`.
+  The model interpreted the sign transition as negating both inputs, selected
+  `((-current)-(-prior))/(-prior)*100`, and returned `-125%` with no ambiguous ID.
+  The required behavior was ambiguity with no numeric output. Structural validation
+  and execution accepted the valid formula, so no retry ran for this semantic failure.
+- Synthetic gate: `8/9`; all five real questions were not dispatched. This does not
+  establish that the preceding KBF T2 source-derived sign failure is fixed. All ten
+  responses ended `STOP`, parsed successfully, and had no validation/execution errors.
+  The lone retry exercised an abstention, not the dependency-context repair.
+- Replaying all ten captured final responses with sockets blocked reproduced every
+  program, output, validation/check, island diagnostic, and prompt byte/hash exactly.
+  No expected program or answer was transmitted to the live model. The compiler-only
+  result is not retrieval, planner, evaluator, full-agent, or release evidence.
+- Usage: 10 calls; 57,864 input tokens (15,049 cached), 2,612 answer, 6,770 thinking,
+  67,246 total. Estimated cost USD `0.0408142`; actual billing is unobserved.
+  Retrieval, planner, evaluator, embedding, and source-store activity were zero.
+  Corpus, admission, rehearsal, and predecessor hashes stayed unchanged.
+- Approval is exhausted. No automatic rerun, fresh ingest, runtime patch, or
+  validator relaxation occurred. The next bounded investigation is a model
+  comparison on frozen ambiguity evidence, subject to separate manifest/cost and
+  transmission approval, not another warning-only prompt patch.
+- Immutable ignored result:
+  `benchmarks/results/semantic_comparison_compiler_successor_2026-09-06/result.json`
+  (SHA-256 `14e7490ce15e00ed1f6ee81a5a489ed628543614cade690d8ce3fb7f7154a9d8`).
+  Captured-response replay in the same directory: `captured_response_replay.json`
+  (SHA-256 `6a3def82286dc24dfa1445c034065f7b04c355ff6251e53310026a6c75422312`).

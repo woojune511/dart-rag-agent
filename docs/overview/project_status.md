@@ -116,31 +116,30 @@ artifacts and the one approved `HYU_T2_010` run provide its evidence. T2 selecte
 labelled recalculation. Both obligations completed with runtime error `0`, ledger
 `ok`, and faithfulness/completeness `1.0 / 1.0`.
 
-That run made no fetch, ingest, document embedding, store mutation, or runner
-retry. Its admission is exhausted. Exact timing, usage, cost estimate, store and
-result hashes remain in experiment history rather than this current snapshot.
+That admission is exhausted. No ingest/store mutation or runner retry occurred;
+timing, usage, cost estimate, and provenance hashes remain in experiment history.
 
-Latest compiler-only admission `9d1f74a4...1d6a` ran once on clean `14628e0`, after
-two byte-identical no-call receipts. KBF T1 passed in one call with `1.83%`, `1.73%`,
-and `0.10%p`. KBF T2 failed the numeric review gate; LGE/NAV/CEL were not called.
-Both responses ended `STOP` and parsed. Both programs passed structural validation
-and execution with zero runtime errors and the reviewed candidate IDs.
+Latest compiler-only admission `11b34e4b...c7dd` ran once on clean `4fefb27`, after
+byte-identical no-call receipts. Synthetic cases passed `8/9`, stopping before all
+five reviewed real questions. Seven explicit calculations passed (`50%`, `-50%`,
+`-60%`, `-75%`, `125%`, `-125%`, `-90USD`), plus zero-prior ratio abstention.
 
-KBF T2 preserved `(3,146,409)` and `(1,847,775)` million KRW, but the compiler chose
-`((current-prior)/abs(prior))*100`, yielding `-70.28%` rather than reviewed magnitude
-growth `+70.28%`. Its rationale describes an absolute cost increase, inconsistent with
-that signed numerator. This is a semantic formula-selection failure, not unit parsing
-or input loss. Structural validity triggered no internal retry; the dependency-input
-repair therefore remains provider-free verified, not exercised in this paid run.
+The ninth question explicitly leaves the comparison target and denominator open.
+The compiler nevertheless interpreted a sign transition as negating both inputs,
+chose `((-current)-(-prior))/(-prior)*100`, and returned `-125%` instead of ambiguity.
+The formula is mathematically valid, so validation was ready and execution ok;
+this is a semantic abstention failure, not a unit, parser, or arithmetic failure.
+It does not establish whether the preceding KBF T2 real-question failure is fixed.
 
-The captured programs, checks, and prompt hashes reproduce exactly provider-free.
-Usage: 2 calls, 15,059 input (0 cached), 897 answer and 1,863 thinking tokens,
-17,819 total in 19.38s; estimated USD `0.0114177`, not actual billing. Retrieval,
-planner, evaluator, embedding, and store calls are zero. Result SHA `8c4b28b6...f371`.
-Corpus, admission, rehearsals, and predecessor artifacts remain unchanged.
+All 10 responses ended `STOP` and parsed, with zero runtime errors. The only internal
+retry repeated the zero-prior abstention; dependency-input repair remains local-only
+verified. Captured programs, outputs, checks, islands, and prompt hashes reproduce exactly
+with network blocked. Usage: 67,246 tokens in 55.1s; estimated USD `0.0408142`, not billing.
+Retrieval/planner/evaluator/embedding/store activity is zero; inputs are unchanged.
+Result: `benchmarks/results/semantic_comparison_compiler_successor_2026-09-06/result.json`.
 
-Pending gate: 9 synthetic contrasts -> 5 unchanged reviewed cases; first failure stops. Separate approval required.
-Admission: `benchmarks/results/semantic_comparison_compiler_admission_2026-09-06/manifest.json`; if it fails, compare models rather than add warnings.
+Approval is exhausted; no runtime patch or rerun. Next: compare models on the frozen
+ambiguity case with separate manifest/cost/transmission approval, not more warning rules.
 
 Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
 governance completed on 2026-09-03; runtime and dataset ownership remain
