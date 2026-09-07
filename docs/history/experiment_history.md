@@ -8045,3 +8045,29 @@ References:
   Approval exhausted. No source fix or paid rerun; next bounded work is provider-free
   LG precision/provenance and NAV narrative evidence-coverage review. Celltrion,
   default KB 2022, broad release claims and fresh provider work remain out of scope.
+
+## Approved LG/NAV Source-Reparse Vector-Reuse Successors (2026-09-07)
+
+- Explicit data-transfer/one-shot/USD 0.10 approval for manifest
+  `ac0a3ea77fcb4a05d49722f6f722084c8c758d65fd4c2774e9f1a7b773a42c89`
+  executed once on clean `639ee86`. It used the frozen v2 parser preparation,
+  not another fetch, reparse, context-generation call or whole-store embedding.
+- LG 20 and NAV 453 unique missing texts produced nine OpenAI embedding requests.
+  All completed with 444,973 reported input tokens; usage-estimated cost
+  USD 0.05784649 < 0.10, billing unobserved. SDK/automatic retries, API errors and
+  failed builds were zero. Approximate attempt-to-receipt wall time was 79.7s;
+  the 30-second heartbeat recorded embedding and local-build progress.
+- New stores have 783/1,872 vectors, including 763/1,417 exact-input reused vectors,
+  699/1,428 table payloads and 41/84 parents. Separate socket-blocked builder
+  processes checked complete snapshot readback and local dense probes (6/6)
+  before manifest-last publication. Strict readiness passes 2/2, degraded false.
+- All 21 original inputs, admitted runtime and predecessor preparation/result
+  bundles remain unchanged. Read-only post-review matches supplied vectors to
+  all provider response indices/values, usage and request plans, then freezes the
+  new store file hashes without opening their indexes or calling a provider.
+- Run receipt `b419292c9bd5afc41c53ba11701be527bb6e1b3bff807637131ba5e3ad465f83`;
+  review `ea25cc1c6da5221cdff70a5b46328dec5ebf838a875a8dd540d26e586f73fe4e`.
+  Results: `benchmarks/results/parser_successor_openai_stores_2026-09-07/README.md`.
+  Approval exhausted. No full-agent/evaluator execution, default-store switch or
+  new answer-quality/release claim. Next: provider-free candidate/context preflight
+  on working copies, then a separately approved store-fixed LG/NAV full-agent gate.
