@@ -82,6 +82,39 @@ related source-context/identity/replay tests **28/28**. Provider calls, store wr
 program executions: **0**. Original store fingerprint `9312082b...95f4` and saved inputs
 are unchanged; the unmodified strict replay still rejects both old catalogs.
 
+### Current KB compiler-input coverage
+
+Provider-free inspection on `7f803aae` regenerates current candidates from the same
+saved source windows and requirements, then builds global cohorts, per-island cohorts,
+fresh owner visibility and the actual v6 candidate payload. Historical selected IDs
+are used only afterward to label exact source-atom comparisons, never as selection
+inputs or remapped program authority.
+
+| Case | Reviewed evidence in its intended owner | Current unique numeric / narrative IDs | Candidate payload UTF-8 bytes |
+| --- | --- | --- | --- |
+| KB T1 | `1.83%` direct and current input; `1.73%` prior input: 3/3 uses | 6 / 2 | 30,345 |
+| KB T2 | Both negative provision inputs plus risk-management narrative: 3/3 uses | 6 / 6 | 46,779 |
+
+All **5 distinct reviewed atoms / 6 uses** remain selectable in the correct owner,
+present in the candidate dictionary and included in their source bundle. Both questions
+have one dependency/coupling island and no pre-call capacity/dependency error. All four
+numeric cells are `compatible`; the narrative is `unknown_only` and remains selected.
+These are candidate-payload sizes, not full prompts, tokens or cost estimates.
+
+Table values, signs, units, periods and physical provenance match saved evidence.
+The narrative bundle is the exact first 1,200 characters of source `20240326000894:493:16`,
+including original newlines, not the whitespace-normalized catalog display. The complete
+risk-scenario paragraph at `[422, 847)` survives byte-exactly; the 2,666-character source
+is not entirely visible. No whole-document or narrative-quality pass is claimed.
+
+Two fresh processes produce identical projections/payloads; related source-bundle,
+cohort, capacity and island tests pass **23/23**. [Projection](../../benchmarks/results/kbf_current_cohort_visibility_2026-09-08/visibility.json)
+and [confirmation](../../benchmarks/results/kbf_current_cohort_visibility_2026-09-08/confirmation.json)
+remain ignored artifacts. Confirmation SHA `abb3f66554c4001b7b31001f122dd0853f7830e2443814252f619f032956d2df`.
+Provider/retrieval/validation/execution calls and store writes are **0**; full source-store
+fingerprint and frozen input hashes are unchanged. No runtime repair was needed for
+this bounded coverage check. Current compiler responses and full-agent quality remain unmeasured.
+
 ### NAV fixture source-unit correction
 
 The unchanged [v1 fixture](../../tests/fixtures/reviewed_runtime_replay_corpus_v1.json)
@@ -113,11 +146,12 @@ Regression checks cover normalization, direct displays and dependency input amou
 A self-consistent wrong-unit/wrong-normalization mutation still matches growth but
 now fails the independent direct-amount/output checks.
 
-**Next bounded work:** use current cohorts on the saved KB source window and requirements
-to inspect whether the exact reviewed source atoms remain compiler-visible. Do not
-reuse or remap old visibility/program authority. This can be provider-free; expanding
-to unseen questions or any paid execution is separate. Runtime math, benchmark answer
-keys and tolerances remain unchanged.
+**Next bounded work:** prepare a two-question current KB compiler-only admission using
+these source windows and requirements. Generate new compiler outputs against fresh
+visibility, not remapped old programs. Execution requires separate approval of its new
+manifest, provider transmission and cost cap; preparation does not authorize a paid run.
+Fresh retrieval, unseen questions and full-agent quality remain separate. Runtime math,
+benchmark answer keys and tolerances stay unchanged.
 
 ## Validation receipts
 

@@ -95,7 +95,7 @@ tenfold scale error now fails even when growth stays correct. V1 and old receipt
 Source display 41.4%, program, selections, narrative and the other four cases are unchanged.
 Two v2 receipts match (`48634f5c...0f9f`); related tests 51/51, provider/store calls 0.
 Exact replay stays 3/5: KB's known version mismatch comes from added prose, filing-qualified IDs and four unselected T1 unit fixes.
-Old owner reproduces both saved fingerprints; actual selected source atoms survive 5/5. Next: inspect current cohort visibility, no ID remap or paid run.
+Old owner reproduces both saved fingerprints. Current KB cohorts expose all 5 reviewed source atoms at 6/6 required uses; payloads repeat identically, focused tests 23/23. Next: prepare a current KB compiler-only admission; no old-ID remap, paid run or new execution claim.
 [Evidence matrix and fixture revision](docs/evaluation/reviewed_case_evidence_status.md) distinguish
 contract tests and separate historical live runs from a synchronized current full-agent gate.
 
