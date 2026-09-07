@@ -111,8 +111,8 @@ Non-temporal headers stay in `source_period_surface`/`column_headers`, not `peri
 Narratives may use filing-year document scope, but that scope cannot bridge a numeric period. A numeric period witness needs located period evidence and the same source context; missing period evidence requests program repair, not candidate exclusion.
 
 The complete immutable candidate catalog is projected into generic fact views.
-Owner matching then evaluates independent scope, local-subject, owner-kind,
-document-subject, unit, metric, and physical-locality factors. Repeated words do
+Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Document-company matches are diagnostic
+only; filing scope still rejects conflicts but is not an implicit value-subject bonus. Repeated words do
 not accumulate an additive relevance score and cannot compensate for an
 explicit scope, subject, or unit conflict. Within each owner cohort,
 `compatible` candidates always rank before `unknown_only`; explicit conflicts

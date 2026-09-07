@@ -36,7 +36,6 @@ CANDIDATE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
     "applicability_state",
     "local_subject",
     "owner_kind",
-    "document_subject",
     "unit",
     "metric",
     "structured_locality",
@@ -162,7 +161,7 @@ class CandidateMatchV1:
     owner_kind_state: str
     metric_state: str
     unit_state: str
-    rank_vector: Tuple[int, int, int, int, int, int, int]
+    rank_vector: Tuple[int, int, int, int, int, int]
     target_concept_keys: Tuple[str, ...]
     target_local_subjects: Tuple[str, ...]
 
@@ -607,13 +606,14 @@ def build_candidate_matches(
         else:
             subject_state, subject_rank = "unknown", 1
 
+        # Filing identity is scope authority, not an implicit subject/rank bonus.
         if target.document_company and any(
             _identity_matches(target.document_company, observed)
             for observed in fact.identity_surfaces
         ):
-            document_subject_state, document_subject_rank = "local_match", 2
+            document_subject_state = "local_match"
         else:
-            document_subject_state, document_subject_rank = "unknown", 1
+            document_subject_state = "unknown"
 
         if owner_kind == "narrative":
             owner_kind_state = "narrative" if fact.kind == "narrative" else "structured_fact"
@@ -674,7 +674,6 @@ def build_candidate_matches(
                 state_rank,
                 subject_rank,
                 owner_kind_rank,
-                document_subject_rank,
                 unit_rank,
                 metric_rank,
                 locality_rank,

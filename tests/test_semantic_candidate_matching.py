@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from copy import deepcopy
 
 from src.agent.financial_calculation_execution import (
     validate_semantic_calculation_program,
@@ -137,6 +138,41 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         self.assertEqual(amount_match["subject_state"], "match")
         self.assertEqual(amount_match["metric_state"], "concept_cell")
         self.assertEqual(amount_match["unit_state"], "match")
+
+    def test_filing_company_row_cannot_mask_source_matched_metric_bundles(self) -> None:
+        owner = _obligation()
+        owner.update(label="Support credit", concept_hints=[], retrieval_hints=[])
+        owner["display_unit"] = "USD"
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": [], "metric_surfaces": ["support credit"],
+        }
+        catalog = []
+        for candidate_id, entity, column, context in (
+            ("balance-a", "filing company", "assets", ""),
+            ("balance-b", "filing company", "liabilities", ""),
+            ("credit-a", "adjustments", "disclosed amount", "Support credit for production."),
+            ("credit-b", "adjustments", "disclosed amount", "Support credit recognized this period."),
+        ):
+            candidate = _candidate(candidate_id, entity=entity, row_id=candidate_id,
+                cell_id=candidate_id, column=column, value="125", unit="USD",
+                normalized_unit="USD", table_id=candidate_id)
+            candidate.update(period="", source_text=context or entity, row_context_text=context)
+            catalog.append(candidate)
+        before = deepcopy(catalog)
+        for rows in (catalog, list(reversed(catalog))):
+            plan = _semantic_candidate_cohorts(rows, [owner])
+            self.assertEqual(set(plan["candidate_ids_by_owner"]["ob_amount"]), {"credit-a", "credit-b"})
+            for candidate_id in ("credit-a", "credit-b"):
+                match = plan["candidate_match_by_id"][candidate_id]["ob_amount"]
+                self.assertEqual(match["state"], "unknown_only")
+                self.assertEqual(match["metric_state"], "surface_text")
+        self.assertEqual(catalog, before)
+
+    def test_filing_company_still_enforces_scope_without_ranking_bonus(self) -> None:
+        candidate = {**self.target_amount, "company": "unrelated filing", "document_company": "unrelated filing"}
+        plan = _semantic_candidate_cohorts([candidate], [_obligation()])
+        self.assertNotIn(candidate["candidate_id"], plan["visible_candidate_ids"])
+        self.assertEqual(plan["candidate_match_by_id"][candidate["candidate_id"]]["ob_amount"]["state"], "explicit_conflict")
 
     def test_catalog_order_does_not_change_cohort_or_payload(self) -> None:
         catalog = [
