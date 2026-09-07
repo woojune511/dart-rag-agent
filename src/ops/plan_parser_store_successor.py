@@ -130,12 +130,29 @@ class _ObservedParser(FinancialParser):
         return sections
 
 
-def plan_store_successor(source_store: Path, reports: list[dict], *, section_parse_budget_sec: float = 0) -> dict:
-    """Parse all declared original filings in memory and compare with the store."""
-    # Reuse the current zero-model-call benchmark index projection, not a new
-    # prefix policy. Import lazily; neither a FinancialAgent nor a store is made.
+def parse_source_projection(reports, manifest, *, section_parse_budget_sec=0):
+    """Shared, provider-free source/prefix projection for inventory and builder."""
     from src.ops.benchmark_runner import _build_structural_selective_prefixed_text, _selective_reason_v2
 
+    chunks, parsed_reports = [], []
+    for report in sorted(reports, key=lambda row: str(row["metadata"]["rcept_no"])):
+        parser = _ObservedParser(chunk_size=manifest.ingest.chunk_size,
+                                 chunk_overlap=manifest.ingest.chunk_overlap,
+                                 section_parse_budget_sec=section_parse_budget_sec)
+        parsed = parser.process_document(str(report["source_file"]), dict(report["metadata"]))
+        if not parsed:
+            raise ValueError(f"Source produced no chunks: {report['source_file']}")
+        chunks.extend(parsed)
+        parsed_reports.append({"receipt": str(report["metadata"]["rcept_no"]), "chunks": len(parsed),
+                               "section_modes": parser.section_modes})
+        print(f"Parsed {report['metadata']['rcept_no']}: {len(parsed)} chunks", file=sys.stderr, flush=True)
+    texts = [_build_structural_selective_prefixed_text(chunk.metadata, chunk.content,
+                                                     selected_reason=_selective_reason_v2(chunk)) for chunk in chunks]
+    return chunks, texts, FinancialParser.build_parents(chunks), parsed_reports
+
+
+def plan_store_successor(source_store: Path, reports: list[dict], *, section_parse_budget_sec: float = 0) -> dict:
+    """Parse all declared original filings in memory and compare with the store."""
     source_store = source_store.resolve()
     manifest = read_store_manifest(source_store)
     if manifest is None:
@@ -163,21 +180,8 @@ def plan_store_successor(source_store: Path, reports: list[dict], *, section_par
             raise ValueError(f"Missing predecessor payload: {payload_id}")
         old_metadata.append(metadata_with_table_payload(metadata, payloads))
 
-    chunks, parsed_reports = [], []
-    for report in sorted(reports, key=lambda row: str(row["metadata"]["rcept_no"])):
-        parser = _ObservedParser(chunk_size=manifest.ingest.chunk_size,
-                                 chunk_overlap=manifest.ingest.chunk_overlap,
-                                 section_parse_budget_sec=section_parse_budget_sec)
-        parsed = parser.process_document(str(report["source_file"]), dict(report["metadata"]))
-        if not parsed:
-            raise ValueError(f"Source produced no chunks: {report['source_file']}")
-        chunks.extend(parsed)
-        parsed_reports.append({"receipt": str(report["metadata"]["rcept_no"]), "chunks": len(parsed),
-                               "section_modes": parser.section_modes})
-        print(f"Parsed {report['metadata']['rcept_no']}: {len(parsed)} chunks", file=sys.stderr, flush=True)
-    texts = [_build_structural_selective_prefixed_text(chunk.metadata, chunk.content,
-                                                     selected_reason=_selective_reason_v2(chunk)) for chunk in chunks]
-    parents = FinancialParser.build_parents(chunks)
+    chunks, texts, parents, parsed_reports = parse_source_projection(
+        reports, manifest, section_parse_budget_sec=section_parse_budget_sec)
     table_comparison = compare_tables(old_metadata, [chunk.metadata for chunk in chunks])
     text_comparison = compare_index_texts(old_nodes, chunks, texts)
     successor = replace(manifest, ingest=replace(manifest.ingest, parser_schema_version=CANONICAL_PARSER_SCHEMA_VERSION))

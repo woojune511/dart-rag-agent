@@ -58,6 +58,7 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | curated dataset 설계 원칙 |
 | [evaluation/numeric_regression_methodology.md](evaluation/numeric_regression_methodology.md) | numeric regression 분류 방법 |
 | [evaluation/retrieval_trace_debugging.md](evaluation/retrieval_trace_debugging.md) | retrieval trace 진단 절차 |
+| [operations/parser_store_successor.md](operations/parser_store_successor.md) | 원본 보존·동일 입력 벡터 재사용·새 parser 저장소 생성 절차 |
 
 `requirements-review.txt`는 fixture와 reviewer gate용 lightweight profile이고,
 `requirements.txt`는 ingest, API, benchmark, full development profile이다.

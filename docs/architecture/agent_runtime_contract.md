@@ -312,10 +312,10 @@ Benchmark-only in-progress cache metadata preserves a manifest-less partial
 store only with exact cache/store signatures and explicit partial-resume policy;
 it never grants query readiness.
 
-Graph-based vector-store rebuilds use one expected `StoreManifestV1` as the
-provider, model, dimension, collection, and ingest identity. A side-by-side
-partial rebuild remains manifest-less and resumable; the rebuild publishes the
-manifest only after the completed index passes its external health check.
+Graph-based vector rebuilds use one expected manifest and publish only after index health; partial successors remain manifest-less.
+Source-reparse successors pin original file hashes, fresh parser/prefix projection and the same embedding identity. Original indexes open only through working copies.
+Vector reuse requires exact full input text with fresh parser metadata, not chunk-ID equality or historical candidate remapping. Missing vectors are explicit deduplicated inputs, never automatic provider calls.
+Explicit resume binds prepared inputs/vectors. Exact graph/payload/parent/vector readback and dense probes precede manifest-last publication; a prepared bundle or prepublication receipt is not readiness.
 
 ## 9. API and optional surfaces
 
