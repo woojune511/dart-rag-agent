@@ -174,6 +174,55 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         self.assertNotIn(candidate["candidate_id"], plan["visible_candidate_ids"])
         self.assertEqual(plan["candidate_match_by_id"][candidate["candidate_id"]]["ob_amount"]["state"], "explicit_conflict")
 
+    def test_metric_fragment_is_not_inferred_as_a_local_subject(self) -> None:
+        owner = _obligation()
+        owner.update(label="전체 연구개발비용", retrieval_hints=[], concept_hints=[], display_unit="KRW")
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": ["research_and_development_expense"],
+            "metric_surfaces": ["전체 연구개발비용"],
+        }
+        total = _candidate("total", entity="연구개발비용 계", row_id="total", cell_id="total:1",
+            column="2024", value="120", unit="원", normalized_unit="KRW")
+        unrelated = _candidate("balance", entity="개발비", row_id="balance", cell_id="balance:1",
+            column="carrying amount", value="600", unit="원", normalized_unit="KRW", table_id="other")
+        unrelated.update(period="", value_year=None)
+        plan = _semantic_candidate_cohorts([unrelated, total], [owner])
+        match = plan["candidate_match_by_id"]["total"]["ob_amount"]
+        self.assertEqual(match["target_local_subjects"], [])
+        self.assertEqual(match["state"], "compatible")
+        self.assertEqual(plan["candidate_ids_by_owner"]["ob_amount"][0], "total")
+
+    def test_explicit_metric_surface_fragment_is_not_a_subject_without_ontology(self) -> None:
+        owner = _obligation()
+        owner.update(label="combined service fee", retrieval_hints=[], concept_hints=[], display_unit="USD")
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": [], "metric_surfaces": ["combined service fee"],
+        }
+        total = _candidate("total", entity="combined service fee", row_id="total", cell_id="total:1",
+            column="2024", value="120", unit="USD", normalized_unit="USD")
+        unrelated = _candidate("balance", entity="service fee", row_id="balance", cell_id="balance:1",
+            column="amount", value="600", unit="USD", normalized_unit="USD", table_id="other")
+        plan = _semantic_candidate_cohorts([unrelated, total], [owner])
+        self.assertEqual(plan["candidate_match_by_id"]["total"]["ob_amount"]["target_local_subjects"], [])
+
+    def test_exact_metric_axes_precede_substring_matches_without_trimming_bundles(self) -> None:
+        owner = _obligation()
+        owner.update(label="무형자산(개발비)으로 자본화된 금액", retrieval_hints=[], concept_hints=[], display_unit="KRW")
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": ["capitalized_development_cost"],
+            "metric_surfaces": ["무형자산(개발비)으로 자본화된 금액"],
+        }
+        catalog = []
+        for candidate_id, label in (("a", "연구개발비용 계"), ("b", "정부보조금 차감후 연구개발비용 계"),
+                                    ("z1", "개발비(무형자산)"), ("z2", "개발비(무형자산)")):
+            catalog.append(_candidate(candidate_id, entity=label, row_id=candidate_id, cell_id=candidate_id + ":1",
+                column="2024", value="120", unit="원", normalized_unit="KRW", table_id=candidate_id))
+        before = deepcopy(catalog)
+        for rows in (catalog, list(reversed(catalog))):
+            plan = _semantic_candidate_cohorts(rows, [owner])
+            self.assertEqual(set(plan["candidate_ids_by_owner"]["ob_amount"]), {"z1", "z2"})
+        self.assertEqual(catalog, before)
+
     def test_catalog_order_does_not_change_cohort_or_payload(self) -> None:
         catalog = [
             self.same_row_share,

@@ -26,8 +26,8 @@
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified table/row/cell identity with raw provenance, source/catalog construction, attached prose and exact row context |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
-| `src/agent/financial_candidate_matching.py` | typed owner applicability and bundle rank inputs; filing-company diagnostics do not boost value relevance |
-| `src/agent/financial_graph_calculation.py` | bundle-first cohorts, islands, targeted retry with read-only executed dependency inputs |
+| `src/agent/financial_candidate_matching.py` | typed applicability; metric fragments are not inferred entities, exact axes precede containment; no filing-company relevance bonus |
+| `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, islands/targeted retry with read-only dependency inputs; terminal admission errors propagate |
 | `src/agent/financial_calculation_execution.py` | evidence/formula dimensions, cross-source scope checks, candidate/dependency input provenance separate from display witnesses, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |
@@ -53,6 +53,8 @@
 | --- | --- |
 | `src/ops/evaluator.py` | evaluator-only numeric variants; opt-in canonical row/period/document identity separate from answer labels |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
+| `src/ops/provider_admission.py` | opt-in fixed-experiment SDK preflight/dispatch, shared cost reservations and first-cause preservation; frozen scripts unchanged |
+| `src/utils/provider_errors.py` | dependency-light terminal admission error shared by runtime and ops; no core-to-ops import |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
 | `src/ops/plan_parser_store_successor.py` | socket-blocked full-filing reparse inventory, exact table/unit/header drift and index-text reuse candidates; no vector/store publication |
 | `src/ops/build_parser_store_successor.py` | explicit source-copy preparation, exact-input vector reuse, separately supplied missing vectors, snapshot readback and manifest-last publication; no provider clients |

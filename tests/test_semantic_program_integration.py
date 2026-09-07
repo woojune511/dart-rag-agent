@@ -4,6 +4,11 @@ from tests.semantic_program_test_support import *
 
 
 class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
+    @staticmethod
+    def _prompt_json(prompt, heading):
+        content = prompt.to_messages()[0].content
+        return json.JSONDecoder().raw_decode(content.split(heading + "\n", 1)[1].lstrip())[0]
+
     def _agent(self, llm):
         agent = object.__new__(FinancialAgent)
         agent.llm = llm
@@ -135,8 +140,9 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             ["RequirementPlannerOutput", *["SemanticCalculationProgram"] * 3],
         )
         self.assertEqual(len(llm.prompts), 4)
-        self.assertIn('"evidence_mode": "source_defined_group"', str(llm.prompts[3]))
-        self.assertIn('"requirement_id": "ob_003:req_001"', str(llm.prompts[3]))
+        visible_obligations = self._prompt_json(llm.prompts[3], "Answer obligations:")
+        self.assertEqual(visible_obligations[0]["evidence_mode"], "source_defined_group")
+        self.assertEqual(visible_obligations[0]["evidence_requirements"][0]["requirement_id"], "ob_003:req_001")
         compile_validation_bytes = json.dumps(
             compiled["semantic_program_validation"],
             ensure_ascii=False,
@@ -712,7 +718,11 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=catalog):
             compiled = agent._compile_semantic_calculation_program(state)
         self.assertEqual(llm.models, ["SemanticCalculationProgram"])
-        self.assertIn('"year": 2024', str(llm.prompts[0]))
+        visible_payload = self._prompt_json(
+            llm.prompts[0], "Source bundles, candidate cohorts, and candidates_by_id:"
+        )
+        self.assertEqual(visible_payload["candidates_by_id"][opening_id]["year"], 2024)
+        self.assertEqual(visible_payload["candidates_by_id"][closing_id]["year"], 2024)
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
         self.assertEqual(len(llm.prompts), 2)
         retry_prompt = str(llm.prompts[1])

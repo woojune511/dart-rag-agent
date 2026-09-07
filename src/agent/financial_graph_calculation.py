@@ -49,11 +49,18 @@ from src.agent.financial_source_bundles import (
 )
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace, runtime_trace_state_update
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
+from src.utils.provider_errors import ProviderAdmissionError
 
 
 logger = logging.getLogger(__name__)
 
 MAX_SEMANTIC_COMPILATION_ISLANDS = 8
+
+
+def _compiler_json(value: Any) -> str:
+    """Compact framing only: source strings and every provenance field survive."""
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
 
 def _semantic_candidate_capacity(
     catalog: Sequence[Mapping[str, Any]], selectable_ids: Sequence[str],
@@ -1712,11 +1719,7 @@ class FinancialAgentCalculationMixin:
             obligations,
         )
         prompt_payload = self._semantic_program_prompt_payload(catalog, cohort_plan)
-        prompt_catalog_json = json.dumps(
-            prompt_payload,
-            ensure_ascii=False,
-            indent=2,
-        )
+        prompt_catalog_json = _compiler_json(prompt_payload)
         prompt_candidate_ids = [
             str(item)
             for item in (cohort_plan.get("visible_candidate_ids") or [])
@@ -1817,11 +1820,7 @@ class FinancialAgentCalculationMixin:
                     )
                     if str(item or "").strip()
                 ]
-                active_prompt_catalog_json = json.dumps(
-                    active_prompt_payload,
-                    ensure_ascii=False,
-                    indent=2,
-                )
+                active_prompt_catalog_json = _compiler_json(active_prompt_payload)
                 try:
                     prompt_obligations = (
                         [
@@ -1836,11 +1835,7 @@ class FinancialAgentCalculationMixin:
                     prompt_value = prompt.invoke(
                         {
                             "query": query,
-                            "obligations": json.dumps(
-                                prompt_obligations,
-                                ensure_ascii=False,
-                                indent=2,
-                            ),
+                            "obligations": _compiler_json(prompt_obligations),
                             "candidate_catalog": active_prompt_catalog_json,
                             "retry_feedback": retry_feedback,
                         }
@@ -1856,6 +1851,10 @@ class FinancialAgentCalculationMixin:
                         if attempt and retry_target_ids
                         else compiled_program
                     )
+                except ProviderAdmissionError:
+                    # A spending/authorization stop is not an evidence or
+                    # schema failure. Preserve its cause for the caller.
+                    raise
                 except Exception as exc:
                     invocation_errors.append(str(exc))
                     failed_program = {

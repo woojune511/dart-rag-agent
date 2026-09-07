@@ -57,11 +57,11 @@ class _FixedCompiler:
             if callable(getattr(prompt, "to_string", None))
             else str(prompt)
         )
-        target_ids = [
-            obligation_id
-            for obligation_id in self.obligation_ids
-            if f'"obligation_id": "{obligation_id}"' in prompt_text
-        ]
+        prompt_obligations = json.JSONDecoder().raw_decode(
+            prompt_text.split("Answer obligations:\n", 1)[1].lstrip()
+        )[0]
+        target_ids = [row["obligation_id"] for row in prompt_obligations
+                      if row["obligation_id"] in self.obligation_ids]
         if not target_ids:
             raise AssertionError("expected at least one island obligation")
         response = self.response.model_dump()

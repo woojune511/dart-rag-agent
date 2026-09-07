@@ -115,8 +115,8 @@ Narratives may use filing-year document scope, but that scope cannot bridge a nu
 
 The complete immutable candidate catalog is projected into generic fact views.
 Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Document-company matches are diagnostic only; filing scope rejects conflicts but adds no implicit value-subject bonus.
-Repeated words do not accumulate an additive relevance score or compensate for explicit scope, subject, or unit conflicts.
-Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are excluded. Equal factor tiers are deterministic and source-diverse.
+Repeated words do not accumulate additive relevance or compensate for conflicts. Legacy subject inference must not promote a fragment of a declared concept alias/metric surface into a local entity; explicit local subjects remain authoritative.
+Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are excluded. Exact row/cell metric matches precede containment-only matches as ordinal tiers, not additive scores. Equal tiers remain deterministic and source-diverse.
 
 `SourceBundleV1` is the source-reading unit: deterministic ID, source kind/anchor, context fingerprint,
 exact contiguous text, member IDs and local value spans. Same-source sentence values share a bundle.
@@ -134,7 +134,7 @@ owner gets at most two bundles with every non-conflicting member visible togethe
 Period pairs/signs/neighboring operands are not split by a top-one cutoff; a shared
 bundle's source text appears once per compiler payload, even across owners.
 
-`semantic_program_candidate_payload_v6` stores source text once in `source_bundles_by_id` and located document fragments once in `source_contexts_by_id`.
+`semantic_program_candidate_payload_v6` stores source text once in `source_bundles_by_id` and located document fragments once in `source_contexts_by_id`. Compiler JSON framing is compact; source strings, fields, provenance and assertion spans remain exact.
 Table bundles reference context IDs/relations; parser payloads retain full ancestor titles, captions, adjacent blocks and textual table rows, file SHA, XML locator and exact decoded-XML-text span (not raw HTML byte offsets). Each fragment is bounded to 1200 characters, each table to 4800; adjacency is not applicability.
 Contexts attach before cohort matching, without rewriting cells/IDs/catalog fingerprints. Existing factor matching may read headings/captions/preceding context; no additive score or model call is added. Owner authority still applies.
 Direct/variable `context_bindings` and expression `source_display_context_bindings` cite attached context IDs and exact quotes for interpreted period/consolidation/segment/basis. Validator checks attachment, quote, known period consistency and explicit candidate conflicts; semantic applicability remains the compiler's responsibility. A binding-local `context_resolution` reaches execution/trace without changing raw catalog scope. Context errors repair the same cohort; accepted island bindings stay unchanged.
@@ -225,7 +225,7 @@ typed results and telemetry without modifying answers, citations, or evidence.
 
 Google phase routes forward explicit `max_output_tokens`, `thinking_budget`,
 `provider_client_retries`, and `include_thoughts` to the SDK; zero/false must survive.
-Omitted controls retain defaults. A zero-retry setting must permit only the initial HTTP attempt.
+Omitted controls retain defaults. Zero retries permit only the initial HTTP attempt. `ProviderAdmissionError` is terminal, not a compiler/schema failure: preserve its first cause and propagate without semantic retry or an evidence-insufficiency program.
 
 Each answer obligation is a vertex. Islands connect only through a dependency on
 another user-visible answer obligation, a shared non-empty `coupling_key`, or an
@@ -347,4 +347,4 @@ Provider validation requires separate manifest/cost approval, then one store-fix
 eval-only run with a 30-second heartbeat; no automatic retry or fresh ingest.
 A release needs all approved questions complete, zero runtime errors, and ledger `ok`;
 dataset governance and evaluator tolerance remain separate. Local success is not provider evidence.
-Opt-in compiler comparisons fix inputs/budgets and retain failures; they confer no release claim or relaxation of validation/stop conditions.
+Opt-in comparisons/admissions fix inputs/budgets and retain failures, without a release claim. `src.ops.provider_admission` shares actual SDK-request serialization/reservation between read-only preflight and dispatch, records denied requests separately, and preserves the first stop cause. Estimates are not billing; no default installation or change to frozen admission scripts.

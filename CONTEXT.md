@@ -8,7 +8,7 @@ Last updated: 2026-09-08
 - Working branch: `codex/reviewed-compiler-selection-gate`; compiler-gate
   baseline `e9a5be0`. Repair baseline: `5e13bc6`; dependency fix: `af9a07e`.
 - Unit/retry, compiler, persistence/API, final-state, periods, source-context, query spellings,
-  filing-qualified identity, filing/metric ranking separation and declared table units are implemented. Git is the chronology.
+  filing-qualified identity, exact-axis/metric-subject ranking, compact compiler JSON, typed admission stops and declared table units are implemented. Git is the chronology.
 - HTTP shape, `FinancialRunResultV1`, store manifest shape and ID/fingerprint hashing stay intact;
   parser `financial_parser_v2_source_context` honors explicit headers; new row/cell IDs may differ. Historical IDs are not rewritten.
 - Historical results, datasets, stores, caches, and review packets are immutable.
@@ -124,7 +124,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
 | LG 2023 / NAV 2022+2023 | New v2 stores: 2,655 vectors, integrity/readiness 2/2 | Full-agent runtime 2/2; historical LG FAIL preserved, explicit v2 evaluation replay PASS; judges unmeasured |
-| Celltrion 2023 | New OpenAI store: 1,083 vectors, 978 payloads, 41 parents; integrity/dense/readiness pass, degraded false | Build and full-agent `e68bc998...865e` approvals exhausted. Runtime 0/1: compiler blocked before Pro transmission by cost reservation; correct source cells in catalog but hidden from compiler. USD 0.00798617 / 0.20, ledger ok, originals unchanged. Next: provider-free visibility/budget diagnosis, no paid retry. [Result](benchmarks/results/reviewed_full_agent_celltrion_2026-09-08/README.md) |
+| Celltrion 2023 | OpenAI store unchanged: 1,083 vectors, 978 payloads, 41 parents; compatible/non-degraded | `e68bc998...865e` is exhausted and remains runtime 0/1, Pro calls 0. Local repair now exposes both reviewed cells; compact payload 50,130 bytes, same-SDK saved-input reservation plus prior spend USD 0.17478992 / 0.20. Typed budget denial makes no compiler retry. Receipt `000746bc...1047b`; [local review](benchmarks/results/celltrion_visibility_budget_repair_2026-09-08/README.md). Next: provider-free fiscal-column versus row-relative period correction before any new admission; no paid retry. |
 
 Previous LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
 Current no-call projection preserves all 592/547 candidate IDs, raw values, periods and physical provenance. Filing-company matches no longer boost value rank; explicit local subjects and scope conflicts remain enforced. Table context plus column labels resolves mixed units; annotated row units survive, bare currency row categories do not override table units. Corrected effective units change catalog-content fingerprints, not ID/hash algorithms or stored payloads.

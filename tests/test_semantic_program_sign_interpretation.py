@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 import unittest
 
 from tests.semantic_program_test_support import (
@@ -119,7 +120,10 @@ class SemanticProgramSignInterpretationTests(unittest.TestCase):
         self._assert_value(execution, 50)
         prompt = prompts[0]
         self.assertIn(query, prompt)
-        self.assertIn('"raw_value": "(150)"', prompt)
+        payload = json.JSONDecoder().raw_decode(prompt.split(
+            "Source bundles, candidate cohorts, and candidates_by_id:\n", 1
+        )[1].lstrip())[0]
+        self.assertEqual(payload["candidates_by_id"]["cand-current"]["raw_value"], "(150)")
         self.assertEqual(prompt.count("balance | 2024: (150) USD | 2023: (100) USD"), 1)
         for guidance in (
             "계산 해석 순서",

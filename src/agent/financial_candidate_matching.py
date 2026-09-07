@@ -458,6 +458,17 @@ def _best_metric_state(
             for wanted in targets
         )
 
+    # Exact metric axes precede containment matches. These are ordered tiers,
+    # not additive word scores; a short alias inside another metric is weaker.
+    for surfaces, targets, state, rank in (
+        (fact.cell_metric_surfaces, target.concept_aliases, "concept_cell", 1200),
+        (fact.cell_metric_surfaces, target.metric_surfaces, "surface_cell", 1100),
+        (fact.row_metric_surfaces, target.concept_aliases, "concept_row", 1000),
+        (fact.row_metric_surfaces, target.metric_surfaces, "surface_row", 900),
+    ):
+        if any(_compact(surface) == _compact(wanted) for surface in surfaces for wanted in targets):
+            return state, rank
+
     if target.concept_aliases and any_match(
         fact.cell_metric_surfaces, target.concept_aliases
     ):
@@ -525,6 +536,10 @@ def build_candidate_matches(
     owner_kind = str(owner.get("kind") or (parent_owner or {}).get("kind") or "")
     facts = [project_candidate_fact(candidate) for candidate in catalog]
     if not target.local_subjects:
+        declared_metric_surfaces = _ordered_surfaces([
+            *target.concept_aliases,
+            *list(dict(owner.get("semantic_target") or {}).get("metric_surfaces") or []),
+        ])
         owner_text = _normalise_spaces(
             " ".join(
                 [
@@ -548,8 +563,8 @@ def build_candidate_matches(
             and any(character.isalpha() for character in observed)
             and _surface_contains(owner_text, observed)
             and not any(
-                _identity_matches(alias, observed)
-                for alias in target.concept_aliases
+                _surface_contains(metric, observed)
+                for metric in declared_metric_surfaces
             )
             and not (
                 scope_company and _identity_matches(scope_company, observed)

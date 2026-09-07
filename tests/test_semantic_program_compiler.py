@@ -4,6 +4,40 @@ from tests.semantic_program_test_support import *
 
 
 class SemanticCalculationProgramCompilerTests(unittest.TestCase):
+    def test_compact_compiler_json_preserves_exact_source_and_provenance(self) -> None:
+        from src.agent.financial_graph_calculation import _compiler_json
+
+        payload = {"bundles": [{"source_text": "  원문 (1,200)\n다음 행\t표현  ",
+                                "provenance": {"span": [2, 18], "row_id": "row:1"},
+                                "ids": ["left", "right"]}]}
+        compact = _compiler_json(payload)
+        self.assertEqual(json.loads(compact), payload)
+        self.assertLess(len(compact.encode("utf-8")), len(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")))
+        self.assertNotIn("\n ", compact)
+
+    def test_terminal_admission_error_propagates_without_semantic_retry(self) -> None:
+        from src.utils.provider_errors import ProviderAdmissionError
+
+        error = ProviderAdmissionError("budget_reservation_exceeded", "next request exceeds cap")
+
+        class StoppedLLM(_StructuredQueueLLM):
+            def invoke(self, prompt):
+                self.prompts.append(prompt)
+                raise error
+
+        llm = StoppedLLM()
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = llm
+        catalog = [_candidate("value", 10)]
+        with self.assertRaises(ProviderAdmissionError) as raised:
+            agent._compile_semantic_calculation_program({
+                "query": "quantity", "answer_obligations": [_obligation("amount", "direct_value", "quantity")],
+                "semantic_candidate_catalog_prebuilt": True,
+                "semantic_source_candidates": catalog, "semantic_candidate_catalog": catalog,
+            })
+        self.assertIs(raised.exception, error)
+        self.assertEqual(len(llm.prompts), 1)
+
     def test_expression_schema_requires_explicit_source_display_decision(self) -> None:
         schema = SemanticCalculationProgram.model_json_schema()
         expression_schema = schema["$defs"]["SemanticProgramExpression"]
