@@ -54,6 +54,7 @@
 | `src/ops/evaluator.py` | evaluator-only numeric and source-qualified variant contracts |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
+| `src/ops/plan_parser_store_successor.py` | socket-blocked full-filing reparse inventory, exact table/unit/header drift and index-text reuse candidates; no vector/store publication |
 | `src/ops/replay_runtime_contract_cases.py` | read-only saved-case/counterfactual runtime contract replay; no provider/release claim |
 | `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
 | `src/ops/replay_reviewed_runtime_corpus.py` | provider-free replay of source-derived reviewed fixtures through normalization/visibility/validator/envelope/executor; no retrieval/compiler claim |
