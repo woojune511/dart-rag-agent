@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-07
+Last updated: 2026-09-08
 
 ## Working source
 
@@ -44,10 +44,10 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
 - Expressions explicitly select or decline a source display and give a reason.
   Source values are primary; differing calculated values are also shown.
   Downstream formulas use calculated values, with separate display provenance.
-- Formula-input execution rows keep the validated evidence-requirement role,
-  label, period, and year. A requirement-supplied period is marked as such and
-  does not masquerade as source period text; the same row reaches evaluator
-  projection unchanged.
+- Every formula input records its variable and candidate/prior-obligation reference.
+  Calculated value/unit, validated owner/requirement metadata and physical/context evidence survive.
+  Transitive arithmetic provenance excludes display/compatibility witnesses without widening authority.
+  Dependency input summaries use calculated values and resolved periods; source surfaces remain in trace.
 - Located cell periods override unbound table hints; ambiguous/unanchored numeric periods
   cannot borrow filing-year scope, even via a narrative witness. Bound formulas may span scope-compatible sources;
   coupling/physical-row contracts remain enforced; assertion coverage has stable owner order.
@@ -128,7 +128,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 
 Previous LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
 Current no-call projection preserves all 592/547 candidate IDs, raw values, periods and physical provenance. Filing-company matches no longer boost value rank; explicit local subjects and scope conflicts remain enforced. Table context plus column labels resolves mixed units; annotated row units survive, bare currency row categories do not override table units. Corrected effective units change catalog-content fingerprints, not ID/hash algorithms or stored payloads.
-Approved v2 build `ac0a3ea7...2c89` is exhausted; frozen stores retain 783/1,872 vectors with compatible, non-degraded readiness. Ranking/unit repairs and saved-window review `177dc2e2...6811` remain provider-free evidence; full runtime tests are 1,066/1,066. Approved admission `2724f2ed...4432` ran once on clean `90aacc9` (runtime `bb8eba2`): LG → NAV, runtime completion 2/2, errors 0, ledgers ok; 8 Gemini + 19 OpenAI calls, no API/outer retry, one allowed NAV compiler retry. Elapsed 115.265s, usage-estimated USD 0.19107573 / 0.40; billing unobserved. LG now selects 2,163,234백만원 and precise AMPC 676,874백만원, computing 1,486,360백만원. Numeric answer matching succeeds but atomic evaluation remains FAIL: expected literal period `공시금액`/note-only sources differ from resolved 2023 and summary-plus-note evidence. NAV retains same-row 2023/2022 amounts, source display 41.4%, and an actual acquisition-performance narrative. Judges are unmeasured; this is not overall answer-quality acceptance. Socket-blocked exact replay 2/2; admitted input/runtime/store hashes unchanged. Review `72e404f8...bc0b`; `benchmarks/results/reviewed_full_agent_lge_nav_v2_candidate_2026-09-07/README.md`. Approval exhausted. Offline diagnosis `151dc191...566a` separates evaluation period/strict-label/source mismatch from missing dependency input rows in the executor: six generic shapes reproduce it, 27 focused tests pass, and exact filing XML/hashes agree. `benchmarks/results/lge_evaluation_dependency_trace_diagnosis_2026-09-07/README.md`. No production/evaluator/dataset edits or calls. Next: common expression-input provenance projection; evaluator/dataset semantics remain a separate governance change, not a paid rerun. Parser deadline 0 remains diagnostic/build-specific; remote references/governance are separate.
+Approved v2 build `ac0a3ea7...2c89` is exhausted; frozen stores retain 783/1,872 vectors with compatible, non-degraded readiness. Ranking/unit repairs and saved-window review `177dc2e2...6811` remain provider-free evidence; predecessor runtime tests were 1,066/1,066. Approved admission `2724f2ed...4432` ran once on clean `90aacc9` (runtime `bb8eba2`): LG → NAV, runtime completion 2/2, errors 0, ledgers ok; 8 Gemini + 19 OpenAI calls, no API/outer retry, one allowed NAV compiler retry. Elapsed 115.265s, usage-estimated USD 0.19107573 / 0.40; billing unobserved. LG now selects 2,163,234백만원 and precise AMPC 676,874백만원, computing 1,486,360백만원. Numeric answer matching succeeds but atomic evaluation remains FAIL: expected literal period `공시금액`/note-only sources differ from resolved 2023 and summary-plus-note evidence. NAV retains same-row 2023/2022 amounts, source display 41.4%, and an actual acquisition-performance narrative. Judges are unmeasured; this is not overall answer-quality acceptance. Socket-blocked exact replay 2/2; admitted input/runtime/store hashes unchanged. Review `72e404f8...bc0b`; `benchmarks/results/reviewed_full_agent_lge_nav_v2_candidate_2026-09-07/README.md`. Approval exhausted. Diagnosis `151dc191...566a` separated evaluation period/strict-label/source mismatch from missing dependency input rows. The latter is now repaired: eight new tests, 66 focused and 1,074 full tests pass. Socket-blocked exact saved-program replay `3363310b...89e2` preserves both cases' values/slots/IDs and ledger agreement; LG gains two dependency inputs, NAV answer bytes stay identical. Evaluator/dataset/source stores and predecessor results are unchanged; calls 0. `benchmarks/results/dependency_provenance_repair_2026-09-08/README.md`. Next: separately review LG evaluation period/label/source policy; no paid rerun. Parser deadline 0 remains diagnostic/build-specific; remote references/governance are separate.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.

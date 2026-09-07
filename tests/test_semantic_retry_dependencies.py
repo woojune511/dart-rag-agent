@@ -170,6 +170,11 @@ class SemanticRetryDependencyTests(unittest.TestCase):
         self.assertEqual(execution["status"], "ok")
         self.assertEqual(execution["outputs_by_obligation"]["ob_change"]["display_value"], 10.2)
         self.assertEqual(execution["outputs_by_obligation"]["last"]["normalized_value"], 40)
+        last = execution["outputs_by_obligation"]["last"]
+        self.assertEqual(last["input_rows"][0]["source_id"], "middle")
+        self.assertEqual(last["input_rows"][0]["normalized_value"], 20)
+        self.assertEqual(last["calculated_provenance"]["input_candidate_ids"], ["cand-opening", "cand-closing"])
+        self.assertNotIn("cand-stated", last["calculated_provenance"]["source_row_ids"])
 
     def test_structurally_valid_but_unexecutable_dependency_is_not_exposed(self):
         case = self._derived_chain()

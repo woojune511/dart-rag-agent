@@ -154,10 +154,10 @@ scope, dimension, and exact-assertion checks as other sources. Its value and
 source spelling are primary even when they differ from recomputation. The
 answer then also labels the recalculated value. Numeric equivalence remains a
 separate scaled-precision comparison, not a condition for source authority.
-Dependency formulas consume calculated values; public primary answer slots use
-display values. Trace preserves both values and provenance. Flattened input rows
-reuse validated requirement ID/label/period; scope fallback is marked
-`period_source=requirement_scope` while source text stays source-only.
+Dependencies use calculated values; public slots use display values. Each binding has a copied `input_rows` record of variable, source ID/kind and executed value/unit; repeated bindings stay separate.
+Candidate/direct-dependency rows retain validated requirement/owner metadata, physical provenance and context. Derived inputs reference prior obligations/calculated displays, never fabricated cells.
+`calculated_provenance` dedupes transitive input candidate IDs, row IDs and anchors in first-use order, excluding display/compatibility witnesses. General evidence IDs retain witnesses without extra authority.
+Requirement scope fallback stays marked `period_source=requirement_scope`; source text stays source-only.
 
 Numeric owners have capacity two source bundles, narrative requirements six
 candidates, and numeric compatibility narrative capacity two. Query-wide

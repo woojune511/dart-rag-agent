@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from copy import deepcopy
 import hashlib
 import json
 import math
@@ -2637,6 +2638,67 @@ def project_semantic_program_operand(
     }
 
 
+def _project_expression_input(
+    binding: Mapping[str, Any],
+    *,
+    candidate: Optional[Mapping[str, Any]],
+    obligation: Mapping[str, Any],
+    source_output: Optional[Mapping[str, Any]],
+    source_operand: Optional[Mapping[str, Any]],
+) -> Optional[Dict[str, Any]]:
+    """Record the same calculated input that enters the arithmetic environment.
+
+    Dependency references stay immediate; their arithmetic lineage excludes display
+    and compatibility witnesses. Derived values never impersonate a source cell.
+    """
+    source_id = str(binding.get("source_id") or "")
+    if candidate is not None:
+        row = project_semantic_program_operand(
+            candidate,
+            obligation_id=str(
+                binding.get("source_requirement_id") or obligation.get("obligation_id") or ""
+            ),
+            obligation=obligation,
+            validated_binding=binding,
+        )
+        source_kind = "candidate"
+        provenance = {
+            "input_candidate_ids": [source_id],
+            "source_row_ids": row["source_row_ids"],
+            "source_anchors": [row["source_anchor"]] if row["source_anchor"] else [],
+        }
+    elif source_output is not None and source_output.get("normalized_value") is not None:
+        source_kind = "obligation"
+        row = {
+            **dict(source_operand or {}),
+            "label": source_output["label"],
+            "normalized_value": source_output["normalized_value"],
+            "normalized_unit": source_output["normalized_unit"],
+            "rendered_value": (
+                source_output["formula_rendered_value"] if source_output["kind"] == "derived_value"
+                else source_output["rendered_value"]
+            ),
+        }
+        provenance = source_output["calculated_provenance"]
+    else:
+        return None
+    try:
+        value = float(row["normalized_value"])
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(value):
+        return None
+    return deepcopy({
+        **row,
+        "variable": str(binding.get("variable") or ""),
+        "source_id": source_id,
+        "source_kind": source_kind,
+        "normalized_value": value,
+        **{key: provenance[key]
+           for key in ("input_candidate_ids", "source_row_ids", "source_anchors")},
+    })
+
+
 def _source_display_matches(candidate: Mapping[str, Any], formula_value: float) -> bool:
     try:
         source_value = float(candidate.get("normalized_value"))
@@ -2796,7 +2858,7 @@ def _render_derived_input_summary(
     render_policy: Mapping[str, Any],
     korean_surface: bool,
 ) -> str:
-    """Render source-visible operands used by one derived output."""
+    """Render source candidates or calculated dependencies used by one output."""
 
     item_template = str(
         render_policy.get("derived_input_item") or "{label} {value}"
@@ -2807,12 +2869,16 @@ def _render_derived_input_summary(
         if not isinstance(raw_row, Mapping):
             continue
         row = dict(raw_row)
-        value = render_grounded_operand_display(row)
+        dependency = row.get("source_kind") == "obligation"
+        value = (
+            str(row.get("rendered_value") or "") if dependency
+            else render_grounded_operand_display(row)
+        )
         if not value:
             continue
         label = _normalise_spaces(
             str(
-                row.get("row_label")
+                (row.get("label") if dependency else row.get("row_label"))
                 or row.get("source_period_surface")
                 or row.get("period")
                 or ""
@@ -2836,7 +2902,7 @@ def _render_derived_input_summary(
                 year = anchor_match.group(1) if anchor_match else ""
             label = _normalise_spaces(str(year or ""))
         period = _normalise_spaces(
-            str(row.get("source_period_surface") or row.get("period") or "")
+            str((row.get("period") if dependency else row.get("source_period_surface") or row.get("period")) or "")
         )
         if period and period.casefold() not in label.casefold():
             label = _normalise_spaces(f"{period} {label}")
@@ -3108,6 +3174,7 @@ def execute_semantic_calculation_program(
         if isinstance(item, Mapping) and str(item.get("candidate_id") or "")
     }
     outputs: Dict[str, Dict[str, Any]] = {}
+    direct_operand_by_obligation: Dict[str, Dict[str, Any]] = {}
     execution_errors: List[Dict[str, str]] = []
 
     for binding in validation["valid_direct_bindings"]:
@@ -3126,6 +3193,7 @@ def execute_semantic_calculation_program(
             obligation=obligation,
             validated_binding=binding,
         )
+        direct_operand_by_obligation[obligation_id] = operand
         slot = build_operand_value_slot(
             operand, default_role="primary_value", preserve_source_display=True
         )
@@ -3164,6 +3232,11 @@ def execute_semantic_calculation_program(
             "rendered_value": render_grounded_operand_display(operand),
             "candidate_ids": [candidate_id, *compatibility_ids],
             "compatibility_candidate_ids": compatibility_ids,
+            "calculated_provenance": {
+                "input_candidate_ids": [candidate_id],
+                "source_row_ids": list(operand["source_row_ids"]),
+                "source_anchors": [operand["source_anchor"]] if operand["source_anchor"] else [],
+            },
             "source_row_ids": source_row_ids,
             "source_anchors": list(
                 dict.fromkeys(
@@ -3188,37 +3261,30 @@ def execute_semantic_calculation_program(
         input_rows: List[Dict[str, Any]] = []
         unavailable = ""
         for binding in expression.get("variable_bindings") or []:
-            variable = str(binding.get("variable") or "")
             source_id = str(binding.get("source_id") or "")
-            if source_id in candidate_by_id:
-                candidate = candidate_by_id[source_id]
-                try:
-                    env[variable] = float(candidate.get("normalized_value"))
-                except (TypeError, ValueError):
-                    unavailable = source_id
-                    break
-                source_requirement_id = str(
-                    binding.get("source_requirement_id") or ""
-                )
-                requirement = requirement_by_id.get(source_requirement_id)
-                operand = project_semantic_program_operand(
-                    candidate,
-                    obligation_id=source_requirement_id or obligation_id,
-                    obligation=requirement or obligation,
-                    validated_binding=binding,
-                )
-                input_rows.append(operand)
+            operand = _project_expression_input(
+                binding,
+                candidate=candidate_by_id.get(source_id),
+                obligation=(
+                    requirement_by_id.get(str(binding.get("source_requirement_id") or ""))
+                    or obligation
+                ),
+                source_output=outputs.get(source_id),
+                source_operand=direct_operand_by_obligation.get(source_id),
+            )
+            if operand is None:
+                unavailable = source_id
+                break
+            env[operand["variable"]] = operand["normalized_value"]
+            input_rows.append(operand)
+            if operand["source_kind"] == "candidate":
                 candidate_ids.append(source_id)
-                source_row_ids.extend(operand.get("source_row_ids") or [])
-                source_anchors.append(str(candidate.get("source_anchor") or ""))
-            elif source_id in outputs and outputs[source_id].get("normalized_value") is not None:
-                env[variable] = float(outputs[source_id]["normalized_value"])
+                source_row_ids.extend(operand["source_row_ids"])
+                source_anchors.extend(operand["source_anchors"])
+            else:
                 candidate_ids.extend(outputs[source_id].get("candidate_ids") or [])
                 source_row_ids.extend(outputs[source_id].get("source_row_ids") or [])
                 source_anchors.extend(outputs[source_id].get("source_anchors") or [])
-            else:
-                unavailable = source_id
-                break
         if unavailable:
             execution_errors.append(
                 {
@@ -3339,7 +3405,8 @@ def execute_semantic_calculation_program(
             "calculated_value": value,
             "calculated_provenance": {
                 "formula": formula,
-                "input_candidate_ids": [row["candidate_id"] for row in input_rows if row.get("candidate_id")],
+                **{key: list(dict.fromkeys(item for row in input_rows for item in row[key]))
+                   for key in ("input_candidate_ids", "source_row_ids", "source_anchors")},
             },
             "display_value": slot.get("normalized_value"),
             "display_provenance": {
@@ -3524,7 +3591,6 @@ def assemble_semantic_execution_result(
     calculation_plan: Mapping[str, Any], query: str,
 ) -> Dict[str, Any]:
     """Pure final-assembly projection; numeric execution never writes an answer."""
-    from copy import deepcopy
 
     outputs = deepcopy(dict(execution.get("outputs_by_obligation") or {}))
     answer = _render_semantic_program_answer(
