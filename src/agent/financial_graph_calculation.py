@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -1547,8 +1548,22 @@ class FinancialAgentCalculationMixin:
             for item in prompt_rows
             if str(item.get("candidate_id") or "")
         }
+        source_contexts = {}
+        for candidate in visible_catalog:
+            for context in candidate.get("source_contexts") or []:
+                context_id = str(context.get("context_id") or "")
+                if not context_id:
+                    continue
+                projection = {key: value for key, value in context.items() if key != "relation"}
+                if context_id in source_contexts and source_contexts[context_id] != projection:
+                    raise ValueError(f"conflicting source context: {context_id}")
+                source_contexts[context_id] = projection
+        source_contexts = dict(sorted(source_contexts.items()))
         return {
-            "schema": "semantic_program_candidate_payload_v5",
+            "schema": "semantic_program_candidate_payload_v6",
+            "source_contexts_by_id": source_contexts,
+            "source_context_fingerprint": hashlib.sha256(json.dumps(
+                source_contexts, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest(),
             "reservation": dict(cohort_plan.get("reservation") or {}),
             "source_bundle_fingerprint": semantic_source_bundle_fingerprint(
                 source_bundles
@@ -1942,6 +1957,11 @@ class FinancialAgentCalculationMixin:
                             active_prompt_payload.get("source_bundle_fingerprint")
                             or ""
                         ),
+                        "source_context_fingerprint": active_prompt_payload.get("source_context_fingerprint", ""),
+                        "source_context_count": len(active_prompt_payload.get("source_contexts_by_id") or {}),
+                        "serialized_context_bytes": len(json.dumps(
+                            active_prompt_payload.get("source_contexts_by_id") or {},
+                            ensure_ascii=False, sort_keys=True).encode("utf-8")),
                     }
                 )
                 retry_target_ids = list(
@@ -2178,6 +2198,8 @@ class FinancialAgentCalculationMixin:
             "source_bundle_count": len(
                 dict(prompt_payload.get("source_bundles_by_id") or {})
             ),
+            "source_context_count": len(prompt_payload.get("source_contexts_by_id") or {}),
+            "source_context_fingerprint": prompt_payload.get("source_context_fingerprint", ""),
             "source_bundle_member_count": sum(
                 len(dict(bundle).get("candidate_ids") or [])
                 for bundle in dict(

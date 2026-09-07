@@ -221,11 +221,22 @@ class RequirementPlannerOutput(_DeferredBaseModel):
     rationale: str = ""
 
 
+class SemanticProgramContextBinding(_DeferredBaseModel):
+    """Compiler interpretation of an exposed, source-located context excerpt."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    context_id: str
+    evidence_text: str = Field(min_length=1)
+    field: Literal["period", "consolidation_scope", "segment", "basis"]
+    value: str = Field(min_length=1)
+
+
 class SemanticProgramDirectBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     obligation_id: str
     candidate_id: str
+    context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
         description=(
@@ -240,6 +251,7 @@ class SemanticProgramVariableBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     variable: str
+    context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
     source_id: str = Field(description="A candidate_id or a previously produced obligation_id")
     source_requirement_id: str = Field(
         default="",
@@ -292,6 +304,7 @@ class SemanticProgramExpression(_DeferredBaseModel):
         min_length=1,
         description="Explain why the source-stated result was selected or not selected.",
     )
+    source_display_context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
         description=(

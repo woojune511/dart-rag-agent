@@ -147,6 +147,7 @@ class SourceBundleV1:
     source_text: str
     candidate_ids: Tuple[str, ...]
     candidate_value_spans: Tuple[Tuple[str, int, int], ...] = ()
+    context_links: Tuple[Tuple[str, str], ...] = ()
     schema_version: str = SOURCE_BUNDLE_SCHEMA_VERSION
 
     def value_span_by_candidate_id(self) -> Dict[str, list[int]]:
@@ -167,6 +168,8 @@ class SourceBundleV1:
             "source_text": self.source_text,
             "candidate_ids": list(self.candidate_ids),
             "value_spans_by_candidate_id": self.value_span_by_candidate_id(),
+            **({"context_ids": [key for key, _ in self.context_links],
+                "context_relations": dict(self.context_links)} if self.context_links else {}),
         }
 
 
@@ -241,6 +244,12 @@ def build_semantic_source_bundles(
                 source_text=str(material["source_text"]),
                 candidate_ids=tuple(ordered_members),
                 candidate_value_spans=spans,
+                context_links=tuple(sorted({
+                    (str(context["context_id"]), str(context["relation"]))
+                    for member in member_candidates.values()
+                    for context in member.get("source_contexts") or []
+                    if context.get("context_id") and context.get("relation")
+                })),
             )
         )
     return tuple(sorted(bundles, key=lambda bundle: bundle.source_bundle_id))

@@ -409,7 +409,9 @@ def project_candidate_fact(candidate: Mapping[str, Any]) -> CandidateFactViewV1:
     # Only source-linked local annotation text may supplement a structured row;
     # a parent's full table/body must not supply another row's metric identity.
     text_metric_surfaces = _ordered_surfaces([
-        row.get("row_context_text") if structured else row.get("source_text")
+        row.get("row_context_text") if structured else row.get("source_text"),
+        *[context.get("source_text") for context in row.get("source_contexts") or []
+          if context.get("relation") in {"ancestor_heading", "caption", "preceding_block"}],
     ])
     normalized_unit = str(row.get("normalized_unit") or "UNKNOWN").upper()
     if normalized_unit not in _VALID_UNIT_FAMILIES:

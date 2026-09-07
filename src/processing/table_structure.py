@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from src.processing.table_records import cell_looks_numeric, is_generic_value_label, normalize_table_text
+from src.processing.source_context import collect_table_source_contexts
 
 
 TABLE_CELL_TAGS = ("TD", "TH", "TU", "TE")
@@ -127,6 +128,8 @@ def build_table_object(table_elem: Any) -> Dict[str, Any]:
         "column_count": max((len(row) for row in grid), default=0),
         "row_labels": row_labels,
         "has_spans": table_has_spans(table_elem),
+        "source_table_locator": table_elem.getroottree().getpath(table_elem),
+        "source_contexts": collect_table_source_contexts(table_elem),
     }
 
 

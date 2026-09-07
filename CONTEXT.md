@@ -39,7 +39,7 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
   unknown, self, and cross-obligation dependencies keep fail-closed semantics.
 - `CompilationEnvelopeV2` binds complete catalog content, ordered obligations,
   and query before executor revalidation. Production has no V1 fallback.
-- Source bundles preserve neighboring values in shared bounded windows. Actual
+- Source bundles preserve neighboring values and located document-context references. Actual
   unique selectable IDs enforce numeric 96/narrative 32, including every retry.
 - Expressions explicitly select or decline a source display and give a reason.
   Source values are primary; differing calculated values are also shown.
@@ -128,7 +128,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 
 Latest LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
 Current period-evidence repair preserves 567/462 candidates, IDs, fingerprints, raw values and qualified provenance. Socket-blocked replay corrects two NAV column years and retains 50 relative-period values. Numeric/narrative visibility is 4/3 and 11/6; reverse/swap projections agree.
-LG's precise note candidates remain visible but lack located period context in the existing store: now unknown, not silently 2023. Next: retain/recover exact table-leading period context and correct structural header scope via a separately designed parser/store successor; evaluator period/label/source governance stays separate. No fresh model/quality-pass claim. `benchmarks/results/value_period_evidence_2026-09-07/README.md`.
+Located table context travels from parser payload to v6 compiler prompt and binding-local validated scope. Exact-source overlay replay matches 28 LG/14 NAV tables, leaves 7 NAV tables untouched, preserves all 567/462 candidate identities and executes both precise LG note selections with original `당기` evidence. Two receipts match at `c81a1dd6...c144`; no providers/store writes. Original stores still lack these overlays. Next: structural header correction and a separately approved source/store successor; remote references and evaluator governance stay separate. No fresh model/quality-pass claim. `benchmarks/results/document_context_projection_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.

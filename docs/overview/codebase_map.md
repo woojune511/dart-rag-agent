@@ -25,7 +25,7 @@
 | `src/agent/financial_retrieval_pipeline.py` | retrieval plan, searches, selection, trace |
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified table/row/cell identity with raw provenance, source/catalog construction, attached prose and exact row context |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
-| `src/agent/financial_source_bundles.py` | deterministic prose-sentence and physical-row source bundles |
+| `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
 | `src/agent/financial_candidate_matching.py` | typed owner applicability and deterministic bundle rank inputs |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, islands, targeted retry with read-only executed dependency inputs |
 | `src/agent/financial_calculation_execution.py` | evidence/formula dimensions, semantic cross-source scope checks, display selection, validation/execution, pure final assembly |
@@ -39,6 +39,7 @@
 | --- | --- |
 | `src/ingestion/dart_fetcher.py` | DART report fetch |
 | `src/processing/financial_parser.py` | document structure recovery and chunks |
+| `src/processing/source_context.py` | bounded exact XML context fragments, hierarchy/adjacency links and source-file identity; no scope inference |
 | `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
 | `src/ingestion/ingest_service.py` | end-to-end ingest ownership |
 | `src/storage/vector_store.py` | dense/BM25 store, source coverage and no-embedding sidecar repair |

@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import json
+import hashlib
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -19,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lxml import etree
 from src.processing.block_collection import collect_blocks
+from src.processing.source_context import bind_document_contexts
 from src.processing.chunking import (
     chunk_blocks,
     looks_like_table_header_row,
@@ -826,6 +828,8 @@ class FinancialParser:
                 values=[ValueRecord(**record) for record in table_value_records],
                 table_header_context=header_context or "",
                 table_summary_text=summary_text,
+                source_table_locator=table_object.get("source_table_locator", ""),
+                source_contexts=table_object.get("source_contexts", []),
             )
             table_object_json = table_model.model_dump_json()
         return {
@@ -1114,6 +1118,7 @@ class FinancialParser:
             return []
 
         reference_index = _build_reference_index(raw_sections)
+        bind_document_contexts(raw_sections, hashlib.sha256(Path(file_path).read_bytes()).hexdigest())
 
         chunks: List[DocumentChunk] = []
         chunk_id = 0

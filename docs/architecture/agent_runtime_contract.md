@@ -89,7 +89,7 @@ Before execution, the executor must verify:
 V2 additionally binds the complete catalog contents (sorted by candidate ID),
 ordered obligations, and query with `execution_content_fingerprint`. Changed
 normalized numbers, dimensions, scope, source bytes, spans, or physical
-provenance fail before revalidation or arithmetic as `execution_content_mismatch`.
+provenance (including attached document contexts) fail before revalidation or arithmetic as `execution_content_mismatch`.
 Production has no V1 fallback. Historical catalogs/programs are never silently remapped to new identities.
 
 Any mismatch fails closed as `visibility_mismatch` or `validation_drift`.
@@ -134,10 +134,10 @@ owner gets at most two bundles with every non-conflicting member visible togethe
 Period pairs/signs/neighboring operands are not split by a top-one cutoff; a shared
 bundle's source text appears once per compiler payload, even across owners.
 
-`semantic_program_candidate_payload_v5` stores source text once in `source_bundles_by_id`.
-Candidate rows keep IDs/metadata plus `source_bundle_id` and local value spans, not repeated
-excerpts. The prompt receives factors without reranking. Validation recomputes declared
-semantic-target applicability; a visible conflict is `candidate_semantic_target_mismatch`.
+`semantic_program_candidate_payload_v6` stores source text once in `source_bundles_by_id` and located document fragments once in `source_contexts_by_id`.
+Table bundles reference context IDs/relations; parser payloads retain full ancestor titles, captions, adjacent blocks and textual table rows, file SHA, XML locator and exact decoded-XML-text span (not raw HTML byte offsets). Each fragment is bounded to 1200 characters, each table to 4800; adjacency is not applicability.
+Contexts attach before cohort matching, without rewriting cells/IDs/catalog fingerprints. Existing factor matching may read headings/captions/preceding context; no additive score or model call is added. Owner authority still applies.
+Direct/variable `context_bindings` and expression `source_display_context_bindings` cite attached context IDs and exact quotes for interpreted period/consolidation/segment/basis. Validator checks attachment, quote, known period consistency and explicit candidate conflicts; semantic applicability remains the compiler's responsibility. A binding-local `context_resolution` reaches execution/trace without changing raw catalog scope. Context errors repair the same cohort; accepted island bindings stay unchanged.
 
 When the compiler selects a prose `sentence_value` as a direct binding,
 expression source, or source display, `source_assertions` must identify the
@@ -257,7 +257,7 @@ be bound as sources; attached candidate provenance never widens owner selection 
 Unretried island program JSON stays byte-identical. Programs, missing/ambiguous IDs,
 and diagnostics merge in obligation order. `semantic_candidate_stage_diagnostics_v9`
 records owner factors, bundle/member counts and fingerprints, row constraints, islands,
-call/retry counts, attempt-visible and read-only dependency IDs/bytes, and assertion errors.
+call/retry counts, attempt-visible/context/dependency IDs/fingerprints/bytes, and assertion errors.
 Ranking diagnostics are observability-only, never compiler prompt input.
 
 ## 7. Retrieval boundary

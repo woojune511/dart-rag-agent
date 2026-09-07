@@ -472,7 +472,7 @@ def _candidate_value_period(candidate: Mapping[str, Any]) -> Tuple[bool, Optiona
     # Current projections have already applied cell-before-source precedence.
     # Raw source labels remain provenance, not a second competing resolution.
     if candidate.get("period_source") in {
-        "explicit_period", "relative_period_label", "fiscal_period", "value_role", "source_period_text",
+        "explicit_period", "relative_period_label", "fiscal_period", "value_role", "source_period_text", "source_context_binding",
     } and candidate.get("value_year") is not None:
         try:
             return True, int(candidate["value_year"])
@@ -882,6 +882,74 @@ def _missing_narrative_candidate_values(
     return missing
 
 
+def _resolve_source_context_bindings(
+    candidate: Mapping[str, Any], bindings: Sequence[Mapping[str, Any]],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Ground scope interpretation without changing the immutable source candidate."""
+    resolved = dict(candidate)
+    scope: Dict[str, Any] = {}
+    evidence = []
+    contexts = {str(c.get("context_id") or ""): c for c in candidate.get("source_contexts") or []}
+    for binding in bindings:
+        context = contexts.get(str(binding.get("context_id") or ""))
+        if (not context or not candidate.get("source_table_locator")
+                or not candidate.get("source_document_sha256")
+                or context.get("document_sha256") != candidate.get("source_document_sha256")
+                or context.get("relation") not in {
+                    "ancestor_heading", "caption", "preceding_block", "following_block", "table_text_row"}):
+            raise ValueError("context_not_attached_to_candidate")
+        table_locator = str(candidate["source_table_locator"])
+        parent_locator = str(context.get("parent_locator") or "")
+        source_locator = str(context.get("source_locator") or "")
+        relation = context["relation"]
+        attached = (
+            bool(parent_locator) and table_locator.startswith(parent_locator + "/")
+            if relation == "ancestor_heading" else
+            source_locator.startswith(table_locator + "/")
+            if relation in {"caption", "table_text_row"} else
+            parent_locator == table_locator.rsplit("/", 1)[0]
+        )
+        if not attached:
+            raise ValueError("context_not_attached_to_candidate")
+        quote = binding.get("evidence_text")
+        text = str(context.get("source_text") or "")
+        if not isinstance(quote, str) or not quote.strip() or quote not in text:
+            raise ValueError("context_quote_not_exact")
+        field = binding.get("field")
+        value = binding.get("value")
+        if (field not in {"period", "consolidation_scope", "segment", "basis"}
+                or not isinstance(value, str) or not value.strip() or value.lower() == "unknown"):
+            raise ValueError("invalid_context_scope_binding")
+        if field in scope and scope[field] != value:
+            raise ValueError("conflicting_context_scope_bindings")
+        if _scope_match_state(field, value, candidate) == "conflict":
+            raise ValueError("context_conflicts_with_candidate")
+        if field == "consolidation_scope" and value not in {"consolidated", "separate"}:
+            raise ValueError("invalid_context_scope_binding")
+        if field == "period":
+            _, value_year = annual_period_evidence(value, report_year=candidate.get("year"))
+            _, quoted_year = annual_period_evidence(quote, report_year=candidate.get("year"))
+            if value_year is None or (quoted_year is not None and value_year != quoted_year):
+                raise ValueError("context_period_mismatch")
+            scope.update(value_year=value_year, period_source="source_context_binding",
+                         period_label_scope="source_context")
+        scope[field] = value
+        offset = text.index(quote)
+        evidence.append({**dict(binding), "relation": context["relation"],
+            "document_sha256": context["document_sha256"],
+            "source_locator": context["source_locator"],
+            "source_span": list(context["source_span"]),
+            "quote_span": [offset, offset + len(quote)]})
+    if not evidence:
+        return resolved, {}
+    resolution = {"scope": scope, "evidence": evidence}
+    resolution["fingerprint"] = hashlib.sha256(json.dumps(
+        resolution, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    resolved.update(scope)
+    resolved["context_resolution"] = resolution
+    return resolved, resolution
+
+
 def validate_semantic_calculation_program(
     *,
     program: Mapping[str, Any],
@@ -954,6 +1022,22 @@ def validate_semantic_calculation_program(
         if selectable_ids_by_owner is not None:
             return candidate_id in selectable_ids_by_owner.get(owner_id, set())
         return selectable_ids is None or candidate_id in selectable_ids
+
+    def contextual_candidate(candidate, binding, obligation_id, owner_id, location,
+                             *, bindings_key="context_bindings", resolution_key="context_resolution"):
+        binding.pop(resolution_key, None)
+        raw_bindings = binding.get(bindings_key) or []
+        try:
+            if not isinstance(raw_bindings, list) or any(not isinstance(b, Mapping) for b in raw_bindings):
+                raise ValueError("invalid_context_scope_binding")
+            resolved, resolution = _resolve_source_context_bindings(candidate, raw_bindings)
+        except ValueError as exc:
+            error(str(exc), obligation_id, owner_id=owner_id,
+                  candidate_id=str(candidate.get("candidate_id") or ""), location=location)
+            return dict(candidate), False
+        if resolution:
+            binding[resolution_key] = resolution
+        return resolved, True
 
     if len(obligation_by_id) != len(obligation_rows):
         error("duplicate_or_missing_obligation_id")
@@ -1083,6 +1167,7 @@ def validate_semantic_calculation_program(
     compatibility_sources_by_output: Dict[str, List[str]] = {}
     output_units: Dict[str, str] = {}
     evidence_bundle_validation: List[Dict[str, Any]] = []
+    resolved_sources_by_output: Dict[str, List[Mapping[str, Any]]] = {}
 
     def already_produced(obligation_id: str) -> bool:
         if obligation_id in produced:
@@ -1104,6 +1189,10 @@ def validate_semantic_calculation_program(
         obligation = obligation_by_id.get(obligation_id)
         candidate = candidate_by_id.get(candidate_id)
         invalid = False
+        if candidate:
+            candidate, context_valid = contextual_candidate(
+                candidate, binding, obligation_id, obligation_id, "direct_binding.context_bindings")
+            invalid = not context_valid
         if not obligation:
             error("unknown_direct_obligation", obligation_id)
             invalid = True
@@ -1246,7 +1335,7 @@ def validate_semantic_calculation_program(
             if subject_checked and subject_state != "match" and not subject_bridge_ready:
                 error("candidate_subject_mismatch", obligation_id, "segment",
                       candidate_id=candidate_id, location="direct_binding",
-                      repair_action="replace_candidate" if subject_state == "conflict" else "repair_program")
+                      repair_action="replace_candidate" if _direct_subject_resolution(candidate_by_id[candidate_id], obligation)["state"] == "conflict" else "repair_program")
                 invalid = True
             scope_details = _scope_errors(candidate, obligation)
             if subject_checked and subject_state == "match":
@@ -1267,7 +1356,7 @@ def validate_semantic_calculation_program(
             for detail in scope_details:
                 error("candidate_scope_mismatch", obligation_id, detail,
                       candidate_id=candidate_id, location="direct_binding",
-                      repair_action="replace_candidate" if detail in _scope_errors(candidate, obligation, conflicts_only=True) else "repair_program")
+                      repair_action="replace_candidate" if detail in _scope_errors(candidate_by_id[candidate_id], obligation, conflicts_only=True) else "repair_program")
                 invalid = True
         if (
             obligation
@@ -1326,6 +1415,7 @@ def validate_semantic_calculation_program(
         sources_by_output[obligation_id] = [candidate_id, *compatibility_ids]
         compatibility_sources_by_output[obligation_id] = compatibility_ids
         output_units[obligation_id] = _candidate_dimension(candidate)
+        resolved_sources_by_output[obligation_id] = [candidate]
 
     pending = [dict(item or {}) for item in (program.get("expressions") or [])]
     seen_expression_ids: set[str] = set()
@@ -1355,6 +1445,7 @@ def validate_semantic_calculation_program(
                 continue
             obligation = obligation_by_id.get(obligation_id)
             bindings = [dict(item or {}) for item in expression.get("variable_bindings") or []]
+            expression["variable_bindings"] = bindings
             source_ids = [str(item.get("source_id") or "").strip() for item in bindings]
             unknown = next(
                 (
@@ -1433,6 +1524,7 @@ def validate_semantic_calculation_program(
 
             variable_units: Dict[str, str] = {}
             source_candidates: List[str] = []
+            resolved_expression_sources: List[Mapping[str, Any]] = []
             bound_requirement_ids: set[str] = set()
             if not invalid:
                 for binding in bindings:
@@ -1467,6 +1559,12 @@ def validate_semantic_calculation_program(
                         invalid = True
                     if source_id in candidate_by_id:
                         candidate = candidate_by_id[source_id]
+                        candidate, context_valid = contextual_candidate(
+                            candidate, binding, obligation_id, source_requirement_id,
+                            "expression_input.context_bindings")
+                        if not context_valid:
+                            invalid = True
+                        resolved_expression_sources.append(candidate)
                         if (
                             str(candidate.get("kind") or "") != "numeric"
                             or not _candidate_has_finite_numeric_value(candidate)
@@ -1531,12 +1629,17 @@ def validate_semantic_calculation_program(
                                     f"{source_requirement_id}: {detail}",
                                     owner_id=source_requirement_id, candidate_id=source_id,
                                     location="expression_input",
-                                    repair_action="replace_candidate" if detail in _scope_errors(candidate, {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True) else "repair_program",
+                                    repair_action="replace_candidate" if detail in _scope_errors(candidate_by_id[source_id], {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True) else "repair_program",
                                 )
                                 invalid = True
                         variable_units[variable] = _candidate_dimension(candidate)
                         source_candidates.append(source_id)
                     else:
+                        if binding.get("context_bindings"):
+                            error("context_binding_on_dependency", obligation_id,
+                                  location="expression_input.context_bindings")
+                            invalid = True
+                        resolved_expression_sources.extend(resolved_sources_by_output.get(source_id, []))
                         if source_requirement_id:
                             error(
                                 "unexpected_source_requirement_id",
@@ -1576,6 +1679,11 @@ def validate_semantic_calculation_program(
                 continue
             display_candidate: Optional[Mapping[str, Any]] = None
             display_id = str(expression.get("source_display_candidate_id") or "").strip()
+            expression.pop("source_display_context_resolution", None)
+            if not display_id and expression.get("source_display_context_bindings"):
+                error("context_binding_without_source_display", obligation_id,
+                      location="source_display.context_bindings")
+                continue
             if display_id:
                 if not candidate_is_exposed(display_id, obligation_id):
                     error(
@@ -1592,6 +1700,12 @@ def validate_semantic_calculation_program(
                 ):
                     error("invalid_source_display_candidate", obligation_id, display_id)
                     continue
+                display_candidate, context_valid = contextual_candidate(
+                    display_candidate, expression, obligation_id, obligation_id,
+                    "source_display.context_bindings", bindings_key="source_display_context_bindings",
+                    resolution_key="source_display_context_resolution")
+                if not context_valid:
+                    continue
                 display_scope_errors = _scope_errors(
                     display_candidate,
                     obligation or {},
@@ -1601,7 +1715,7 @@ def validate_semantic_calculation_program(
                     for detail in display_scope_errors:
                         error("source_display_scope_mismatch", obligation_id, detail,
                               candidate_id=display_id, location="source_display",
-                              repair_action="replace_candidate" if detail in _scope_errors(display_candidate, obligation or {}, include_basis=False, conflicts_only=True) else "repair_program")
+                              repair_action="replace_candidate" if detail in _scope_errors(candidate_by_id[display_id], obligation or {}, include_basis=False, conflicts_only=True) else "repair_program")
                     continue
                 display_dimension = _candidate_dimension(display_candidate)
                 compatible_display_dimensions = (
@@ -1627,6 +1741,7 @@ def validate_semantic_calculation_program(
                     error("empty_source_display_rendering", obligation_id, display_id)
                     continue
                 source_candidates.append(display_id)
+                resolved_expression_sources.append(display_candidate)
             compatibility_ids = list(
                 dict.fromkeys(
                     str(item).strip()
@@ -1676,7 +1791,7 @@ def validate_semantic_calculation_program(
                 and str(candidate_by_id[candidate_id].get("kind") or "") == "numeric"
             ]
             context_conflicts = _expression_context_conflicts(
-                numeric_context_candidates
+                resolved_expression_sources or numeric_context_candidates
             )
             if context_conflicts and not compatibility_ids:
                 error(
@@ -1690,6 +1805,7 @@ def validate_semantic_calculation_program(
                 continue
             produced.add(obligation_id)
             valid_expressions.append(expression)
+            resolved_sources_by_output[obligation_id] = resolved_expression_sources
             output_units[obligation_id] = dimension
             sources_by_output[obligation_id] = list(dict.fromkeys(source_candidates))
             compatibility_sources_by_output[obligation_id] = compatibility_ids
@@ -2106,6 +2222,16 @@ def validate_semantic_calculation_program(
     for coupling_key, obligation_ids in coupling_groups.items():
         if len(obligation_ids) < 2:
             continue
+        resolved_conflicts = _expression_context_conflicts([
+            candidate for owner_id in obligation_ids
+            for candidate in resolved_sources_by_output.get(owner_id, [])])
+        if resolved_conflicts and any(
+            candidate.get("context_resolution") for owner_id in obligation_ids
+            for candidate in resolved_sources_by_output.get(owner_id, [])
+        ):
+            for owner_id in obligation_ids:
+                error("coupled_scope_mismatch", owner_id, ",".join(resolved_conflicts))
+                invalid_coupled.add(owner_id)
         source_candidate_ids_by_obligation = {
             obligation_id: [
                 candidate_id
@@ -2421,6 +2547,9 @@ def project_semantic_program_operand(
 
     candidate_id = str(candidate.get("candidate_id") or "")
     binding = dict(validated_binding or {})
+    resolution = dict(binding.get("context_resolution") or {})
+    if resolution:
+        candidate = {**dict(candidate), **dict(resolution.get("scope") or {})}
     obligation_row = dict(obligation or {})
     obligation_scope = dict(obligation_row.get("scope") or {})
     period = str(candidate.get("period") or "")
@@ -2502,6 +2631,7 @@ def project_semantic_program_operand(
         "aggregation_stage": str(candidate.get("aggregation_stage") or ""),
         "aggregate_label": str(candidate.get("aggregate_label") or ""),
         "matched_operand_role": obligation_id,
+        **({"context_resolution": resolution} if resolution else {}),
     }
 
 
@@ -3042,6 +3172,8 @@ def execute_semantic_calculation_program(
             ),
             "answer_slot": slot,
             "operation_family": "lookup",
+            **({"context_resolution": binding["context_resolution"]}
+               if binding.get("context_resolution") else {}),
         }
 
     for expression in validation["valid_expressions"]:
@@ -3162,6 +3294,7 @@ def execute_semantic_calculation_program(
             display_operand = project_semantic_program_operand(
                 display_candidate,
                 obligation_id=obligation_id,
+                validated_binding={"context_resolution": expression.get("source_display_context_resolution")},
             )
             source_display_value = render_grounded_operand_display(display_operand)
             source_display_normalized_value = float(display_candidate["normalized_value"])
@@ -3216,6 +3349,8 @@ def execute_semantic_calculation_program(
             "source_display_value": source_display_value,
             "source_display_normalized_value": source_display_normalized_value,
             "source_display_matches_formula": source_display_matches_formula,
+            **({"source_display_context_resolution": expression["source_display_context_resolution"]}
+               if expression.get("source_display_context_resolution") else {}),
             "input_rows": input_rows,
         }
 
@@ -3296,6 +3431,7 @@ def execute_semantic_calculation_program(
             if candidate_id and candidate_id not in expression_operand_by_candidate_id:
                 expression_operand_by_candidate_id[candidate_id] = dict(row)
     display_obligation_by_candidate_id: Dict[str, str] = {}
+    display_binding_by_candidate_id: Dict[str, Dict[str, Any]] = {}
     for expression in validation.get("valid_expressions") or []:
         candidate_id = str(
             expression.get("source_display_candidate_id") or ""
@@ -3303,6 +3439,8 @@ def execute_semantic_calculation_program(
         obligation_id = str(expression.get("obligation_id") or "")
         if candidate_id and candidate_id not in display_obligation_by_candidate_id:
             display_obligation_by_candidate_id[candidate_id] = obligation_id
+            display_binding_by_candidate_id[candidate_id] = {
+                "context_resolution": expression.get("source_display_context_resolution")}
     operands: List[Dict[str, Any]] = []
     for candidate_id in selected_candidate_ids:
         candidate = candidate_by_id.get(candidate_id)
@@ -3315,6 +3453,7 @@ def execute_semantic_calculation_program(
             continue
         if not obligation_id:
             obligation_id = display_obligation_by_candidate_id.get(candidate_id, "")
+            binding = display_binding_by_candidate_id.get(candidate_id)
         operands.append(
             project_semantic_program_operand(
                 candidate,

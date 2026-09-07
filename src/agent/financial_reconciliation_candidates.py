@@ -1505,6 +1505,10 @@ def _structured_source_candidates(
         }
     )
 
+    for key in ("source_contexts", "source_table_locator", "source_document_sha256"):
+        if table_object.get(key):
+            projection_metadata[key] = table_object[key]
+
     def axis_key(row_index: Any, column_index: Any) -> tuple[str, str]:
         return str(row_index if row_index is not None else ""), str(
             column_index if column_index is not None else ""
@@ -2022,6 +2026,16 @@ def build_semantic_source_candidates(
                 ):
                     for key in ("row_context_text", "source_context_provenance"):
                         existing["metadata"][key] = projected["metadata"][key]
+                if same_context_owner:
+                    def document_context_order(details):
+                        contexts = details.get("source_contexts") or []
+                        return (-sum(len(c.get("source_text") or "") for c in contexts),
+                                json.dumps(contexts, ensure_ascii=False, sort_keys=True))
+
+                    if document_context_order(projected["metadata"]) < document_context_order(existing["metadata"]):
+                        for key in ("source_contexts", "source_table_locator", "source_document_sha256"):
+                            if key in projected["metadata"]:
+                                existing["metadata"][key] = projected["metadata"][key]
                 continue
             if not projected_id or projected_id in seen:
                 continue
@@ -2183,6 +2197,10 @@ def build_semantic_candidate_catalog(
         }
         if metadata.get("source_context_provenance"):
             base_record["source_context_provenance"] = dict(metadata["source_context_provenance"])
+        for key in ("source_contexts", "source_table_locator", "source_document_sha256"):
+            if metadata.get(key):
+                # Context is execution content, never candidate identity material.
+                base_record[key] = json.loads(json.dumps(metadata[key], ensure_ascii=False))
         document_id = _source_document_id(metadata)
         if document_id:
             base_record["source_document_id"] = document_id

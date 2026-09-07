@@ -72,6 +72,9 @@ class TableObject(_DeferredBaseModel):
     values: List[ValueRecord] = Field(default_factory=list)
     table_header_context: str = ""
     table_summary_text: str = ""
+    source_table_locator: str = ""
+    source_document_sha256: str = ""
+    source_contexts: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class TaskRecord(_DeferredBaseModel):
