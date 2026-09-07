@@ -146,12 +146,43 @@ Regression checks cover normalization, direct displays and dependency input amou
 A self-consistent wrong-unit/wrong-normalization mutation still matches growth but
 now fails the independent direct-amount/output checks.
 
-**Next bounded work:** prepare a two-question current KB compiler-only admission using
-these source windows and requirements. Generate new compiler outputs against fresh
-visibility, not remapped old programs. Execution requires separate approval of its new
-manifest, provider transmission and cost cap; preparation does not authorize a paid run.
-Fresh retrieval, unseen questions and full-agent quality remain separate. Runtime math,
-benchmark answer keys and tolerances stay unchanged.
+### Current KB compiler-only admission: pending approval
+
+[Manifest](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/manifest.json)
+and [local run instructions](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/README.md)
+freeze T1 → T2, Gemini 2.5 Pro, two initial islands/calls, at most four calls including
+the existing one retry per failed island. Full current catalogs (723/1,397 candidates)
+and saved requirements are frozen; only current bounded payloads reach the model.
+Fresh offline witness programs exercise validation/execution without reusing old
+program/visibility authority. Witnesses and expected answers are never provider inputs.
+
+Preparation exposed a harness boundary: raw-fixture normalization changes two
+non-visible catalog entries per question because raw surfaces omit source-derived unit
+context. The ops-only `runtime_projection_v1` input verifies a full-content SHA and copies
+the current catalog unchanged. The raw-fixture path and runtime arithmetic are unchanged.
+Its fingerprint proves identity, **not financial correctness**. The incidental extraction
+of a document-standard identifier in T1 remains a separate prose-number eligibility issue;
+it is outside these visible cohorts and was not fixed or suppressed for this experiment.
+
+Provider-free witness rehearsal passes 2/2; tests cover projection preservation, mutation
+rejection before compiler invocation and unchanged fixture prompts/outputs. Ops/capture/
+budget tests pass 34/34; import/topology/docs 24/24; audit, pycompile and diff checks pass.
+Installed SDK preflight confirms the actual schema/config and no witness-marker leakage.
+Two initial requests reserve USD **0.30422625** when every fake response consumes its full
+conservative bound. This is not estimated actual usage or billing.
+
+Requested cap: **USD 0.40**. The existing SDK guard checks every request's reservation
+before dispatch; a retry may be denied if the remaining cap cannot cover it. There is
+no in-flight cancellation guarantee. Request/client retries and automatic reruns are
+disabled; the runtime's one internal island retry remains allowed. A single-use claim
+prevents reusing this admission; heartbeat is 30 seconds. No provider has run.
+
+**Next:** obtain separate approval of the exact manifest SHA, Google transmission and
+cost cap, then run once. Any failure preserves artifacts and stops. Exact evidence-set
+matching is a regression diagnostic: a different source set requires review, not an
+automatic claim of a wrong answer. Narrative wording is not fixed to the offline witness.
+Fresh retrieval, unseen questions and full-agent quality remain separate; runtime math,
+benchmark answer keys, evaluator tolerances and original stores/results stay unchanged.
 
 ## Validation receipts
 

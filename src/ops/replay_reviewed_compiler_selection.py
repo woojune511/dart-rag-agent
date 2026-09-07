@@ -5,6 +5,8 @@ stores.  It gives the current semantic compiler the reviewed question,
 obligations, and compact candidate catalog, then validates and executes the
 result with the production contracts.  The default rehearsal substitutes the
 reviewed programs for a provider and therefore cannot make a network call.
+Raw fixtures are normalized; explicit hash-bound runtime projections retain the
+source pipeline's context-aware values without a second partial normalization.
 """
 
 from __future__ import annotations
@@ -237,14 +239,33 @@ class _CompilerOnlyAgent(FinancialAgentCalculationMixin):
         return self.llm
 
 
+def _compiler_case_catalog(
+    case: Mapping[str, Any],
+) -> tuple[list[dict[str, Any]], dict[str, bool]]:
+    """Separate raw fixture normalization from already projected runtime facts.
+
+    A runtime projection must be frozen from the current source pipeline before
+    admission. Its hash checks identity, not financial correctness. Re-normalizing
+    only raw_value/raw_unit would discard context-derived scales and dimensions.
+    """
+    raw = [dict(item) for item in (case.get("candidate_catalog") or []) if isinstance(item, Mapping)]
+    spec = dict(case.get("catalog_input") or {})
+    kind = str(spec.get("kind") or "normalized_fixture_v1")
+    if kind == "runtime_projection_v1":
+        if _sha256_bytes(_canonical_bytes(raw)) != spec.get("sha256"):
+            raise ValueError("runtime catalog fingerprint mismatch")
+        return deepcopy(raw), {"runtime_catalog_fingerprint_matches": True}
+    if kind != "normalized_fixture_v1":
+        raise ValueError("unsupported compiler catalog input kind")
+    catalog, normalization = _materialize_catalog(raw)
+    return catalog, {"normalization_matches_review": all(
+        bool(item.get("value_matches")) and bool(item.get("unit_matches"))
+        for item in normalization
+    )}
+
+
 def _island_obligation_ids(case: Mapping[str, Any]) -> list[list[str]]:
-    catalog, _ = _materialize_catalog(
-        [
-            dict(item)
-            for item in (case.get("candidate_catalog") or [])
-            if isinstance(item, Mapping)
-        ]
-    )
+    catalog, _ = _compiler_case_catalog(case)
     obligations = [
         dict(item)
         for item in (case.get("obligations") or [])
@@ -388,13 +409,7 @@ def evaluate_reviewed_compiler_selection(
             continue
         case = deepcopy(dict(raw_case))
         started = perf_counter() if run_mode == "provider" else None
-        catalog, normalization = _materialize_catalog(
-            [
-                dict(item)
-                for item in (case.get("candidate_catalog") or [])
-                if isinstance(item, Mapping)
-            ]
-        )
+        catalog, catalog_checks = _compiler_case_catalog(case)
         state = _case_state(case, catalog)
         prompt_start = len(recording_llm.records)
         compiled = agent._compile_semantic_calculation_program(state)
@@ -452,10 +467,7 @@ def evaluate_reviewed_compiler_selection(
             or 0
         )
         checks = {
-            "normalization_matches_review": all(
-                bool(item.get("value_matches")) and bool(item.get("unit_matches"))
-                for item in normalization
-            ),
+            **catalog_checks,
             "validation_matches_expectation": (
                 validation.get("status") == expected.get("validation_status", "ready")
             ),
