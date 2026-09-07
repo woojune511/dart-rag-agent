@@ -124,7 +124,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
 | LG 2023 / NAV 2022+2023 | New v2 stores: 2,655 vectors, integrity/readiness 2/2 | Full-agent runtime 2/2; historical LG FAIL preserved, explicit v2 evaluation replay PASS; judges unmeasured |
-| Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
+| Celltrion 2023 | New OpenAI store: 1,083 vectors, 978 payloads, 41 parents; integrity/dense/readiness pass, degraded false | Build `db6d8481...56a9` exhausted: 17 requests, errors/retries 0, usage-estimated USD 0.111033 / 0.15. Inputs unchanged; full-agent validation still pending. [Result](benchmarks/results/reviewed_full_agent_celltrion_store_2026-09-08/README.md) |
 
 Previous LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
 Current no-call projection preserves all 592/547 candidate IDs, raw values, periods and physical provenance. Filing-company matches no longer boost value rank; explicit local subjects and scope conflicts remain enforced. Table context plus column labels resolves mixed units; annotated row units survive, bare currency row categories do not override table units. Corrected effective units change catalog-content fingerprints, not ID/hash algorithms or stored payloads.
