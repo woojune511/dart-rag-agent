@@ -86,18 +86,18 @@ The successor replay retains all three cases and T2 operand metadata. Its
 deterministic evaluator projection changes operand selection from `0.0` to `1.0`
 without changing selected IDs, formula, answer, dataset, or evaluator.
 
-A separate reviewed-fixture corpus adds five distinct real questions outside
-that three-question inventory: `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
-`NAV_T2_006`, and `CEL_T1_013`. All 5/5 pass current raw-value normalization,
-owner visibility, structured-program validation, `CompilationEnvelopeV2`, and
-deterministic execution. The cases cover same-row period comparison,
-parenthesized negative values, component subtraction, source-first rounded
-display plus multi-evidence narrative, and a thousand-won ratio. Two local
-receipts are byte-identical at `fc530335...304f`; provider/compiler/retrieval
-and store writes are all zero. These are source-derived reviewed projections,
-not exact current candidate IDs or proof that a new compiler will choose them.
-Fixture: `tests/fixtures/reviewed_runtime_replay_corpus_v1.json`; ignored receipt:
-`benchmarks/results/reviewed_runtime_replay_corpus_2026-09-06/replay_a.json`.
+A separate reviewed-fixture corpus covers `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
+`NAV_T2_006`, and `CEL_T1_013`. Current downstream contract replay passes 5/5;
+exact saved-program replay passes 3/5, with both KB catalogs fingerprint-rejected.
+The v1 NAV fixture incorrectly labels `2,546.6 / 1,801.1` as 억원, not the filing's
+십억원. Its tenfold absolute-amount error cancels in growth; 5/5 is not source-unit
+accuracy. Latest live NAV uses correct 백만원 evidence and is not affected.
+Two current audit receipts match (`e0b826cc...780a`); focused tests 29/29,
+provider/compiler/retrieval calls and source writes 0. Old fixtures/results/stores
+remain unchanged. Next: explicit unit-correct fixture successor and absolute-amount
+controls; KB exact compatibility remains separate. [Evidence matrix and source check](docs/evaluation/reviewed_case_evidence_status.md).
+These are contract tests and historical separate live runs, not fresh compiler
+choices or a synchronized current five-case full-agent gate.
 
 ## Provider result, remaining work, and hard stops
 
@@ -118,7 +118,7 @@ Normal dependency bindings passed; retry dependency context was not exercised li
 Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
 Approval exhausted; model defaults unchanged. This is compiler-only, not fresh retrieval evidence.
 
-KB's two-case integration ran once; the five-case gate still needs work:
+Reviewed-case consolidation is complete; [current evidence and gaps](docs/evaluation/reviewed_case_evidence_status.md) distinguish the three verification lanes:
 
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
@@ -128,7 +128,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 
 Previous LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
 Current no-call projection preserves all 592/547 candidate IDs, raw values, periods and physical provenance. Filing-company matches no longer boost value rank; explicit local subjects and scope conflicts remain enforced. Table context plus column labels resolves mixed units; annotated row units survive, bare currency row categories do not override table units. Corrected effective units change catalog-content fingerprints, not ID/hash algorithms or stored payloads.
-Approved v2 build `ac0a3ea7...2c89` and paid admission `2724f2ed...4432` are exhausted. Frozen stores retain 783/1,872 vectors with compatible, non-degraded readiness. The paid LG → NAV run on `90aacc9` (runtime `bb8eba2`) completed 2/2, errors 0, ledgers ok: 8 Gemini + 19 OpenAI requests, one allowed NAV compiler retry, 115.265s, estimated USD 0.19107573 / 0.40 (billing unobserved). LG selected 2,163,234백만원 and precise AMPC 676,874백만원, computing 1,486,360백만원; its original atomic FAIL is immutable. NAV retains same-row annual amounts, 41.4% source display and acquisition-performance evidence. Dependency provenance is repaired; exact saved-program replay preserves both cases' values, IDs and ledger agreement. The explicit LG evaluation successor now separates resolved year, source row/header and filing identity from answer labels, admitting the reviewed summary-plus-note tuple. Socket-blocked replay of both frozen/current LG answers: old contract FAIL, v2 numeric PASS; 16 negative controls reject wrong metadata. Full tests 1,090/1,090; focused evaluation 120/120; provider calls 0, old datasets/stores/results unchanged. Review `6c961c96...1c8e`; [source decision](docs/evaluation/lge_t1_051_calculation_source_review_v2.md). Next LG admission must explicitly select `benchmarks/datasets/reviewed/lge_t1_051_calculation_v2.json`; default profiles remain unchanged. No paid rerun is needed for this correction, and judges remain unmeasured. Celltrion store readiness and the wider gate remain separate. Parser deadline 0 remains diagnostic/build-specific.
+Approved v2 build `ac0a3ea7...2c89` and paid admission `2724f2ed...4432` are exhausted. Frozen stores retain 783/1,872 vectors with compatible, non-degraded readiness. The paid LG → NAV run on `90aacc9` (runtime `bb8eba2`) completed 2/2, errors 0, ledgers ok: 8 Gemini + 19 OpenAI requests, one allowed NAV compiler retry, 115.265s, estimated USD 0.19107573 / 0.40 (billing unobserved). LG selected 2,163,234백만원 and precise AMPC 676,874백만원, computing 1,486,360백만원; its original atomic FAIL is immutable. NAV retains same-row annual amounts, 41.4% source display and acquisition-performance evidence. Dependency provenance is repaired; exact saved-program replay preserves both cases' values, IDs and ledger agreement. The explicit LG evaluation successor now separates resolved year, source row/header and filing identity from answer labels, admitting the reviewed summary-plus-note tuple. Socket-blocked replay of both frozen/current LG answers: old contract FAIL, v2 numeric PASS; 16 negative controls reject wrong metadata. Full tests 1,090/1,090; focused evaluation 120/120; provider calls 0, old datasets/stores/results unchanged. Review `6c961c96...1c8e`; [source decision](docs/evaluation/lge_t1_051_calculation_source_review_v2.md). Next LG admission must explicitly select `benchmarks/datasets/reviewed/lge_t1_051_calculation_v2.json`; default profiles remain unchanged. No paid rerun is needed for this correction, and judges remain unmeasured. Celltrion readiness/runtime evidence is recorded below; wider quality acceptance remains separate. Parser deadline 0 remains diagnostic/build-specific.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.
