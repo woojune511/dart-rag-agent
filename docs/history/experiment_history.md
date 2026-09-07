@@ -8095,3 +8095,26 @@ References:
   Next: bounded generic ranking-authority and mixed-column-unit repairs first.
 - Review `0da83a80749bcae6c6dca2d7e1827518844f641d39d3b5bee6120d4ad5f29411`.
   Ignored results: `benchmarks/results/parser_successor_candidate_preflight_2026-09-07/README.md`.
+
+## Current KB Compiler-Only Gate (2026-09-08)
+
+- Approved manifest `409a8ed269a8d7d5a25e62a040f99338e579d3e920aca8d22c76f924f2f91318`
+  ran once on clean `f015faf1141ab999a0a816aa2f9415d36878536d`: `KBF_T1_017` →
+  `KBF_T2_018`, Gemini 2.5 Pro, temperature 0, output/thinking caps 4096/1024, SDK retries 0.
+- Compiler-only **2/2 PASS** with two calls, zero retries and zero validation/execution errors.
+  T1 preserves the reviewed 1.83%/1.73% cells and computes +0.10%p. T2 retains negative
+  provision inputs and computes 70.28% using the model's magnitude-change formula;
+  its narrative selects the reviewed risk-scenario source. Both raw responses end STOP and parse.
+- Wall time 50.292s with 30-second monitoring. Reported usage: 33,833 prompt tokens,
+  1,017 output tokens, 1,955 thinking tokens, 3,491 cached input tokens. Usage-estimated
+  USD 0.068083875 (0.07201125 without cache discount) < approved 0.40; billing unobserved.
+- Actual captured-response socket-blocked replay is byte-identical for both programs,
+  validation/execution, island results and prompt fingerprints. SDK requests match
+  preflight; original source/input/store hashes are unchanged. No additional provider call.
+- Result SHA `9f32ce93223c567809b6a35eb34898e9d7b9b0d3d5d407e3b49d8d68d0c174e9`;
+  review SHA `731dd64078e265939831b492734a6e3ae39761564537cc21ab98b3892f5a32a8`.
+  Ignored artifacts: `benchmarks/results/kbf_current_compiler_admission_2026-09-08/RESULT.md`.
+- Approval exhausted; single-use claim and predecessor artifacts retained. No retrieval,
+  planning, evaluator, embedding, ingest, ledger assembly or store mutation ran. This is
+  fresh selection on frozen current catalogs, not synchronized full-agent/release evidence.
+  Old KB catalog replay still rejects its fingerprints; historical exact replay remains 3/5.

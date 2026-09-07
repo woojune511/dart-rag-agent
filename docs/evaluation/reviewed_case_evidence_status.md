@@ -1,7 +1,8 @@
 # Reviewed Five-Case Evidence Status
 
 Saved-trace audit: 2026-09-08 on `6d1f7ee3`; fixture revision starts from `3157ab77`.
-Runtime source stays `5f2e86b1`, Python 3.13.13. No new provider/full-agent run or release gate.
+Core runtime stays `5f2e86b1`, Python 3.13.13. Current KB compiler-only admission on
+`f015faf1` passes 2/2; it is not a new full-agent run or release gate.
 
 ## Current result
 
@@ -9,18 +10,19 @@ The five saved live answers completed at their respective historical commits.
 Corrected v2 reviewed-fixture contracts pass **5/5**, but exact saved-program replay passes
 **3/5**: both KB catalogs are rejected before execution. The exact replay aggregate
 is **failed**, not a five-case pass. Quality judges were not measured, and there is
-no synchronized five-case full-agent result on this runtime.
+no synchronized five-case full-agent result on this runtime. A separate fresh compiler-only
+run over current KB catalogs passes **2/2**, without reusing old program/visibility authority.
 
 | Case | Saved live answer / calculation | Original numeric verdict | Current exact replay / remaining limit |
 | --- | --- | --- | --- |
-| `KBF_T1_017` | NIM `1.83%`, change `+0.10%p` from `1.73%` | FAIL; count-unit evaluator-only successor PASS | Catalog fingerprint mismatch; no current execution |
-| `KBF_T2_018` | `70.28%`; inputs `(3,146,409)` and `(1,847,775)` 백만원 | PASS | Catalog fingerprint mismatch; no current execution |
+| `KBF_T1_017` | NIM `1.83%`, change `+0.10%p` from `1.73%` | FAIL; count-unit evaluator-only successor PASS | Old catalog replay mismatch; separate current compiler/validator/executor PASS |
+| `KBF_T2_018` | `70.28%`; inputs `(3,146,409)` and `(1,847,775)` 백만원 | PASS | Old catalog replay mismatch; separate current compiler/validator/executor PASS |
 | `LGE_T1_051` | `2,163,234 - 676,874 = 1,486,360` 백만원 | FAIL; explicit reviewed evaluation v2 PASS | PASS; original verdict/default dataset unchanged |
 | `NAV_T2_006` | Source `41.4%`, calculation `41.39574110852439%`, multi-source narrative | null / N/A | PASS; fixture-only unit defect corrected in v2 below |
 | `CEL_T1_013` | `181,624,107 / 342,736,271 * 100 = 52.99%` | PASS | PASS; consolidated 2023 cells, same physical table |
 
 All five historical runs have runtime completeness, zero runtime errors and ledger
-`ok`; this does not establish unmeasured narrative quality or current KB compatibility.
+`ok`; this does not establish unmeasured narrative quality or current full-agent success.
 All previous paid approvals are exhausted.
 
 ## Inspectable evidence
@@ -28,6 +30,9 @@ All previous paid approvals are exhausted.
 - [KB saved answers and traces](../../benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.json).
   [Evaluator-only successor](../../benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/receipt.json)
   preserves the original T1 FAIL; it is not another agent run.
+- [Current KB compiler-only result](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/RESULT.md)
+  and [captured-response replay](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/post_run_review.json)
+  record fresh current-catalog source selection and execution, not old-ID compatibility.
 - [LG saved answer and trace](../../benchmarks/results/reviewed_full_agent_lge_nav_v2_candidate_2026-09-07/lge-2023/results.json),
   [NAV saved answer and trace](../../benchmarks/results/reviewed_full_agent_lge_nav_v2_candidate_2026-09-07/nav-2023/results.json).
   [LG source-reviewed evaluation v2](lge_t1_051_calculation_source_review_v2.md) is explicit opt-in,
@@ -72,7 +77,7 @@ its ID and identical text. None of these comparisons remaps a program or grants 
 Thus this specific rejection is expected cross-version incompatibility, not missing
 answer evidence or a new arithmetic failure. Keep old receipts as historical evidence;
 do not restore old IDs, suppress new prose, or weaken fingerprint validation. Fresh
-current compiler selection and full-agent success remain unmeasured for these inputs.
+current compiler selection is verified separately below; current full-agent success remains unmeasured.
 
 [Projection](../../benchmarks/results/kbf_catalog_compatibility_diagnosis_2026-09-08/projection.json),
 [per-change attribution](../../benchmarks/results/kbf_catalog_compatibility_diagnosis_2026-09-08/attribution.json)
@@ -113,7 +118,8 @@ and [confirmation](../../benchmarks/results/kbf_current_cohort_visibility_2026-0
 remain ignored artifacts. Confirmation SHA `abb3f66554c4001b7b31001f122dd0853f7830e2443814252f619f032956d2df`.
 Provider/retrieval/validation/execution calls and store writes are **0**; full source-store
 fingerprint and frozen input hashes are unchanged. No runtime repair was needed for
-this bounded coverage check. Current compiler responses and full-agent quality remain unmeasured.
+this bounded coverage check. Fresh compiler responses are measured separately below;
+full-agent quality remains unmeasured on this current source.
 
 ### NAV fixture source-unit correction
 
@@ -146,15 +152,38 @@ Regression checks cover normalization, direct displays and dependency input amou
 A self-consistent wrong-unit/wrong-normalization mutation still matches growth but
 now fails the independent direct-amount/output checks.
 
-### Current KB compiler-only admission: pending approval
+### Current KB compiler-only admission: 2/2 passed, approval exhausted
 
 [Manifest](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/manifest.json)
-and [local run instructions](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/README.md)
-freeze T1 → T2, Gemini 2.5 Pro, two initial islands/calls, at most four calls including
-the existing one retry per failed island. Full current catalogs (723/1,397 candidates)
-and saved requirements are frozen; only current bounded payloads reach the model.
-Fresh offline witness programs exercise validation/execution without reusing old
-program/visibility authority. Witnesses and expected answers are never provider inputs.
+SHA `409a8ed269a8d7d5a25e62a040f99338e579d3e920aca8d22c76f924f2f91318`
+was approved and executed once on clean `f015faf1`: T1 → T2, Gemini 2.5 Pro,
+temperature 0, output/thinking caps 4096/1024, SDK retries 0. Full current catalogs
+(723/1,397 candidates) and saved requirements stay frozen; only bounded current
+payloads reached the model. Offline witnesses and expected answers were not provider inputs.
+
+- **2/2 passed**, two islands/calls, zero retries and zero validation/execution errors.
+  Both actual raw responses ended `STOP` and parsed without error.
+- T1 selects the reviewed same-row `1.83% / 1.73%` cells and emits `A - B`:
+  direct `1.83%`, calculated positive `0.10%p`.
+- T2 retains `(3,146,409) / (1,847,775)` 백만원 as negative normalized inputs;
+  the compiler chooses `(abs(A) - abs(B)) / abs(B) * 100`, yielding **70.28%**.
+  Its narrative selects the reviewed risk-scenario source `20240326000894:493:16`.
+- Wall time **50.292s**, monitored at 30 seconds. Usage: 33,833 prompt, 1,017 output,
+  1,955 thinking tokens, with 3,491 cached input tokens. Usage-estimated cost
+  **USD 0.068083875**, or **0.07201125** without cache discount, below the **0.40** cap.
+  Billing was not observed; these are estimates, not an invoice.
+- Socket-blocked replay uses the actual captured responses, not offline witnesses:
+  both programs, validation/execution, island outputs and prompt hashes match byte-for-byte.
+  Both actual SDK request hashes/bytes/reservations match preflight. Original input and
+  full store hashes remain unchanged; no extra provider call or store write occurred.
+
+[Result](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/result.json)
+SHA `9f32ce93223c567809b6a35eb34898e9d7b9b0d3d5d407e3b49d8d68d0c174e9`;
+[post-run review](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/post_run_review.json)
+SHA `731dd64078e265939831b492734a6e3ae39761564537cc21ab98b3892f5a32a8`.
+The single-use claim is retained and approval is exhausted. Preparation README and
+receipts remain historical; the [result note](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/RESULT.md)
+is the completed-run entry point. No automatic rerun is permitted.
 
 Preparation exposed a harness boundary: raw-fixture normalization changes two
 non-visible catalog entries per question because raw surfaces omit source-derived unit
@@ -164,25 +193,23 @@ Its fingerprint proves identity, **not financial correctness**. The incidental e
 of a document-standard identifier in T1 remains a separate prose-number eligibility issue;
 it is outside these visible cohorts and was not fixed or suppressed for this experiment.
 
-Provider-free witness rehearsal passes 2/2; tests cover projection preservation, mutation
+Preparation's provider-free witness rehearsal passes 2/2; tests cover projection preservation, mutation
 rejection before compiler invocation and unchanged fixture prompts/outputs. Ops/capture/
 budget tests pass 34/34; import/topology/docs 24/24; audit, pycompile and diff checks pass.
 Installed SDK preflight confirms the actual schema/config and no witness-marker leakage.
 Two initial requests reserve USD **0.30422625** when every fake response consumes its full
 conservative bound. This is not estimated actual usage or billing.
 
-Requested cap: **USD 0.40**. The existing SDK guard checks every request's reservation
-before dispatch; a retry may be denied if the remaining cap cannot cover it. There is
-no in-flight cancellation guarantee. Request/client retries and automatic reruns are
-disabled; the runtime's one internal island retry remains allowed. A single-use claim
-prevents reusing this admission; heartbeat is 30 seconds. No provider has run.
+Exact evidence-set matching is a regression diagnostic: a different source set requires
+review, not an automatic claim of a wrong answer. Narrative wording is not fixed to the
+offline witness. No retrieval, planner, evaluator, embedding or ledger assembly ran.
+This closes current KB compiler selection, not fresh full-agent or narrative-quality
+acceptance; the old exact replay stays 3/5. Runtime math, benchmark answer keys,
+evaluator tolerances and original stores/results are unchanged.
 
-**Next:** obtain separate approval of the exact manifest SHA, Google transmission and
-cost cap, then run once. Any failure preserves artifacts and stops. Exact evidence-set
-matching is a regression diagnostic: a different source set requires review, not an
-automatic claim of a wrong answer. Narrative wording is not fixed to the offline witness.
-Fresh retrieval, unseen questions and full-agent quality remain separate; runtime math,
-benchmark answer keys, evaluator tolerances and original stores/results stay unchanged.
+**Next:** provider-free coverage on unseen question samples before choosing another
+paid boundary. There is no need to repeat this KB compiler gate merely to close old-ID
+compatibility; any future provider run needs its own approved manifest and cost cap.
 
 ## Validation receipts
 
@@ -199,7 +226,8 @@ benchmark answer keys, evaluator tolerances and original stores/results stay unc
   5/5 v1 contract checks, with the historical source-unit defect above.
   [Exact saved replay](../../benchmarks/results/reviewed_case_evidence_audit_2026-09-08/exact_saved_replay.json):
   3 passed / 2 rejected, aggregate failed.
-- Provider/compiler/retrieval calls and source-store writes: **0**. Frozen admission
+- For the provider-free fixture/audit receipts above, provider/compiler/retrieval calls
+  and source-store writes are **0**. The separate current KB paid admission used two compiler calls. Frozen admission
   inputs, old result files and four original source-store fingerprints are unchanged.
 - Fixture SHA: `2af019ff9d3163038bb8bd190edb88996b229b47ac88700d15d1e6068b77bb33`.
   NAV filing SHA: `234a3df95222e4dbcd55be980bac45431cff091345855747abe611d5db7a4113`.
