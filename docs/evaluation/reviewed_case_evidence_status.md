@@ -43,13 +43,44 @@ These result files are ignored local artifacts, not newly committed experiment o
 
 ## Remaining defects and gaps
 
-### KB exact replay compatibility
+### KB exact replay: explained version incompatibility
 
-Both cases return `catalog_replay_not_verified` / `saved_fingerprint_mismatch`.
-Recomputed source/catalog counts are T1 `228/723`, T2 `500/1397`; all five saved
-count/ID/content checks differ. The audit does not isolate the underlying cause
-and does not remap IDs, replace saved programs, or relax fingerprint checks.
-Historical evaluator-only PASS and reviewed-fixture PASS do not fill this gap.
+Both cases still return `catalog_replay_not_verified` / `saved_fingerprint_mismatch`.
+The diagnosis on `d200e793` holds the saved retrieval window, graph and payloads fixed
+and substitutes eight historical versions of the candidate-owner module, using current
+helper dependencies. The original owner (`ba410b99`) reproduces **all five saved
+count/ID/content checks for both questions**: T1 `205/653`, T2 `471/1363` source/catalog
+candidates. This is a verified owner-level comparison, not a historical full-runtime run.
+
+| Candidate-owner change | KB T1 effect | KB T2 effect |
+| --- | --- | --- |
+| `6ed51fda`: preserve prose alongside attached tables | +23 narrative and +47 sentence-number candidates; `653 → 723` | +29 narrative and +5 sentence-number candidates; `1363 → 1397` |
+| `16d2c403`: qualify physical table identity by filing | 600 table/context IDs change; count unchanged | 1,345 table IDs change; count unchanged |
+| `bb8eba2d`: honor annotated row units | 4 unselected `(비중, %)` cells change from 십억원 to `%`; IDs unchanged, content fingerprint changes | No effective-unit/content-fingerprint change |
+
+Prose preservation removes no previous candidate ID. Period fixes also change catalog
+metadata, but not these count/ID/catalog-fingerprint fields. The current owner exactly
+matches the final diagnostic projection: T1 `228/723`, T2 `500/1397`.
+
+Exact filing/table/row/cell matching finds all four selected numeric cells in the
+current catalog. Their raw values, signs, units, normalized amounts, periods, scopes,
+headers and source text match the **actual saved selected evidence**, not just the
+recreated owner output: T1 `1.83% / 1.73%`, T2 `(3,146,409) / (1,847,775)` 백만원.
+Those four IDs changed with filing-qualified identity; the selected narrative keeps
+its ID and identical text. None of these comparisons remaps a program or grants visibility.
+
+Thus this specific rejection is expected cross-version incompatibility, not missing
+answer evidence or a new arithmetic failure. Keep old receipts as historical evidence;
+do not restore old IDs, suppress new prose, or weaken fingerprint validation. Fresh
+current compiler selection and full-agent success remain unmeasured for these inputs.
+
+[Projection](../../benchmarks/results/kbf_catalog_compatibility_diagnosis_2026-09-08/projection.json),
+[per-change attribution](../../benchmarks/results/kbf_catalog_compatibility_diagnosis_2026-09-08/attribution.json)
+and [confirmation against saved evidence](../../benchmarks/results/kbf_catalog_compatibility_diagnosis_2026-09-08/confirmation.json)
+are ignored artifacts. Confirmation SHA `1a70aff197afec93076eec11854bbe4034324087b623e6eb7823d8f6d7520d71`;
+related source-context/identity/replay tests **28/28**. Provider calls, store writes and
+program executions: **0**. Original store fingerprint `9312082b...95f4` and saved inputs
+are unchanged; the unmodified strict replay still rejects both old catalogs.
 
 ### NAV fixture source-unit correction
 
@@ -82,10 +113,11 @@ Regression checks cover normalization, direct displays and dependency input amou
 A self-consistent wrong-unit/wrong-normalization mutation still matches growth but
 now fails the independent direct-amount/output checks.
 
-**Next bounded work:** isolate KB's saved/current catalog differences before deciding
-whether a compatibility fix is needed. Expanding to unseen questions is separate;
-any provider execution needs its own manifest and cost approval. Runtime math,
-benchmark answer keys and tolerances were not changed by the fixture correction.
+**Next bounded work:** use current cohorts on the saved KB source window and requirements
+to inspect whether the exact reviewed source atoms remain compiler-visible. Do not
+reuse or remap old visibility/program authority. This can be provider-free; expanding
+to unseen questions or any paid execution is separate. Runtime math, benchmark answer
+keys and tolerances remain unchanged.
 
 ## Validation receipts
 

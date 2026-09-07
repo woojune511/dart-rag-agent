@@ -94,8 +94,8 @@ Absolute normalization, direct displays and formula inputs are checked; a common
 tenfold scale error now fails even when growth stays correct. V1 and old receipts remain frozen.
 Source display 41.4%, program, selections, narrative and the other four cases are unchanged.
 Two v2 receipts match (`48634f5c...0f9f`); related tests 51/51, provider/store calls 0.
-Current exact saved replay remains 3/5: both KB catalogs are fingerprint-rejected.
-Next: isolate KB's saved/current catalog difference; no new paid run is authorized.
+Exact replay stays 3/5: KB's known version mismatch comes from added prose, filing-qualified IDs and four unselected T1 unit fixes.
+Old owner reproduces both saved fingerprints; actual selected source atoms survive 5/5. Next: inspect current cohort visibility, no ID remap or paid run.
 [Evidence matrix and fixture revision](docs/evaluation/reviewed_case_evidence_status.md) distinguish
 contract tests and separate historical live runs from a synchronized current full-agent gate.
 
