@@ -116,7 +116,7 @@ Narratives may use filing-year document scope, but that scope cannot bridge a nu
 The complete immutable candidate catalog is projected into generic fact views.
 Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Document-company matches are diagnostic only; filing scope rejects conflicts but adds no implicit value-subject bonus.
 Repeated words do not accumulate additive relevance or compensate for conflicts. Legacy subject inference must not promote a fragment of a declared concept alias/metric surface into a local entity; explicit local subjects remain authoritative.
-Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are excluded. Exact row/cell metric matches precede containment-only matches as ordinal tiers, not additive scores. Equal tiers remain deterministic and source-diverse.
+Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are excluded. Exact row/cell metric matches precede containment-only matches as ordinal tiers, not additive scores. Comparison keys remove parser footnotes, never semantic qualifiers; empty keys cannot match. Source axes, IDs and catalog fingerprints stay intact. Equal tiers remain deterministic and source-diverse.
 
 `SourceBundleV1` is the source-reading unit: deterministic ID, source kind/anchor, context fingerprint,
 exact contiguous text, member IDs and local value spans. Same-source sentence values share a bundle.

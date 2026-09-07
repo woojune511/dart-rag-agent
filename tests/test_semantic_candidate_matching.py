@@ -8,6 +8,15 @@ from src.agent.financial_calculation_execution import (
 )
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import _semantic_candidate_cohorts
+from src.agent.financial_reconciliation_candidates import (
+    build_semantic_candidate_catalog,
+    semantic_candidate_catalog_fingerprint,
+)
+from src.agent.financial_candidate_matching import (
+    _best_metric_state,
+    project_candidate_fact,
+    resolve_owner_target,
+)
 from src.config import get_financial_ontology
 
 
@@ -238,6 +247,62 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
                 list(reversed(catalog)), reverse
             ),
         )
+
+    def test_footnoted_metric_rows_reach_the_owner_without_changing_source_identity(self) -> None:
+        for label, metric, other_labels in (
+            ("영업수익 (주35)", "영업수익", ("기타수익 (주26)", "이자수익")),
+            ("매출액 (주28,36,37)", "매출액", ("매출원가 (주28,32,37)", "매출총이익")),
+        ):
+            with self.subTest(label=label):
+                owner = _obligation()
+                owner.update(label=metric, display_unit="KRW", retrieval_hints=[], concept_hints=[])
+                owner["semantic_target"] = {
+                    "local_subjects": [], "concept_keys": ["revenue"], "metric_surfaces": [metric],
+                }
+                sources = [{
+                    "candidate_id": f"source-{index}",
+                    "candidate_kind": "structured_value",
+                    "source_anchor": "[sample]",
+                    "text": f"{row_label} | 2024 | 125",
+                    "metadata": {
+                        "row_label": row_label, "row_headers": [row_label],
+                        "company": "filing company", "year": 2024,
+                        "table_source_id": "sample-table", "physical_table_id": "sample-table",
+                        "physical_row_id": f"row-{index}",
+                        "structured_cells": [{
+                            "cell_id": f"row-{index}:1", "column_headers": ["2024"],
+                            "value_text": "125", "unit_hint": "원",
+                        }],
+                    },
+                } for index, row_label in enumerate((*other_labels, label))]
+                catalog = build_semantic_candidate_catalog(sources)
+                before = deepcopy(catalog)
+                fingerprint = semantic_candidate_catalog_fingerprint(catalog)
+                target = next(row for row in catalog if row["row_label"] == label)
+                for rows in (catalog, list(reversed(catalog))):
+                    plan = _semantic_candidate_cohorts(rows, [owner])
+                    self.assertIn(target["candidate_id"], plan["candidate_ids_by_owner"]["ob_amount"])
+                    state, rank = _best_metric_state(project_candidate_fact(target), resolve_owner_target(owner))
+                    self.assertEqual((state, rank), ("concept_row", 1000))
+                self.assertEqual(target["normalized_value"], 125)
+                self.assertIn(label, target["source_text"])
+                self.assertEqual(catalog, before)
+                self.assertEqual(semantic_candidate_catalog_fingerprint(catalog), fingerprint)
+
+    def test_metric_annotation_normalization_keeps_semantic_qualifiers_and_empty_keys(self) -> None:
+        owner = _obligation()
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": [], "metric_surfaces": ["service fee (*1,5)"],
+        }
+        target = resolve_owner_target(owner)
+        for label, expected_rank in (("service fee", 900), ("service fee (net)", 0), ("(*)", 0)):
+            with self.subTest(label=label):
+                fact = project_candidate_fact({"row_label": label})
+                self.assertEqual(_best_metric_state(fact, target)[1], expected_rank)
+        empty_target = resolve_owner_target({
+            "semantic_target": {"local_subjects": [], "concept_keys": [], "metric_surfaces": ["(*)"]},
+        })
+        self.assertEqual(_best_metric_state(project_candidate_fact({"row_label": "(*)"}), empty_target)[1], 0)
 
     def test_compatible_candidate_precedes_stronger_unknown_metric_match(self) -> None:
         compatible = {

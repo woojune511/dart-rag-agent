@@ -466,7 +466,12 @@ def _best_metric_state(
         (fact.row_metric_surfaces, target.concept_aliases, "concept_row", 1000),
         (fact.row_metric_surfaces, target.metric_surfaces, "surface_row", 900),
     ):
-        if any(_compact(surface) == _compact(wanted) for surface in surfaces for wanted in targets):
+        # Parser footnotes are not metric qualifiers. Normalize only comparison
+        # keys; source axes, local subjects, provenance and catalog IDs stay exact.
+        target_keys = {
+            _compact(strip_financial_label_annotations(wanted)) for wanted in targets
+        } - {""}
+        if any(_compact(strip_financial_label_annotations(surface)) in target_keys for surface in surfaces):
             return state, rank
 
     if target.concept_aliases and any_match(
