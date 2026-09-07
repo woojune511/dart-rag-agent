@@ -1438,6 +1438,10 @@ class FinancialAgentCalculationMixin:
                 "column_headers": list(item.get("column_headers") or []),
                 "raw_value": str(item.get("raw_value") or ""),
                 "raw_unit": str(item.get("raw_unit") or ""),
+                **({"source_unit_hint": item.get("source_unit_hint", ""),
+                    "raw_unit_source": item.get("raw_unit_source", ""),
+                    "source_unit_provenance": item["source_unit_provenance"]}
+                   if item.get("source_unit_provenance") else {}),
                 "normalized_unit": str(item.get("normalized_unit") or ""),
                 "period": str(item.get("period") or ""),
                 "source_period_surface": str(item.get("source_period_surface") or ""),

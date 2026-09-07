@@ -7,8 +7,8 @@ Last updated: 2026-09-07
 - Product: single-agent `FinancialAgent`.
 - Working branch: `codex/reviewed-compiler-selection-gate`; compiler-gate
   baseline `e9a5be0`. Repair baseline: `5e13bc6`; dependency fix: `af9a07e`.
-- Unit/retry, compiler, persistence/API, final-state, relative periods, source-context,
-  query spellings and filing-qualified table identity are implemented. Git is the chronology.
+- Unit/retry, compiler, persistence/API, final-state, periods, source-context, query spellings,
+  filing-qualified identity, filing/metric ranking separation and declared table units are implemented. Git is the chronology.
 - HTTP shape, `FinancialRunResultV1`, store manifest shape and ID/fingerprint hashing stay intact;
   parser `financial_parser_v2_source_context` honors explicit headers; new row/cell IDs may differ. Historical IDs are not rewritten.
 - Historical results, datasets, stores, caches, and review packets are immutable.
@@ -123,12 +123,12 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | Scope | Existing source | Blocker |
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
-| LG 2023 / NAV 2022+2023 | New v2 stores: 2,655 vectors, integrity/readiness 2/2 | No-call preflight finds LG company-factor masking and NAV mixed-column unit defects; no new paid admission |
+| LG 2023 / NAV 2022+2023 | New v2 stores: 2,655 vectors, integrity/readiness 2/2 | Ranking/unit repairs pass no-call saved-window projection; fresh full-agent selection still needs a new manifest/approval |
 | Celltrion 2023 | Original filing HTML present | No vector store found in the checkout |
 
 Latest LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
-Current period-evidence repair preserves 567/462 candidates, IDs, fingerprints, raw values and qualified provenance. Socket-blocked replay corrects two NAV column years and retains 50 relative-period values. Numeric/narrative visibility is 4/3 and 11/6; reverse/swap projections agree.
-Approved v2 build `ac0a3ea7...2c89` completed once: 473 new embeddings, 2,180 reused vectors, nine calls, usage-estimated USD 0.05784649 < 0.10 (billing unobserved); approval exhausted. Frozen stores remain intact. No-call preflight on copies passes readiness 2/2 and document-vector probes 6/6; saved-query BM25 projects 592/547 candidates with order-invariant v6 payloads. LG's precise AMPC rows are retrieved but hidden: the document-company factor outranks their source-matched metric. Neutralizing only that factor in a diagnostic exposes both; exact period-context bindings execute 2/2. NAV amount periods and acquisition-impact sources are visible, but two share columns inherit a monetary unit despite mixed-unit source context. Next: bounded generic ranking and mixed-column-unit fixes, then repeat local preflight before a new full-agent manifest/approval. Runtime code is unchanged; no fresh planner/hybrid/compiler, answer-quality or evaluator claim. Review `0da83a80...9411`; `benchmarks/results/parser_successor_candidate_preflight_2026-09-07/README.md`. Parser deadline 0 remains diagnostic/build-specific; remote references/governance are separate.
+Current no-call projection preserves all 592/547 candidate IDs, raw values, periods and physical provenance. Filing-company matches no longer boost value rank; explicit local subjects and scope conflicts remain enforced. Table context plus column labels resolves mixed units; annotated row units survive, bare currency row categories do not override table units. Corrected effective units change catalog-content fingerprints, not ID/hash algorithms or stored payloads.
+Approved v2 build `ac0a3ea7...2c89` completed once: 473 new embeddings, 2,180 reused vectors, nine calls, usage-estimated USD 0.05784649 < 0.10 (billing unobserved); approval exhausted. Frozen stores and preflight hashes remain intact. LG's precise 676,874백만원 rows are now actually owner-visible and explicit exact-period bindings execute 2/2; profit evidence remains. NAV 26.4/21.9 are PERCENT, excluded from amount owners; period amounts, 41.4% display and three acquisition-impact sources remain visible. Numeric/narrative visibility is 4/3 and 7/7; v6 contexts 20/13, bytes 40,694/74,123; reversed projections agree. Full unittest 1,066/1,066; focused 70/70. Review `177dc2e2...6811`, `benchmarks/results/parser_successor_candidate_repair_2026-09-07/README.md`. No provider/embedding calls, source-store writes or new admission. Next: a new store-fixed full-agent manifest and separate approval; fresh planner/hybrid/compiler selection and answer quality are not established by this replay. Parser deadline 0 remains diagnostic/build-specific; remote references/governance are separate.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.

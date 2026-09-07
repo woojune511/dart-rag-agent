@@ -177,6 +177,21 @@ NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
 }
 
 
+# Structural unit labels, not metric-specific ranking rules. A label can select
+# only among units explicitly declared in the attached table context.
+TABLE_COLUMN_UNIT_POLICY: Dict[str, Any] = {
+    "declaration_pattern": r"(?:단위|units?)\s*[:：]\s*(?P<units>[^)\]\r\n]+)",
+    "unit_separator_pattern": r"\s*(?:[,，;/]|\s+(?:and|및)\s+)\s*",
+    "header_unit_pattern": r"[([]([^()\[\]]+)[)\]]",
+    "context_relations": ("preceding_block", "caption"),
+    "column_groups": (
+        {"headers": ("비중", "비율", "구성비", "점유율", "share", "ratio", "percentage"), "dimensions": ("PERCENT",)},
+        {"headers": ("금액", "공시금액", "amount", "value"), "dimensions": ("KRW", "USD")},
+        {"headers": ("수량", "quantity", "count"), "dimensions": ("COUNT",)},
+    ),
+}
+
+
 STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     "metric_terms": ("매출액", "매출", "영업수익", "수익"),
     "entity_surface_drop_terms": ("부문", "사업부", "사업"),

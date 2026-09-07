@@ -26,10 +26,10 @@
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified table/row/cell identity with raw provenance, source/catalog construction, attached prose and exact row context |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
-| `src/agent/financial_candidate_matching.py` | typed owner applicability and deterministic bundle rank inputs |
+| `src/agent/financial_candidate_matching.py` | typed owner applicability and bundle rank inputs; filing-company diagnostics do not boost value relevance |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, islands, targeted retry with read-only executed dependency inputs |
 | `src/agent/financial_calculation_execution.py` | evidence/formula dimensions, semantic cross-source scope checks, display selection, validation/execution, pure final assembly |
-| `src/agent/financial_runtime_normalization.py` | shared UnitSpec, numeric normalization and display precision |
+| `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |
 

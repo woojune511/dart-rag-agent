@@ -2607,6 +2607,8 @@ def project_semantic_program_operand(
         "raw_unit": str(candidate.get("raw_unit") or ""),
         "source_unit_hint": str(candidate.get("source_unit_hint") or ""),
         "raw_unit_source": str(candidate.get("raw_unit_source") or ""),
+        **({"source_unit_provenance": dict(candidate["source_unit_provenance"])}
+           if candidate.get("source_unit_provenance") else {}),
         "normalized_value": candidate.get("normalized_value"),
         "normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
         "period": period,

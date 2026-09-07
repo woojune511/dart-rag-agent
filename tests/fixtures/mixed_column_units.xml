@@ -1,0 +1,14 @@
+<DOCUMENT>
+  <SECTION-1><TITLE ATOC="Y">III. 재무에 관한 사항</TITLE>
+    <SECTION-2><TITLE ATOC="Y">3. 연결재무제표 주석</TITLE>
+      <TABLE><TR><TD>(단위 : 백만원,%)</TD></TR></TABLE>
+      <TABLE>
+        <THEAD>
+          <TR><TH ROWSPAN="2">항목</TH><TH COLSPAN="2">2024</TH><TH COLSPAN="2">2023</TH></TR>
+          <TR><TH>금액</TH><TH>비중</TH><TH>금액</TH><TH>비중</TH></TR>
+        </THEAD>
+        <TBODY><TR><TD>제품군 A</TD><TD>750</TD><TD>37.5</TD><TD>600</TD><TD>30.0</TD></TR></TBODY>
+      </TABLE>
+    </SECTION-2>
+  </SECTION-1>
+</DOCUMENT>

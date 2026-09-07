@@ -15,7 +15,7 @@ The implemented boundaries are:
 - Shared unit scales and source-preserving numeric display; canonical
   KRW/USD/PERCENT/COUNT, signed composite amounts, USD lookups, and finite-value
   checks use one normalizer contract. Compiler emits formula/display intent only;
-  code infers dimensions. Legacy `result_unit` has no validation/render authority.
+  code infers dimensions. Table context/header units retain raw hints and exact provenance; ambiguous mixed units stay unknown. Legacy `result_unit` has no validation/render authority.
 - Compiler prompt leads with comparison target, transformations/operations, then
   formula; generic contrasts use existing `rationale`, not a role enum or new call.
   Raw signs stay intact; no arithmetic rewrite or validator relaxation was added.
@@ -31,7 +31,7 @@ The implemented boundaries are:
   dependencies, unknown IDs, and self references retain preflight validation.
 - `CompilationEnvelopeV2` checks full execution content before revalidation or
   arithmetic. Existing visibility/program/validation checks remain independent.
-- Bundle-first selection retains adjacent values, prose, row notes and located document contexts; query-written bilingual spellings survive planning.
+- Bundle-first selection retains adjacent values, prose, row notes and document contexts; bilingual spellings survive planning. Filing-company matches are diagnostic, not value-rank bonuses; explicit subject/scope checks remain.
   Physical identity includes filing provenance before dedupe. V6 prompts share context text; exact context bindings resolve unknown scope in validation/execution without changing raw IDs. Unique selectable-ID caps include retries.
 - Source-first output and separately labelled recomputation coexist.
   Dependencies use calculated values; primary answer slots use display values.
@@ -57,7 +57,7 @@ mutation, evaluator relaxation, or dataset correction. MAS/Streamlit remain expe
 
 ## Local acceptance
 
-Python 3.13.13: full suite `1054 / 1054` (30.214s). New successor builder tests `12 / 12` use actual temporary Chroma, lower file-write failures and a fresh-process resume. Inventory/import/topology/manifest/rebuild tests `42 / 42`, docs `2 / 2`.
+Python 3.13.13: full suite `1066 / 1066` (43.372s). Candidate/column-unit focused tests `70 / 70`, including ten new parser/catalog/visibility/execution unit tests. Docs/import/topology `24 / 24`. Successor builder tests use actual temporary Chroma, lower file-write failures and fresh-process resume.
 Runtime domain audit passes (`84` reviewed literals); pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -143,7 +143,7 @@ Successor `03f03d99...237e` ran once on clean `5fe3a5f`: required-output complet
 LG completes 3/3 outputs, preserving original bindings/assertion: precise profit minus approximate 6,769억원 = 1,486,334,000,000원. Numeric FAIL remains: no atomic accepted source/scope/precision variant; do not treat it as a transport or arithmetic failure.
 NAV completes 2/2 outputs without retry: same-row 당기/전기 resolve to 2023/2022, calculation 41.39574110852439%, source display 41.4%. Its new narrative only describes Poshmark service positioning, not acquisition performance; heuristic completeness 0.625, judges unmeasured. An out-of-island missing-ID diagnostic remains in attempt history, not final validation.
 Socket-blocked exact replay 2/2; runtime/input/store hashes unchanged. Review SHA `66d5b927...a051`. Approval exhausted; no runtime/evaluator/dataset edit or paid rerun. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
-Approved v2 build `ac0a3ea7...2c89` completed on clean `639ee86`: 473 new/2,180 reused embeddings, nine calls, 444,973 reported tokens, usage-estimated USD 0.05784649 < 0.10 (billing unobserved), about 79.7s. Stores contain 783/1,872 vectors, 2,127 payloads and 125 parents; readiness 2/2, degraded false. Approval exhausted. Subsequent socket-blocked preflight on copies preserves all frozen store hashes; document-vector probes 6/6, saved-query BM25 catalogs 592/547, visible numeric/narrative 8/3 and 10/7, v6 contexts 14/16 and bytes 46,598/85,544, reversed projections identical. LG precise AMPC rows reach the catalog but not owner visibility: `document_subject` precedes `metric`, letting unrelated company-labelled rows win both bundles. An in-memory neutral-factor probe exposes both precise rows and exact-context execution passes 2/2; production is unchanged. NAV period amounts and multi-source acquisition-impact evidence are visible, but `26.4`/`21.9` share cells inherit `백만원/KRW` from a `(단위 : 백만원,%)` table, a preexisting column-unit defect. Focused tests 62/62; new review `0da83a80...9411`. Next: generic ranking-authority and mixed-column-unit repairs before a new paid manifest. No fresh planner/hybrid/compiler/evaluator evidence, default-store switch or historical parser-setting claim. `benchmarks/results/parser_successor_candidate_preflight_2026-09-07/README.md`.
+Approved v2 build `ac0a3ea7...2c89` completed on clean `639ee86`: 473 new/2,180 reused embeddings, nine calls, 444,973 reported tokens, usage-estimated USD 0.05784649 < 0.10 (billing unobserved), about 79.7s. Stores contain 783/1,872 vectors, 2,127 payloads and 125 parents; readiness 2/2, degraded false. Approval exhausted. Current generic ranking/column-unit repairs pass socket-blocked projection of the exact saved source windows: 592/547 candidate IDs/raw values/periods/physical provenance unchanged. LG precise 676,874백만원 rows are owner-visible with unpatched ranking; explicit exact-context programs execute 2/2 and profit evidence remains. NAV 26.4/21.9 normalize as PERCENT and leave amount cohorts; 2023/2022 amounts, 41.4% display and three acquisition-impact sources remain visible. Twenty-four share cells are corrected; nine unlocated mixed-row amounts no longer receive a blanket percent unit and remain unknown. Annotated row percentages and currency-category monetary rows are preserved. Effective-unit correction changes NAV's catalog-content fingerprint; hashing and IDs are unchanged. Numeric/narrative visibility 4/3 and 7/7, v6 contexts 20/13 and bytes 40,694/74,123; reversed projections agree. Frozen store/predecessor hashes match. Review `177dc2e2...6811`; `benchmarks/results/parser_successor_candidate_repair_2026-09-07/README.md`. Calls/writes 0; no new provider admission, default-store switch, fresh retrieval/compiler/evaluator or answer-quality claim. Next: new store-fixed full-agent manifest, then separate approval.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

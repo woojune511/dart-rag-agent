@@ -16,7 +16,7 @@ from src.agent.financial_scope_policies import (
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
-    resolve_source_numeric_unit,
+    resolve_structured_source_unit,
 )
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
@@ -315,9 +315,12 @@ def semantic_candidate_stage_diagnostics(
             source_unit_hint = _normalise_spaces(
                 str(cell.get("unit_hint") or metadata.get("unit_hint") or "")
             )
-            raw_unit, _raw_unit_source = resolve_source_numeric_unit(
+            raw_unit, _raw_unit_source, _unit_provenance = resolve_structured_source_unit(
                 raw_value,
                 source_unit_hint,
+                column_headers=cell.get("column_headers") or [],
+                row_headers=metadata.get("row_headers") or [],
+                source_contexts=metadata.get("source_contexts") or [],
             )
             normalized_value, _normalized_unit = _normalise_operand_value(
                 raw_value,
@@ -2227,6 +2230,36 @@ def build_semantic_candidate_catalog(
                     }
                 ]
 
+        unit_resolutions = [
+            resolve_structured_source_unit(
+                str(cell.get("value_text") or ""),
+                str(cell.get("unit_hint") or metadata.get("unit_hint") or ""),
+                column_headers=cell.get("column_headers") or [],
+                row_headers=row_headers,
+                source_contexts=metadata.get("source_contexts") or [],
+            ) for cell in cells
+        ]
+        if (
+            any(provenance for _unit, _origin, provenance in unit_resolutions)
+            and not metadata.get("row_context_text")
+        ):
+            # This is a physical-row rendering, not a rewritten original quote.
+            # Do not serialize an inherited table unit beside a differently typed cell.
+            rendered_cells = [
+                " / ".join(part for part in [
+                    *_normalized_string_list(cell.get("column_headers")),
+                    str(cell.get("value_text") or ""), unit,
+                ] if part)
+                for cell, (unit, _origin, _provenance) in zip(cells, unit_resolutions)
+            ]
+            projected_row_text = " | ".join([
+                *_normalized_string_list([row_label, *row_headers]), *rendered_cells,
+            ])[:1200]
+            base_record.update(
+                source_text=projected_row_text, source_bundle_text=projected_row_text,
+                source_bundle_context_span=[0, len(projected_row_text)],
+            )
+
         for cell_index, cell in enumerate(cells):
             raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
             if not raw_value or not re.search(r"\d", raw_value):
@@ -2234,10 +2267,7 @@ def build_semantic_candidate_catalog(
             source_unit_hint = _normalise_spaces(
                 str(cell.get("unit_hint") or metadata.get("unit_hint") or "")
             )
-            raw_unit, raw_unit_source = resolve_source_numeric_unit(
-                raw_value,
-                source_unit_hint,
-            )
+            raw_unit, raw_unit_source, unit_provenance = unit_resolutions[cell_index]
             normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
             if normalized_value is None:
                 continue
@@ -2324,6 +2354,7 @@ def build_semantic_candidate_catalog(
                     "raw_unit": raw_unit,
                     "source_unit_hint": source_unit_hint,
                     "raw_unit_source": raw_unit_source,
+                    **({"source_unit_provenance": unit_provenance} if unit_provenance else {}),
                     "normalized_value": normalized_value,
                     "normalized_unit": normalized_unit,
                     "period": period,

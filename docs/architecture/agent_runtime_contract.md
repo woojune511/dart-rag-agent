@@ -22,6 +22,9 @@ coexist, but their provenance must remain distinct.
 Normalization and rendering share `UnitSpecV1`: source numbers multiply by its scale;
 calculated displays divide by it. Direct values preserve source units/signs/precision;
 non-finite values cannot yield slots, and precision comparisons use base units.
+Table-unit projection preserves inline and explicit column/annotated-row units (not bare row categories); conflicting axes stay unknown. Otherwise policy column labels select only among units declared in attached preceding/caption context.
+Ambiguous mixed-unit cells never inherit the first table unit. `source_unit_hint` stays in identity/provenance; exact declarations/header evidence reach prompt and operands as `source_unit_provenance`. Original row quotes stay intact; synthesized row text uses effective units within the existing bound.
+Corrected effective units change catalog-content fingerprints, not candidate IDs or hash algorithms; V2 binds the complete projection. Store/parser payloads and historical artifacts are not rewritten.
 Compiler emits formula and `display_unit`, not `result_unit`; code infers dimensions.
 Display priority: expression -> obligation -> inferred canonical unit (count: unitless).
 Legacy `result_unit` is discarded on copied model ingress; public display fields stay intact.
@@ -111,12 +114,9 @@ Non-temporal headers stay in `source_period_surface`/`column_headers`, not `peri
 Narratives may use filing-year document scope, but that scope cannot bridge a numeric period. A numeric period witness needs located period evidence and the same source context; missing period evidence requests program repair, not candidate exclusion.
 
 The complete immutable candidate catalog is projected into generic fact views.
-Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Document-company matches are diagnostic
-only; filing scope still rejects conflicts but is not an implicit value-subject bonus. Repeated words do
-not accumulate an additive relevance score and cannot compensate for an
-explicit scope, subject, or unit conflict. Within each owner cohort,
-`compatible` candidates always rank before `unknown_only`; explicit conflicts
-are excluded. Equal factor tiers are deterministic and source-diverse.
+Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Document-company matches are diagnostic only; filing scope rejects conflicts but adds no implicit value-subject bonus.
+Repeated words do not accumulate an additive relevance score or compensate for explicit scope, subject, or unit conflicts.
+Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are excluded. Equal factor tiers are deterministic and source-diverse.
 
 `SourceBundleV1` is the source-reading unit: deterministic ID, source kind/anchor, context fingerprint,
 exact contiguous text, member IDs and local value spans. Same-source sentence values share a bundle.
