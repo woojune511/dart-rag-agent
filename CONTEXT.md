@@ -48,7 +48,7 @@ The fast development loop is in [AGENTS.md](AGENTS.md).
   Calculated value/unit, validated owner/requirement metadata and physical/context evidence survive.
   Transitive arithmetic provenance excludes display/compatibility witnesses without widening authority.
   Dependency input summaries use calculated values and resolved periods; source surfaces remain in trace.
-- Located cell periods override unbound table hints; ambiguous/unanchored numeric periods
+- Calendar labels and fiscal columns precede row-relative text; unresolved fiscal periods stay unknown in validation. Numeric periods
   cannot borrow filing-year scope, even via a narrative witness. Bound formulas may span scope-compatible sources;
   coupling/physical-row contracts remain enforced; assertion coverage has stable owner order.
 - Source writes publish payload union then graph atomically and memory last.
@@ -124,7 +124,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 | --- | --- | --- |
 | KB 2023, two questions | 2,093 OpenAI vectors; fresh full-agent runtime 2/2, errors 0, ledger ok | Count-unit repair: evaluator-only replay 2/2; approval exhausted |
 | LG 2023 / NAV 2022+2023 | New v2 stores: 2,655 vectors, integrity/readiness 2/2 | Full-agent runtime 2/2; historical LG FAIL preserved, explicit v2 evaluation replay PASS; judges unmeasured |
-| Celltrion 2023 | OpenAI store unchanged: 1,083 vectors, 978 payloads, 41 parents; compatible/non-degraded | `e68bc998...865e` is exhausted and remains runtime 0/1, Pro calls 0. Local repair now exposes both reviewed cells; compact payload 50,130 bytes, same-SDK saved-input reservation plus prior spend USD 0.17478992 / 0.20. Typed budget denial makes no compiler retry. Receipt `000746bc...1047b`; [local review](benchmarks/results/celltrion_visibility_budget_repair_2026-09-08/README.md). Next: provider-free fiscal-column versus row-relative period correction before any new admission; no paid retry. |
+| Celltrion 2023 | OpenAI store unchanged: 1,083 vectors, 978 payloads, 41 parents; compatible/non-degraded | `e68bc998...865e` stays exhausted, runtime 0/1, Pro calls 0. Local visibility/budget repair is followed by fiscal-column repair: 297 IDs/catalog fingerprint/raw cells unchanged, 9 period projections corrected, current-period visibility 12 → 8, both required amounts retained. LG/NAV accepted programs/results remain identical. Receipt `a5678df0...6ea9`; [local review](benchmarks/results/celltrion_fiscal_period_repair_2026-09-08/README.md). Next: new runtime/input-bound no-call admission preparation, then separate provider approval; no paid retry yet. |
 
 Previous LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
 Current no-call projection preserves all 592/547 candidate IDs, raw values, periods and physical provenance. Filing-company matches no longer boost value rank; explicit local subjects and scope conflicts remain enforced. Table context plus column labels resolves mixed units; annotated row units survive, bare currency row categories do not override table units. Corrected effective units change catalog-content fingerprints, not ID/hash algorithms or stored payloads.
@@ -139,7 +139,7 @@ T2 renders 70.28% with negative source inputs; T1 renders 1.83% and +0.10%p.
 T1's original false FAIL is preserved; count-unit token boundaries now prevent `2023 명목` → `2023 명`.
 6 Gemini + 17 OpenAI embedding calls, no retries; 107.5s, estimated USD 0.10416639.
 Result: `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.json`.
-Exact runtime replay passes 2/2; inputs/store unchanged; judges skipped. Both answers pass evaluator-only replay.
+Then-current exact runtime replay passed 2/2; current KBF catalog fingerprints are incompatible. Inputs/store unchanged, judges skipped; both answers passed evaluator-only replay.
 Evaluator-only successor: `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`.
 
 Google routes forward explicit output/thinking/retry/thought-text controls; installed-SDK tests cover both factories and a single simulated 429 with retries disabled.

@@ -510,13 +510,22 @@ def _cell_explicit_year(cell: Mapping[str, Any]) -> Optional[int]:
     return next(iter(years)) if len(years) == 1 else None
 
 
-def _fiscal_ordinal(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> Optional[int]:
+def _fiscal_period_surface(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> str:
+    """Located fiscal columns precede a parser label also collected from the row."""
+    pattern = str(SEMANTIC_CANDIDATE_POLICY.get("fiscal_period_ordinal_pattern") or r"$^")
+    headers = [str(item) for item in (cell.get("column_headers") or []) if re.search(pattern, str(item))]
+    if headers:
+        return " / ".join(headers)
     surface = _candidate_period_surface(cell, metadata)
-    match = re.search(
+    return surface if re.search(pattern, surface) else ""
+
+
+def _fiscal_ordinal(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> Optional[int]:
+    ordinals = {int(match.group(1)) for match in re.finditer(
         str(SEMANTIC_CANDIDATE_POLICY.get("fiscal_period_ordinal_pattern") or r"$^"),
-        surface,
-    )
-    return int(match.group(1)) if match else None
+        _fiscal_period_surface(cell, metadata),
+    )}
+    return next(iter(ordinals)) if len(ordinals) == 1 else None
 
 
 def _candidate_period_labels(
@@ -536,7 +545,7 @@ def _candidate_period_labels(
     cell_surfaces = surfaces(cell.get("period_text") or cell.get("period"), cell.get("column_headers"))
     located_labels = [surface for surface in cell_surfaces
                       if annual_period_evidence(surface)[0]
-                      or _fiscal_ordinal({"period_text": surface}, {}) is not None]
+                      or _fiscal_period_surface({"period_text": surface}, {})]
     if located_labels:
         return located_labels, "cell"
     cell_values = surfaces(cell.get("period_labels"), cell.get("period_text"))
@@ -578,18 +587,34 @@ def _candidate_value_year(
     metadata: Mapping[str, Any],
 ) -> Optional[int]:
     cell = cells[cell_index]
-    has_period, value_year = annual_period_evidence(
+    years = explicit_period_years(
         cell.get("period_text") or cell.get("period"),
         *(cell.get("column_headers") or []),
-        report_year=metadata.get("year"),
     )
-    if has_period:
-        return value_year
+    if years:
+        return next(iter(years)) if len(years) == 1 else None
 
     try:
         report_year = int(metadata.get("year"))
     except (TypeError, ValueError):
         report_year = None
+
+    if _fiscal_period_surface(cell, metadata):
+        ordinals = [ordinal for item in cells if (ordinal := _fiscal_ordinal(item, metadata)) is not None]
+        value_ordinal = _fiscal_ordinal(cell, metadata)
+        if ordinals and value_ordinal is not None and report_year is not None:
+            offset = max(ordinals) - value_ordinal
+            if 0 <= offset <= 20:
+                return report_year - offset
+        # Missing anchors or ambiguous fiscal columns cannot borrow a row label.
+        return None
+
+    has_period, value_year = annual_period_evidence(
+        cell.get("period_text") or cell.get("period"),
+        *(cell.get("column_headers") or []), report_year=report_year,
+    )
+    if has_period:
+        return value_year
 
     has_role, role_year = annual_period_evidence(
         cell.get("period_role") or cell.get("value_role") or metadata.get("value_role"),
@@ -598,17 +623,6 @@ def _candidate_value_year(
     if has_role:
         return role_year
 
-    ordinals = [
-        ordinal
-        for ordinal in (_fiscal_ordinal(item, metadata) for item in cells)
-        if ordinal is not None
-    ]
-    value_ordinal = _fiscal_ordinal(cell, metadata)
-    if ordinals and value_ordinal is not None and report_year is not None:
-        current_ordinal = max(ordinals)
-        offset = current_ordinal - value_ordinal
-        if 0 <= offset <= 20:
-            return report_year - offset
     # A scoped source-period field is distinct from the parser's unlocated
     # period_labels/focus, which also include dates collected from table bodies.
     return annual_period_evidence(
@@ -625,8 +639,9 @@ def _candidate_period_projection(
     source_surface = _candidate_period_surface(cell, metadata)
     if value_year is not None and _cell_explicit_year(cell) == value_year:
         return str(value_year), source_surface, "explicit_period"
-    if _fiscal_ordinal(cell, metadata) is not None:
-        return source_surface, source_surface, "fiscal_period"
+    fiscal_surface = _fiscal_period_surface(cell, metadata)
+    if fiscal_surface:
+        return fiscal_surface if value_year is not None else "", source_surface, "fiscal_period"
     if value_year is not None:
         period_source = (
             "relative_period_label"

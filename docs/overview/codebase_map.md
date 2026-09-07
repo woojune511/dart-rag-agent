@@ -23,12 +23,12 @@
 | --- | --- |
 | `src/agent/financial_graph_planning.py` | routing/requirements and query-written bilingual subject spellings |
 | `src/agent/financial_retrieval_pipeline.py` | retrieval plan, searches, selection, trace |
-| `src/agent/financial_reconciliation_candidates.py` | filing-qualified table/row/cell identity with raw provenance, source/catalog construction, attached prose and exact row context |
+| `src/agent/financial_reconciliation_candidates.py` | filing-qualified physical identity, source/catalog construction; fiscal column periods precede row-derived relative labels without rewriting raw provenance |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
 | `src/agent/financial_candidate_matching.py` | typed applicability; metric fragments are not inferred entities, exact axes precede containment; no filing-company relevance bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, islands/targeted retry with read-only dependency inputs; terminal admission errors propagate |
-| `src/agent/financial_calculation_execution.py` | evidence/formula dimensions, cross-source scope checks, candidate/dependency input provenance separate from display witnesses, validation/execution and pure final assembly |
+| `src/agent/financial_calculation_execution.py` | evidence/formula dimensions and scope checks, unresolved fiscal periods stay unknown; input provenance separate from display witnesses, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |

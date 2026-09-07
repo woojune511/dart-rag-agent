@@ -474,9 +474,9 @@ def _candidate_value_period(candidate: Mapping[str, Any]) -> Tuple[bool, Optiona
     # Raw source labels remain provenance, not a second competing resolution.
     if candidate.get("period_source") in {
         "explicit_period", "relative_period_label", "fiscal_period", "value_role", "source_period_text", "source_context_binding",
-    } and candidate.get("value_year") is not None:
+    } and (candidate.get("value_year") is not None or candidate.get("period_source") == "fiscal_period"):
         try:
-            return True, int(candidate["value_year"])
+            return True, int(candidate.get("value_year"))
         except (TypeError, ValueError):
             return True, None
     has_period, value_year = annual_period_evidence(
@@ -507,6 +507,9 @@ def _period_scope_state(
     has_period, value_year = _candidate_value_period(candidate)
     if value_year is not None and expected_years:
         return "match" if value_year in expected_years else "conflict"
+    if has_period and value_year is None and candidate.get("period_source") == "fiscal_period":
+        # Retained row-relative text cannot re-resolve an ambiguous fiscal column.
+        return "unknown"
     if not expected_years:
         wanted_offsets = relative_period_offsets(wanted)
         observed_surfaces = (
