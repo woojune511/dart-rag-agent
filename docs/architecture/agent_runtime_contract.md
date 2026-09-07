@@ -144,10 +144,10 @@ expression source, or source display, `source_assertions` must identify the
 bundle and selected candidate IDs and copy an exact contiguous source substring
 covering every referenced value span. Code verifies bundle membership, owner
 visibility, exact bytes, and span coverage before execution and fingerprints the
-validated assertion; coverage follows declared obligation order. Table cells use row/cell provenance;
-narrative obligations keep their existing multi-evidence bindings. Meaning such
-as total, component, rate, or derived display is represented by obligation
-bindings and formula AST, not a candidate role enum or a separate reranker.
+validated assertion; coverage follows declared obligation order. Table cells use row/cell provenance; narratives keep multi-evidence bindings.
+Narrative bodies exclude recognized parser metadata prefixes and use exact consecutive windows of at most 1200 characters, 4800 body characters per source. Later windows are `source_continuation` context links on the same candidate, serialized once; source-candidate offsets are not XML offsets. `source_body_coverage` exposes omitted tails. No extra selectable IDs; numeric/table projection and ID/catalog hashing stay intact.
+The retained body grounds narrative matching/number validation; window/context content is bound by V2 execution authority. Meaning such as total, component, rate, or derived display is represented by obligation
+bindings and formula AST, not a candidate role enum or a separate reranker. No extra model call or keyword selection chooses the body windows.
 
 Every expression supplies nullable `source_display_candidate_id` and a nonblank `source_display_reason`; omission is a compiler format error. A selected source display passes the same authority,
 scope, dimension, and exact-assertion checks as other sources. Its value and

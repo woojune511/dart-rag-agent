@@ -22,6 +22,7 @@ from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
+    INDEX_PREFIX_METADATA_POLICY,
     SEMANTIC_CANDIDATE_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
 )
@@ -1048,7 +1049,9 @@ def _table_context_text(
     return _normalise_spaces(" ".join(parts))
 
 
-def _source_body_lines(text: str) -> List[tuple[int, int, List[str]]]:
+def _source_body_lines(
+    text: str, *, prefix_labels: Optional[set[str]] = None,
+) -> List[tuple[int, int, List[str]]]:
     """Retain exact offsets, excluding parser/context metadata prefix lines."""
 
     lines: List[tuple[int, int, List[str]]] = []
@@ -1057,12 +1060,75 @@ def _source_body_lines(text: str) -> List[tuple[int, int, List[str]]]:
         if not match.group().strip():
             continue
         if in_prefix and re.fullmatch(r"\s*(?:\[[^\]\n]+:[^\]\n]*\]\s*)+", match.group()):
-            continue
+            labels = {label.strip().casefold() for label in re.findall(r"\[([^:\]\n]+):", match.group())}
+            if prefix_labels is None or labels <= prefix_labels:
+                continue
         in_prefix = False
         lines.append((match.start(), match.end(), [
             _normalise_spaces(part) for part in match.group().split("|")
         ]))
     return lines
+
+
+def _narrative_source_projection(text: str, base_record: Mapping[str, Any]) -> Dict[str, Any]:
+    """Expose exact body windows, without charging metadata prefixes to the body.
+
+    Continuations belong to the same existing candidate, not additional selectable
+    evidence. Their offsets refer to source-candidate text, never XML/file bytes.
+    """
+
+    limits = CALCULATION_PROMPT_POLICY["semantic_program_prompt_limits"]
+    window_limit = int(limits["narrative_source_window_chars"])
+    total_limit = int(limits["narrative_source_total_chars"])
+    prefix_labels = {
+        str(label).casefold() for field in ("line_labels", "structural_line_labels")
+        for label in INDEX_PREFIX_METADATA_POLICY.get(field, ())
+    }
+    lines = _source_body_lines(text, prefix_labels=prefix_labels)
+    # Already located paragraph slices contain only original body, even when
+    # the original starts with a bracketed note or a metadata-looking label.
+    located_paragraph = (base_record.get("source_context_provenance") or {}).get("relation") == "source_paragraph"
+    body_start = 0 if located_paragraph else lines[0][0] if lines else len(text)
+    body_end = len(text)
+    visible_end = min(body_end, body_start + total_limit)
+    windows: List[tuple[int, int]] = []
+    start = body_start
+    while start < visible_end:
+        end = min(start + window_limit, visible_end)
+        if end < body_end:
+            boundaries = [start + match.end() for match in re.finditer(
+                r"(?:[.!?。](?=\s)|\r?\n)", text[start:end],
+            )]
+            if boundaries and boundaries[-1] >= start + window_limit // 2:
+                end = boundaries[-1]
+        windows.append((start, end))
+        start = end
+    first_start, first_end = windows[0] if windows else (body_start, body_start)
+    contexts = list(base_record.get("source_contexts") or [])
+    for start, end in windows[1:]:
+        material = {
+            "source_candidate_id": base_record["source_candidate_id"],
+            "source_anchor": base_record["source_anchor"],
+            "context_fingerprint": base_record["context_fingerprint"],
+            "span_space": "source_candidate_text",
+            "source_span": [start, end], "source_text": text[start:end],
+        }
+        encoded = json.dumps(material, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        contexts.append({
+            **material, "context_id": "ctx_" + hashlib.sha256(encoded).hexdigest()[:24],
+            "relation": "source_continuation",
+        })
+    return {
+        "source_text": text[body_start:visible_end],
+        "source_bundle_text": text[first_start:first_end],
+        "source_bundle_context_span": [first_start, first_end],
+        "source_body_coverage": {
+            "source_span": [body_start, body_end],
+            "visible_span": [body_start, visible_end],
+            "truncated": visible_end < body_end,
+        },
+        **({"source_contexts": contexts} if contexts else {}),
+    }
 
 
 def _preserve_row_context(
@@ -2444,6 +2510,10 @@ def build_semantic_candidate_catalog(
             narrative_rows.append(
                 {
                     **base_record,
+                    **(_narrative_source_projection(
+                        str(current.get("source_text_exact") or current.get("text") or source_text),
+                        base_record,
+                    ) if candidate_kind in {"chunk", "evidence"} else {}),
                     "candidate_id": _semantic_candidate_id(narrative_payload),
                     "kind": "narrative",
                     "raw_value": "",

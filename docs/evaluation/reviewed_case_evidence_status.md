@@ -210,35 +210,30 @@ evaluator tolerances and original stores/results are unchanged.
 There is no need to repeat this KB compiler gate merely to close old-ID compatibility;
 any future provider run needs its own approved manifest and cost cap.
 
-### Eight new source-coverage questions: two visibility gaps found
+### Eight new source-coverage questions: local repairs verified
 
-The [local report](../../benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md)
-on `126b0d5f` covers two each of direct values, calculations, table context and narrative
-synthesis. These are newly authored questions with manually supplied requirements and
-source-picked windows, not an unbiased holdout or fresh retrieval/planner/model evaluation.
+The [repair report](../../benchmarks/results/new_question_source_repairs_2026-09-08/REPORT.md)
+reprojects the same eight authored questions, manual requirements and source-picked windows.
+This is not an unbiased holdout or retrieval/planner/compiler/answer-quality evaluation.
 
-- All **8 numeric target atoms** match original filing cells and current catalogs, but
-  only **6/8** reach their required owner. NAV prior revenue and Celltrion revenue are
-  present and compatible yet lose the two-bundle cutoff to other revenue-related rows.
-  Footnotes `(주35)` / `(주28,36,37)` prevent exact metric matching; broad ontology aliases
-  then create ties. Applying the existing annotation stripper only to a diagnostic fact
-  copy changes the metric tier from 600 to 1000; runtime/IDs/cohorts remain unchanged.
-- All six inspected narrative quotes exist in the original filing and stored body,
-  but only **4/6** survive the 1,200-character prefix. Candidate ID visibility alone
-  misses this loss. Core alternative NAV evidence and initial Celltrion risk explanations
-  survive; neither question is declared a model failure without a model run.
-- The inspected Ultium current table has a group amount and a blank standalone cell;
-  prior standalone data must not substitute for it. Group headers, period/context and
-  included-company note survive. No claim of absence throughout the whole filing.
-- Reversed catalog/bundle/prompt/owner projections match **8/8**. Original XML context
-  location/span checks: **58**; matching/bundle/cohort tests **30/30**. Exact source IDs
-  and physical cells anchor inspection; legacy KB XML locations use unique exact
-  row/value matches within the identified filing. Originals/four stores unchanged,
-  provider calls/store writes **0**. No compiler, execution, readiness or answer-quality pass.
+- Numeric owner visibility improves **6/8 → 8/8**: comparison-only parser-footnote
+  normalization restores NAV prior revenue and Celltrion revenue to the exact metric tier.
+  Source qualifiers, IDs and numeric records remain untouched; no keyword bonus or quota increase.
+- Checked body quotes improve **4/6 → 6/6**. Recognized metadata prefixes do not consume
+  the body budget. Exact windows are at most 1,200 characters, at most 4,800 body characters
+  per source; continuations share the existing candidate/context dictionary, and omitted tails
+  are explicit. Bracketed original notes survive; V2 detects window/context drift before execution.
+- All eight cases retain IDs/catalog fingerprints and byte-identical numeric records.
+  Reversed catalog/bundle/payload/owner projections agree **8/8**; new exact body-span checks **13**.
+  Original filings/four stores and the predecessor audit stay hash-identical. Calls/writes **0**.
+- The inspected Ultium table still reports a current group amount with a blank standalone cell.
+  Group/period/note evidence stays visible, but no standalone amount or model decision is established.
+- Focused tests **107/107**, full unittest **1,128/1,128**, audit/import/topology/docs/pycompile/diff pass.
+  Final receipt SHA `ac3d4add408432f433e463bed587bac9fee7557ea0565e25991c60ca75da8d17`.
 
-Final source review SHA `e5d04ca0d1fb3e6aac24bb0c4e8c123f1c91ed2f9ba7911184bd7392786ec182`.
-**Next:** fix metric-comparison footnote normalization with a regression first, then
-preserve narrative source windows. No runtime fix or new paid admission was made here.
+The [predecessor source review](../../benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md)
+remains immutable (`e5d04ca0...c182`). Next is compiler semantic selection/synthesis on fixed
+evidence, under a separately approved manifest and cost cap; no paid admission was made here.
 
 ## Validation receipts
 

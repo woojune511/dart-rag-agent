@@ -8139,3 +8139,24 @@ References:
 - Report: `benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md`.
   Confirmed source review `e5d04ca0d1fb3e6aac24bb0c4e8c123f1c91ed2f9ba7911184bd7392786ec182`.
   Next: bounded metric annotation normalization, then narrative source-window preservation.
+
+## Source-Coverage Boundary Repairs (2026-09-08)
+
+- Metric fix `d59986ac` uses the existing parser-footnote helper on exact comparison
+  keys only; raw axes, semantic qualifiers and candidate identity remain unchanged.
+- Narrative projection separates known metadata prefixes from exact body windows
+  (1,200 characters/window, 4,800 body characters/source). Continuations reuse the
+  source-context dictionary and existing candidate; omitted tails are explicit.
+  Existing located bracketed notes are preserved. V2 binds continuation content/span.
+- Reprojecting the same eight source-picked inputs improves numeric owner visibility
+  6/8 → 8/8 and checked body quote visibility 4/6 → 6/6. All IDs/catalog fingerprints,
+  numeric record bytes and reverse-order invariants stay intact. Exact body-span checks: 13.
+  Total payload bytes: 144,996 → 141,529, not a token or billing measurement.
+- Focused tests 107/107; full unittest 1,128/1,128 (Python 3.13.13, 30.764s);
+  domain audit 84, import/topology/docs 24/24, pycompile and diff pass.
+- Original filings, four stores and predecessor audit remain hash-identical.
+  No provider/embedding/ingest/store writes, fresh retrieval/planner/compiler outputs,
+  or answer-quality/release claim. Ultium group/standalone ambiguity remains source-bound.
+- Local report: `benchmarks/results/new_question_source_repairs_2026-09-08/REPORT.md`.
+  Verified receipt SHA `ac3d4add408432f433e463bed587bac9fee7557ea0565e25991c60ca75da8d17`.
+  Outputs remain ignored; any model-backed selection/synthesis check needs new approval.

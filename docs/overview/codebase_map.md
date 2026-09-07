@@ -23,10 +23,10 @@
 | --- | --- |
 | `src/agent/financial_graph_planning.py` | routing/requirements and query-written bilingual subject spellings |
 | `src/agent/financial_retrieval_pipeline.py` | retrieval plan, searches, selection, trace |
-| `src/agent/financial_reconciliation_candidates.py` | filing-qualified physical identity, source/catalog construction; fiscal column periods precede row-derived relative labels without rewriting raw provenance |
+| `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; exact bounded narrative-body windows with linked continuations, preserving numeric records |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
-| `src/agent/financial_candidate_matching.py` | typed applicability; metric fragments are not inferred entities, exact axes precede containment; no filing-company relevance bonus |
+| `src/agent/financial_candidate_matching.py` | typed applicability; footnote-normalized exact metric keys precede containment; source qualifiers remain intact, no filing-company relevance bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, islands/targeted retry with read-only dependency inputs; terminal admission errors propagate |
 | `src/agent/financial_calculation_execution.py` | evidence/formula dimensions and scope checks, unresolved fiscal periods stay unknown; input provenance separate from display witnesses, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |

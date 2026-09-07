@@ -1496,6 +1496,8 @@ class FinancialAgentCalculationMixin:
                         [],
                     )
                 ),
+                **({"source_body_coverage": dict(item["source_body_coverage"])}
+                   if item.get("source_body_coverage") else {}),
                 "aggregation_stage": str(item.get("aggregation_stage") or ""),
                 "aggregate_label": str(item.get("aggregate_label") or ""),
                 "match_by_owner": {

@@ -564,6 +564,7 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "- 원문 값을 그대로 답하는 obligation은 direct_bindings에 둡니다.\n"
             "- 각 candidate는 source_bundle_id로 원문 묶음을 참조합니다. 같은 묶음의 값은 서로 경쟁하는 top-1 label이 아니라 함께 읽어야 하는 원문 사실들입니다. source_value_span과 source bundle의 당기·전기·부호·괄호 문맥을 함께 확인하세요.\n"
             "- 표의 context_ids는 source_contexts_by_id의 정확한 원문 블록을 가리킵니다. ancestor_heading/caption은 문서 구조이고 preceding_block/following_block은 인접 관계일 뿐 자동 적용 선언이 아닙니다. table_text_row는 같은 표의 설명입니다. 값의 의미를 판단할 때 이 문맥을 함께 읽되, 다른 표나 기간에 관한 설명을 적용하지 마세요.\n"
+            "- source_continuation은 같은 서술 후보 본문의 이어지는 정확한 구간입니다. source_span 순서로 함께 읽고 기존 candidate_id로 근거를 선택하세요. source_body_coverage.truncated가 true면 뒤 내용은 보이지 않으므로 전체 원문에 내용이 없다고 단정하지 마세요.\n"
             "- 숫자 candidate의 미확정 period/consolidation_scope/segment/basis를 문맥으로 해석했다면 direct/variable binding의 context_bindings에 context_id, 원문에서 그대로 복사한 evidence_text, field, 해석한 value를 반환하세요. source display에는 source_display_context_bindings를 사용합니다. 해당 candidate의 bundle에 연결된 context만 인용하고 명시적 셀 정보를 덮어쓰지 마세요. 당기/전기는 위치가 확인된 문구와 보고 기간을 함께 사용하며, 설명 속 법 시행일 등 다른 날짜를 값의 기간으로 읽지 마세요. 문맥만 추가로 읽고 scope 보완이 필요 없으면 비워 두세요.\n"
             "- candidate_kind가 sentence_value인 숫자를 direct binding, expression input, source display로 선택하면 source_assertions에 source_bundle_id, 함께 읽은 candidate_ids, byte-exact 연속 evidence_text를 반드시 반환하세요. evidence_text는 해당 bundle 원문에서 그대로 복사하고 참조한 모든 값 span을 포함해야 합니다. 표 셀과 narrative evidence에는 source assertion을 만들지 마세요.\n"
             "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"
@@ -619,6 +620,8 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "compatibility_narrative_candidates_per_numeric_obligation": 2,
             "numeric_source_chars": 420,
             "narrative_source_chars": 600,
+            "narrative_source_window_chars": 1200,
+            "narrative_source_total_chars": 4800,
         }
 ,
 }
@@ -654,6 +657,12 @@ SEMANTIC_CANDIDATE_POLICY: Dict[str, Any] = {
 
 
 INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
+    # Additional labels emitted by structural source prefixes. Narrative body
+    # projection recognizes these without stripping arbitrary bracketed notes.
+    "structural_line_labels": (
+        "local_heading", "table_context", "table_row_labels", "table_value_labels",
+        "parent_section", "parent_local_heading", "parent_preview",
+    ),
     "line_labels": (
         "회사",
         "연도",
