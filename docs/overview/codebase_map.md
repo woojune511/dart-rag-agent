@@ -40,6 +40,7 @@
 | `src/ingestion/dart_fetcher.py` | DART report fetch |
 | `src/processing/financial_parser.py` | document structure recovery and chunks |
 | `src/processing/source_context.py` | bounded exact XML context fragments, hierarchy/adjacency links and source-file identity; no scope inference |
+| `src/processing/table_structure.py`, `table_records.py` | explicit THEAD/TH header scope before grid inference; v2 parser row/cell projection |
 | `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
 | `src/ingestion/ingest_service.py` | end-to-end ingest ownership |
 | `src/storage/vector_store.py` | dense/BM25 store, source coverage and no-embedding sidecar repair |

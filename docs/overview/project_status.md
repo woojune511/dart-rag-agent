@@ -7,8 +7,8 @@ Last updated: 2026-09-07
 The product is the single-agent `FinancialAgent`. The current working branch is
 `codex/reviewed-compiler-selection-gate`, with compiler-gate baseline `e9a5be0`.
 Contract repairs start from `5e13bc6`; the dependency-boundary fix is `af9a07e`.
-Public HTTP fields, `FinancialRunResultV1`, parser/store formats and ID/fingerprint hashing stay intact.
-New table candidate IDs are filing-qualified; old catalogs/programs remain immutable predecessor artifacts.
+Public HTTP fields, `FinancialRunResultV1`, store manifest shape and ID/fingerprint hashing stay intact.
+Parser `financial_parser_v2_source_context` honors THEAD/TH; new row/cell candidate IDs may change. Old catalogs/programs remain immutable.
 
 The implemented boundaries are:
 
@@ -57,7 +57,7 @@ mutation, evaluator relaxation, or dataset correction. MAS/Streamlit remain expe
 
 ## Local acceptance
 
-Python 3.13.13: document-context integration full suite `1029 / 1029` (35.124s); focused parser/compiler/source/period `62 / 62`, context tests `11 / 11`, import/topology/runtime-contract `28 / 28`, docs `2 / 2`.
+Python 3.13.13: final full suite `1035 / 1035` (26.893s); new context/header regressions `17 / 17`, focused context/header/store `21 / 21`, import/topology `22 / 22`, docs `2 / 2`.
 Runtime domain audit passes (`84` reviewed literals); pycompile and `git diff --check` pass.
 
 - Tests inject failures into actual lower file writes, check same-process and
@@ -143,7 +143,7 @@ Successor `03f03d99...237e` ran once on clean `5fe3a5f`: required-output complet
 LG completes 3/3 outputs, preserving original bindings/assertion: precise profit minus approximate 6,769억원 = 1,486,334,000,000원. Numeric FAIL remains: no atomic accepted source/scope/precision variant; do not treat it as a transport or arithmetic failure.
 NAV completes 2/2 outputs without retry: same-row 당기/전기 resolve to 2023/2022, calculation 41.39574110852439%, source display 41.4%. Its new narrative only describes Poshmark service positioning, not acquisition performance; heuristic completeness 0.625, judges unmeasured. An out-of-island missing-ID diagnostic remains in attempt history, not final validation.
 Socket-blocked exact replay 2/2; runtime/input/store hashes unchanged. Review SHA `66d5b927...a051`. Approval exhausted; no runtime/evaluator/dataset edit or paid rerun. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
-Document-context overlay replay preserves all 567/462 LG/NAV candidate IDs, catalog fingerprints, raw values, periods, text and physical cells. Exact table ID plus full row/value-record equality permits 28 LG and 14 NAV tables; 7 unmatched NAV tables remain untouched. Both precise LG note candidates execute with an explicitly selected, exact-source `당기` context binding. Reverse projections agree; v6 prompts contain 22/10 unique contexts (44,622/81,611 compact JSON bytes). Two socket-blocked receipts match at `c81a1dd6...c144`; input hashes unchanged, provider/store writes 0. This is a counterfactual binding contract test, not fresh model choices or evaluator acceptance. `benchmarks/results/document_context_projection_2026-09-07/README.md`. Next: structural header correction and a separately approved source/store successor; remote references and evaluator period/label/source governance stay separate. Original stores still lack these context overlays.
+Context-only `4705e8c` replay preserves 567/462 LG/NAV IDs and raw material. Exact table ID/full row-record matches permit 28 LG and 14 NAV tables; 7 NAV tables stay untouched. Both precise LG candidates execute with exact `당기` context bindings. Reverse projections agree; v6 prompts have 22/10 unique contexts (44,622/81,611 compact bytes). Two socket-blocked receipts match at `c81a1dd6...c144`. The separate v2 header replay passes both original LG note tables with actual one-row THEADs: table 249's new candidate is `cand_7451947b76e5e54e91d5`, table 200 keeps its ID; located context IDs and amounts stay unchanged (`3a59019d...eee1`). All original inputs/stores remain unchanged. These are counterfactual binding/parse tests, not model/evaluator quality evidence. Next: separately approved source/store successor and unmatched-provenance review; canonical v2 readiness rejects v1 manifests, never auto-adopts them. Remote references and evaluator governance stay separate. `benchmarks/results/document_context_projection_2026-09-07/README.md`.
 
 Celltrion has no store; default KB 2022 stays outside scope. Formula-wide rounding propagation is deferred. T3 governance is complete; dataset/tolerance/faithfulness boundaries remain unchanged.
 

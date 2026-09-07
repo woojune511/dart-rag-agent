@@ -122,7 +122,7 @@ are excluded. Equal factor tiers are deterministic and source-diverse.
 exact contiguous text, member IDs and local value spans. Same-source sentence values share a bundle.
 Long sentences split into maximal consecutive value-span groups within 420 characters; each window
 covers every member without cutting adjacent numeric spans or normalizing bytes. Each value has one window.
-Table bundles share a physical table/row and retain row headers/cell provenance. Table-attached paragraphs
+Table bundles share a physical table/row and retain row headers/cell provenance. Parser v2 uses leading THEAD/all-TH structure before row-text inference; text body rows are not promoted to headers. Table-attached paragraphs
 also retain separate prose slices; table cells and metadata prefixes are not re-extracted as prose values.
 Uniquely located numeric rows may carry adjacent textual rows within 420 characters, with exact source ID/span
 in `source_context_provenance`. Context is not a new cell/role; it may supply existing text-match factors.
@@ -281,7 +281,7 @@ their reason is recorded in routing trace.
 `schema_version`, `collection_name`,
 `embedding {provider, model_name, dimension}`, and
 `ingest {profile_id, parser_schema_version, chunk_size, chunk_overlap}`.
-Unknown/missing fields or non-exact identity make readiness false and query 503.
+Unknown/missing fields or non-exact identity make readiness false and query 503. Canonical parser identity is `financial_parser_v2_source_context`; v1 stores are not automatically adopted or relabelled. New header-derived IDs never replace historical artifacts.
 Startup only reads identity; adopting a non-empty legacy store requires the
 separate CLI's validated dry-run followed by an explicitly approved write.
 Configured BM25-only mode is the sole identity exception and is exposed in

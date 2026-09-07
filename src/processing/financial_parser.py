@@ -739,6 +739,9 @@ class FinancialParser:
         context_prefix: Optional[str] = None,
     ) -> Dict[str, Any]:
         header_context = self._extract_table_header_context(table_text)
+        if table_object is not None and "header_row_count" in table_object:
+            header_context = _normalize(format_table_grid(
+                table_object["grid"][:table_object["header_row_count"]]))
         row_labels_text = ""
         summary_text = header_context or table_text[:400]
         table_row_count = 0
@@ -806,7 +809,9 @@ class FinancialParser:
                     seen_value_labels.add(line)
                     value_label_lines.append(line)
                 table_value_labels_text = "\n".join(value_label_lines)
-            header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
+            header_row_count = table_object.get("header_row_count")
+            if header_row_count is None:
+                header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
             RowRecord = _row_record_model()
             TableObject = _table_object_model()
             ValueRecord = _value_record_model()
@@ -830,6 +835,7 @@ class FinancialParser:
                 table_summary_text=summary_text,
                 source_table_locator=table_object.get("source_table_locator", ""),
                 source_contexts=table_object.get("source_contexts", []),
+                header_scope_source=table_object.get("header_scope_source", "inferred"),
             )
             table_object_json = table_model.model_dump_json()
         return {

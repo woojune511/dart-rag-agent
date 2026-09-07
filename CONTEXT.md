@@ -9,8 +9,8 @@ Last updated: 2026-09-07
   baseline `e9a5be0`. Repair baseline: `5e13bc6`; dependency fix: `af9a07e`.
 - Unit/retry, compiler, persistence/API, final-state, relative periods, source-context,
   query spellings and filing-qualified table identity are implemented. Git is the chronology.
-- HTTP shape, `FinancialRunResultV1`, parser/store formats and ID/fingerprint hashing stay intact;
-  new table candidate IDs use filing-qualified physical identity. Historical IDs are not rewritten.
+- HTTP shape, `FinancialRunResultV1`, store manifest shape and ID/fingerprint hashing stay intact;
+  parser `financial_parser_v2_source_context` honors explicit headers; new row/cell IDs may differ. Historical IDs are not rewritten.
 - Historical results, datasets, stores, caches, and review packets are immutable.
   New local replay/gate outputs remain ignored and uncommitted.
 
@@ -128,7 +128,7 @@ KB's two-case integration ran once; the five-case gate still needs work:
 
 Latest LG/NAV paid admission `03f03d99...237e` is exhausted: completion 2/2, errors 0, ledgers ok, but LG numeric-variant FAIL and NAV impact-quality gaps remain historical.
 Current period-evidence repair preserves 567/462 candidates, IDs, fingerprints, raw values and qualified provenance. Socket-blocked replay corrects two NAV column years and retains 50 relative-period values. Numeric/narrative visibility is 4/3 and 11/6; reverse/swap projections agree.
-Located table context travels from parser payload to v6 compiler prompt and binding-local validated scope. Exact-source overlay replay matches 28 LG/14 NAV tables, leaves 7 NAV tables untouched, preserves all 567/462 candidate identities and executes both precise LG note selections with original `당기` evidence. Two receipts match at `c81a1dd6...c144`; no providers/store writes. Original stores still lack these overlays. Next: structural header correction and a separately approved source/store successor; remote references and evaluator governance stay separate. No fresh model/quality-pass claim. `benchmarks/results/document_context_projection_2026-09-07/README.md`.
+Located contexts reach v6 compiler prompts and binding-local validated scope. On context-only `4705e8c`, exact overlays matched 28 LG/14 NAV tables, left 7 NAV tables untouched and preserved 567/462 IDs; both precise LG selections executed using original `당기` evidence. Two receipts match at `c81a1dd6...c144`. The separate v2 parser-header replay also passes both LG note selections, with one new candidate ID and unchanged located context (`3a59019d...eee1`). Original stores/IDs are untouched. Next: prepare a separately approved source/store successor and resolve unmatched provenance; remote references and evaluator governance stay separate. Canonical v2 readiness rejects v1 manifests; never relabel one to adopt it. No provider/model-quality claim. `benchmarks/results/document_context_projection_2026-09-07/README.md`.
 Default `data/chroma_dart` is out-of-scope KB 2022 with 52 missing payloads; its manifest alone does not establish readiness. Do not repair it here.
 Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
 Manifest SHA `58251b09...9239`; preserve its benchmark collection name, not the API default.

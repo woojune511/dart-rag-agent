@@ -67,6 +67,7 @@ class TableObject(_DeferredBaseModel):
     column_count: int = 0
     has_spans: bool = False
     header_rows: List[List[str]] = Field(default_factory=list)
+    header_scope_source: str = "inferred"
     row_labels: List[str] = Field(default_factory=list)
     rows: List[RowRecord] = Field(default_factory=list)
     values: List[ValueRecord] = Field(default_factory=list)
