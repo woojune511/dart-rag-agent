@@ -8118,3 +8118,24 @@ References:
   planning, evaluator, embedding, ingest, ledger assembly or store mutation ran. This is
   fresh selection on frozen current catalogs, not synchronized full-agent/release evidence.
   Old KB catalog replay still rejects its fingerprints; historical exact replay remains 3/5.
+
+## Eight New Source-Coverage Questions (2026-09-08)
+
+- On `126b0d5f`, authored eight questions over four immutable source stores: two each
+  direct values, calculations, table context and narrative synthesis. Supplied semantic
+  requirements and source-picked windows make this a favorable-condition preservation
+  audit, not unseen-model accuracy, retrieval, planner, execution or release evidence.
+- All 8 declared numeric target atoms survive original source/catalog projection;
+  only 6 are owner-visible. Footnoted NAV prior revenue and Celltrion revenue lose
+  exact metric priority, tie with broad alias matches, and miss the two-bundle cutoff.
+  Annotation-stripped metric-only copies improve tier 600 to 1000; no runtime fix applied.
+- Narrative bodies retain 4/6 inspected quotes; fixed 1,200-character prefix truncation
+  loses NAV's B2B paragraph and Celltrion's final funding-risk response. Other core
+  evidence survives. Ultium current group/blank standalone cells are a separate source
+  interpretation limit; period, group headers and note remain visible.
+- Reverse-order projections 8/8; exact original XML context/span checks 58; focused
+  matching/source-bundle/cohort tests 30/30. All original inputs and four stores unchanged;
+  provider/embedding/ingest/store-write calls 0. Experimental outputs remain ignored.
+- Report: `benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md`.
+  Confirmed source review `e5d04ca0d1fb3e6aac24bb0c4e8c123f1c91ed2f9ba7911184bd7392786ec182`.
+  Next: bounded metric annotation normalization, then narrative source-window preservation.

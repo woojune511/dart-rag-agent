@@ -207,9 +207,38 @@ This closes current KB compiler selection, not fresh full-agent or narrative-qua
 acceptance; the old exact replay stays 3/5. Runtime math, benchmark answer keys,
 evaluator tolerances and original stores/results are unchanged.
 
-**Next:** provider-free coverage on unseen question samples before choosing another
-paid boundary. There is no need to repeat this KB compiler gate merely to close old-ID
-compatibility; any future provider run needs its own approved manifest and cost cap.
+There is no need to repeat this KB compiler gate merely to close old-ID compatibility;
+any future provider run needs its own approved manifest and cost cap.
+
+### Eight new source-coverage questions: two visibility gaps found
+
+The [local report](../../benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md)
+on `126b0d5f` covers two each of direct values, calculations, table context and narrative
+synthesis. These are newly authored questions with manually supplied requirements and
+source-picked windows, not an unbiased holdout or fresh retrieval/planner/model evaluation.
+
+- All **8 numeric target atoms** match original filing cells and current catalogs, but
+  only **6/8** reach their required owner. NAV prior revenue and Celltrion revenue are
+  present and compatible yet lose the two-bundle cutoff to other revenue-related rows.
+  Footnotes `(주35)` / `(주28,36,37)` prevent exact metric matching; broad ontology aliases
+  then create ties. Applying the existing annotation stripper only to a diagnostic fact
+  copy changes the metric tier from 600 to 1000; runtime/IDs/cohorts remain unchanged.
+- All six inspected narrative quotes exist in the original filing and stored body,
+  but only **4/6** survive the 1,200-character prefix. Candidate ID visibility alone
+  misses this loss. Core alternative NAV evidence and initial Celltrion risk explanations
+  survive; neither question is declared a model failure without a model run.
+- The inspected Ultium current table has a group amount and a blank standalone cell;
+  prior standalone data must not substitute for it. Group headers, period/context and
+  included-company note survive. No claim of absence throughout the whole filing.
+- Reversed catalog/bundle/prompt/owner projections match **8/8**. Original XML context
+  location/span checks: **58**; matching/bundle/cohort tests **30/30**. Exact source IDs
+  and physical cells anchor inspection; legacy KB XML locations use unique exact
+  row/value matches within the identified filing. Originals/four stores unchanged,
+  provider calls/store writes **0**. No compiler, execution, readiness or answer-quality pass.
+
+Final source review SHA `e5d04ca0d1fb3e6aac24bb0c4e8c123f1c91ed2f9ba7911184bd7392786ec182`.
+**Next:** fix metric-comparison footnote normalization with a regression first, then
+preserve narrative source windows. No runtime fix or new paid admission was made here.
 
 ## Validation receipts
 
