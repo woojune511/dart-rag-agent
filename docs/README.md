@@ -57,6 +57,7 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | [evaluation/evaluation_metrics_v1.md](evaluation/evaluation_metrics_v1.md) | evaluator metric 정의 |
 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | curated dataset 설계 원칙 |
 | [evaluation/numeric_regression_methodology.md](evaluation/numeric_regression_methodology.md) | numeric regression 분류 방법 |
+| [evaluation/lge_t1_051_calculation_source_review_v2.md](evaluation/lge_t1_051_calculation_source_review_v2.md) | LG 원문 기간·행·출처 검토와 명시적 평가 successor |
 | [evaluation/retrieval_trace_debugging.md](evaluation/retrieval_trace_debugging.md) | retrieval trace 진단 절차 |
 | [operations/parser_store_successor.md](operations/parser_store_successor.md) | 원본 보존·동일 입력 벡터 재사용·새 parser 저장소 생성 절차 |
 

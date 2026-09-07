@@ -100,6 +100,31 @@ PASS를 만들지 않는다. evaluator는 같은 variant ID 아래에서 다음�
 result를 교차 조합할 수는 없다. 이 계약이 없는 기존 문항은 종전 단일
 `answer_key` 동치 경로를 그대로 사용한다.
 
+#### Explicit source fields: opt-in calculation contract
+
+계산 variant의 `label`은 답변 설명이고 `row_label`은 원문 행 이름이다.
+`strict_label`은 종전대로 답변의 label/subject에만 적용한다. 다음 필드를
+명시한 계약만 별도의 canonical trace 필드를 검사하며, 답변 문구나
+`answer_slot`으로 누락된 원문 identity를 보충하지 않는다.
+
+| 선언 | 검사 대상 |
+| --- | --- |
+| `row_label` | 원문 행 이름; 문자열 또는 명시한 대안들의 exact match |
+| `source_period_surface` | 원문 머리글; 논리적 기간을 대신하지 않음 |
+| `source_document_id` | 공시 문서 identity |
+| `strict_period: true` + `period` | 해석 완료된 기간; 누락/당기 alias/다른 연도 거절. `2023년` 표기와 공백만 정리하며 분기·기간 범위를 연도로 축약하지 않음 |
+| `kind` | 출력 종류; 계산 결과는 `derived_value`를 명시할 수 있음 |
+
+빈 값·잘못된 형식의 새 제약은 loader와 matcher에서 거절한다. 제약을
+선언하지 않은 기존 계약의 동작은 유지한다. 계산 결과의 문구를 원문 행처럼
+강제하지 않을 경우에도 값·operation·모든 operand ID 연결 검사는 유지한다.
+허용할 출처 조합은 각 variant의 operand에 분리해서 선언한다. 이는 허용 오차,
+faithfulness 또는 runtime validator 변경이 아니다.
+
+실제 적용은 [LG 원문 검토 및 v2 계약](../evaluation/lge_t1_051_calculation_source_review_v2.md)을
+따른다. 기존 curated dataset과 default profile은 그대로이며, 명시적으로 선택한
+한 문항 successor만 새 계약을 사용한다.
+
 #### Multi-output direct answers: active evaluator-only path
 
 `accepted_calculation_variants`를 여러 독립 direct output에 재사용하면 안 된다.

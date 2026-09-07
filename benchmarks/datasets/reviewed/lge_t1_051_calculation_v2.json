@@ -1,0 +1,308 @@
+[
+  {
+    "id": "LGE_T1_051",
+    "company": "LG에너지솔루션",
+    "year": 2023,
+    "theme": "1. 수익성",
+    "difficulty": "L3",
+    "query": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+    "expected_agents": [
+      "Analyst",
+      "Researcher"
+    ],
+    "eval_checkpoints": {
+      "required_operands": [
+        "영업이익",
+        "AMPC",
+        "세액공제"
+      ],
+      "reject_expected": false
+    },
+    "question": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+    "category": "numeric_fact",
+    "answer_key": "2023년 LG에너지솔루션의 연결기준 영업이익은 2조 1,632억원이며, IRA에 따른 AMPC 6,769억원을 제외한 실질 영업이익은 1조 4,863억원입니다.",
+    "ground_truth": "2023년 LG에너지솔루션의 연결기준 영업이익은 2조 1,632억원이며, IRA에 따른 AMPC 6,769억원을 제외한 실질 영업이익은 1조 4,863억원입니다.",
+    "expected_sections": [
+      "III. 재무에 관한 사항 > 1. 요약재무정보 > 1) 요약 연결재무정보",
+      "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 21. 영업이익 (연결)",
+      "IV. 이사의 경영진단 및 분석의견 > 2. 개요"
+    ],
+    "evidence": [
+      {
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보 > 1) 요약 연결재무정보",
+        "quote": "영업이익 2,163,234",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "2023년 연결기준 영업이익 수치를 재무 요약표에서 직접 확인할 수 있습니다."
+      },
+      {
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 21. 영업이익 (연결)",
+        "quote": "2023년 1월 1일부터 시행되는 미국 인플레이션감축법(Inflation Reduction Act) 첨단제조 생산세액공제 제도에 따라 미국 내에서 생산하고 판매한 배터리 셀/모듈에 대하여 일정규모의 세액공제 금액을 수취할 수 있으며, 해당 금액은 연결회사가 당기말 현재 수취할 것으로 예상되는 수익금액입니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "AMPC가 영업이익에 반영되는 세액공제성 수익이라는 회계적 성격을 주석 21에서 직접 설명합니다."
+      },
+      {
+        "section_path": "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 21. 영업이익 (연결)",
+        "quote": "기타영업손익 676,874",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "같은 연결 주석 표에서 IRA 첨단제조 생산세액공제 설명에 연결된 기타영업손익의 정밀 공시값 676,874백만원을 확인할 수 있습니다."
+      },
+      {
+        "section_path": "IV. 이사의 경영진단 및 분석의견 > 2. 개요",
+        "quote": "영업이익은 지속적인 메탈 가격 하락으로 배터리 판매가격 대비 투입 원재료비가 높아서 발생하는 Lagging 영향이 있었으나, 물류비 절감, 수율 및 생산성 향상 등 원가개선 노력과 약 6,769억원의 IRA Tax Credit의 수익 인식으로 전년 대비 +78% 개선된 약 2조 1,632억원을 기록했습니다.",
+        "quote_type": "verbatim",
+        "why_it_supports_answer": "실제 계산에 필요한 AMPC 금액 6,769억원과 영업이익 2조 1,632억원을 동시에 제시합니다."
+      }
+    ],
+    "required_entities": [
+      "LG에너지솔루션",
+      "2023년",
+      "영업이익",
+      "IRA",
+      "세액공제",
+      "AMPC"
+    ],
+    "answer_type": "numeric",
+    "expected_refusal": false,
+    "reasoning_steps": [
+      "2023년 LG에너지솔루션의 연결기준 영업이익을 문서에서 확인합니다.",
+      "2023년 영업이익에 포함된 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 문서에서 확인합니다.",
+      "확인된 연결기준 영업이익에서 IRA 세액공제 금액을 제외하여 '실질 영업이익'을 계산합니다."
+    ],
+    "expected_operands": [
+      {
+        "label": "2023년 연결기준 영업이익",
+        "period": "2023",
+        "raw_value": "21632",
+        "raw_unit": "억원"
+      },
+      {
+        "label": "IRA Tax Credit (AMPC)",
+        "period": "2023",
+        "raw_value": "6769",
+        "raw_unit": "억원"
+      }
+    ],
+    "expected_operation": "subtract",
+    "accepted_calculation_variants": [
+      {
+        "id": "connected_note_precise_v2",
+        "answer_key": "2023년 연결기준 영업이익은 2,163,234백만원이고, IRA AMPC로 인식된 기타영업손익은 676,874백만원이므로, 이를 제외한 실질 영업이익은 1,486,360백만원입니다.",
+        "expected_operands": [
+          {
+            "label": "영업이익(손실)",
+            "period": "2023",
+            "raw_value": "2,163,234",
+            "raw_unit": "백만원",
+            "source_anchor_contains": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "row_label": "영업이익(손실)",
+            "strict_period": true,
+            "source_period_surface": "공시금액",
+            "source_document_id": "rcept_no:20240314001110"
+          },
+          {
+            "label": "기타영업손익",
+            "period": "2023",
+            "raw_value": "676,874",
+            "raw_unit": "백만원",
+            "source_anchor_contains": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "row_label": "기타영업손익",
+            "strict_period": true,
+            "source_period_surface": "공시금액",
+            "source_document_id": "rcept_no:20240314001110"
+          }
+        ],
+        "expected_operation": "difference",
+        "expected_calculation_result": {
+          "label": "실질 영업이익 (AMPC 제외)",
+          "raw_value": "1,486,360",
+          "raw_unit": "백만원",
+          "operation_family": "difference",
+          "source_anchor_contains": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+          "kind": "derived_value"
+        }
+      },
+      {
+        "id": "summary_note_precise_v2",
+        "answer_key": "2023년 연결기준 영업이익은 2,163,234백만원이고, IRA AMPC로 인식된 기타영업손익은 676,874백만원이므로, 이를 제외한 실질 영업이익은 1,486,360백만원입니다.",
+        "expected_operands": [
+          {
+            "label": "2023년 연결기준 영업이익",
+            "period": "2023",
+            "raw_value": "2,163,234",
+            "raw_unit": "백만원",
+            "source_anchor_contains": "III. 재무에 관한 사항 > 1. 요약재무정보",
+            "statement_type": "summary_financials",
+            "consolidation_scope": "consolidated",
+            "row_label": "영업이익",
+            "strict_period": true,
+            "source_period_surface": "2023",
+            "source_document_id": "rcept_no:20240314001110"
+          },
+          {
+            "label": "기타영업손익",
+            "period": "2023",
+            "raw_value": "676,874",
+            "raw_unit": "백만원",
+            "source_anchor_contains": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+            "statement_type": "notes",
+            "consolidation_scope": "consolidated",
+            "row_label": "기타영업손익",
+            "strict_period": true,
+            "source_period_surface": "공시금액",
+            "source_document_id": "rcept_no:20240314001110"
+          }
+        ],
+        "expected_operation": "difference",
+        "expected_calculation_result": {
+          "label": "실질 영업이익 (AMPC 제외)",
+          "raw_value": "1,486,360",
+          "raw_unit": "백만원",
+          "operation_family": "difference",
+          "source_anchor_contains": "III. 재무에 관한 사항 > 3. 연결재무제표 주석",
+          "kind": "derived_value"
+        }
+      },
+      {
+        "id": "management_discussion_rounded",
+        "answer_key": "2023년 LG에너지솔루션의 연결기준 영업이익은 2조 1,632억원이며, IRA에 따른 AMPC 6,769억원을 제외한 실질 영업이익은 1조 4,863억원입니다.",
+        "expected_operands": [
+          {
+            "label": "2023년 연결기준 영업이익",
+            "period": "2023",
+            "raw_value": "21632",
+            "raw_unit": "억원",
+            "source_anchor_contains": [
+              "II. 사업의 내용 > 1. 사업의 개요",
+              "IV. 이사의 경영진단 및 분석의견 > 2. 개요"
+            ],
+            "consolidation_scope": "consolidated"
+          },
+          {
+            "label": "IRA Tax Credit (AMPC)",
+            "period": "2023",
+            "raw_value": "6769",
+            "raw_unit": "억원",
+            "source_anchor_contains": [
+              "II. 사업의 내용 > 1. 사업의 개요",
+              "IV. 이사의 경영진단 및 분석의견 > 2. 개요"
+            ],
+            "consolidation_scope": "consolidated"
+          }
+        ],
+        "expected_operation": "difference",
+        "expected_calculation_result": {
+          "label": "실질 영업이익",
+          "raw_value": "14863",
+          "raw_unit": "억원",
+          "operation_family": "difference",
+          "source_anchor_contains": [
+            "II. 사업의 내용 > 1. 사업의 개요",
+            "IV. 이사의 경영진단 및 분석의견 > 2. 개요"
+          ]
+        }
+      }
+    ],
+    "verification_status": "verified",
+    "notes": "영업이익 2,163,234백만원은 II. 사업의 내용 > 1. 사업의 개요, II. 사업의 내용 > 7. 기타 참고사항 > 4) 사업부문 재무정보, III. 재무에 관한 사항 > 1. 요약 연결재무정보, III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서, III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 21. 영업이익 (연결), IV. 이사의 경영진단 및 분석의견 > 2. 개요 등 여러 곳에 반복 공시됩니다. 다만 dataset의 primary evidence는 숫자 확인용으로 III. 요약 연결재무정보, AMPC 회계 처리 설명용으로 III. 주석 21, 금액과 계산용으로 IV. 개요를 채택했습니다.",
+    "source_report": {
+      "corp_name": "LG에너지솔루션",
+      "year": 2023,
+      "report_type": "사업보고서",
+      "rcept_no": "20240314001110",
+      "file_path": "C:\\Users\\geonj\\Desktop\\research agent\\data\\reports\\LG에너지솔루션\\2023_사업보고서_20240314001110.html"
+    },
+    "source_reports": [
+      {
+        "corp_name": "LG에너지솔루션",
+        "year": 2023,
+        "report_type": "사업보고서",
+        "rcept_no": "20240314001110",
+        "file_path": "C:\\Users\\geonj\\Desktop\\research agent\\data\\reports\\LG에너지솔루션\\2023_사업보고서_20240314001110.html"
+      }
+    ],
+    "ground_truth_context_ids": [
+      "III. 재무에 관한 사항 > 1. 요약재무정보 > 1) 요약 연결재무정보",
+      "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 21. 영업이익 (연결)",
+      "IV. 이사의 경영진단 및 분석의견 > 2. 개요"
+    ],
+    "ground_truth_evidence_quotes": [
+      "영업이익 2,163,234",
+      "2023년 1월 1일부터 시행되는 미국 인플레이션감축법(Inflation Reduction Act) 첨단제조 생산세액공제 제도에 따라 미국 내에서 생산하고 판매한 배터리 셀/모듈에 대하여 일정규모의 세액공제 금액을 수취할 수 있으며, 해당 금액은 연결회사가 당기말 현재 수취할 것으로 예상되는 수익금액입니다.",
+      "영업이익은 지속적인 메탈 가격 하락으로 배터리 판매가격 대비 투입 원재료비가 높아서 발생하는 Lagging 영향이 있었으나, 물류비 절감, 수율 및 생산성 향상 등 원가개선 노력과 약 6,769억원의 IRA Tax Credit의 수익 인식으로 전년 대비 +78% 개선된 약 2조 1,632억원을 기록했습니다."
+    ],
+    "retrieval_preview": [
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "IV. 이사의 경영진단 및 분석의견",
+        "section": "경영진단",
+        "preview": "1. 예측정보에 대한 주의사항\n\n- 당사가 동 사업보고서에서 미래에 발생할 것으로 예상, 예측한 활동, 사건 또는 현상은, 당해 공시서류 작성시점의 사건 및 재무성과에 대하여 회사의 견해를 반영한 것입니다. 동 예측정보는 미래 사업환경과 관련된 다양한 가정에 기초하고 있으며, 동 가정들은 결과적으로 부정확한 것으로 판명될 수도 있습니다. 또한, 이러한 가정들에는 예측정보에서 기재한 예상치와 실제 결과 간에 중요한 차이를 초래할 수 있는 위험, 불확실성 및 기타 요인을 포함하고 있습니다. 이러한 중"
+      },
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 2. 임원의 보수 등",
+        "section": "임원현황",
+        "preview": "보수현황>\n\n1) 주주총회 승인금액\n\n(단위 : 백만원)\n\n구 분 | 인원수 | 주주총회 승인금액 | 비고\n\n2) 보수지급금액\n\n(1) 이사ㆍ감사 전체\n\n(단위 : 백만원)\n\n인원수 | 보수총액 | 1인당 평균보수액 | 비고\n\n주1) 기업공시서식 작성기준 제9-2-1조의 ①에 대한 작성지침 ⅱ. 에 따라 작성기준일(2023.12.31) 현재 재임 중인 이사/감사 외에 작성기준일이 속하는 사업연도의 개시일부터 공시서류작성기준일까지의 기간 동안 퇴직한 이사/감사를 포함하여 기재한 내용입니다.\n\n(2)"
+      },
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "VII. 주주에 관한 사항",
+        "section": "회사개요",
+        "preview": "1. 최대주주 및 그 특수관계인의 주식소유 현황\n\n1) 최대주주 및 특수관계인의 주식소유 현황\n\n(기준일 : | 2023년 12월 31일 | ) | (단위 : 주, %)\n\n성 명 | 관 계 | 주식의종류 | 소유주식수 및 지분율 | 비고\n기 초 | 기 말\n주식수 | 지분율 | 주식수 | 지분율\n계\n\n주1) 2023년 12월 31일 현재 당사의 총 발행주식수는 234,000,000주 입니다.\n\n2) 최대주주의 개요\n\n(1) 최대주주의 기본정보\n\n명 칭 | 출자자수(명) | 대표이사(대표조합원) | "
+      },
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "VIII. 임원 및 직원 등에 관한 사항 > 2. 임원의 보수 등",
+        "section": "임원현황",
+        "preview": "이름 | 보수의 종류 | 총액 | 산정기준 및 방법\n대표이사권영수 | 근로소득 | 급여 | 1,840 | 1. 기본급 이사회에서 결정된 임원 보수 규정에 따라, 76.7백만원을 매월 지급함. 2. 역할급 이사회에서 결정된 대표이사의 역할급 규정에 따라 76.7백만원을 매월 지급함.\n상여 | 2,607 | - 임원보수규정 중 성과인센티브 규정에 따라 성과평가 등을 기준으로 이사회에서 결정함. - 전년도 재무성과 등 계량 지표 및 핵심과제 평가, 미래 준비를 위한 중장기 기대사항 이행정도 평가 등 비"
+      },
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "II. 사업의 내용 > 1. 사업의 개요",
+        "section": "사업개요",
+        "preview": "- 당사는 EV(Electric Vehicle), ESS(Energy Storage System), IT기기, 전동공구, LEV(Light Electric Vehicle) 등에 적용되는 전지 관련 제품의 연구, 개발, 제조, 판매하는 사업을 영위하고 있으며, 에너지솔루션 단일 사업부문으로 구성되어 있습니다. 국내는 물론 미국, 폴란드, 중국 등 세계 주요 거점에 생산, 판매, R 네트워크를 구축하고 전 세계를 대상으로 사업을 전개하고 있습니다. 또한, 국내 공장 및 해외 생산법인에서 제품을 생산하"
+      },
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "III. 재무에 관한 사항 > 6. 배당에 관한 사항",
+        "section": "기타재무",
+        "preview": "1) 배당에 관한 사항\n\n- 당사는 빠르게 성장하는 2차 전지 사업에서 글로벌 시장 선도 및 지속가능한 성장을 목표로 하고 있기에, 이를 위해 당분간 증가하는 고객들의 수요 대응을 위한 대규모 투자 집행이 필수적인 상황입니다.이에 당사는 수익성 중심의 성장을 실현하고 안정적인 잉여현금흐름이 창출되는 향후 적정한 시기에 경영실적, 투자 계획, 경영환경, 상법상 배당 재원 여부 등을 종합적으로 고려하여 주주환원정책 시행을 검토할 계획입니다. 배당 여부는 당사의 정관에 의거하여 이사회 및 주주총회 결의"
+      },
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "III. 재무에 관한 사항 > 1. 요약재무정보",
+        "section": "요약재무",
+        "preview": "구 분 | 제4기(2023년 12월말) | 제3기(2022년 12월말) | 제2기(2021년 12월말)\n[유동자산] | 17,208,396 | 18,804,269 | 9,535,827\n1. 현금및현금성자산 | 5,068,783 | 5,937,967 | 1,282,880\n2. 매출채권 | 5,128,474 | 4,771,846 | 2,914,458\n3. 기타수취채권 | 555,186 | 462,188 | 814,843\n4. 기타유동금융자산 | 65,439 | 9,167 | 21,499\n5. 선급법인"
+      },
+      {
+        "report_year": 2023,
+        "rcept_no": "20240314001110",
+        "section_path": "II. 사업의 내용 > 7. 기타 참고사항",
+        "section": "매출현황",
+        "preview": "- 2차전지 산업은 과거 노트북, 스마트폰 등 IT기기용 전지를 중심으로 성장하여 왔으나, 세계 각국의 환경규제 및 전기차에 대한 구매 보조금, 세제혜택 등의 정책 실시로 전기차 시장이 빠르게 성장하면서 EV용 전지가 2차전지 산업의 성장을 주도하고 있습니다. 한편, 세계 각국의 친환경에너지 확대 기조에 따라 신재생에너지 비중이 높아지면서 ESS용 전지에 대한 수요 역시 지속적으로 증가할 것으로 예상되고 있으며, 소형 Application용 배터리 또한 드론, LEV(전동킥보드, 전동휠, 전기 자"
+      }
+    ],
+    "doc_scope": "single_report",
+    "doc_scope_note": "단일 보고서만으로 답이 닫히는 문항입니다.",
+    "evaluation_contract_revision": {
+      "revision_id": "lge_t1_051_calculation_v2",
+      "reviewed_on": "2026-09-08",
+      "predecessor_dataset": "benchmarks/datasets/single_doc_eval_full.curated.json",
+      "predecessor_sha256": "60539c9ebf557855154d9ebd24736273752d2a30d80908c77fa4387aab5b72e0",
+      "source_review": "docs/evaluation/lge_t1_051_calculation_source_review_v2.md",
+      "filing_path": "data/reports/LG에너지솔루션/2023_사업보고서_20240314001110.html",
+      "filing_sha256": "1f7940b57ec1e423626a738e6de6a16794c9204d27077648dedd907e6767e293",
+      "scope": "Explicit one-question successor. Default profiles and predecessor datasets/results remain unchanged. No tolerance, faithfulness, answer-key, or agent-runtime change."
+    }
+  }
+]

@@ -1,0 +1,117 @@
+{
+  "schema_version": "calculation_source_fields_fixture_v1",
+  "source_results": "benchmarks/results/reviewed_full_agent_lge_nav_v2_candidate_2026-09-07/lge-2023/results.json",
+  "source_results_sha256": "e26ea797b056dcd56d9adb885c3d1c24297e018675ba72fe030c4e71d61bae92",
+  "claim_limit": "Field projection from a frozen provider trace. No regenerated candidates, rewritten answer, or fresh provider evidence.",
+  "id": "LGE_T1_051",
+  "answer": "LG에너지솔루션의 2023년 연결기준 영업이익은 2,163,234백만원입니다. 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액은 676,874백만원입니다. 실질 영업이익은 1,486,360,000,000원입니다.",
+  "calculation_operands": [
+    {
+      "operand_id": "cand_4cdfeaa9d5eeda825282",
+      "candidate_id": "cand_4cdfeaa9d5eeda825282",
+      "label": "2023년 연결기준 영업이익",
+      "row_label": "영업이익",
+      "raw_value": "2,163,234",
+      "raw_unit": "백만원",
+      "normalized_value": 2163234000000,
+      "normalized_unit": "KRW",
+      "period": "2023",
+      "source_period_surface": "2023",
+      "period_source": "explicit_period",
+      "value_year": 2023,
+      "statement_type": "summary_financials",
+      "consolidation_scope": "consolidated",
+      "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+      "source_document_id": "rcept_no:20240314001110",
+      "source_row_id": "physical_table_v1_1d1e74d0ee8f93af3a90::row:37:31",
+      "physical_table_id": "physical_table_v1_1d1e74d0ee8f93af3a90",
+      "physical_row_id": "37:31",
+      "physical_cell_id": "37:31:1"
+    },
+    {
+      "operand_id": "cand_38f964d793d8e1c9cb40",
+      "candidate_id": "cand_38f964d793d8e1c9cb40",
+      "label": "미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액",
+      "row_label": "기타영업손익",
+      "raw_value": "676,874",
+      "raw_unit": "백만원",
+      "normalized_value": 676874000000,
+      "normalized_unit": "KRW",
+      "period": "2023",
+      "source_period_surface": "공시금액",
+      "period_source": "source_context_binding",
+      "value_year": 2023,
+      "statement_type": "notes",
+      "consolidation_scope": "consolidated",
+      "source_anchor": "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]",
+      "source_document_id": "rcept_no:20240314001110",
+      "source_row_id": "physical_table_v1_aa605f9a0fd5b85b64c1::row:24:3",
+      "physical_table_id": "physical_table_v1_aa605f9a0fd5b85b64c1",
+      "physical_row_id": "24:3",
+      "physical_cell_id": "24:3:2"
+    }
+  ],
+  "calculation_plan": {
+    "mode": "semantic_program",
+    "operation_family": "lookup"
+  },
+  "calculation_result": {
+    "status": "ok",
+    "result_value": 2163234000000,
+    "result_unit": "백만원",
+    "operation_family": "lookup",
+    "outputs": [
+      {
+        "obligation_id": "ob_001",
+        "kind": "direct_value",
+        "status": "ok",
+        "label": "2023년 연결기준 영업이익",
+        "normalized_value": 2163234000000,
+        "normalized_unit": "KRW",
+        "result_unit": "백만원",
+        "operation_family": "lookup",
+        "candidate_ids": [
+          "cand_4cdfeaa9d5eeda825282"
+        ],
+        "source_anchors": [
+          "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]"
+        ]
+      },
+      {
+        "obligation_id": "ob_002",
+        "kind": "direct_value",
+        "status": "ok",
+        "label": "미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액",
+        "normalized_value": 676874000000,
+        "normalized_unit": "KRW",
+        "result_unit": "백만원",
+        "operation_family": "lookup",
+        "candidate_ids": [
+          "cand_38f964d793d8e1c9cb40"
+        ],
+        "source_anchors": [
+          "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]"
+        ]
+      },
+      {
+        "obligation_id": "ob_003",
+        "kind": "derived_value",
+        "status": "ok",
+        "label": "실질 영업이익",
+        "normalized_value": 1486360000000,
+        "normalized_unit": "KRW",
+        "result_unit": "원",
+        "operation_family": "difference",
+        "candidate_ids": [
+          "cand_4cdfeaa9d5eeda825282",
+          "cand_38f964d793d8e1c9cb40"
+        ],
+        "source_anchors": [
+          "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 1. 요약재무정보]",
+          "[LG에너지솔루션 | 2023 | III. 재무에 관한 사항 > 3. 연결재무제표 주석]"
+        ],
+        "formula": "A - B"
+      }
+    ]
+  }
+}

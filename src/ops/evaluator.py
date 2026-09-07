@@ -2152,6 +2152,10 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
             raise ValueError(
                 f"accepted_calculation_variants[{index}].expected_calculation_result must be an object"
             )
+        for record in [*expected_variant_operands, expected_variant_result]:
+            errors = _explicit_source_constraint_errors(record)
+            if errors:
+                raise ValueError(f"accepted_calculation_variants[{index}]: {', '.join(errors)}")
         accepted_calculation_variants.append(
             EvalCalculationVariant(
                 id=str(variant.get("id") or ""),
@@ -3387,11 +3391,50 @@ def _constraint_equals(expected: Any, actual_values: List[str]) -> bool:
     return bool(expected_values & normalized_actual)
 
 
+_EXPLICIT_SOURCE_FIELDS = ("row_label", "source_period_surface", "source_document_id", "kind")
+
+
+def _normalise_strict_period_text(value: Any) -> str:
+    normalized = re.sub(r"\s+", "", str(value or "")).casefold()
+    return re.sub(r"^(20\d{2})년$", r"\1", normalized)
+
+
+def _explicit_source_constraint_errors(expected: Dict[str, Any]) -> List[str]:
+    """Validate opt-in fields without changing legacy label/period semantics."""
+    errors: List[str] = []
+    for key in _EXPLICIT_SOURCE_FIELDS:
+        if key not in expected:
+            continue
+        value = expected[key]
+        alternatives = value if isinstance(value, list) else [value]
+        if not alternatives or any(not isinstance(item, str) or not item.strip() for item in alternatives):
+            errors.append(f"invalid_{key}")
+    if "strict_period" in expected:
+        if not isinstance(expected["strict_period"], bool):
+            errors.append("invalid_strict_period")
+        elif expected["strict_period"] and (
+            not isinstance(expected.get("period"), str) or not expected["period"].strip()
+        ):
+            errors.append("strict_period_requires_period")
+    return errors
+
+
 def _record_matches_variant_constraints(
     expected: Dict[str, Any],
     actual: Dict[str, Any],
 ) -> Tuple[bool, List[str]]:
-    reasons: List[str] = []
+    reasons = _explicit_source_constraint_errors(expected)
+    if reasons:
+        return False, reasons
+    # Canonical source fields only: display labels/answer slots cannot supply
+    # missing source identity or override contradictory canonical metadata.
+    for key in _EXPLICIT_SOURCE_FIELDS:
+        if key in expected and not _constraint_equals(expected[key], [actual.get(key)]):
+            reasons.append(f"{key}_mismatch")
+    if expected.get("strict_period") and (
+        _normalise_strict_period_text(expected["period"]) != _normalise_strict_period_text(actual.get("period"))
+    ):
+        reasons.append("strict_period_mismatch")
     expected_label = str(expected.get("label") or "").strip()
     actual_labels = [
         str(actual.get(field) or "").strip()
@@ -3625,6 +3668,9 @@ def _compute_accepted_calculation_variant_match(
             contract_errors.append("missing_expected_calculation_result")
         elif not _expected_value_is_available(variant.expected_calculation_result):
             contract_errors.append("missing_expected_result_value")
+        for record in [*variant.expected_operands, variant.expected_calculation_result]:
+            if isinstance(record, dict):
+                contract_errors.extend(_explicit_source_constraint_errors(record))
 
         operand_candidate_indices: List[List[int]] = []
         operand_rows: List[Dict[str, Any]] = []

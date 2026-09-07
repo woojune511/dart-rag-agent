@@ -51,7 +51,7 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `src/ops/evaluator.py` | evaluator-only numeric and source-qualified variant contracts |
+| `src/ops/evaluator.py` | evaluator-only numeric variants; opt-in canonical row/period/document identity separate from answer labels |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
 | `src/ops/plan_parser_store_successor.py` | socket-blocked full-filing reparse inventory, exact table/unit/header drift and index-text reuse candidates; no vector/store publication |
