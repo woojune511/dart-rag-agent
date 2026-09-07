@@ -8071,3 +8071,27 @@ References:
   Approval exhausted. No full-agent/evaluator execution, default-store switch or
   new answer-quality/release claim. Next: provider-free candidate/context preflight
   on working copies, then a separately approved store-fixed LG/NAV full-agent gate.
+
+## LG/NAV Successor Candidate Preflight (2026-09-07)
+
+- On runtime `7cf5522`, socket-blocked working-copy inspection passes strict
+  readiness/source integrity 2/2 and document-vector self-search 6/6. Provider,
+  embedding and compiler calls are zero. Frozen successor store file hashes match.
+- Saved search strings run through real BM25 plus current source supplements and
+  evidence selection with explicitly reconstructed state and saved obligations.
+  Catalogs are 592/547; visible numeric/narrative IDs 8/3 and 10/7; v6 shared
+  contexts 14/16, compact payload bytes 46,598/85,544. Reversed inputs are identical.
+  This is not new planner output or hybrid-query ranking/answer-quality evidence.
+- LG precise AMPC rows are present but hidden from `ob_002`. Company-labelled
+  asset/liability rows with no metric match win because `document_subject` is
+  compared before `metric`. Both groups are unknown_only, not explicit conflicts.
+  A diagnostic neutral-factor projection exposes both precise rows; the unchanged
+  V2 validator/executor passes both with exact preceding-period context bindings.
+- NAV required current/prior amounts, source growth display and multiple acquisition
+  impact sources are visible. Two share cells still receive `백만원/KRW` despite
+  source `(단위 : 백만원,%)`; the old lifecycle probe has the same column-unit issue.
+- Context/period/retrieval focused tests 37/37; matching/cohort/bundle tests 25/25.
+  No runtime fix, store mutation, evaluator/dataset edit or new paid manifest.
+  Next: bounded generic ranking-authority and mixed-column-unit repairs first.
+- Review `0da83a80749bcae6c6dca2d7e1827518844f641d39d3b5bee6120d4ad5f29411`.
+  Ignored results: `benchmarks/results/parser_successor_candidate_preflight_2026-09-07/README.md`.
