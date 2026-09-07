@@ -64,10 +64,10 @@ Runtime domain audit passes (`84` reviewed literals); docs/import/topology `24 /
   restart recovery, and prove no context/embedding calls during sidecar repair.
 - Actual graph-node tests check declared phase keys, unchanged inputs, and exact
   public answer/structured-result/trace agreement with the final ledger artifact.
-- The reviewed-fixture corpus passes `5 / 5` downstream contracts, not source-unit
-  accuracy: NAV's common scale error cancels in growth. Current exact saved replay
-  passes `3 / 5`; both KB catalogs are fingerprint-rejected. The current audit is
-  byte-identical twice; related focused tests `29 / 29`, provider calls/writes 0.
+- Reviewed-fixture v2 passes `5 / 5` with NAV's corrected 십억원 source unit and
+  independent absolute-amount/display/input checks. Common-scale error control fails
+  despite unchanged growth. Related tests `51 / 51`; replay receipts match twice, calls/writes 0.
+  Exact saved replay remains `3 / 5`: both KB catalogs are fingerprint-rejected.
 - `semantic_comparison_contrasts_v1.json` adds 9 synthetic cases: 7 calculations
   and 2 explicit abstentions. Identical inputs/different intents distinguish valid
   math from intended math. Offline expected values never drive runtime retry;
@@ -98,16 +98,16 @@ receipts (`9901c8fc...e9180`) with no provider/compiler/store activity.
 
 ## Reviewed provider-free corpus
 
-`tests/fixtures/reviewed_runtime_replay_corpus_v1.json` adds five reviewed questions
+`tests/fixtures/reviewed_runtime_replay_corpus_v2.json` is the active five-question fixture
 outside the three-question inventory: `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`, `NAV_T2_006`, and `CEL_T1_013`.
 Raw values, source excerpts, receipt/row/table provenance, owner visibility, and
 programs go through the real normalizer, validator, `CompilationEnvelopeV2`, and executor.
 
-The original 5/5 receipt (`fc530335...304f`) and current contract replay do not prove
-source-unit accuracy: NAV v1 labels `2,546.6 / 1,801.1` as 억원 instead of 십억원.
-The tenfold amount error cancels in growth; latest live NAV uses correct 백만원 inputs.
-Next: explicit corrected fixture successor plus absolute-amount assertions; old bytes stay frozen.
-[Current five-case matrix](../evaluation/reviewed_case_evidence_status.md): separate historical live completeness 5/5, fixture contracts 5/5, exact saved replay 3/5 (KB rejected), judges unmeasured. No synchronized current live gate or provider run.
+V2 corrects NAV's `2,546.6 / 1,801.1` from 억원 to 십억원 and preserves exact adjacent
+unit/table bytes. Direct amounts normalize to `2,546,600,000,000 / 1,801,100,000,000` 원;
+source growth stays 41.4%. Programs, selections, narrative and other cases are unchanged.
+V1/old receipts remain frozen; all seven test consumers use v2. Receipt `48634f5c...0f9f`.
+[Current five-case matrix](../evaluation/reviewed_case_evidence_status.md): next isolate KB catalog compatibility; historical live, fixture and exact-replay lanes remain separate, judges unmeasured. No new provider run or runtime/evaluator/dataset change.
 
 ## Provider status and next gate
 
@@ -145,6 +145,6 @@ NAV completes 2/2 outputs without retry: same-row 당기/전기 resolve to 2023/
 Socket-blocked exact replay 2/2; runtime/input/store hashes unchanged. Review SHA `66d5b927...a051`. Approval exhausted; no runtime/evaluator/dataset edit or paid rerun. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
 Approved v2 build `ac0a3ea7...2c89` and paid admission `2724f2ed...4432` are exhausted. Frozen stores: 783/1,872 vectors, 2,127 payloads and 125 parents, readiness 2/2, degraded false. The LG → NAV run on `90aacc9` (runtime `bb8eba2`) completed 2/2, errors 0, ledgers ok: 8 Gemini + 19 OpenAI requests, one allowed NAV compiler retry, 115.265s, estimated USD 0.19107573 / 0.40 (billing unobserved). LG uses precise profit/AMPC and computes 1,486,360백만원; its original atomic FAIL remains frozen. NAV retains 41.4% source display and Poshmark performance evidence; judges are unmeasured. Dependency-provenance repair preserves both saved programs, values, physical evidence and ledger agreement. Separately reviewed LG evaluation v2 now requires resolved 2023, exact filing/source-row/header identity and consolidated scope; it admits both note-only and summary-plus-note precise tuples. Frozen/current LG answers both replay as old-contract FAIL and explicit-successor numeric PASS; 16 source-mutation controls fail. Default datasets/profiles, prior verdicts and source stores remain unchanged, and no provider ran. Receipt `6c961c96...1c8e`; [source review and successor](../evaluation/lge_t1_051_calculation_source_review_v2.md). Next LG admission must explicitly use `benchmarks/datasets/reviewed/lge_t1_051_calculation_v2.json` (SHA `c3f9bb83...1150`); no new paid run is needed to verify this contract repair. Celltrion readiness/runtime evidence is recorded below; wider quality/release acceptance remains separate.
 
-Celltrion successor `685b575e...e71fa` ran once on clean `e5f28998` (runtime `5f2e86b1`): **runtime 1/1, numeric PASS, errors 0, ledger ok**. Consolidated 2023 cells `181,624,107천원 / 342,736,271천원` yield **52.99%** from the same physical table; one derived output, two inputs. Flash 2 + Pro 1 + OpenAI 10, no retries, 40.283s, usage-estimated USD 0.04296883 / 0.20 (billing unobserved). Socket-blocked post-run validation/execution outputs are byte-identical; original store and inputs are unchanged. Review `940c972b...526e`; [result and audit](../../benchmarks/results/reviewed_full_agent_celltrion_fiscal_2026-09-08/README.md). Approval exhausted; earlier failed run is preserved. [Five-case consolidation](../evaluation/reviewed_case_evidence_status.md) is complete: next fix the reviewed NAV fixture's unit via an explicit successor, not runtime math; KB exact catalog compatibility remains unresolved. No new provider run; judges/release quality, default KB 2022 and formula-wide rounding propagation remain separate.
+Celltrion successor `685b575e...e71fa` ran once on clean `e5f28998` (runtime `5f2e86b1`): **runtime 1/1, numeric PASS, errors 0, ledger ok**. Consolidated 2023 cells `181,624,107천원 / 342,736,271천원` yield **52.99%** from the same physical table; one derived output, two inputs. Flash 2 + Pro 1 + OpenAI 10, no retries, 40.283s, usage-estimated USD 0.04296883 / 0.20 (billing unobserved). Socket-blocked post-run validation/execution outputs are byte-identical; original store and inputs are unchanged. Review `940c972b...526e`; [result and audit](../../benchmarks/results/reviewed_full_agent_celltrion_fiscal_2026-09-08/README.md). Approval exhausted; earlier failed run is preserved. [Five-case consolidation](../evaluation/reviewed_case_evidence_status.md) is complete: NAV fixture correction is complete in v2 without runtime changes; next isolate the still-unresolved KB exact catalog mismatch. No new provider run; judges/release quality, default KB 2022 and formula-wide rounding propagation remain separate.
 
 See [runtime contract](../architecture/agent_runtime_contract.md), [checked topology](runtime_flow_roles.md), and [experiment history](../history/experiment_history.md).

@@ -1,12 +1,12 @@
 # Reviewed Five-Case Evidence Status
 
-Checked 2026-09-08 on clean `6d1f7ee3`; runtime source `5f2e86b1`, Python 3.13.13.
-This is a provider-free evidence audit, not a new compiler/full-agent run or release gate.
+Saved-trace audit: 2026-09-08 on `6d1f7ee3`; fixture revision starts from `3157ab77`.
+Runtime source stays `5f2e86b1`, Python 3.13.13. No new provider/full-agent run or release gate.
 
 ## Current result
 
 The five saved live answers completed at their respective historical commits.
-Current reviewed-fixture contracts pass **5/5**, but exact saved-program replay passes
+Corrected v2 reviewed-fixture contracts pass **5/5**, but exact saved-program replay passes
 **3/5**: both KB catalogs are rejected before execution. The exact replay aggregate
 is **failed**, not a five-case pass. Quality judges were not measured, and there is
 no synchronized five-case full-agent result on this runtime.
@@ -16,7 +16,7 @@ no synchronized five-case full-agent result on this runtime.
 | `KBF_T1_017` | NIM `1.83%`, change `+0.10%p` from `1.73%` | FAIL; count-unit evaluator-only successor PASS | Catalog fingerprint mismatch; no current execution |
 | `KBF_T2_018` | `70.28%`; inputs `(3,146,409)` and `(1,847,775)` 백만원 | PASS | Catalog fingerprint mismatch; no current execution |
 | `LGE_T1_051` | `2,163,234 - 676,874 = 1,486,360` 백만원 | FAIL; explicit reviewed evaluation v2 PASS | PASS; original verdict/default dataset unchanged |
-| `NAV_T2_006` | Source `41.4%`, calculation `41.39574110852439%`, multi-source narrative | null / N/A | PASS; old fixture has a separate unit defect below |
+| `NAV_T2_006` | Source `41.4%`, calculation `41.39574110852439%`, multi-source narrative | null / N/A | PASS; fixture-only unit defect corrected in v2 below |
 | `CEL_T1_013` | `181,624,107 / 342,736,271 * 100 = 52.99%` | PASS | PASS; consolidated 2023 cells, same physical table |
 
 All five historical runs have runtime completeness, zero runtime errors and ledger
@@ -51,7 +51,7 @@ count/ID/content checks differ. The audit does not isolate the underlying cause
 and does not remap IDs, replace saved programs, or relax fingerprint checks.
 Historical evaluator-only PASS and reviewed-fixture PASS do not fill this gap.
 
-### NAV fixture source-unit defect
+### NAV fixture source-unit correction
 
 The unchanged [v1 fixture](../../tests/fixtures/reviewed_runtime_replay_corpus_v1.json)
 labels `2,546.6` and `1,801.1` as **억원**, but the
@@ -66,22 +66,40 @@ with a `41.4%` source display; it does not have this fixture error.
 [Source check](../../benchmarks/results/reviewed_case_evidence_audit_2026-09-08/fixture_source_check.json)
 records exact unit/header/row surfaces and file hashes. Its recovery-parser XPath
 is diagnostic, not a canonical original locator; raw filing lines were also inspected.
-The original fixture, source filing and previous receipts were not rewritten.
+The [active v2 fixture](../../tests/fixtures/reviewed_runtime_replay_corpus_v2.json)
+corrects those unit/source-text annotations and independently checks absolute amounts:
+2023 **2,546,600,000,000원**, 2022 **1,801,100,000,000원**, with direct displays
+`2,546.6십억원` and `1,801.1십억원`. Growth remains `41.3913719393704%` / source `41.4%`.
+It retains 3,666 exact UTF-8 bytes spanning the adjacent unit and data tables,
+source SHA and byte range `[6736389, 6740055)`, plus fragment-local cell/header paths.
+The bounded fragment parses strictly without full-document recovery.
 
-**Next bounded change:** create an explicit unit-correct fixture successor with exact
-source-unit anchors and absolute normalized-amount assertions. Keep the old fixture
-and receipts as predecessors. Do not change runtime math, answer keys or tolerances.
-After that, separate KB compatibility work from expanding to unseen questions;
-any new provider execution still needs its own manifest and cost approval.
+V2 retains the v1 schema (data revision only); the original fixture/source/receipts
+stay unchanged. Programs, owner visibility, selected IDs, narrative, requested display
+units and the other four cases are preserved. Seven test consumers use v2; no production
+or frozen admission code changes. Direct values still prioritize the source's unit.
+Regression checks cover normalization, direct displays and dependency input amounts.
+A self-consistent wrong-unit/wrong-normalization mutation still matches growth but
+now fails the independent direct-amount/output checks.
+
+**Next bounded work:** isolate KB's saved/current catalog differences before deciding
+whether a compatibility fix is needed. Expanding to unseen questions is separate;
+any provider execution needs its own manifest and cost approval. Runtime math,
+benchmark answer keys and tolerances were not changed by the fixture correction.
 
 ## Validation receipts
 
-- Existing focused replay, fiscal-period, numeric-boundary and LG evaluation tests:
-  **29/29**. No runtime change; no new full-suite or provider claim.
-- Two separate audit processes produced byte-identical receipts:
+- Fixture/replay, compiler rehearsal/capture/admission, unit and retry tests:
+  **51/51**. The new amount test failed against v1 before correction. No new full-suite claim.
+  Domain audit passes (84 reviewed literals); docs/import/topology **24/24**.
+  Two v2 replay processes pass **5/5**, byte-identical receipt SHA
+  `48634f5cb46b2a89ad84eb485ef33a285874e316fa571ca055cd6aba2e230f9f`;
+  [current receipt](../../benchmarks/results/reviewed_runtime_replay_corpus_v2_2026-09-08/replay_a.json).
+  V2 fixture SHA `dbd8d488f1f08ca4045a9b1873aafbb51b7319fe1aa4df60f572faeb1ef29c75`.
+- The earlier two audit processes produced byte-identical receipts:
   `e0b826cc1fb7f51367bd2db05f48c4ba5ece9033dc94d6ff2846226de775780a`.
   [Fixture replay](../../benchmarks/results/reviewed_case_evidence_audit_2026-09-08/fixture_replay.json):
-  5/5 contract checks, with the source-unit caveat above.
+  5/5 v1 contract checks, with the historical source-unit defect above.
   [Exact saved replay](../../benchmarks/results/reviewed_case_evidence_audit_2026-09-08/exact_saved_replay.json):
   3 passed / 2 rejected, aggregate failed.
 - Provider/compiler/retrieval calls and source-store writes: **0**. Frozen admission

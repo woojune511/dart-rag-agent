@@ -86,18 +86,18 @@ The successor replay retains all three cases and T2 operand metadata. Its
 deterministic evaluator projection changes operand selection from `0.0` to `1.0`
 without changing selected IDs, formula, answer, dataset, or evaluator.
 
-A separate reviewed-fixture corpus covers `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
-`NAV_T2_006`, and `CEL_T1_013`. Current downstream contract replay passes 5/5;
-exact saved-program replay passes 3/5, with both KB catalogs fingerprint-rejected.
-The v1 NAV fixture incorrectly labels `2,546.6 / 1,801.1` as 억원, not the filing's
-십억원. Its tenfold absolute-amount error cancels in growth; 5/5 is not source-unit
-accuracy. Latest live NAV uses correct 백만원 evidence and is not affected.
-Two current audit receipts match (`e0b826cc...780a`); focused tests 29/29,
-provider/compiler/retrieval calls and source writes 0. Old fixtures/results/stores
-remain unchanged. Next: explicit unit-correct fixture successor and absolute-amount
-controls; KB exact compatibility remains separate. [Evidence matrix and source check](docs/evaluation/reviewed_case_evidence_status.md).
-These are contract tests and historical separate live runs, not fresh compiler
-choices or a synchronized current five-case full-agent gate.
+The active reviewed-fixture corpus v2 covers `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`,
+`NAV_T2_006`, and `CEL_T1_013`. Downstream replay passes 5/5; seven test consumers use v2.
+NAV's `2,546.6 / 1,801.1` now use the filing's 십억원: base amounts are
+`2,546,600,000,000 / 1,801,100,000,000` 원. Exact adjacent unit/table bytes are retained.
+Absolute normalization, direct displays and formula inputs are checked; a common
+tenfold scale error now fails even when growth stays correct. V1 and old receipts remain frozen.
+Source display 41.4%, program, selections, narrative and the other four cases are unchanged.
+Two v2 receipts match (`48634f5c...0f9f`); related tests 51/51, provider/store calls 0.
+Current exact saved replay remains 3/5: both KB catalogs are fingerprint-rejected.
+Next: isolate KB's saved/current catalog difference; no new paid run is authorized.
+[Evidence matrix and fixture revision](docs/evaluation/reviewed_case_evidence_status.md) distinguish
+contract tests and separate historical live runs from a synchronized current full-agent gate.
 
 ## Provider result, remaining work, and hard stops
 

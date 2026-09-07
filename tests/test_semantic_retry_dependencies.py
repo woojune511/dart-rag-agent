@@ -17,7 +17,7 @@ from tests.semantic_program_test_support import (
 
 
 def _reviewed_case():
-    path = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v1.json"
+    path = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v2.json"
     case = json.loads(path.read_text(encoding="utf-8"))["cases"][0]
     case["candidate_catalog"], _ = _materialize_catalog(case["candidate_catalog"])
     return case

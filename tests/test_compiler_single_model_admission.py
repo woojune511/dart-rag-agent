@@ -19,7 +19,7 @@ from src.ops.replay_reviewed_compiler_selection import (
 )
 
 
-CORPUS = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v1.json"
+CORPUS = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v2.json"
 RUNTIME = {"git_commit": "test", "file_count": 1, "sha256": "test"}
 PRO = "gemini-2.5-pro"
 
