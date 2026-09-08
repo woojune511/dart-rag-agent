@@ -68,7 +68,7 @@ class SemanticProgramSignInterpretationTests(unittest.TestCase):
             "missing_obligation_ids": ["change"] if status == "incomplete" else [],
             "ambiguous_obligation_ids": ["change"] if status == "ambiguous" else [],
         })
-        retry_count = 0 if status == "ready" else 1
+        retry_count = 0  # Valid answers and explicit evidence-insufficient decisions are terminal.
         llm = _StructuredQueueLLM(*[program] * (1 + retry_count))
         agent = object.__new__(FinancialAgent)
         agent.llm = llm

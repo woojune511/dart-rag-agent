@@ -243,11 +243,11 @@ Islands compile sequentially in obligation order, with at most one internal retr
 
 - candidate validation failure excludes the rejected candidate's source bundle
   for that owner and promotes the next ranked bundle;
-- assertion, AST, schema, or binding format failure retains the same cohort.
-
+- assertion, AST, schema, or binding format failure retains the same cohort. Explicit
+  missing/ambiguous with no owned error is terminal; undeclared omissions still retry.
 If an evidence-bundle member needs retry, every member is retried together. Candidate
 rejection rebuilds bounded cohorts and promotes the next complete row option when needed;
-AST/schema/binding-format repairs retain the active option.
+AST/schema/binding-format repairs retain the active option; an abstaining row stays atomic. Unretried abstentions survive targeted merge.
 
 Retry targets alone remain editable. Their accepted `depends_on` outputs are read-only
 inputs projected through the same V2-authorized executor, using calculated rather than

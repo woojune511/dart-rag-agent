@@ -252,7 +252,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
 
     def _graph(self, name="consolidated"):
         program = self._program(name)
-        expected_calls = 2 if name in {"wrong_subject", "missing_share"} else 1
+        expected_calls = 2 if name == "wrong_subject" else 1
         obligations = self._obligations()
         llm = _FixedCompiler(
             program,

@@ -139,11 +139,11 @@ class SemanticCapacityContractTests(unittest.TestCase):
         })
         accepted_bytes = _program_bytes(accepted.model_dump())
         failed = SemanticCalculationProgram.model_validate({
-            "status": "incomplete", "missing_obligation_ids": ["ob-retry"],
+            "status": "incomplete",
         })
         agent = _agent(accepted, failed)
 
-        # Capacity-boundary injection only: real validation marks the missing output
+        # Capacity-boundary injection only: real validation marks the undeclared missing output
         # invalid; forced exclusions exercise expansion, not semantic error attribution.
         with patch(
             "src.agent.financial_graph_calculation._retry_candidate_exclusions",

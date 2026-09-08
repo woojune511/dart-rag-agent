@@ -359,10 +359,9 @@ def _reviewed_response_queue(corpus: Mapping[str, Any]) -> list[SemanticCalculat
         program = dict(case.get("program") or {})
         for obligation_ids in _island_obligation_ids(case):
             response = _program_for_obligations(program, obligation_ids)
-            # A declared abstention still takes the runtime's one internal retry.
-            # This only schedules offline substitutes; it never drives live retries.
-            abstains = response.missing_obligation_ids or response.ambiguous_obligation_ids
-            responses.extend([response] * (2 if abstains else 1))
+            # Reviewed witnesses, including explicit abstentions, need one response.
+            # This queue never drives the live runtime's error-based retries.
+            responses.append(response)
     return responses
 
 

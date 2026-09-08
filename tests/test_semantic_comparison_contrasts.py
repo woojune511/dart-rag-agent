@@ -41,9 +41,9 @@ class SemanticComparisonContrastTests(unittest.TestCase):
 
     def _evaluate_case(self, index, program):
         corpus = {**self.corpus, "cases": [deepcopy(self.corpus["cases"][index])]}
-        # The substitute supplies the same abstention on the runtime's allowed retry.
+        # A well-formed explicit abstention is terminal even if the oracle disagrees.
         model = SemanticCalculationProgram.model_validate(program)
-        queue = _PromptQueue([model] * (1 if model.status == "ready" else 2))
+        queue = _PromptQueue([model])
         with TemporaryDirectory() as directory:
             path = Path(directory) / "case.json"
             _write_new_json(path, corpus)
@@ -63,8 +63,8 @@ class SemanticComparisonContrastTests(unittest.TestCase):
         self.assertEqual(first["provider_network_calls"], 0)
         self.assertEqual(first["summary"]["passed_case_count"], 9)
         self.assertEqual(first["summary"]["compiler_island_count"], 9)
-        self.assertEqual(first["summary"]["compiler_invocation_count"], 11)
-        self.assertEqual(first["summary"]["compiler_retry_count"], 2)
+        self.assertEqual(first["summary"]["compiler_invocation_count"], 9)
+        self.assertEqual(first["summary"]["compiler_retry_count"], 0)
         self.assertEqual(first["unused_reviewed_response_count"], 0)
         for index in (6, 8):
             self.assertEqual(first["cases"][index]["execution"]["outputs"], [])
@@ -145,7 +145,7 @@ class SemanticComparisonContrastTests(unittest.TestCase):
             )
         self.assertEqual(manifest["execution"]["initial_compiler_calls"], 9)
         self.assertEqual(manifest["execution"]["maximum_compiler_calls_with_internal_retry"], 18)
-        self.assertEqual(manifest["inputs"]["rehearsal"]["compiler_invocation_count"], 11)
+        self.assertEqual(manifest["inputs"]["rehearsal"]["compiler_invocation_count"], 9)
         self.assertTrue(manifest["acceptance"]["all_cases_match_declared_expectations"])
         self.assertEqual(manifest["transmission_scope"]["included"][0], "9 question texts")
         self.assertIn("validated read-only dependency outputs",
@@ -176,7 +176,7 @@ class SemanticComparisonContrastTests(unittest.TestCase):
             result = rehearse_reviewed_compiler_selection(path)
         self.assertEqual(result["status"], "passed")
         self.assertEqual(result["summary"]["compiler_island_count"], 2)
-        self.assertEqual(result["summary"]["compiler_invocation_count"], 3)
+        self.assertEqual(result["summary"]["compiler_invocation_count"], 2)
         self.assertEqual(result["unused_reviewed_response_count"], 0)
 
 

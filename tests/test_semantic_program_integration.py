@@ -1411,7 +1411,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(evaluation.calculation_correctness, 0.5)
         self.assertIsNone(evaluation.raw_faithfulness)
 
-    def test_program_compiler_retries_once_for_missing_obligation(self) -> None:
+    def test_program_compiler_retries_once_for_undeclared_missing_obligation(self) -> None:
         source_candidates = [
             {
                 "candidate_id": "chunk-1::value:0",
@@ -1433,7 +1433,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             if item["kind"] == "numeric"
         )
         first = SemanticCalculationProgram.model_validate(
-            {"status": "incomplete", "missing_obligation_ids": ["ob_001"]}
+            {"status": "incomplete"}
         )
         second = SemanticCalculationProgram.model_validate(
             {

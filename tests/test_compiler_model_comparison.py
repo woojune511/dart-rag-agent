@@ -94,7 +94,7 @@ class CompilerModelComparisonTests(unittest.TestCase):
         self.assertEqual(first["status"], "passed")
         observation = first["observation"]
         self.assertEqual(observation["provider_network_calls"], 0)
-        self.assertEqual(observation["summary"]["compiler_invocation_count"], 10)
+        self.assertEqual(observation["summary"]["compiler_invocation_count"], 8)
         left, right = observation["model_results"]
         self.assertEqual(left["summary"]["prompt_fingerprint"], right["summary"]["prompt_fingerprint"])
         self.assertNotIn("elapsed_seconds", left["cases"][0])

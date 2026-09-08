@@ -1170,6 +1170,39 @@ def _retry_dependency_outputs(
     return inputs
 
 
+def _semantic_retry_target_ids(
+    *, program: Mapping[str, Any], validation: Mapping[str, Any],
+    obligations: Sequence[Mapping[str, Any]], invocation_failed: bool,
+    bundle_constraints: Sequence[EvidenceBundleConstraintV1],
+) -> List[str]:
+    """Repair invalid/missing outputs without reopening explicit valid abstentions."""
+    owner_ids = [str(item.get("obligation_id") or "") for item in obligations]
+    unresolved = set(validation.get("missing_obligation_ids") or []) | set(
+        validation.get("ambiguous_obligation_ids") or [])
+    errors = list(validation.get("errors") or [])
+    error_owners = {str(item.get("obligation_id") or "") for item in errors}
+    abstentions = set()
+    if (not invocation_failed and program.get("status") in {"incomplete", "ambiguous"}
+            and error_owners.issubset(owner_ids)):
+        declared = set(program.get("missing_obligation_ids") or []) | set(
+            program.get("ambiguous_obligation_ids") or [])
+        abstentions = (declared & unresolved & set(owner_ids)) - error_owners
+
+    def bundled_owners(ids: set[str]) -> set[str]:
+        expanded = set(ids)
+        while True:
+            previous = set(expanded)
+            for constraint in bundle_constraints:
+                if expanded.intersection(constraint.owner_ids):
+                    expanded.update(constraint.owner_ids)
+            if expanded == previous:
+                return expanded
+
+    # Row-atomic peers cannot be repaired by reopening a withheld member.
+    targets = bundled_owners(unresolved - bundled_owners(abstentions))
+    return [owner_id for owner_id in owner_ids if owner_id in targets]
+
+
 def _merge_targeted_program_retry(
     *,
     previous_validation: Dict[str, Any],
@@ -1237,11 +1270,17 @@ def _merge_targeted_program_retry(
         ),
         "source_assertions": deduplicated_assertions,
         "missing_obligation_ids": [
+            str(item) for item in previous_validation.get("missing_obligation_ids") or []
+            if str(item).strip() not in targets
+        ] + [
             str(item)
             for item in retry_program.get("missing_obligation_ids") or []
             if str(item).strip() in targets
         ],
         "ambiguous_obligation_ids": [
+            str(item) for item in previous_validation.get("ambiguous_obligation_ids") or []
+            if str(item).strip() not in targets
+        ] + [
             str(item)
             for item in retry_program.get("ambiguous_obligation_ids") or []
             if str(item).strip() in targets
@@ -1815,6 +1854,7 @@ class FinancialAgentCalculationMixin:
                 initial_selectable_ids_by_owner
             )
             for attempt in range(2):
+                invocation_failed = False
                 active_prompt_candidate_ids = [
                     str(item)
                     for item in (
@@ -1858,6 +1898,7 @@ class FinancialAgentCalculationMixin:
                     # schema failure. Preserve its cause for the caller.
                     raise
                 except Exception as exc:
+                    invocation_failed = True
                     invocation_errors.append(str(exc))
                     failed_program = {
                         "status": "incomplete",
@@ -1969,24 +2010,11 @@ class FinancialAgentCalculationMixin:
                             ensure_ascii=False, sort_keys=True).encode("utf-8")),
                     }
                 )
-                retry_target_ids = list(
-                    dict.fromkeys(
-                        [
-                            *list(validation.get("missing_obligation_ids") or []),
-                            *list(validation.get("ambiguous_obligation_ids") or []),
-                        ]
-                    )
+                retry_target_ids = _semantic_retry_target_ids(
+                    program=program_data, validation=validation, obligations=obligations,
+                    invocation_failed=invocation_failed,
+                    bundle_constraints=validation_visibility.evidence_bundle_constraints,
                 )
-                retry_target_set = set(retry_target_ids)
-                for constraint in validation_visibility.evidence_bundle_constraints:
-                    if retry_target_set.intersection(constraint.owner_ids):
-                        retry_target_set.update(constraint.owner_ids)
-                retry_target_ids = [
-                    str(obligation.get("obligation_id") or "")
-                    for obligation in obligations
-                    if str(obligation.get("obligation_id") or "")
-                    in retry_target_set
-                ]
                 needs_retry = (
                     str(validation.get("status") or "") != "ready"
                     and bool(retry_target_ids)
