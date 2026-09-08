@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-08
+Last updated: 2026-09-09
 
 ## Current implementation
 
@@ -107,7 +107,7 @@ V2 corrects NAV's `2,546.6 / 1,801.1` from 억원 to 십억원 and preserves exa
 unit/table bytes. Direct amounts normalize to `2,546,600,000,000 / 1,801,100,000,000` 원;
 source growth stays 41.4%. Programs, selections, narrative and other cases are unchanged.
 V1/old receipts remain frozen; all seven test consumers use v2. Receipt `48634f5c...0f9f`.
-[Current evidence matrix](../evaluation/reviewed_case_evidence_status.md): old KB catalog mismatch remains explained, not bypassed. Approved `409a8ed2...1318` on clean `f015faf1` passed current T1 → T2 Pro compiler-only 2/2: two calls, no retries/errors, 50.292s, usage-estimated USD 0.068083875 / 0.40 (not billing). [Result](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/RESULT.md), exact captured-response review `731dd640...32a8`; approval exhausted, originals unchanged. The [eight-question repair report](../../benchmarks/results/new_question_source_repairs_2026-09-08/REPORT.md) verifies comparison-only footnote normalization and narrative source-window preservation: numeric owner visibility 8/8, checked body quotes 6/6, IDs/catalog fingerprints/numeric bytes unchanged, reverse projections 8/8. Narrative metadata prefixes no longer displace body; continuations share IDs/context links with explicit omission metadata. Ultium group/standalone ambiguity remains. Manual requirements/source-picked windows do not evaluate retrieval/planner/compiler/model quality. Review `ac3d4add...8d17`, calls/store writes 0. Next: fixed-input compiler semantic selection/synthesis under a new separately approved manifest; no paid manifest yet.
+[Current evidence matrix](../evaluation/reviewed_case_evidence_status.md): old KB catalog mismatch remains explained, not bypassed. Approved `409a8ed2...1318` on clean `f015faf1` passed current T1 → T2 Pro compiler-only 2/2: two calls, no retries/errors, 50.292s, usage-estimated USD 0.068083875 / 0.40 (not billing). [Result](../../benchmarks/results/kbf_current_compiler_admission_2026-09-08/RESULT.md), exact captured-response review `731dd640...32a8`; approval exhausted, originals unchanged. The [eight-question repair report](../../benchmarks/results/new_question_source_repairs_2026-09-08/REPORT.md) verifies comparison-only footnote normalization and narrative source-window preservation: numeric owner visibility 8/8, checked body quotes 6/6, IDs/catalog fingerprints/numeric bytes unchanged, reverse projections 8/8. Narrative metadata prefixes no longer displace body; continuations share IDs/context links with explicit omission metadata. Ultium group/standalone ambiguity remains. Manual requirements/source-picked windows do not evaluate retrieval/planner/compiler/model quality. Review `ac3d4add...8d17`, calls/store writes 0. The [eight-question compiler admission](../../benchmarks/results/new_question_compiler_admission_2026-09-09/README.md) awaits separate approval: Pro, one run, estimated USD 0.2523 / proposed cap 1.50; 9 initial islands, at most 18 calls, SDK witness rehearsal 10 calls. Contract checks pass 8/8, not answer quality: narrative reviews remain pending and Ultium expects source-scoped abstention. No provider ran.
 
 ## Provider status and next gate
 

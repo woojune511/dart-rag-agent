@@ -1,8 +1,9 @@
 # Reviewed Five-Case Evidence Status
 
 Saved-trace audit: 2026-09-08 on `6d1f7ee3`; fixture revision starts from `3157ab77`.
-Core runtime stays `5f2e86b1`, Python 3.13.13. Current KB compiler-only admission on
-`f015faf1` passes 2/2; it is not a new full-agent run or release gate.
+Saved-run runtime baseline is `5f2e86b1`, Python 3.13.13; newer source-visibility repairs are
+`d59986ac` / `9f0e1810`. KB compiler-only admission on `f015faf1` passed 2/2 at that build,
+not a new full-agent run or a release gate on the latest source.
 
 ## Current result
 
@@ -232,8 +233,43 @@ This is not an unbiased holdout or retrieval/planner/compiler/answer-quality eva
   Final receipt SHA `ac3d4add408432f433e463bed587bac9fee7557ea0565e25991c60ca75da8d17`.
 
 The [predecessor source review](../../benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md)
-remains immutable (`e5d04ca0...c182`). Next is compiler semantic selection/synthesis on fixed
-evidence, under a separately approved manifest and cost cap; no paid admission was made here.
+remains immutable (`e5d04ca0...c182`). Compiler semantic selection/synthesis is the next boundary.
+
+### Eight-question compiler admission: pending separate approval
+
+[Admission and exact manifest SHA](../../benchmarks/results/new_question_compiler_admission_2026-09-09/README.md)
+freeze the eight diagnostic questions in the same order, their audited manual requirements
+and complete repaired catalogs. Current cohorts are rebuilt, not imported as authority.
+Source-picked windows are favorable inputs, not an unbiased holdout or retrieval/planner evidence.
+
+- Gemini 2.5 Pro, temperature 0, inclusive output cap 4096 / thinking budget 1024,
+  SDK retries 0, one runner attempt; 9 initial islands and at most 18 calls including
+  the existing one retry per island. Stop after a failed question or admission denial.
+- Fresh source-derived offline witnesses pass **8/8 declared contract expectations**.
+  Real SDK framing/schema rehearsal makes 10 mocked calls: Ultium's deliberate
+  abstention takes its existing internal retry. No provider request was sent.
+- Five numeric cases keep exact source-set/value/formula checks. Ultium must leave
+  the standalone amount unresolved in these inspected sources; group/prior values
+  are not accepted replacements, and blank does not mean zero or filing-wide absence.
+- The two narrative-only cases accept different runtime-valid evidence combinations.
+  Their **semantic review stays pending** even when contract checks pass. Exact wording
+  and one witness ID set are not a correctness oracle; hidden IDs remain rejected.
+  Only the ops harness gained this opt-in mode and declared abstention alternatives;
+  runtime/validator/evaluator policies, numeric defaults and old artifacts are unchanged.
+- [Official standard pricing](https://ai.google.dev/gemini-api/docs/pricing), checked
+  2026-09-09: estimated USD **0.2522625**, retry planning **0.995605**, proposed cap **1.50**.
+  Full-reservation SDK simulation charges **1.197425** for its 10 fake responses; this
+  is not expected usage. Pre-dispatch reservations can stop a later call/retry before
+  transmission; there is no in-flight cancellation or invoice guarantee.
+- No retrieval, planner, evaluator, embedding, ingest, source-store access or write in
+  the admitted run. Thirty-second foreground monitoring, immutable outputs and a
+  single-use approval claim remain required. Offline witnesses/reviews are never sent.
+- Ops/admission/capture/budget tests **50/50**; audit and import/topology/docs gates pass.
+  The previous runtime integration suite remains **1,128/1,128** at the source-repair build;
+  this preparation changes only the ops expectation seam, not FinancialAgent behavior.
+
+Only source-picked compiler behavior can be evaluated by this run. It cannot establish
+full-agent completeness, ledger integrity, generalization or narrative answer quality.
 
 ## Validation receipts
 

@@ -408,6 +408,17 @@ def evaluate_reviewed_compiler_selection(
         if not isinstance(raw_case, Mapping):
             continue
         case = deepcopy(dict(raw_case))
+        expected = dict(case.get("expected") or {})
+        selection_policy = str(expected.get("selection_policy") or "exact_set")
+        narrative_review = selection_policy == "runtime_validated_narrative"
+        if selection_policy not in ("exact_set", "runtime_validated_narrative"):
+            raise ValueError("unsupported compiler selection expectation")
+        if narrative_review and (
+            not case.get("obligations")
+            or any(item.get("kind") != "narrative" for item in case["obligations"])
+            or "selected_candidate_ids" in expected
+        ):
+            raise ValueError("runtime-validated selection requires a narrative-only case without an exact set")
         started = perf_counter() if run_mode == "provider" else None
         catalog, catalog_checks = _compiler_case_catalog(case)
         state = _case_state(case, catalog)
@@ -425,7 +436,6 @@ def evaluate_reviewed_compiler_selection(
             compilation_envelope=envelope,
             require_compilation_envelope=True,
         )
-        expected = dict(case.get("expected") or {})
         expected_outputs = [
             dict(item)
             for item in (expected.get("outputs") or [])
@@ -474,13 +484,16 @@ def evaluate_reviewed_compiler_selection(
             "execution_matches_expectation": (
                 execution.get("status") == expected.get("execution_status", "ok")
             ),
-            "resolution_matches_expectation": all(
-                list(validation.get(field) or []) == list(expected.get(field) or [])
-                for field in ("missing_obligation_ids", "ambiguous_obligation_ids")
+            "resolution_matches_expectation": any(
+                all(list(validation.get(field) or []) == list(option.get(field) or [])
+                    for field in ("missing_obligation_ids", "ambiguous_obligation_ids"))
+                for option in expected.get("resolution_options", [expected])
             ),
             "selected_candidate_ids_expected": (
-                len(selected_ids) == len(expected_ids)
-                and set(selected_ids) == set(expected_ids)
+                bool(selected_ids) if narrative_review else (
+                    len(selected_ids) == len(expected_ids)
+                    and set(selected_ids) == set(expected_ids)
+                )
             ),
             "expected_outputs_match": (
                 all(item["matches"] for item in output_checks)
@@ -501,6 +514,9 @@ def evaluate_reviewed_compiler_selection(
                 "question_id": str(case.get("question_id") or ""),
                 "status": "passed" if passed else "failed",
                 "checks": checks,
+                "selection_policy": selection_policy,
+                "semantic_review": "pending" if narrative_review else "not_requested",
+                "acceptance_scope": "runtime_contract_only" if narrative_review else "declared_source_expectations",
                 "island_count": island_count,
                 "compiler_call_count": compiler_call_count,
                 "compiler_retry_count": int(
@@ -564,6 +580,9 @@ def evaluate_reviewed_compiler_selection(
             "executed_case_count": len(results),
             "passed_case_count": passed_count,
             "failed_case_count": len(results) - passed_count,
+            "semantic_review_pending_case_count": sum(
+                item["semantic_review"] == "pending" for item in results
+            ),
             "compiler_island_count": sum(item["island_count"] for item in results),
             "compiler_invocation_count": len(recording_llm.records),
             "compiler_retry_count": sum(
@@ -857,6 +876,14 @@ def build_admission_manifest(
             "sources only; it is not retrieval, full-agent, evaluator, or release evidence."
         ),
     }
+    pending_semantic_reviews = [item["question_id"] for item in rehearsal["cases"]
+                                if item["semantic_review"] == "pending"]
+    if pending_semantic_reviews:
+        manifest["acceptance"].update({
+            "selected_candidate_set_matches_review": "per_case_selection_policy",
+            "semantic_review_pending_question_ids": pending_semantic_reviews,
+        })
+        manifest["claim_boundary"] += " Narrative contract acceptance leaves semantic source review pending."
     if comparison_model is not None:
         manifest["schema"] = COMPARISON_ADMISSION_SCHEMA_VERSION
         manifest["provider"].pop("model")
