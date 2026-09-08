@@ -283,7 +283,7 @@ The subsequent cell-owned subject repair `4b646e2e` blocks group substitution an
 preserves four previously accepted output bytes/IDs in a provider-free replay; focused
 187/187 and full unittest 1147/1147 passed. Unknown aliases/non-cell identities remain unresolved.
 
-### Current remaining-four successor (2026-09-09)
+### Latest paid remaining-four successor (2026-09-09, prior runtime)
 
 [Result and source review](../../benchmarks/results/numeric_subject_compiler_admission_2026-09-09/RESULT.md):
 approved manifest `c09d0f4aacf2650b044d253b0306556ef077870b09ca5caac0664193ce2076ed`
@@ -304,10 +304,28 @@ request reservations. Protected originals 50 and predecessors 42 retain their ha
 The separate attempt review preserves the period rejection and narrative error cascade;
 final merged validation alone hides these intermediate failures. Additional calls/store writes 0.
 Source review is bounded agent inspection, not a judge score or exhaustive completeness
-oracle; immutable live result fields are not rewritten. Neither abstention-retry repair
-nor narrative evidence-ID single-authority repair is implemented. These are the next
-provider-free seams. No retrieval/planner/full-agent/ledger/generalization/release pass
-or additional paid execution follows from this source-picked compiler diagnostic.
+oracle; immutable live result fields are not rewritten. No retrieval/planner/full-agent/
+ledger/generalization/release pass or additional paid execution follows from this diagnostic.
+
+### Current provider-free abstention/narrative repair
+
+Explicit missing/ambiguous with no owned validation error is terminal; undeclared
+omissions and schema/AST/binding/candidate errors retain their one retry. A peer retry
+cannot overwrite withheld owners or partially reopen their atomic row. Narrative
+structured output writes evidence bindings once; code projects the schema-hidden ID
+list, preserving validation of historical explicit selections and required-input coverage.
+
+[Report and SDK replay](../../benchmarks/results/semantic_abstention_narrative_replay_2026-09-09/REPORT.md):
+the five captured first-attempt responses now satisfy all four declared contracts with
+zero retries (prior paid: eight calls/three retries). Ultium retains its initial abstention
+and reason; KB values/program/execution bytes are unchanged. NAV/CEL keep their first
+response text and links without another model response. The earlier accepted KB/NAV/CEL
+programs separately retain exact output/evidence bytes under current validation/execution.
+Full unittest 1161/1161, focused 139/139, import/topology/docs 24/24; provider/store calls 0.
+Originals 50, predecessors 42 and admission files 22 remain unchanged. Receipt SHA
+`b3010dc81975613042ea5a4ace80b78518a3e369e967a52cc16b8be6af09be05`.
+This is a changed-contract replay, not new Gemini behavior or an answer-quality score.
+Any new provider run needs a fresh schema-bound manifest and separate approval.
 
 ## Validation receipts
 

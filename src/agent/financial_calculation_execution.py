@@ -21,6 +21,7 @@ from src.agent.financial_answer_slots import (
     build_operand_value_slot,
 )
 from src.agent.financial_formula_eval import safe_eval_formula
+from src.agent.financial_program_projection import narrative_candidate_ids
 from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
 )
@@ -1881,11 +1882,7 @@ def validate_semantic_calculation_program(
         binding = dict(raw or {})
         obligation_id = str(binding.get("obligation_id") or "").strip()
         obligation = obligation_by_id.get(obligation_id)
-        candidate_ids = [
-            str(item).strip()
-            for item in (binding.get("candidate_ids") or [])
-            if str(item).strip()
-        ]
+        candidate_ids = narrative_candidate_ids(binding)
         selected = [candidate_by_id[item] for item in candidate_ids if item in candidate_by_id]
         raw_scope_applicability_fields = [
             str(item).strip()
@@ -1994,6 +1991,9 @@ def validate_semantic_calculation_program(
                         candidate_id,
                     )
                     invalid = True
+                    continue
+                if not requirement_id:
+                    # Owner authority/scope still apply; this satisfies no requirement.
                     continue
                 requirement = requirement_by_id.get(requirement_id)
                 if not requirement:

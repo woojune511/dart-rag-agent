@@ -28,6 +28,7 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
 | `src/agent/financial_candidate_matching.py` | typed applicability and shared whole row/column subject identity; footnote-normalized metric keys precede containment; qualifiers intact, no filing-company relevance bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, islands/targeted retry with read-only dependency inputs; terminal admission errors propagate |
+| `src/agent/financial_program_projection.py` | narrative evidence bindings에서 ID 목록을 결정적으로 추출; schema는 중복 작성을 요구하지 않고 과거 명시적 선택은 확장하지 않음 |
 | `src/agent/financial_calculation_execution.py` | dimensions/scope and numeric cell-subject authority for direct/input/display selection; unknown subjects request program repair; input provenance separate from display witnesses, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |

@@ -29,12 +29,10 @@ Compiler emits formula and `display_unit`, not `result_unit`; code infers dimens
 Display priority: expression -> obligation -> inferred canonical unit (count: unitless).
 Legacy `result_unit` is discarded on copied model ingress; public display fields stay intact.
 
-Source signs stay intact. Compiler explains comparison target, transformations/operations, and
-formula in existing per-obligation `rationale`, with generic contrasts instead of a role enum.
+Source signs stay intact. Compiler explains comparison target, transformations and formula in existing per-obligation `rationale`, using generic contrasts rather than a role enum.
 Code never flips signs; undefined/uncertain comparisons stay unanswered. Offline oracles never drive retries or prove model accuracy.
 
-Unsupported planner units remain recorded and block the affected island. Errors identify
-owner, candidate, location, and repair action. Compiler format errors keep the cohort; only
+Unsupported planner units remain recorded and block the affected island. Errors identify owner, candidate, location, and repair action. Compiler format errors keep the cohort; only
 explicit dimension/scope/subject conflicts replace candidates, never unknowns or diagnostic prose.
 Typed validation normalizes `null`/`none` only for optional planner text
 (`display_unit`, `display_format`, `coupling_key`); real unsupported units still block their island.
@@ -145,6 +143,8 @@ bundle and selected candidate IDs and copy an exact contiguous source substring
 covering every referenced value span. Code verifies bundle membership, owner
 visibility, exact bytes, and span coverage before execution and fingerprints the
 validated assertion; coverage follows declared obligation order. Table cells use row/cell provenance; narratives keep multi-evidence bindings.
+Narratives emit `evidence_bindings` once; `candidate_ids` is a code-derived, schema-hidden projection. Blank requirement IDs identify owner-only support and satisfy no requirement; owner/scope/number/group validation remains enforced.
+Explicit historical `candidate_ids` are validated as declared, never widened from bindings. Current compiler prompts do not request that duplicate list; input objects and saved programs are not mutated.
 Narrative bodies exclude recognized parser metadata prefixes and use exact consecutive windows of at most 1200 characters, 4800 body characters per source. Later windows are `source_continuation` context links on the same candidate, serialized once; source-candidate offsets are not XML offsets. `source_body_coverage` exposes omitted tails. No extra selectable IDs; numeric/table projection and ID/catalog hashing stay intact.
 The retained body grounds narrative matching/number validation; window/context content is bound by V2 execution authority. Meaning such as total, component, rate, or derived display is represented by obligation
 bindings and formula AST, not a candidate role enum or a separate reranker. No extra model call or keyword selection chooses the body windows.

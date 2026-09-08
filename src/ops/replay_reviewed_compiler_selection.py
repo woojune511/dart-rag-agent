@@ -34,6 +34,7 @@ from src.agent.financial_graph_calculation import (
     build_semantic_compilation_islands,
 )
 from src.agent.financial_graph_models import SemanticCalculationProgram
+from src.agent.financial_program_projection import narrative_candidate_ids
 from src.ops.replay_reviewed_runtime_corpus import (
     CORPUS_SCHEMA_VERSION,
     _canonical_bytes,
@@ -319,9 +320,7 @@ def _program_for_obligations(
             if isinstance(binding, Mapping):
                 selected_candidate_ids.add(str(binding.get("source_id") or ""))
     for binding in narrative_bindings:
-        selected_candidate_ids.update(
-            str(item) for item in (binding.get("candidate_ids") or [])
-        )
+        selected_candidate_ids.update(narrative_candidate_ids(binding))
     selected_candidate_ids.discard("")
     assertions = [
         deepcopy(dict(item))

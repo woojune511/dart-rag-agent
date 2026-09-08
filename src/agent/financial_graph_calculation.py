@@ -24,6 +24,7 @@ from src.agent.financial_calculation_execution import (
     validate_semantic_calculation_program,
 )
 from src.agent.financial_graph_model_loaders import semantic_calculation_program_model
+from src.agent.financial_program_projection import narrative_candidate_ids
 from src.agent.financial_graph_state import (
     FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase,
     NumericExecutionInput, NumericResultPhase,
@@ -1314,7 +1315,7 @@ def _semantic_program_candidate_ids(program: Dict[str, Any]) -> List[str]:
         )
     for binding in program.get("narrative_bindings") or []:
         if isinstance(binding, dict):
-            values.extend(str(item or "") for item in (binding.get("candidate_ids") or []))
+            values.extend(narrative_candidate_ids(binding))
     return list(dict.fromkeys(item for item in values if item))
 
 
@@ -1392,7 +1393,7 @@ def _semantic_program_candidate_roles(
             ).strip()
             if candidate_id and requirement_id:
                 requirement_owner_by_candidate[candidate_id] = requirement_id
-        for candidate_id in binding.get("candidate_ids") or []:
+        for candidate_id in narrative_candidate_ids(binding):
             normalized_id = str(candidate_id or "").strip()
             add(
                 obligation_id,

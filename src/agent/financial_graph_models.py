@@ -4,6 +4,9 @@ import hashlib
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic.json_schema import SkipJsonSchema
+
+from src.agent.financial_program_projection import narrative_candidate_ids
 
 
 _SEMANTIC_COUPLING_KEY_MAX_CHARS = 128
@@ -335,14 +338,18 @@ class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     candidate_id: str
-    source_requirement_id: str
+    source_requirement_id: str = Field(
+        default="",
+        description="Declared requirement this evidence satisfies; blank for owner-only supporting evidence.",
+    )
 
 
 class SemanticProgramNarrativeBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     obligation_id: str
-    candidate_ids: List[str] = Field(default_factory=list)
+    # Internal projection / historical input, never a second model-written list.
+    candidate_ids: SkipJsonSchema[List[str]] = Field(default_factory=list)
     evidence_bindings: List[SemanticProgramNarrativeEvidenceBinding] = Field(
         default_factory=list
     )
@@ -357,6 +364,14 @@ class SemanticProgramNarrativeBinding(_DeferredBaseModel):
         ),
     )
     text: str
+
+    @model_validator(mode="after")
+    def _project_evidence_members(self) -> "SemanticProgramNarrativeBinding":
+        if "candidate_ids" not in self.model_fields_set:
+            self.candidate_ids = narrative_candidate_ids({
+                "evidence_bindings": [binding.model_dump() for binding in self.evidence_bindings],
+            })
+        return self
 
 
 class SemanticProgramSourceAssertion(_DeferredBaseModel):
