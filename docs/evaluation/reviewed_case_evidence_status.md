@@ -283,7 +283,7 @@ The subsequent cell-owned subject repair `4b646e2e` blocks group substitution an
 preserves four previously accepted output bytes/IDs in a provider-free replay; focused
 187/187 and full unittest 1147/1147 passed. Unknown aliases/non-cell identities remain unresolved.
 
-### Latest paid remaining-four successor (2026-09-09, prior runtime)
+### Prior-runtime paid remaining-four successor (2026-09-09)
 
 [Result and source review](../../benchmarks/results/numeric_subject_compiler_admission_2026-09-09/RESULT.md):
 approved manifest `c09d0f4aacf2650b044d253b0306556ef077870b09ca5caac0664193ce2076ed`
@@ -325,7 +325,32 @@ Full unittest 1161/1161, focused 139/139, import/topology/docs 24/24; provider/s
 Originals 50, predecessors 42 and admission files 22 remain unchanged. Receipt SHA
 `b3010dc81975613042ea5a4ace80b78518a3e369e967a52cc16b8be6af09be05`.
 This is a changed-contract replay, not new Gemini behavior or an answer-quality score.
-Any new provider run needs a fresh schema-bound manifest and separate approval.
+
+### Fresh four-case run: provider failure, response records unavailable
+
+Admission `0395ef998b57bcb018d98cbe13bdc9a83ab4315207e306b337c198f47a67adba`
+ran once on clean `5ca495e4`, then stopped after 33.088s. Request hashes match the
+first three initial SDK requests: Ultium completed, KB first island completed,
+KB second island raised `ServerError`; NAV/CEL were not called. No semantic retry
+request was observed. This was not a budget-cap denial; HTTP status/detail were not retained.
+
+The terminal exception escapes the compiler experiment evaluator. Its outer error
+handler stores only exception type and budget, losing completed-case and captured-response
+records. Actual model selections/reasons cannot be reviewed; response replay is
+`not_replayable`, not PASS. No new four-case accuracy or narrative-quality result exists.
+Successful-request usage estimates total USD 0.04766; failed usage is unknown and retains
+USD 0.121105 reserve, totaling 0.168765 / 0.90 in budget accounting (not billing).
+Originals 50/predecessors 67 and frozen admission inputs retain their hashes.
+[Result and capture-gap diagnosis](../../benchmarks/results/abstention_narrative_compiler_admission_2026-09-09/RESULT.md),
+result SHA `b872724b735d87e753760ff1688bf5dcbd9fd251cbdc39d97728add87f5ab2db`.
+Approval exhausted; no automatic rerun or source-store changes. The provider-free repair
+now preserves completed cases and interrupted raw responses in a failed result; HTTP/RPC
+codes are sanitized and unknown request totals are not reported as zero. Seven new SDK/CLI
+tests cover two successes then 503, first-call failure, budget denial, failed schema retry,
+model-comparison stop, secret exclusion and unchanged successful output. Focused 37/37,
+comparison/import/topology/docs 33/33 and full unittest 1168/1168 pass; no provider calls.
+This does not recover the lost historical responses or establish new Gemini behavior.
+[Repair and verification](../../benchmarks/results/compiler_partial_result_capture_repair_2026-09-09/REPORT.md).
 
 ## Validation receipts
 

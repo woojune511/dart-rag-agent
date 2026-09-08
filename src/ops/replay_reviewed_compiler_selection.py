@@ -21,7 +21,7 @@ from time import perf_counter
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
 from dotenv import dotenv_values
 
@@ -46,6 +46,7 @@ from src.utils.gemini_usage_counts import (
     estimate_gemini_cost_usd,
     extract_gemini_usage_counts,
 )
+from src.utils.provider_errors import ProviderAdmissionError, provider_error_projection
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -164,9 +165,10 @@ class _RecordingStructuredInvoker:
         try:
             result = self._delegate.invoke(prompt)
         except Exception as error:
-            # Transport errors can contain URLs/headers. Keep only their class;
+            # Transport errors can contain URLs/headers. Keep only safe codes;
             # parser errors below are restricted to the final structured output.
             record["invocation_error_type"] = type(error).__name__
+            record["invocation_error"] = provider_error_projection(error)
             raise
         raw = result["raw"]
         parsing_error = result["parsing_error"]
@@ -402,6 +404,8 @@ def evaluate_reviewed_compiler_selection(
     recording_llm = _RecordingLLM(compiler_llm)
     agent = _CompilerOnlyAgent(recording_llm, usage_callback=usage_callback)
     results: list[dict[str, Any]] = []
+    interrupted_case = None
+    terminal_error = None
     for raw_case in corpus.get("cases") or []:
         if not isinstance(raw_case, Mapping):
             continue
@@ -421,7 +425,20 @@ def evaluate_reviewed_compiler_selection(
         catalog, catalog_checks = _compiler_case_catalog(case)
         state = _case_state(case, catalog)
         prompt_start = len(recording_llm.records)
-        compiled = agent._compile_semantic_calculation_program(state)
+        try:
+            compiled = agent._compile_semantic_calculation_program(state)
+        except ProviderAdmissionError as error:
+            # The runtime still raises immediately. Only the experiment boundary
+            # packages prior evidence; the interrupted case is never executed or
+            # turned into a fabricated evidence-insufficiency answer.
+            terminal_error = provider_error_projection(error)
+            interrupted_case = {
+                "case_id": str(case.get("case_id") or ""),
+                "question_id": str(case.get("question_id") or ""),
+                "status": "provider_error",
+                "prompt_records": deepcopy(recording_llm.records[prompt_start:]),
+            }
+            break
         case_prompts = recording_llm.records[prompt_start:]
         program = dict(compiled.get("semantic_program") or {})
         validation = dict(compiled.get("semantic_program_validation") or {})
@@ -548,8 +565,7 @@ def evaluate_reviewed_compiler_selection(
     passed_count = sum(item["status"] == "passed" for item in results)
     prompt_bytes = sum(
         int(record.get("prompt_bytes") or 0)
-        for result in results
-        for record in result["prompt_records"]
+        for record in recording_llm.records
     )
     result = {
         "schema_version": RESULT_SCHEMA_VERSION,
@@ -596,8 +612,16 @@ def evaluate_reviewed_compiler_selection(
         },
         "cases": results,
     }
-    if stop_on_provider_error:
-        result["stopped_for_provider_error"] = any(
+    if interrupted_case is not None:
+        result.update(status="failed", interrupted_case=interrupted_case, terminal_error=terminal_error)
+        result["summary"].update(
+            interrupted_case_count=1,
+            unattempted_case_count=len(corpus.get("cases") or []) - len(results) - 1,
+            # The interrupted compiler did not return its island diagnostics.
+            compiler_retry_count=None,
+        )
+    if stop_on_provider_error or interrupted_case is not None:
+        result["stopped_for_provider_error"] = interrupted_case is not None or any(
             record.get("invocation_error_type")
             for case in results for record in case["prompt_records"]
         )
@@ -1020,16 +1044,33 @@ def run_approved_manifest(
     usage = callback.snapshot_global()
     result["schema_version"] = RESULT_SCHEMA_VERSION
     result["manifest_sha256"] = manifest_sha256
-    result["provider_network_calls"] = int(usage.get("api_calls") or 0)
-    result["usage"] = usage
-    result["estimated_cost_usd"] = estimate_gemini_cost_usd(
-        usage,
-        dict(manifest.get("pricing") or {}),
-    )
+    result.update(_provider_usage_projection(usage, dict(manifest.get("pricing") or {}),
+                                            interrupted="interrupted_case" in result))
     result["cost_authorization_maximum_usd"] = float(
         manifest["authorization"]["maximum"]
     )
     return result
+
+
+def _provider_usage_projection(
+    usage: Mapping[str, Any], pricing: Mapping[str, Any], *, interrupted: bool,
+) -> dict[str, Any]:
+    projection = {
+        # A failed/denied request may not reach callback usage; the SDK budget
+        # receipt owns exact attempted and denied request counts.
+        "provider_network_calls": None if interrupted else int(usage.get("api_calls") or 0),
+        "usage": dict(usage),
+        "estimated_cost_usd": estimate_gemini_cost_usd(usage, pricing),
+    }
+    if interrupted:
+        projection["usage_scope"] = "completed_responses_only"
+        projection["estimated_cost_scope"] = "completed_responses_only"
+    return projection
+
+
+def _sum_known_counts(values: Iterable[int | None]) -> int | None:
+    values = list(values)
+    return None if any(value is None for value in values) else sum(value for value in values if value is not None)
 
 
 def _evaluate_model_comparison(
@@ -1064,32 +1105,35 @@ def _evaluate_model_comparison(
         usage = callback.snapshot_global()
         observation.update({
             "provider_model": model,
-            "provider_network_calls": int(usage.get("api_calls") or 0),
-            "usage": usage,
-            "estimated_cost_usd": estimate_gemini_cost_usd(usage, manifest["pricing"]["by_model"][model]),
+            **_provider_usage_projection(usage, manifest["pricing"]["by_model"][model],
+                                         interrupted="interrupted_case" in observation),
         })
         if run_mode == "rehearsal" and llm.remaining_response_count:
             observation["status"] = "failed"
         model_results.append(observation)
         if observation["stopped_for_provider_error"]:
             break
-    return {
+    result = {
         "schema_version": COMPARISON_RESULT_SCHEMA_VERSION,
         "run_mode": run_mode,
         "status": "passed" if len(model_results) == len(manifest["provider"]["models"])
         and all(item["status"] == "passed" for item in model_results) else "failed",
         "claim_boundary": manifest["claim_boundary"],
         "provider_initialization_error": initialization_error,
-        "provider_network_calls": sum(item["provider_network_calls"] for item in model_results),
+        "provider_network_calls": _sum_known_counts(item["provider_network_calls"] for item in model_results),
         "estimated_cost_usd": sum(item["estimated_cost_usd"] for item in model_results),
         "cost_authorization_maximum_usd": manifest["authorization"]["maximum"],
         "summary": {
-            key: sum(item["summary"][key] for item in model_results)
+            key: _sum_known_counts(item["summary"][key] for item in model_results)
             for key in ("executed_case_count", "passed_case_count", "failed_case_count",
                         "compiler_island_count", "compiler_invocation_count", "compiler_retry_count")
         },
         "model_results": model_results,
     }
+    if any("interrupted_case" in item for item in model_results):
+        result["usage_scope"] = "completed_responses_only"
+        result["estimated_cost_scope"] = "completed_responses_only"
+    return result
 
 
 def _create_google_compiler(

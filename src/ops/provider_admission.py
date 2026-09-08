@@ -12,7 +12,7 @@ import math
 import threading
 from unittest.mock import patch
 
-from src.utils.provider_errors import ProviderAdmissionError
+from src.utils.provider_errors import ProviderAdmissionError, provider_error_projection
 
 
 class BudgetStop(ProviderAdmissionError):
@@ -93,7 +93,9 @@ class ProviderBudget:
             with self.lock:
                 self.pending -= reserve
                 self.charged += reserve
-                row.update(status="failed", error_type=type(exc).__name__, estimated_usd=reserve, usage_unknown=True)
+                safe_error = provider_error_projection(exc)
+                row.update(status="failed", error_type=type(exc).__name__, estimated_usd=reserve, usage_unknown=True,
+                           http_status=safe_error["http_status"], provider_status=safe_error["provider_status"])
                 stopped = self._close("provider_request_failed", "failed or unaccounted request; reservation retained")
             raise stopped from exc
         with self.lock:

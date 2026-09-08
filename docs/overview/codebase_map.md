@@ -54,15 +54,15 @@
 | --- | --- |
 | `src/ops/evaluator.py` | evaluator-only numeric variants; opt-in canonical row/period/document identity separate from answer labels |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
-| `src/ops/provider_admission.py` | opt-in fixed-experiment SDK preflight/dispatch, shared cost reservations and first-cause preservation; frozen scripts unchanged |
-| `src/utils/provider_errors.py` | dependency-light terminal admission error shared by runtime and ops; no core-to-ops import |
+| `src/ops/provider_admission.py` | opt-in SDK preflight/dispatch, shared reservations and first-cause preservation; safe failure status codes, frozen scripts unchanged |
+| `src/utils/provider_errors.py` | dependency-light terminal admission error and safe code-only projection; no core-to-ops import or error-message capture |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
 | `src/ops/plan_parser_store_successor.py` | socket-blocked full-filing reparse inventory, exact table/unit/header drift and index-text reuse candidates; no vector/store publication |
 | `src/ops/build_parser_store_successor.py` | explicit source-copy preparation, exact-input vector reuse, separately supplied missing vectors, snapshot readback and manifest-last publication; no provider clients |
 | `src/ops/replay_runtime_contract_cases.py` | read-only saved-case/counterfactual runtime contract replay; no provider/release claim |
 | `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
 | `src/ops/replay_reviewed_runtime_corpus.py` | provider-free replay of source-derived reviewed fixtures through normalization/visibility/validator/envelope/executor; no retrieval/compiler claim |
-| `src/ops/replay_reviewed_compiler_selection.py` | explicit Flash/Pro admissions; raw fixtures normalize, hash-bound runtime catalogs retain source values; exact-set checks by default, opt-in narrative contract checks leave semantic review pending; no retrieval/evaluator/embedding/store access |
+| `src/ops/replay_reviewed_compiler_selection.py` | explicit Flash/Pro admissions; source-bound selection checks; terminal stops retain completed cases and interrupted raw responses without executing that case, continuing models or inventing usage; narrative semantic review stays separate; no retrieval/evaluator/embedding/store access |
 | `src/utils/gemini_usage_counts.py` | dependency-light answer/thinking/cache normalization and cost accounting; no double-counted reasoning |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
