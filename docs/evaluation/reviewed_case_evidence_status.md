@@ -279,13 +279,35 @@ SHA `77f0c0327c70496b77a616f65ebee45d731dad1aa8d68b98d5f20aeb67f4f6bf`;
 [replay receipt](../../benchmarks/results/new_question_compiler_admission_2026-09-09/post_run_review.json)
 SHA `8578c966a89ab5348b357d8c6e55b03375078d60d69a2ad38b5efc3a2842b957`.
 
-Next is a provider-free row/column subject and aggregation-applicability contract
-regression, not a paid retry or a unit/ranking bonus. Narrative ops expectations still
-allow alternative runtime-valid evidence with semantic review pending; numeric defaults
-remain exact. Preparation passed ops tests 50/50, import/topology/docs 24/24 and two
-byte-identical no-call rehearsals, without predicting this model-selection outcome.
-The preceding runtime integration suite was 1,128/1,128. No synchronized full-agent,
-ledger, generalization or release pass is established by this diagnostic run.
+The subsequent cell-owned subject repair `4b646e2e` blocks group substitution and
+preserves four previously accepted output bytes/IDs in a provider-free replay; focused
+187/187 and full unittest 1147/1147 passed. Unknown aliases/non-cell identities remain unresolved.
+
+### Current remaining-four successor (2026-09-09)
+
+[Result and source review](../../benchmarks/results/numeric_subject_compiler_admission_2026-09-09/RESULT.md):
+approved manifest `c09d0f4aacf2650b044d253b0306556ef077870b09ca5caac0664193ce2076ed`
+ran once on `fdbf182a`; approval is exhausted. Declared expectations **4/4**, not four
+complete correct answers or a synchronized current eight-case result.
+
+| Case | Observed outcome |
+| --- | --- |
+| NEW_CONTEXT_01 | Initially correct abstention; retry selected the prior period, rejected by `candidate_scope_mismatch`. Final numeric output absent as expected; group amount not visible. Incorrect retry rationale survives. |
+| NEW_CONTEXT_02 | KB BIS 18.08% / Tier1 15.50%, exact reviewed candidate IDs, no retry. |
+| NEW_NARRATIVE_01 | Final three-source B2B/HyperCLOVA X summary supports both question axes; one retry for redundant candidate-ID omission. |
+| NEW_NARRATIVE_02 | Final two-source credit/liquidity summary supports both axes but omits some management details; same ID-omission retry. |
+
+Eight calls/five islands/three internal retries; 111.798s, usage-estimated USD 0.165873125
+of 0.90 (not billing), provider errors/429 0. Socket-blocked SDK replay reproduces all
+eight captured responses' programs, validation/execution, prompt/response records and
+request reservations. Protected originals 50 and predecessors 42 retain their hashes.
+The separate attempt review preserves the period rejection and narrative error cascade;
+final merged validation alone hides these intermediate failures. Additional calls/store writes 0.
+Source review is bounded agent inspection, not a judge score or exhaustive completeness
+oracle; immutable live result fields are not rewritten. Neither abstention-retry repair
+nor narrative evidence-ID single-authority repair is implemented. These are the next
+provider-free seams. No retrieval/planner/full-agent/ledger/generalization/release pass
+or additional paid execution follows from this source-picked compiler diagnostic.
 
 ## Validation receipts
 
