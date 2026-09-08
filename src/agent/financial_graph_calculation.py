@@ -2740,12 +2740,9 @@ class FinancialAgentCalculationMixin:
             "source_assertions": merged_source_assertions,
             "missing_obligation_ids": missing_ids,
             "ambiguous_obligation_ids": ambiguous_ids,
-            "rationale": " | ".join(
-                str(dict(result.get("program") or {}).get("rationale") or "")
-                for result in island_results
-                if str(
-                    dict(result.get("program") or {}).get("rationale") or ""
-                )
+            "rationale": (
+                str(dict(island_results[0].get("program") or {}).get("rationale") or "")
+                if len(island_results) == 1 else ""
             ),
         }
 
@@ -2787,6 +2784,21 @@ class FinancialAgentCalculationMixin:
             query=query,
             candidate_visibility=merged_visibility,
         )
+        if len(island_results) > 1:
+            # Model explanations are island-local, not a query-wide resolution verdict.
+            # Bind the deterministic summary before freezing execution authority.
+            valid_ids = {
+                str(row.get("obligation_id") or "")
+                for key in ("valid_direct_bindings", "valid_expressions", "valid_narrative_bindings")
+                for row in validation.get(key) or []
+            }
+            merged_program["rationale"] = _compiler_json({
+                "validation_status": validation.get("status"),
+                "valid_obligation_ids": [owner_id for owner_id in order if owner_id in valid_ids],
+                "missing_obligation_ids": list(validation.get("missing_obligation_ids") or []),
+                "ambiguous_obligation_ids": list(validation.get("ambiguous_obligation_ids") or []),
+                "error_codes": list(dict.fromkeys(error["code"] for error in validation.get("errors") or [])),
+            })
         compilation_envelope = CompilationEnvelopeV2.create(
             visibility=merged_visibility,
             program=merged_program,
@@ -2900,6 +2912,7 @@ class FinancialAgentCalculationMixin:
                     ),
                     "prompt_bytes": int(result.get("prompt_bytes") or 0),
                     "accepted_program_bytes": len(program_bytes),
+                    "program_rationale": str(dict(result.get("program") or {}).get("rationale") or ""),
                     "accepted_program_fingerprint": (
                         envelope.program_fingerprint
                         if isinstance(envelope, CompilationEnvelopeV2)

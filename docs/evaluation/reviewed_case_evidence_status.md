@@ -367,10 +367,9 @@ All five responses ended STOP and parsed. Approval exhausted; no additional prov
   liquidity controls, so this is not exhaustive completeness or a calibrated judge score.
 
 The aggregate is four declared contracts, not four completed answers or a full-agent/ledger/
-release result. Stored narrative semantic-review flags remain pending. One trace-only gap
-remains: KB's first island marks another island's output missing; its stale sentence remains
-in merged rationale after the second island correctly resolves that output. No numeric or
-selected-evidence failure was observed, and this run does not authorize changing that seam.
+release result. Stored narrative semantic-review flags remain pending. The historical result
+retains a trace-only gap: KB's first island marks another island's output missing, and its
+sentence survives the successful final merge. No numeric or selected-evidence failure was observed.
 
 [Result and claim limits](../../benchmarks/results/compiler_partial_capture_admission_2026-09-09/RESULT.md),
 result SHA `313d41611dcdbc5b1810a2c4c50425698dba0387126104077edb044b8eadafa3`.
@@ -378,6 +377,15 @@ Socket-blocked saved-response replay reproduces programs/outputs/evidence/prompt
 and SDK request bytes; receipt `3b8b4f7d...9d83`. Original 50/predecessor 90 hashes match.
 No runtime/store/dataset/evaluator edit or automatic rerun. Actual terminal-error capture
 was not exercised live because this run had no provider error; its evidence stays local/mock.
+
+The separately requested explanation repair is now provider-free complete. Multiple islands
+use a final-validation status/ID/error summary; original explanations stay in owner-labelled
+island diagnostics, while single-island rationale and all candidate/selection/formula/retry
+contracts remain unchanged. [Repair replay](../../benchmarks/results/island_rationale_repair_2026-09-09/REPORT.md)
+retains 4/4 on the five captured responses, including exact SDK requests and all saved execution
+fields. The multi-island global rationale changes; unretried island fingerprints and the other
+three programs remain identical. Full suite 1173/1173, focused 75/75, import/topology/docs 24/24.
+Receipt `44bb8cac...f02c`; no provider calls or historical artifact/store/dataset rewrites.
 
 ## Validation receipts
 

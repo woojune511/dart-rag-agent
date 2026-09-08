@@ -254,11 +254,11 @@ inputs projected through the same V2-authorized executor, using calculated rathe
 source-display values. Failed execution yields no input. Dependency obligation IDs may
 be bound as sources; attached candidate provenance never widens owner selection authority.
 
-Unretried island program JSON stays byte-identical. Programs, missing/ambiguous IDs,
-and diagnostics merge in obligation order. `semantic_candidate_stage_diagnostics_v9`
-records owner factors, bundle/member counts and fingerprints, row constraints, islands,
-call/retry counts, attempt-visible/context/dependency IDs/fingerprints/bytes, and assertion errors.
-Ranking diagnostics are observability-only, never compiler prompt input.
+Unretried island program JSON stays byte-identical. Programs, missing/ambiguous IDs, and diagnostics merge in obligation order.
+`semantic_candidate_stage_diagnostics_v9` records owner factors, bundle/member counts and fingerprints, row constraints, islands, call/retry counts, attempt-visible/context/dependency IDs/fingerprints/bytes, and assertion errors. Ranking diagnostics are observability-only, never compiler prompt input.
+Multi-island `rationale` deterministically projects final validation status, ordered valid/missing/ambiguous obligation IDs and error codes, not concatenated model prose.
+Original explanations remain in island diagnostics as `program_rationale`, with island/owner IDs, not validated query-wide verdicts. Single-island rationale, including explicit abstention, stays unchanged.
+Finalize the merged summary before freezing the V2 envelope; its program fingerprint includes the explanation. Model schema/prompt, selection, formulas and retry policy are unaffected.
 
 ## 7. Retrieval boundary
 
