@@ -326,7 +326,7 @@ Originals 50, predecessors 42 and admission files 22 remain unchanged. Receipt S
 `b3010dc81975613042ea5a4ace80b78518a3e369e967a52cc16b8be6af09be05`.
 This is a changed-contract replay, not new Gemini behavior or an answer-quality score.
 
-### Fresh four-case run: provider failure, response records unavailable
+### Previous four-case run: provider failure, response records unavailable
 
 Admission `0395ef998b57bcb018d98cbe13bdc9a83ab4315207e306b337c198f47a67adba`
 ran once on clean `5ca495e4`, then stopped after 33.088s. Request hashes match the
@@ -334,10 +334,10 @@ first three initial SDK requests: Ultium completed, KB first island completed,
 KB second island raised `ServerError`; NAV/CEL were not called. No semantic retry
 request was observed. This was not a budget-cap denial; HTTP status/detail were not retained.
 
-The terminal exception escapes the compiler experiment evaluator. Its outer error
-handler stores only exception type and budget, losing completed-case and captured-response
+The terminal exception escaped the compiler experiment evaluator. Its outer error
+handler stored only exception type and budget, losing completed-case and captured-response
 records. Actual model selections/reasons cannot be reviewed; response replay is
-`not_replayable`, not PASS. No new four-case accuracy or narrative-quality result exists.
+`not_replayable`, not PASS. That failed run establishes no four-case accuracy or narrative-quality result.
 Successful-request usage estimates total USD 0.04766; failed usage is unknown and retains
 USD 0.121105 reserve, totaling 0.168765 / 0.90 in budget accounting (not billing).
 Originals 50/predecessors 67 and frozen admission inputs retain their hashes.
@@ -351,6 +351,33 @@ model-comparison stop, secret exclusion and unchanged successful output. Focused
 comparison/import/topology/docs 33/33 and full unittest 1168/1168 pass; no provider calls.
 This does not recover the lost historical responses or establish new Gemini behavior.
 [Repair and verification](../../benchmarks/results/compiler_partial_result_capture_repair_2026-09-09/REPORT.md).
+
+### Current four-case run: declared contracts 4/4, no internal retry
+
+Admission `ccf79e4afc32900e2623c22258df1c9c411f241932263452376b8320a49218a0`
+ran once on clean `fa0cb0b1`, runtime `62c9be4b`. Same four inputs/order/model/settings:
+five Gemini 2.5 Pro calls, no retry or API failure, 60.771s, estimated USD 0.106385375 / 0.90.
+All five responses ended STOP and parsed. Approval exhausted; no additional provider calls.
+
+- Ultium explicitly withholds the prior-period source on its first response. This is an
+  expected unresolved output, not proof of absence across the complete filing.
+- KB preserves the exact two reviewed cells, 18.08% and 15.50%, with final missing IDs empty.
+- NAV and CEL each use two first-response evidence bindings; code derives selected IDs.
+  Assistant source comparison finds both requested themes supported. CEL omits finer
+  liquidity controls, so this is not exhaustive completeness or a calibrated judge score.
+
+The aggregate is four declared contracts, not four completed answers or a full-agent/ledger/
+release result. Stored narrative semantic-review flags remain pending. One trace-only gap
+remains: KB's first island marks another island's output missing; its stale sentence remains
+in merged rationale after the second island correctly resolves that output. No numeric or
+selected-evidence failure was observed, and this run does not authorize changing that seam.
+
+[Result and claim limits](../../benchmarks/results/compiler_partial_capture_admission_2026-09-09/RESULT.md),
+result SHA `313d41611dcdbc5b1810a2c4c50425698dba0387126104077edb044b8eadafa3`.
+Socket-blocked saved-response replay reproduces programs/outputs/evidence/prompt records
+and SDK request bytes; receipt `3b8b4f7d...9d83`. Original 50/predecessor 90 hashes match.
+No runtime/store/dataset/evaluator edit or automatic rerun. Actual terminal-error capture
+was not exercised live because this run had no provider error; its evidence stays local/mock.
 
 ## Validation receipts
 
