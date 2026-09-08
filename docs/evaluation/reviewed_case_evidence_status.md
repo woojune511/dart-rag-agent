@@ -235,41 +235,57 @@ This is not an unbiased holdout or retrieval/planner/compiler/answer-quality eva
 The [predecessor source review](../../benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md)
 remains immutable (`e5d04ca0...c182`). Compiler semantic selection/synthesis is the next boundary.
 
-### Eight-question compiler admission: pending separate approval
+### Eight-question compiler run: 4 pass, 1 fail, 3 unexecuted
 
-[Admission and exact manifest SHA](../../benchmarks/results/new_question_compiler_admission_2026-09-09/README.md)
-freeze the eight diagnostic questions in the same order, their audited manual requirements
-and complete repaired catalogs. Current cohorts are rebuilt, not imported as authority.
-Source-picked windows are favorable inputs, not an unbiased holdout or retrieval/planner evidence.
+[Result and bounded diagnosis](../../benchmarks/results/new_question_compiler_admission_2026-09-09/RESULT.md):
+manifest `5193fdfddc324c90cb994804351ee9daab35a0dc49797bee55c26be7b6b1ed59`
+was approved and executed once on clean `f58f8fe0`. The fixed source-picked questions/manual
+requirements are not an unbiased holdout or retrieval/planner/full-agent evidence.
 
-- Gemini 2.5 Pro, temperature 0, inclusive output cap 4096 / thinking budget 1024,
-  SDK retries 0, one runner attempt; 9 initial islands and at most 18 calls including
-  the existing one retry per island. Stop after a failed question or admission denial.
-- Fresh source-derived offline witnesses pass **8/8 declared contract expectations**.
-  Real SDK framing/schema rehearsal makes 10 mocked calls: Ultium's deliberate
-  abstention takes its existing internal retry. No provider request was sent.
-- Five numeric cases keep exact source-set/value/formula checks. Ultium must leave
-  the standalone amount unresolved in these inspected sources; group/prior values
-  are not accepted replacements, and blank does not mean zero or filing-wide absence.
-- The two narrative-only cases accept different runtime-valid evidence combinations.
-  Their **semantic review stays pending** even when contract checks pass. Exact wording
-  and one witness ID set are not a correctness oracle; hidden IDs remain rejected.
-  Only the ops harness gained this opt-in mode and declared abstention alternatives;
-  runtime/validator/evaluator policies, numeric defaults and old artifacts are unchanged.
-- [Official standard pricing](https://ai.google.dev/gemini-api/docs/pricing), checked
-  2026-09-09: estimated USD **0.2522625**, retry planning **0.995605**, proposed cap **1.50**.
-  Full-reservation SDK simulation charges **1.197425** for its 10 fake responses; this
-  is not expected usage. Pre-dispatch reservations can stop a later call/retry before
-  transmission; there is no in-flight cancellation or invoice guarantee.
-- No retrieval, planner, evaluator, embedding, ingest, source-store access or write in
-  the admitted run. Thirty-second foreground monitoring, immutable outputs and a
-  single-use approval claim remain required. Offline witnesses/reviews are never sent.
-- Ops/admission/capture/budget tests **50/50**; audit and import/topology/docs gates pass.
-  The previous runtime integration suite remains **1,128/1,128** at the source-repair build;
-  this preparation changes only the ops expectation seam, not FinancialAgent behavior.
+| Executed case | Outcome |
+| --- | --- |
+| NEW_DIRECT_01 | PASS: reviewed KB cash/deposit cell, 29,836,311백만원 |
+| NEW_DIRECT_02 | PASS: reviewed LG operating cash flow cell, 4,444,179백만원 |
+| NEW_CALC_01 | PASS: reviewed NAV annual revenue inputs and 17.6466055759% growth |
+| NEW_CALC_02 | PASS: reviewed Celltrion revenue/profit inputs and 29.9334673645% margin |
+| NEW_CONTEXT_01 | FAIL: current Ultium-and-others group 369,577백만원 used for a standalone target |
 
-Only source-picked compiler behavior can be evaluated by this run. It cannot establish
-full-agent completeness, ledger integrity, generalization or narrative answer quality.
+The first-failure policy stopped the runner. NEW_CONTEXT_02 and both narrative cases
+were **not executed**; narrative quality remains unmeasured. Approval is exhausted.
+Five Pro calls, no internal/SDK retries, all responses STOP and parsed, 61.157s.
+There was no 429 or budget denial. Fixed-rate usage estimate: **USD 0.104876375**,
+or **0.118535** without cache discount, below the approved 1.50 cap; billing unobserved.
+
+The failing prompt retained the group column label and the attached note naming
+additional entities. The model explicitly chose that group in its rationale. This
+is not a demonstrated loss of those context fragments. The standalone current cell
+is blank in the inspected source; the prior standalone amount cannot substitute.
+Abstention applies to these sources, not a claim of absence throughout the filing.
+
+The authority gap is observable in code: structured subject surfaces omit column headers
+(they enter metric surfaces), leaving this candidate subject `unknown` / applicability
+`unknown_only`. Semantic-target validation rejects explicit conflicts only, while the
+separate direct-subject check reads an empty `scope.segment` and is `not_required` here.
+Thus validator `ready`, executor `ok`, errors 0 still admit the semantic scope substitution.
+The local source-review oracle caught it; no runtime contract was weakened or patched.
+
+Socket-blocked replay of the actual captured responses reproduces all five programs,
+validation/execution/checks/islands, prompt/response records and actual SDK request
+hashes/bytes. Replay PASS means fidelity to the **failed** live run, not answer PASS.
+Original/store/dataset files **50**, predecessor files **19**, and frozen admission inputs
+remain unchanged; extra provider calls and store writes 0.
+[Result JSON](../../benchmarks/results/new_question_compiler_admission_2026-09-09/result.json)
+SHA `77f0c0327c70496b77a616f65ebee45d731dad1aa8d68b98d5f20aeb67f4f6bf`;
+[replay receipt](../../benchmarks/results/new_question_compiler_admission_2026-09-09/post_run_review.json)
+SHA `8578c966a89ab5348b357d8c6e55b03375078d60d69a2ad38b5efc3a2842b957`.
+
+Next is a provider-free row/column subject and aggregation-applicability contract
+regression, not a paid retry or a unit/ranking bonus. Narrative ops expectations still
+allow alternative runtime-valid evidence with semantic review pending; numeric defaults
+remain exact. Preparation passed ops tests 50/50, import/topology/docs 24/24 and two
+byte-identical no-call rehearsals, without predicting this model-selection outcome.
+The preceding runtime integration suite was 1,128/1,128. No synchronized full-agent,
+ledger, generalization or release pass is established by this diagnostic run.
 
 ## Validation receipts
 
