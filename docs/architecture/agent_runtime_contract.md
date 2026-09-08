@@ -178,7 +178,7 @@ periods, units, assertions, explicit coupling and physical-row contracts remain 
 Physical table identity namespaces report-local `table_source_id` by explicit receipt/document ID before row/cell dedupe.
 Raw parser IDs remain provenance; qualified IDs bind bundles, context checks, prompt and execution evidence. New table candidate IDs change; old artifacts do not.
 Anonymous legacy tables use report scope plus content, not chunk order; indistinguishable anonymous copies cannot prove distinct filings. Hash algorithms stay intact.
-`document_company` is not a value's local subject. Row headers/local entity surfaces remain provenance and applicability; a scope witness cannot cross known filing identity.
+`document_company` is not a value's local subject; a scope witness cannot cross known filing identity. For numeric cells with explicit `local_subjects`, direct bindings, required inputs (inheriting the parent target when absent) and source displays require complete query-declared identity in their own row/column axes. Case/spacing/parser-footnote differences are ignored, not punctuation or semantic qualifiers. An expanded descendant cannot borrow its parent's identity. Partial names/unknown aliases stay unresolved, not established equivalence; `candidate_subject_unresolved` requests the same-cohort retry without candidate exclusion. Context/compatibility/soft scope overrides cannot replace cell identity. Unspecified local subjects, prose assertions and multi-source narratives retain their existing contracts.
 
 When two or more direct outputs have the same explicit local subject, compatible
 declared scope, and at least one physical row containing a compatible candidate

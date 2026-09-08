@@ -63,6 +63,54 @@ def _compact(value: Any) -> str:
     )
 
 
+def declared_local_subjects(
+    owner: Mapping[str, Any],
+    parent_owner: Optional[Mapping[str, Any]] = None,
+) -> Tuple[str, ...]:
+    """Query-declared spellings only; a filing company is not a local subject."""
+    return _ordered_surfaces(
+        dict(owner.get("semantic_target") or {}).get("local_subjects")
+        or dict((parent_owner or {}).get("semantic_target") or {}).get("local_subjects")
+    )
+
+
+def _subject_identity_key(value: str) -> str:
+    # Whitespace/case and parser annotations are presentation, but punctuation
+    # joining names and semantic qualifiers may change the represented entity.
+    return "".join(strip_financial_label_annotations(value).casefold().split())
+
+
+def structured_subject_evidence(
+    candidate: Mapping[str, Any], subjects: Sequence[str],
+) -> Dict[str, Any]:
+    """Ground a complete declared subject in this cell's own row/column axes.
+
+    Containment is not equivalence. Unknown abbreviations/expanded labels stay
+    unresolved instead of being classified as a different entity or discarded.
+    """
+    wanted = {_subject_identity_key(value) for value in subjects} - {""}
+    paths = (
+        ("candidate_row_identity", _ordered_surfaces(
+            candidate.get("row_headers") or [candidate.get("row_label")],
+        )),
+        ("candidate_column_identity", _ordered_surfaces(candidate.get("column_headers"))),
+    )
+    matches: list[Tuple[str, str]] = []
+    shadowed = False
+    for source, surfaces in paths:
+        keys = [_subject_identity_key(surface) for surface in surfaces]
+        for index, (surface, key) in enumerate(zip(surfaces, keys)):
+            if key not in wanted:
+                continue
+            # A narrower descendant label cannot borrow its parent's identity.
+            if any(later and later not in wanted and key in later for later in keys[index + 1:]):
+                shadowed = True
+            else:
+                matches.append((source, surface))
+    source, subject = matches[-1] if matches and not shadowed else ("candidate_cell_axes", "")
+    return {"state": "match" if subject else "unknown", "subject": subject, "source": source}
+
+
 def _identity_matches(expected: str, observed: str) -> bool:
     left = _compact(strip_financial_label_annotations(expected))
     right = _compact(strip_financial_label_annotations(observed))
@@ -389,6 +437,7 @@ def project_candidate_fact(candidate: Mapping[str, Any]) -> CandidateFactViewV1:
             *(row.get("local_entity_surfaces") or []),
             row.get("row_label"),
             *(row.get("row_headers") or []),
+            *(row.get("column_headers") or []),
             row.get("segment"),
         ]
     )
@@ -540,6 +589,12 @@ def build_candidate_matches(
     target = resolve_owner_target(owner, parent_owner=parent_owner)
     owner_kind = str(owner.get("kind") or (parent_owner or {}).get("kind") or "")
     facts = [project_candidate_fact(candidate) for candidate in catalog]
+    declared_subjects = declared_local_subjects(owner, parent_owner)
+    strict_subject_by_id = {
+        str(candidate.get("candidate_id") or ""): structured_subject_evidence(candidate, declared_subjects)
+        for candidate, fact in zip(catalog, facts)
+        if declared_subjects and fact.structured and fact.kind == "numeric"
+    }
     if not target.local_subjects:
         declared_metric_surfaces = _ordered_surfaces([
             *target.concept_aliases,
@@ -578,15 +633,24 @@ def build_candidate_matches(
         if grounded_subjects:
             target = replace(target, local_subjects=grounded_subjects)
     matching_rows_by_table: Dict[str, set[str]] = {}
+
+    def subject_matches(fact: CandidateFactViewV1) -> bool:
+        if fact.candidate_id in strict_subject_by_id:
+            return strict_subject_by_id[fact.candidate_id]["state"] == "match"
+        surfaces = fact.subject_surfaces if fact.structured else _ordered_surfaces(
+            [*fact.subject_surfaces, *fact.text_metric_surfaces],
+        )
+        return any(
+            _identity_matches(expected, observed)
+            for expected in target.local_subjects
+            for observed in surfaces
+        )
+
     if target.local_subjects:
         for fact in facts:
             if not fact.physical_table_id or not fact.physical_row_id:
                 continue
-            if any(
-                _identity_matches(expected, observed)
-                for expected in target.local_subjects
-                for observed in fact.subject_surfaces
-            ):
+            if subject_matches(fact):
                 matching_rows_by_table.setdefault(fact.physical_table_id, set()).add(
                     fact.physical_row_id
                 )
@@ -600,20 +664,9 @@ def build_candidate_matches(
         if scope_state not in {"compatible", "unknown_only", "explicit_conflict"}:
             scope_state = "unknown_only"
 
-        subject_surfaces = (
-            fact.subject_surfaces
-            if fact.structured
-            else _ordered_surfaces(
-                [*fact.subject_surfaces, *fact.text_metric_surfaces]
-            )
-        )
         if not target.local_subjects:
             subject_state, subject_rank = "unspecified", 2
-        elif any(
-            _identity_matches(expected, observed)
-            for expected in target.local_subjects
-            for observed in subject_surfaces
-        ):
+        elif subject_matches(fact):
             subject_state, subject_rank = "match", 3
         elif (
             fact.structured

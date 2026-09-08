@@ -12,6 +12,8 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from src.agent.financial_candidate_matching import (
     build_candidate_matches,
+    declared_local_subjects,
+    structured_subject_evidence,
     select_source_defined_physical_row_group,
 )
 from src.agent.financial_answer_slots import (
@@ -389,6 +391,19 @@ def _direct_subject_resolution(
 ) -> Dict[str, Any]:
     """Resolve a direct value's subject only from validation-owned evidence."""
 
+    subjects = declared_local_subjects(obligation)
+    if subjects and (
+        candidate.get("physical_table_id")
+        or candidate.get("candidate_kind") in _ROW_LOCAL_NUMERIC_CANDIDATE_KINDS
+    ):
+        resolution = structured_subject_evidence(candidate, subjects)
+        return {
+            **resolution,
+            "source_row_ids": _clean_source_row_ids([
+                candidate.get("candidate_id"), candidate.get("source_row_id"), candidate.get("evidence_id"),
+            ]) if resolution["state"] == "match" else [],
+        }
+
     wanted_surface = _normalise_spaces(
         str((obligation.get("scope") or {}).get("segment") or "")
     )
@@ -418,7 +433,7 @@ def _direct_subject_resolution(
         elif not isinstance(raw_row_headers, Sequence):
             raw_row_headers = []
         local_surfaces: List[str] = []
-        for value in (candidate.get("row_label"), *raw_row_headers):
+        for value in (candidate.get("row_label"), *raw_row_headers, *(candidate.get("column_headers") or [])):
             cleaned = strip_financial_label_annotations(str(value or ""))
             if cleaned and cleaned.lower() != "unknown" and cleaned not in local_surfaces:
                 local_surfaces.append(cleaned)
@@ -1110,6 +1125,26 @@ def validate_semantic_calculation_program(
 
     match_cache: Dict[str, Dict[str, Any]] = {}
 
+    def numeric_subject_is_grounded(
+        candidate: Mapping[str, Any], owner: Mapping[str, Any],
+        obligation_id: str, owner_id: str, location: str,
+        parent_owner: Optional[Mapping[str, Any]] = None,
+    ) -> bool:
+        subjects = declared_local_subjects(owner, parent_owner)
+        structured = candidate.get("physical_table_id") or candidate.get("candidate_kind") in _ROW_LOCAL_NUMERIC_CANDIDATE_KINDS
+        if not subjects or not structured or candidate.get("kind") != "numeric":
+            return True
+        if structured_subject_evidence(candidate, subjects)["state"] == "match":
+            return True
+        error(
+            "candidate_subject_unresolved", obligation_id,
+            "Complete local subject not established by this cell's row/column identity; "
+            "partial names do not establish equivalence.",
+            owner_id=owner_id, candidate_id=str(candidate.get("candidate_id") or ""),
+            location=location, repair_action="repair_program",
+        )
+        return False
+
     def candidate_has_semantic_conflict(
         candidate_id: str,
         owner_id: str,
@@ -1221,6 +1256,10 @@ def validate_semantic_calculation_program(
             error("candidate_semantic_target_mismatch", obligation_id, candidate_id,
                   candidate_id=candidate_id, location="direct_binding",
                   repair_action="replace_candidate")
+            invalid = True
+        if candidate and obligation and not numeric_subject_is_grounded(
+            candidate_by_id[candidate_id], obligation, obligation_id, obligation_id, "direct_binding",
+        ):
             invalid = True
         if obligation and str(obligation.get("kind") or "") != "direct_value":
             error("non_direct_obligation_has_direct_binding", obligation_id)
@@ -1336,7 +1375,11 @@ def validate_semantic_calculation_program(
                         ]
                     ),
                 }
-            if subject_checked and subject_state != "match" and not subject_bridge_ready:
+            explicit_cell_subject = bool(declared_local_subjects(obligation)) and (
+                candidate.get("physical_table_id")
+                or candidate.get("candidate_kind") in _ROW_LOCAL_NUMERIC_CANDIDATE_KINDS
+            )
+            if subject_checked and subject_state != "match" and not subject_bridge_ready and not explicit_cell_subject:
                 error("candidate_subject_mismatch", obligation_id, "segment",
                       candidate_id=candidate_id, location="direct_binding",
                       repair_action="replace_candidate" if _direct_subject_resolution(candidate_by_id[candidate_id], obligation)["state"] == "conflict" else "repair_program")
@@ -1622,6 +1665,11 @@ def validate_semantic_calculation_program(
                                 )
                                 invalid = True
                             bound_requirement_ids.add(source_requirement_id)
+                            if not numeric_subject_is_grounded(
+                                candidate_by_id[source_id], requirement, obligation_id, source_requirement_id,
+                                "expression_input", parent_owner=obligation,
+                            ):
+                                invalid = True
                             for detail in _scope_errors(
                                 candidate,
                                 {"scope": dict(requirement.get("scope") or {})},
@@ -1709,6 +1757,10 @@ def validate_semantic_calculation_program(
                     "source_display.context_bindings", bindings_key="source_display_context_bindings",
                     resolution_key="source_display_context_resolution")
                 if not context_valid:
+                    continue
+                if not numeric_subject_is_grounded(
+                    candidate_by_id[display_id], obligation or {}, obligation_id, obligation_id, "source_display",
+                ):
                     continue
                 display_scope_errors = _scope_errors(
                     display_candidate,

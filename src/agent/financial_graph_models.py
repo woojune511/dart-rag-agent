@@ -97,7 +97,8 @@ class SemanticTargetV1(_DeferredBaseModel):
     local_subjects: List[str] = Field(
         default_factory=list,
         description=(
-            "Entities whose local row or sentence is requested. These are distinct "
+            "Entities whose local row, column or sentence is requested. Preserve complete "
+            "query-written names and aliases, including qualifiers. These are distinct "
             "from the filing company in scope.company."
         ),
     )
