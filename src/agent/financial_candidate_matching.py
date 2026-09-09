@@ -690,7 +690,8 @@ def build_candidate_matches(
 
         if owner_kind == "narrative":
             owner_kind_state = "narrative" if fact.kind == "narrative" else "structured_fact"
-            owner_kind_rank = 2 if fact.kind == "narrative" else 1
+            # A physical row is reading evidence even when its carrier is numeric.
+            owner_kind_rank = 2 if fact.kind == "narrative" or fact.structured else 1
         else:
             owner_kind_state = "numeric" if fact.kind == "numeric" else "context"
             owner_kind_rank = 2 if fact.kind == "numeric" else 1

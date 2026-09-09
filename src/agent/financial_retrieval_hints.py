@@ -14,6 +14,7 @@ from src.config.retrieval_policy import (
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
     FINANCIAL_NUMERIC_STATEMENT_HINT_POLICIES,
     FINANCIAL_SEGMENT_SECTION_HINT_POLICY,
+    QUERY_FOCUS_MARKER_POLICY,
     active_narrative_policies,
     active_numeric_section_hint_policies,
     narrative_policy_preferred_sections,
@@ -216,6 +217,8 @@ def evidence_extraction_focus_terms(query: str) -> List[str]:
             if len(normalized) < 2 or normalized in stopwords:
                 continue
             if re.fullmatch(r"\d+(?:\.\d+)?", normalized):
+                continue
+            if re.fullmatch(str(QUERY_FOCUS_MARKER_POLICY["year_pattern"]), normalized):
                 continue
             if normalized not in terms:
                 terms.append(normalized)

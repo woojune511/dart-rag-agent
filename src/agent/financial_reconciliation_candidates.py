@@ -1612,6 +1612,33 @@ def _structured_source_candidates(
 
     projected: List[Dict[str, Any]] = []
     seen_source_ids: set[str] = set()
+
+    def preserve_unrepresented_rows() -> None:
+        # The parser already locates non-scalar rows as exact XML contexts.
+        # Promote those reading sources without reconstructing cells or numbers.
+        represented_text = {
+            "".join(str(item["metadata"].get("row_text") or "").replace(" | ", "").split())
+            for item in projected if item["candidate_kind"] == "table_row"
+        }
+        for context in projection_metadata.get("source_contexts") or []:
+            row_text = str(context.get("source_text") or "")
+            locator = str(context.get("source_locator") or "")
+            if (context.get("relation") != "table_text_row" or not locator or not row_text.strip()
+                    or "".join(row_text.split()) in represented_text):
+                continue
+            physical_row_id = f"xml_row_{_stable_material_digest(locator)}"
+            physical_row_key = f"{table_id}::row:{physical_row_id}"
+            source_id = f"table_{_stable_material_digest(table_id)}::row_{_stable_material_digest(physical_row_key)}"
+            projected.append(_semantic_source_candidate(
+                candidate_id=source_id, source_anchor=source_anchor, text=row_text,
+                metadata={**projection_metadata, "row_id": physical_row_id,
+                    "source_row_id": physical_row_key, "physical_row_id": physical_row_id,
+                    "physical_row_key": physical_row_key, "row_label": "", "row_headers": [],
+                    "row_text": row_text, "structured_cells": [],
+                    "source_context_provenance": dict(context)},
+                candidate_kind="structured_row", evidence_id=table_id, origin_source_id=origin_source_id,
+            ))
+
     for row_index, row in enumerate(rows):
         row_headers = _normalized_string_list(row.get("row_headers"))
         row_label = _normalise_spaces(str(row.get("row_label") or ""))
@@ -1875,6 +1902,7 @@ def _structured_source_candidates(
             )
 
     if rows or value_records:
+        preserve_unrepresented_rows()
         return projected
 
     pipe_rows = [
@@ -1937,6 +1965,7 @@ def _structured_source_candidates(
                 origin_source_id=origin_source_id,
             )
         )
+    preserve_unrepresented_rows()
     return projected
 
 
@@ -2031,7 +2060,13 @@ def build_semantic_source_candidates(
             text=text,
             metadata=metadata,
         )
-        if projected_candidates:
+        # Supplemental reading rows must not switch an existing chunk's scalar
+        # extraction path or its absolute source spans/IDs.
+        has_row_projection = any(
+            item["metadata"].get("source_context_provenance", {}).get("relation") != "table_text_row"
+            for item in projected_candidates
+        )
+        if has_row_projection:
             _preserve_row_context(projected_candidates, text=text, source_id=candidate_id)
             candidates.extend(_preserved_prose_sources(
                 text=text, source_id=candidate_id, source_anchor=anchor, metadata=metadata,
@@ -2341,6 +2376,7 @@ def build_semantic_candidate_catalog(
                 source_bundle_context_span=[0, len(projected_row_text)],
             )
 
+        has_numeric_cells = False
         for cell_index, cell in enumerate(cells):
             raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
             if not raw_value or not re.search(r"\d", raw_value):
@@ -2352,6 +2388,7 @@ def build_semantic_candidate_catalog(
             normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
             if normalized_value is None:
                 continue
+            has_numeric_cells = True
             value_year = _candidate_value_year(cells, cell_index, metadata)
             period, source_period_surface, period_source = _candidate_period_projection(
                 cell,
@@ -2495,11 +2532,16 @@ def build_semantic_candidate_catalog(
                 )
             )
 
-        if source_text and candidate_kind in {
+        reading_only_row = (
+            candidate_kind in {"structured_row", "structured_value", "table_row", "evidence_row"}
+            and bool(base_record["physical_table_id"] and base_record["physical_row_id"])
+            and not has_numeric_cells
+        )
+        if source_text and (reading_only_row or candidate_kind in {
             "chunk",
             "evidence",
             "table_context",
-        }:
+        }):
             narrative_payload = {
                 "kind": "narrative",
                 "source_candidate_id": source_candidate_id,

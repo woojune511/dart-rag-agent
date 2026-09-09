@@ -13,6 +13,8 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
+from src.utils.provider_errors import ProviderAdmissionError
+
 from src.agent.financial_graph_model_loaders import (
     compression_output_model,
     evidence_extraction_model,
@@ -1806,10 +1808,6 @@ class FinancialAgentEvidenceMixin:
             for fragment in fragments:
                 if any(marker in fragment for marker in preferred_markers):
                     return fragment[:clause_max_chars]
-        preferred_period_markers = tuple(str(item) for item in (policy.get("preferred_policy_period_markers") or ()) if str(item))
-        for fragment in fragments:
-            if preferred_period_markers and all(marker in fragment for marker in preferred_period_markers):
-                return fragment[:clause_max_chars]
         return surface[:clause_max_chars]
 
     def _compose_dividend_policy_hybrid_answer(
@@ -1918,13 +1916,6 @@ class FinancialAgentEvidenceMixin:
                 clause = self._extract_dividend_policy_clause(combined_text, preferred_markers=policy_preferred_terms)
                 if clause:
                     policy_score = 0.0
-                    preferred_period_markers = tuple(str(item) for item in (dividend_policy.get("preferred_policy_period_markers") or ()) if str(item))
-                    stale_period_markers = tuple(str(item) for item in (dividend_policy.get("stale_policy_period_markers") or ()) if str(item))
-                    preferred_period_hit = bool(preferred_period_markers) and all(marker in clause for marker in preferred_period_markers)
-                    if preferred_period_hit:
-                        policy_score += 5.0
-                    if stale_period_markers and all(marker in clause for marker in stale_period_markers) and not preferred_period_hit:
-                        policy_score -= 2.0
                     if any(marker in clause for marker in regular_terms):
                         policy_score += 2.0
                     if any(marker in clause for marker in additional_return_terms):
@@ -2262,6 +2253,8 @@ class FinancialAgentEvidenceMixin:
                 "evidence_items": evidence_items,
                 "evidence_status": result.coverage,
             }
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
             logger.warning("Evidence extraction failed; preserving missing evidence: %s", exc)
             return {
@@ -2342,6 +2335,8 @@ class FinancialAgentEvidenceMixin:
                 "draft_points": compressed.draft_points,
                 "compressed_answer": compressed_answer,
             }
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
             logger.warning("Compression structured output failed, using fallback text output: %s", exc)
             chain = prompt | compression_llm | str_output_parser()
@@ -2470,6 +2465,8 @@ class FinancialAgentEvidenceMixin:
             validated_text = str(normalized_result.pop("answer", "") or "")
             normalized_result["validated_sentences"] = [validated_text] if validated_text else []
             return normalized_result
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
             logger.warning("Validation structured output failed, using fallback text output: %s", exc)
             validated_answer = (validator_prompt | validation_llm | str_output_parser()).invoke(

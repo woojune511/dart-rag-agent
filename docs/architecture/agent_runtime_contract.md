@@ -9,11 +9,11 @@ Superseded designs belong in [implementation history](../history/implementation_
 
 The single-agent `FinancialAgent` uses an LLM to interpret intent and evidence.
 Code owns arithmetic, unit conversion, dependency binding, candidate authority,
-dedupe, ordering, validation, and ledger integrity.
+dedupe, ordering, validation, and ledger integrity. Every intent uses required-output planning and the source-bundle compiler; intent or presentation cannot skip coverage. Narrative topics and requested source hierarchy remain explicit requirements.
 
 Company names, benchmark IDs, expected answers, report-specific phrases, and metric
 recipes may not control routing, retrieval, selection, compilation, execution, or
-rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data.
+rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data; fixed-year priorities and case-specific routing examples are not generic domain priors.
 
 Evidence is authoritative over generated text. Numeric answers require registered
 candidates and validated program bindings. Source and calculated displays may
@@ -21,7 +21,7 @@ coexist, but their provenance must remain distinct.
 
 Normalization and rendering share `UnitSpecV1`: source numbers multiply by its scale;
 calculated displays divide by it. Direct values preserve source units/signs/precision;
-non-finite values cannot yield slots, and precision comparisons use base units.
+non-finite values cannot yield slots, and precision comparisons use base units. Formula literals exclude booleans/overflow; scalar function arity is validated, with variable names independent of function positions.
 Table-unit projection preserves inline and explicit column/annotated-row units (not bare row categories); conflicting axes stay unknown. Otherwise policy column labels select only among units declared in attached preceding/caption context.
 Ambiguous mixed-unit cells never inherit the first table unit. `source_unit_hint` stays in identity/provenance; exact declarations/header evidence reach prompt and operands as `source_unit_provenance`. Original row quotes stay intact; synthesized row text uses effective units within the existing bound.
 Corrected effective units change catalog-content fingerprints, not candidate IDs or hash algorithms; V2 binds the complete projection. Store/parser payloads and historical artifacts are not rewritten.
@@ -112,7 +112,7 @@ Non-temporal headers stay in `source_period_surface`/`column_headers`, not `peri
 Narratives may use filing-year document scope, but that scope cannot bridge a numeric period. A numeric period witness needs located period evidence and the same source context; missing period evidence requests program repair, not candidate exclusion.
 
 The complete immutable candidate catalog is projected into generic fact views.
-Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Document-company matches are diagnostic only; filing scope rejects conflicts but adds no implicit value-subject bonus.
+Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Prose and structured rows have equal narrative reading eligibility in both evidence modes; source-defined grouping remains separate. Document-company matches are diagnostic only; filing scope rejects conflicts but adds no implicit value-subject bonus.
 Repeated words do not accumulate additive relevance or compensate for conflicts. Legacy subject inference must not promote a fragment of a declared concept alias/metric surface into a local entity; explicit local subjects remain authoritative.
 Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are excluded. Exact row/cell metric matches precede containment-only matches as ordinal tiers, not additive scores. Comparison keys remove parser footnotes, never semantic qualifiers; empty keys cannot match. Source axes, IDs and catalog fingerprints stay intact. Equal tiers remain deterministic and source-diverse.
 
@@ -120,7 +120,7 @@ Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are
 exact contiguous text, member IDs and local value spans. Same-source sentence values share a bundle.
 Long sentences split into maximal consecutive value-span groups within 420 characters; each window
 covers every member without cutting adjacent numeric spans or normalizing bytes. Each value has one window.
-Table bundles share a physical table/row and retain row headers/cell provenance. Parser v2 uses leading THEAD/all-TH structure before row-text inference; text body rows are not promoted to headers. Table-attached paragraphs
+Table bundles share a physical table/row and retain row headers/cell provenance. Rows without a normalizable scalar remain reading-only narrative evidence; parser-located text-row contexts supply independent row readings when scalar records omit them. Existing numeric carriers also serve narratives, without duplicate reading candidates or relaxed scalar validation. Parser v2 uses leading THEAD/all-TH structure before row-text inference; text body rows are not promoted to headers. Table-attached paragraphs
 also retain separate prose slices; table cells and metadata prefixes are not re-extracted as prose values.
 Uniquely located numeric rows may carry adjacent textual rows within 420 characters, with exact source ID/span
 in `source_context_provenance`. Context is not a new cell/role; it may supply existing text-match factors.
@@ -134,7 +134,7 @@ bundle's source text appears once per compiler payload, even across owners.
 
 `semantic_program_candidate_payload_v6` stores source text once in `source_bundles_by_id` and located document fragments once in `source_contexts_by_id`. Compiler JSON framing is compact; source strings, fields, provenance and assertion spans remain exact.
 Table bundles reference context IDs/relations; parser payloads retain full ancestor titles, captions, adjacent blocks and textual table rows, file SHA, XML locator and exact decoded-XML-text span (not raw HTML byte offsets). Each fragment is bounded to 1200 characters, each table to 4800; adjacency is not applicability.
-Contexts attach before cohort matching, without rewriting cells/IDs/catalog fingerprints. Existing factor matching may read headings/captions/preceding context; no additive score or model call is added. Owner authority still applies.
+Contexts attach before cohort matching without rewriting existing cells/IDs. Newly admitted row readings add IDs and change the full catalog fingerprint, not its hash algorithm or existing numeric records. Existing factor matching may read headings/captions/preceding context; no additive score or model call is added. Owner authority still applies.
 Direct/variable `context_bindings` and expression `source_display_context_bindings` cite attached context IDs and exact quotes for interpreted period/consolidation/segment/basis. Validator checks attachment, quote, known period consistency and explicit candidate conflicts; semantic applicability remains the compiler's responsibility. A binding-local `context_resolution` reaches execution/trace without changing raw catalog scope. Context errors repair the same cohort; accepted island bindings stay unchanged.
 
 When the compiler selects a prose `sentence_value` as a direct binding,
@@ -213,8 +213,8 @@ the same change; long-lived dual-write is forbidden.
 Intermediate nodes do not write `tasks`, `artifacts`, or the final answer.
 Numeric execution returns calculation rows, display slots, and evidence;
 narrative validation returns supported sentences and evidence.
-`assemble_ledger` records the already completed public answer, structured result,
-trace, and narrative source material as one `LedgerSnapshot`.
+`assemble_ledger` records the finalized public answer, structured result,
+trace, and narrative source material as one `LedgerSnapshot`. Aggregate status follows public `structured_result.status`; partial/incomplete results are not completed tasks. Ledger integrity is structural, not semantic completeness.
 `assemble_final` is the only graph node that assembles answer, citations, and
 structured result. The checked node/edge list is generated in
 [runtime_flow_roles.md](../overview/runtime_flow_roles.md).
@@ -225,14 +225,14 @@ typed results and telemetry without modifying answers, citations, or evidence.
 
 Google phase routes forward explicit `max_output_tokens`, `thinking_budget`,
 `provider_client_retries`, and `include_thoughts` to the SDK; zero/false must survive.
-Omitted controls retain defaults. Zero retries permit only the initial HTTP attempt. `ProviderAdmissionError` is terminal, not a compiler/schema failure: preserve its first cause and propagate without semantic retry or an evidence-insufficiency program.
+Omitted controls retain defaults. Zero retries permit only the initial HTTP attempt. `ProviderAdmissionError` is terminal across planning, routing, search, context generation and compiler/evidence helpers: propagate its first cause without fallback, another call or an evidence-insufficiency program.
 
 Each answer obligation is a vertex. Islands connect only through a dependency on
 another user-visible answer obligation, a shared non-empty `coupling_key`, or an
 inferred evidence-bundle constraint. `depends_on` never names raw inputs; those
 live in `evidence_requirements` and are not vertices. Projection drops an exact
 own-requirement reference only after known answer IDs are resolved. Unknown,
-self, and cyclic dependencies fail before compilation. At most eight islands and
+self, and cyclic dependencies fail before compilation. Every formula dependency must be explicitly declared by its owner, even inside a shared island. At most eight islands and
 all candidate selectable ID unions are preflighted before calls, counting a shared
 ID only once (numeric 96, narrative 32). Owner quota sums are not reservations.
 Every retry candidate replacement also checks the query-wide union, including
@@ -249,7 +249,7 @@ If an evidence-bundle member needs retry, every member is retried together. Cand
 rejection rebuilds bounded cohorts and promotes the next complete row option when needed;
 AST/schema/binding-format repairs retain the active option; an abstaining row stays atomic. Unretried abstentions survive targeted merge.
 
-Retry targets alone remain editable. Their accepted `depends_on` outputs are read-only
+Retry targets and their selected assertions alone remain editable; unrelated retry assertions cannot revoke accepted evidence. Shared assertions retain untouched members and exact quotes. Accepted `depends_on` outputs are read-only
 inputs projected through the same V2-authorized executor, using calculated rather than
 source-display values. Failed execution yields no input. Dependency obligation IDs may
 be bound as sources; attached candidate provenance never widens owner selection authority.
@@ -268,12 +268,12 @@ inside one owner without changing the external graph node or search-result order
 `retrieval_debug_trace` records query bundles, filters, executed and reused
 queries, selected chunks, policy decisions, and degraded mode. Seed evidence may
 be preserved when graph expansion pushes it outside the final window only if it
-satisfies the active operand and provenance contract.
-Search-cache hits preserve the originating retrieval mode and fallback reason.
+satisfies the active operand and provenance contract. Search, supplements, seeds and final selection use one source filter; empty scoped results stay empty, and failures never authorize unfiltered retries. BM25 filters before truncation. Narrative requirements inherit narrative ownership; preferred-format quotas fill remaining capacity from authorized ranked sources.
+Search-cache hits preserve retrieval mode/fallback reason and return owned deep copies. Narrative dedupe requires filing-qualified identity; an unidentified local chunk number cannot merge sources. Parser splitting preserves introductory prose as well as numbered fragments. XML recovery preserves literal ampersand text, predefined/numeric entities, CDATA, comments, processing instructions and quoted attributes. Explicit header/body data tables are not standalone unit hints, even with one small value; prior stored text is not rewritten.
 
 Canonical routing embeddings use a process-wide success cache keyed by canonical
-file SHA-256, provider, model, and dimension. Failed results are never cached and
-their reason is recorded in routing trace.
+file SHA-256, provider, model, and dimension. Unknown identity disables shared caching. Only exact-count, nonempty, finite, nonzero and correctly dimensioned batches are cached; cosine is scale-stable.
+Invalid query vectors and nonterminal failures record degraded reasons; terminal admission errors propagate. Routing prompts use anonymous declarative examples, not inline company examples.
 
 ## 8. Store and ingest v1
 
@@ -297,7 +297,7 @@ Source persistence builds the next graph from a deep copy. It atomically writes
 the union of old/new payloads before replacing the graph, which is the commit
 point; memory publishes only after success. Parents also persist before publish.
 Readers load graph before payload. Missing referenced payloads and all lower
-write failures propagate; old payloads are not automatically garbage-collected.
+write failures propagate, including explicit backend persistence; old payloads are not automatically garbage-collected. Successful graph publication invalidates search caches; failed publication preserves the previous cache snapshot.
 
 Startup and ingest completion check committed graph/vector coverage and payload
 references. Missing or empty payload content and unidentified vector metadata
@@ -325,7 +325,7 @@ query readiness checking, execution, and the response readiness snapshot.
 Readiness failure is HTTP 503, not a wrapped 500. Ingest's finally-readiness
 refresh also runs in its worker and lock. Health only reads the computed state:
 `/api/health/live` is liveness; `/api/health/ready` and `/api/health` are readiness.
-Typed `QueryRequest.report_scope` is forwarded without invented fields.
+Typed `QueryRequest.report_scope` is forwarded without invented fields. Public query/ingest/companies failures expose generic messages and safe error-type/status diagnostics, never arbitrary SDK exception text.
 
 Repository `.env` loads before settings; process environment wins and imports
 do not mutate it. Experimental Streamlit serializes cached services with a

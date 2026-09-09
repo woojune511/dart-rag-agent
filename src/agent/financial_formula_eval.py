@@ -24,9 +24,15 @@ def safe_eval_formula(expression: str, variables: Dict[str, float]) -> float:
         if isinstance(node, ast.Expression):
             return _eval(node.body)
         if isinstance(node, ast.Constant):
-            if isinstance(node.value, (int, float)):
-                return float(node.value)
-            raise ValueError("non-numeric constant")
+            if type(node.value) not in (int, float):
+                raise ValueError("non-numeric constant")
+            try:
+                value = float(node.value)
+            except OverflowError as exc:
+                raise ValueError("non-finite numeric constant") from exc
+            if not math.isfinite(value):
+                raise ValueError("non-finite numeric constant")
+            return value
         if isinstance(node, ast.Name):
             if node.id in variables:
                 return float(variables[node.id])

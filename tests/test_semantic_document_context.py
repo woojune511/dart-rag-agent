@@ -35,7 +35,7 @@ def context_binding(candidate, text="당기 (단위: 백만원)", period="2024")
 
 
 class DocumentContextTests(unittest.TestCase):
-    def test_context_addition_does_not_change_raw_catalog_ids(self):
+    def test_context_addition_preserves_existing_ids_and_adds_text_row_readings(self):
         chunks, catalog = parsed_catalog()
         docs = []
         for chunk in chunks:
@@ -48,8 +48,14 @@ class DocumentContextTests(unittest.TestCase):
         sources = build_semantic_source_candidates({"retrieved_docs": docs},
             source_anchor_builder=lambda m: f"[{m['rcept_no']} | {m['year']} | {m['section_path']}]")
         before = build_semantic_candidate_catalog(sources)
-        self.assertEqual([c["candidate_id"] for c in catalog], [c["candidate_id"] for c in before])
-        self.assertEqual(semantic_candidate_catalog_fingerprint(catalog), semantic_candidate_catalog_fingerprint(before))
+        before_ids = {c["candidate_id"] for c in before}
+        preserved = [c for c in catalog if c["candidate_id"] in before_ids]
+        self.assertEqual([c["candidate_id"] for c in preserved], [c["candidate_id"] for c in before])
+        self.assertEqual(semantic_candidate_catalog_fingerprint(preserved), semantic_candidate_catalog_fingerprint(before))
+        readings = [c for c in catalog if c["candidate_id"] not in before_ids]
+        self.assertEqual(len(readings), 2)
+        self.assertTrue(all(c["kind"] == "narrative" and c["normalized_value"] is None for c in readings))
+        self.assertTrue(all(c["source_context_provenance"]["relation"] == "table_text_row" for c in readings))
 
     def test_parser_preserves_located_ancestors_and_separates_periods(self):
         _, catalog = parsed_catalog()

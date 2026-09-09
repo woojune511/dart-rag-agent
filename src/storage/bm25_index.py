@@ -70,15 +70,17 @@ def collect_bm25_results(
 
     tokenized_query = tokenize_ko(query)
     bm25_scores = bm25.get_scores(tokenized_query)
-    top_n = sorted(range(len(bm25_scores)), key=lambda i: bm25_scores[i], reverse=True)[: k * 3]
+    eligible = (
+        idx for idx in range(len(bm25_scores))
+        if metadata_matches_filter(metadatas[idx] or {}, where_filter)
+    )
+    top_n = sorted(eligible, key=lambda i: bm25_scores[i], reverse=True)[: k * 3]
 
     results: List[Tuple[Document, float]] = []
     for idx in top_n:
         if bm25_scores[idx] <= 0:
             continue
         metadata = metadatas[idx] or {}
-        if not metadata_matches_filter(metadata, where_filter):
-            continue
         doc = _make_document(page_content=docs[idx], metadata=metadata)
         results.append((doc, bm25_scores[idx]))
     return results

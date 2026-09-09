@@ -314,6 +314,10 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
     rows = [row for row in table_text.splitlines() if row.strip()]
     row_count = int(table_object.get("row_count") or 0)
     column_count = int(table_object.get("column_count") or 0)
+    if (table_object.get("header_scope_source") in {"thead", "column_header_cells"}
+            and row_count > int(table_object.get("header_row_count") or 0)):
+        # An explicit header and body define a data table, even with one small value.
+        return None
     statement_title_hint = any(
         keyword in table_text
         for keyword in (
@@ -397,26 +401,47 @@ def _sanitize_xml_like_text(raw: str) -> Tuple[str, int]:
     replacements = 0
     idx = 0
     raw_len = len(raw)
+    invalid_ampersand = re.compile(r"&(?!(?:amp|lt|gt|apos|quot|#[0-9]+|#x[0-9A-Fa-f]+);)")
+    quoted_tag = re.compile(r'''<(?:[^<>"']|"[^"]*"|'[^']*')*>''')
+
+    def preserve_text(text: str) -> str:
+        nonlocal replacements
+        escaped, count = invalid_ampersand.subn("&amp;", text)
+        replacements += count
+        return escaped
 
     while idx < raw_len:
         start = raw.find("<", idx)
         if start < 0:
-            sanitized_parts.append(raw[idx:])
+            sanitized_parts.append(preserve_text(raw[idx:]))
             break
 
-        sanitized_parts.append(raw[idx:start])
-        end = raw.find(">", start + 1)
+        sanitized_parts.append(preserve_text(raw[idx:start]))
+        # These lexical regions already carry literal text, not entity references.
+        terminator = next((end for begin, end in (
+            ("<![CDATA[", "]]>"), ("<!--", "-->"), ("<?", "?>"),
+        ) if raw.startswith(begin, start)), None)
+        if terminator is not None:
+            end = raw.find(terminator, start + 2)
+            end = raw_len if end < 0 else end + len(terminator)
+            sanitized_parts.append(raw[start:end])
+            idx = end
+            continue
+
+        # A greater-than sign inside a quoted attribute does not close its tag.
+        tag = quoted_tag.match(raw, start)
+        end = tag.end() - 1 if tag else raw.find(">", start + 1)
         if end < 0:
-            sanitized_parts.append(raw[start:])
+            sanitized_parts.append(preserve_text(raw[start:]))
             break
 
         candidate = raw[start + 1 : end]
         if _is_probable_xml_markup(candidate):
-            sanitized_parts.append(raw[start : end + 1])
+            sanitized_parts.append(preserve_text(raw[start : end + 1]))
         else:
             replacements += 1
             sanitized_parts.append("&lt;")
-            sanitized_parts.append(candidate)
+            sanitized_parts.append(preserve_text(candidate))
             sanitized_parts.append("&gt;")
         idx = end + 1
 

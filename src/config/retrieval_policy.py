@@ -361,8 +361,6 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
         "impact",
     ),
     "context_stopwords": (
-        "2023년",
-        "2022년",
         "전년",
         "대비",
         "증감률",
@@ -688,6 +686,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "규칙:\n"
             "- kind는 원문 값을 그대로 보여 주는 direct_value, 근거 값으로 계산하는 derived_value, 설명을 요구하는 narrative 중 하나입니다.\n"
             "- 하나의 질문에 여러 값과 설명이 필요하면 obligation을 모두 보존합니다.\n"
+            "- 서술형 질문도 독립적으로 요청된 설명 주제마다 obligation을 보존합니다. 질문이 지정한 원문 절·표·문서 계층은 해당 label과 retrieval_hints에 유지하고, 명시된 주제를 다른 주제의 설명으로 대체하거나 생략하지 마세요. intent와 출력 형식은 이 의무를 생략할 이유가 아닙니다.\n"
             "- 질문이 특정 하위 항목 이름을 열거하지 않고 원문 표의 요약·구성·주요 항목처럼 source schema가 항목을 정하는 묶음을 요청하면 관행적인 표준 항목을 추정해 여러 direct_value obligation으로 만들지 마세요. 그 묶음은 하나의 narrative obligation으로 보존하고, 실제 원문 항목과 값은 검색 후 compiler가 선택하게 하세요. 질문에 명시된 개별 수치만 별도 direct_value 또는 derived_value obligation으로 만듭니다.\n"
             "- 위처럼 원문이 항목을 정하는 narrative 요약은 evidence_mode를 source_defined_group으로 지정하고 evidence_requirements는 비워 두세요. 런타임이 그 obligation의 label·scope·retrieval_hints·concept_hints를 보존한 하나의 필수 원문 그룹 requirement를 만듭니다. evidence_requirements나 검색 힌트에 관행적인 개별 항목을 추정해 넣지 마세요.\n"
             "- obligation_id는 짧고 고유하게 작성합니다. 런타임이 이후 안정 ID로 정규화합니다.\n"
@@ -796,12 +795,6 @@ HELPER_RUNTIME_POLICY: Dict[str, Any] = {
 
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
-        "2021년",
-        "2022년",
-        "2023년",
-        "2024년",
-        "2025년",
-        "2026년",
         "사업보고서",
         "재무제표",
         "연결",
@@ -1057,8 +1050,6 @@ EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
         ),
     },
     "focus_term_stopwords": (
-        "2023년",
-        "2022년",
         "전년",
         "대비",
         "계산",
@@ -1231,8 +1222,6 @@ DIVIDEND_POLICY_ASSEMBLY_POLICY: Dict[str, Any] = {
     "clause_max_chars": 240,
     "year_pattern": r"(20\d{2})년",
     "year_prefix_template": "{year}년 ",
-    "preferred_policy_period_markers": ("2024", "2026"),
-    "stale_policy_period_markers": ("2021", "2023"),
     "payout_priority_section_terms": ("이사의 경영진단",),
 }
 
@@ -1467,7 +1456,6 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         "outflow_terms": ("유출",),
         "table_policy_terms": ("현금배당금총액", "배당성향"),
         "policy_section_terms": ("배당에 관한 사항",),
-        "policy_period_markers": ("2024", "2026"),
         "cash_generation_terms": ("잉여현금흐름", "free cash flow"),
         "payout_amount_patterns": (
             r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d+\s*조(?:\s*\d{1,3}(?:,\d{3})?)?\s*억원)",

@@ -78,8 +78,12 @@ def _formula_body(expression: str) -> ast.AST:
 
 
 def _signed_numeric_constant(node: ast.AST) -> Optional[float]:
-    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
-        return float(node.value)
+    if isinstance(node, ast.Constant) and type(node.value) in (int, float):
+        try:
+            value = float(node.value)
+        except OverflowError:
+            return None
+        return value if math.isfinite(value) else None
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
         value = _signed_numeric_constant(node.operand)
         if value is None:
@@ -105,15 +109,15 @@ def _formula_constants(node: ast.AST) -> List[float]:
 
 
 def _formula_names(node: ast.AST) -> set[str]:
-    function_names = {
-        current.func.id
+    function_nodes = {
+        id(current.func)
         for current in ast.walk(node)
         if isinstance(current, ast.Call) and isinstance(current.func, ast.Name)
     }
     return {
         current.id
         for current in ast.walk(node)
-        if isinstance(current, ast.Name) and current.id not in function_names
+        if isinstance(current, ast.Name) and id(current) not in function_nodes
     }
 
 
@@ -137,14 +141,16 @@ def _formula_ast_allowed(node: ast.AST) -> bool:
     for current in ast.walk(node):
         if not isinstance(current, allowed):
             return False
-        if isinstance(current, ast.Constant) and not isinstance(
-            current.value, (int, float)
-        ):
+        if isinstance(current, ast.Constant) and _signed_numeric_constant(current) is None:
             return False
         if isinstance(current, ast.Call):
             if not isinstance(current.func, ast.Name):
                 return False
             if current.func.id not in _ALLOWED_FUNCTIONS or current.keywords:
+                return False
+            if current.func.id in {"min", "max"} and len(current.args) < 2:
+                # Variables are scalar floats; the iterable single-argument
+                # Python overload cannot execute in this arithmetic language.
                 return False
     return True
 
@@ -1024,6 +1030,13 @@ def validate_semantic_calculation_program(
         }
     )
     errors: List[Dict[str, str]] = []
+    declared_source_owners: Dict[str, set[str]] = {}
+
+    def remember_source_owner(candidate_id: str, obligation_id: str) -> None:
+        # Error attribution only: an invalid binding never grants selection
+        # authority, but its assertion error still belongs to that output.
+        if candidate_id and obligation_id in obligation_by_id:
+            declared_source_owners.setdefault(candidate_id, set()).add(obligation_id)
 
     def error(
         code: str, obligation_id: str = "", detail: str = "", *,
@@ -1219,6 +1232,7 @@ def validate_semantic_calculation_program(
         binding = dict(raw or {})
         obligation_id = str(binding.get("obligation_id") or "").strip()
         candidate_id = str(binding.get("candidate_id") or "").strip()
+        remember_source_owner(candidate_id, obligation_id)
         compatibility_ids = list(
             dict.fromkeys(
                 str(item).strip()
@@ -1495,6 +1509,8 @@ def validate_semantic_calculation_program(
             bindings = [dict(item or {}) for item in expression.get("variable_bindings") or []]
             expression["variable_bindings"] = bindings
             source_ids = [str(item.get("source_id") or "").strip() for item in bindings]
+            for source_id in [*source_ids, str(expression.get("source_display_candidate_id") or "").strip()]:
+                remember_source_owner(source_id, obligation_id)
             unknown = next(
                 (
                     source_id
@@ -1688,6 +1704,16 @@ def validate_semantic_calculation_program(
                         variable_units[variable] = _candidate_dimension(candidate)
                         source_candidates.append(source_id)
                     else:
+                        declared_dependencies = {
+                            str(item or "").strip()
+                            for item in (obligation or {}).get("depends_on") or []
+                        }
+                        if source_id not in declared_dependencies:
+                            error(
+                                "undeclared_expression_dependency", obligation_id, source_id,
+                                location="expression_input.source_id",
+                            )
+                            invalid = True
                         if binding.get("context_bindings"):
                             error("context_binding_on_dependency", obligation_id,
                                   location="expression_input.context_bindings")
@@ -2420,6 +2446,7 @@ def validate_semantic_calculation_program(
             obligation_id
             for obligation_id in obligation_by_id
             if any(obligation_id in selected_obligations_by_candidate.get(candidate_id, [])
+                   or obligation_id in declared_source_owners.get(candidate_id, set())
                    for candidate_id in candidate_ids)
         ]
 

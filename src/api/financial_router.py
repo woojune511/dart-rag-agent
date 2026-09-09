@@ -13,6 +13,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+from src.utils.provider_errors import provider_error_projection
+
 if TYPE_CHECKING:
     from src.agent.financial_run_result import FinancialRunResultV1
 
@@ -267,7 +269,8 @@ def get_router():
             async with services.operation_lock:
                 return await run_in_threadpool(load_companies)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"DB 조회 실패: {e}")
+            logger.error("Company query failed: %s", provider_error_projection(e))
+            raise HTTPException(status_code=500, detail="DB 조회에 실패했습니다.") from e
 
     @router.post("/ingest", response_model=IngestResponse)
     async def ingest(req: IngestRequest, request: Request):
@@ -296,7 +299,8 @@ def get_router():
             async with services.operation_lock:
                 result = await run_in_threadpool(ingest_and_refresh)
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"수집·인덱싱 실패: {e}")
+            logger.error("Ingest failed: %s", provider_error_projection(e))
+            raise HTTPException(status_code=502, detail="수집·인덱싱에 실패했습니다.") from e
 
         if not int(result.get("files_fetched") or 0):
             raise HTTPException(
@@ -360,8 +364,8 @@ def get_router():
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"agent.run 실패: {e}")
-            raise HTTPException(status_code=500, detail=f"분석 실패: {e}")
+            logger.error("Query failed: %s", provider_error_projection(e))
+            raise HTTPException(status_code=500, detail="분석에 실패했습니다.") from e
 
         return _query_response_from_agent_result(
             req.question,

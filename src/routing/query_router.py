@@ -13,6 +13,8 @@ from src.config.retrieval_policy import (
     ROUTING_CALC_GUARDRAIL_ENABLED,
     ROUTING_CALC_GUARDRAIL_OPERATION_TERMS,
 )
+from src.config.query_routing_prompt import QUERY_ROUTING_PROMPT
+from src.utils.provider_errors import ProviderAdmissionError
 
 from .format_policy import ROUTER_INTENTS, default_format_preference
 
@@ -66,11 +68,15 @@ def default_canonical_queries_path() -> Path:
 def cosine_similarity(left: List[float], right: List[float]) -> float:
     if not left or not right or len(left) != len(right):
         return 0.0
-    dot = sum(float(a) * float(b) for a, b in zip(left, right))
-    left_norm = math.sqrt(sum(float(a) * float(a) for a in left))
-    right_norm = math.sqrt(sum(float(b) * float(b) for b in right))
-    if left_norm == 0.0 or right_norm == 0.0:
+    left_scale = max(abs(float(value)) for value in left)
+    right_scale = max(abs(float(value)) for value in right)
+    if left_scale == 0.0 or right_scale == 0.0:
         return 0.0
+    left = [float(value) / left_scale for value in left]
+    right = [float(value) / right_scale for value in right]
+    dot = sum(a * b for a, b in zip(left, right))
+    left_norm = math.sqrt(sum(value * value for value in left))
+    right_norm = math.sqrt(sum(value * value for value in right))
     return dot / (left_norm * right_norm)
 
 
@@ -96,6 +102,22 @@ def load_canonical_routing_examples(path: Path) -> List[Dict[str, Any]]:
     return examples
 
 
+def _validated_embedding_batch(
+    embeddings: Any, *, expected_count: int, expected_dimension: Optional[int],
+) -> tuple[tuple[float, ...], ...]:
+    vectors = tuple(tuple(float(value) for value in vector) for vector in embeddings)
+    if len(vectors) != expected_count:
+        raise ValueError("routing embedding count mismatch")
+    dimension = expected_dimension or (len(vectors[0]) if vectors else 0)
+    if not dimension or any(len(vector) != dimension for vector in vectors):
+        raise ValueError("routing embedding dimension mismatch")
+    if any(not math.isfinite(value) for vector in vectors for value in vector):
+        raise ValueError("routing embedding contains non-finite values")
+    if any(not any(vector) for vector in vectors):
+        raise ValueError("routing embedding has zero magnitude")
+    return vectors
+
+
 class QueryRouter:
     def __init__(
         self,
@@ -114,18 +136,24 @@ class QueryRouter:
         self.enable_llm_fallback = bool(enable_llm_fallback)
         self._semantic_router = self._build_semantic_router()
 
-    def _canonical_embedding_cache_key(self) -> tuple[str, str, str, int]:
+    def _canonical_embedding_cache_key(self) -> Optional[tuple[str, str, str, int]]:
+        provider = self.embedding_spec.get("provider")
+        model = self.embedding_spec.get("model_name")
+        dimension = self.embedding_spec.get("dimension")
+        if (
+            not isinstance(provider, str) or not provider.strip()
+            or provider.strip().lower() == "unknown"
+            or not isinstance(model, str) or not model.strip()
+            or model.strip().lower() == "unknown"
+            or type(dimension) is not int or dimension <= 0
+        ):
+            # Unknown adapters may still route with their own valid vectors,
+            # but cannot grant a process-wide cache identity to another client.
+            return None
         file_digest = hashlib.sha256(
             self.canonical_queries_path.read_bytes()
         ).hexdigest()
-        return (
-            file_digest,
-            str(self.embedding_spec.get("provider") or "unknown")
-            .strip()
-            .lower(),
-            str(self.embedding_spec.get("model_name") or "unknown").strip(),
-            int(self.embedding_spec.get("dimension") or 0),
-        )
+        return (file_digest, provider.strip().lower(), model.strip(), dimension)
 
     def _build_semantic_router(self) -> Dict[str, Any]:
         if not self.enable_semantic_router:
@@ -158,28 +186,20 @@ class QueryRouter:
         try:
             cache_key = self._canonical_embedding_cache_key()
             with _CANONICAL_EMBEDDING_CACHE_LOCK:
-                cached_embeddings = _CANONICAL_EMBEDDING_CACHE.get(cache_key)
+                cached_embeddings = _CANONICAL_EMBEDDING_CACHE.get(cache_key) if cache_key else None
             if cached_embeddings is None:
                 generated_embeddings = self.embeddings.embed_documents(queries)
-                expected_dimension = cache_key[3]
-                if expected_dimension and any(
-                    len(embedding) != expected_dimension
-                    for embedding in generated_embeddings
-                ):
-                    raise ValueError(
-                        "canonical routing embedding dimension mismatch"
-                    )
-                immutable_embeddings = tuple(
-                    tuple(float(value) for value in embedding)
-                    for embedding in generated_embeddings
+                dimension = self.embedding_spec.get("dimension")
+                cached_embeddings = _validated_embedding_batch(
+                    generated_embeddings, expected_count=len(queries),
+                    expected_dimension=dimension if type(dimension) is int and dimension > 0 else None,
                 )
-                with _CANONICAL_EMBEDDING_CACHE_LOCK:
-                    _CANONICAL_EMBEDDING_CACHE.setdefault(
-                        cache_key,
-                        immutable_embeddings,
-                    )
-                    cached_embeddings = _CANONICAL_EMBEDDING_CACHE[cache_key]
+                if cache_key is not None:
+                    with _CANONICAL_EMBEDDING_CACHE_LOCK:
+                        cached_embeddings = _CANONICAL_EMBEDDING_CACHE.setdefault(cache_key, cached_embeddings)
             embeddings = [list(embedding) for embedding in cached_embeddings]
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
             logger.warning("[routing] failed to embed canonical routing queries: %s", exc)
             return {
@@ -222,7 +242,12 @@ class QueryRouter:
             }
 
         try:
-            query_embedding = self.embeddings.embed_query(query)
+            query_embedding = _validated_embedding_batch(
+                [self.embeddings.embed_query(query)], expected_count=1,
+                expected_dimension=len(examples[0]["embedding"]),
+            )[0]
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
             logger.warning("[routing] semantic router embed_query failed: %s", exc)
             return {
@@ -351,79 +376,7 @@ class QueryRouter:
 
         QueryRoutingDecision = _query_routing_decision_model()
         structured_llm = self.llm.with_structured_output(QueryRoutingDecision)
-        prompt = _chat_prompt_template_from_template(
-            """다음 기업 공시 질문을 `intent`와 `format_preference`로 분류하세요.
-
-intent 정의:
-- numeric_fact : 문서에 수치가 직접 기재되어 있어 조회만으로 답할 수 있는 질의. 계산 없이 단일 숫자를 찾으면 됨.
-- business_overview : 사업 구조·주요 제품·서비스·고객군·사업 부문 구성 등 기업 개요를 묻는 질의.
-- risk : 리스크 요인·위험 관리 방식·파생거래 등을 묻는 질의.
-- comparison : 두 수치를 더하거나 빼거나 나눠서 계산해야 답할 수 있는 질의. 합계·차이·비중·이익률 계산 포함.
-- trend : 시계열 변화·추이·성장률·전년 대비 변화를 묻는 질의.
-- qa : 위 유형에 해당하지 않는 일반 사실·설명 질의.
-
-[핵심 구분 규칙]
-- 두 항목을 더한 합계 → comparison
-- 두 수치를 나눠 비중·비율·이익률을 계산 → comparison
-- 문서에 수치가 이미 기재된 단일 값 조회 → numeric_fact
-
-format_preference 정의:
-- table : 표 기반 수치 근거를 우선해야 함
-- paragraph : 설명 문단 근거를 우선해야 함
-- mixed : 표와 문단을 함께 볼 수 있음
-
-[Few-shot 예시]
-Q: 삼성전자의 주요 재무 리스크는 무엇인가요?
-A: intent=risk, format_preference=paragraph
-
-Q: 환율 위험 관리 방식은 어떻게 설명하나요?
-A: intent=risk, format_preference=paragraph
-
-Q: 회사가 영위하는 주요 사업은 무엇인가요?
-A: intent=business_overview, format_preference=mixed
-
-Q: 삼성전자는 어떤 제품과 서비스를 제공하나요?
-A: intent=business_overview, format_preference=mixed
-
-Q: 삼성전자는 몇 개의 종속기업으로 구성된 글로벌 전자 기업이라고 설명하나요?
-A: intent=business_overview, format_preference=mixed
-
-Q: 삼성전자의 연결대상 종속기업은 총 몇 개인가요?
-A: intent=business_overview, format_preference=mixed
-
-Q: 삼성전자의 연결 기준 매출액은 얼마인가요?
-A: intent=numeric_fact, format_preference=table
-
-Q: 각 부문별 매출 비중은 어떻게 되나요?
-A: intent=numeric_fact, format_preference=table
-
-Q: 회사의 임직원 수는 총 몇 명인가요?
-A: intent=qa, format_preference=paragraph
-
-Q: DX와 DS 부문의 매출 차이는 얼마인가요?
-A: intent=comparison, format_preference=table
-
-Q: SDC와 Harman 부문의 매출 합계는 얼마인가요?
-A: intent=comparison, format_preference=table
-
-Q: 연결 기준 영업이익률은 얼마인가요?
-A: intent=comparison, format_preference=table
-
-Q: 연구개발비용이 전체 매출에서 차지하는 비중은 얼마인가요?
-A: intent=comparison, format_preference=table
-
-Q: 최근 3년 영업이익 추이는 어떻게 변했나요?
-A: intent=trend, format_preference=table
-
-Q: 삼성전자의 설립일은 언제인가요?
-A: intent=qa, format_preference=paragraph
-
-참고 semantic prior:
-- top_intent: {semantic_intent}
-- semantic_confidence: {semantic_confidence}
-
-질문: {query}"""
-        )
+        prompt = _chat_prompt_template_from_template(QUERY_ROUTING_PROMPT)
         result: QueryRoutingDecision = (prompt | structured_llm).invoke(
             {
                 "query": query,

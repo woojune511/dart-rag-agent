@@ -307,8 +307,10 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             [ordinary_narrative],
         )
         ordinary_cohort = ordinary_plan["cohorts"][0]
-        self.assertEqual(ordinary_cohort["candidate_kind"], "narrative")
-        self.assertEqual(ordinary_cohort["candidate_ids"], ["target-context"])
+        self.assertEqual(ordinary_cohort["candidate_kind"], "evidence")
+        self.assertEqual(set(ordinary_cohort["candidate_ids"]), {"target-context", "target-revenue"})
+        self.assertEqual(ordinary_plan["reservation"]["numeric"], 1)
+        self.assertEqual(ordinary_plan["reservation"]["narrative"], 1)
 
         validation = validate_semantic_calculation_program(
             program={

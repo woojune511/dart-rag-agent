@@ -8,6 +8,7 @@ construction and answer validation remain in financial_graph_evidence.py.
 from __future__ import annotations
 
 import logging
+import json
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -59,6 +60,7 @@ from src.config.retrieval_policy import (
     narrative_policy_terms,
 )
 from src.routing import default_format_preference
+from src.storage.bm25_index import metadata_matches_filter
 if TYPE_CHECKING:
     from langchain_core.documents import Document
 
@@ -66,6 +68,24 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _retrieval_document_source_id(doc: Any) -> str:
+    """Use globally qualified parser identity, not a filing-local row number."""
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    source_id = str(metadata.get("chunk_uid") or "").strip()
+    if source_id:
+        return source_id
+    chunk_id = metadata.get("chunk_id")
+    if chunk_id is None or str(chunk_id).strip() == "":
+        return ""
+    for key in ("rcept_no", "document_id", "source_document_id"):
+        document_id = str(metadata.get(key) or "").strip()
+        if document_id and document_id.lower() not in {"unknown", "none", "null"}:
+            return json.dumps([key, document_id, str(chunk_id)], ensure_ascii=False)
+    # Company/year/report type do not establish a unique filing. Unknown
+    # sources stay separate rather than borrowing authority from a local index.
+    return ""
 
 
 def _stable_retrieval_source_ids(entries: List[Any]) -> tuple[List[str], int]:
@@ -299,7 +319,7 @@ def _semantic_query_ownership(
             if requirement_matches:
                 add_owner(
                     requirement_id,
-                    "numeric",
+                    owner_kind,
                     required_group=bool(requirement.get("required", True)),
                 )
 
@@ -573,10 +593,9 @@ def _numeric_atomic_declared_surface_priority(
 class FinancialRetrievalPipelineMixin:
     @staticmethod
     def _apply_strict_filter(docs, predicate):
-        """Apply a scope filter without turning a non-empty retrieval into zero evidence."""
+        """Keep only authorized sources, including an empty result when none match."""
 
-        filtered = [item for item in docs if predicate(item[0])]
-        return filtered if filtered else docs
+        return [item for item in docs if predicate(item[0])]
 
     def _supplement_section_seed_docs(
         self,
@@ -638,17 +657,7 @@ class FinancialRetrievalPipelineMixin:
         metadatas = list(getattr(self.vsm, "bm25_metadatas", []) or [])
         if not bodies or not metadatas:
             return []
-        companies = {
-            _normalise_spaces(str(value)).lower()
-            for value in (state.get("companies") or [])
-            if _normalise_spaces(str(value))
-        }
-        years = {
-            int(value)
-            for value in (state.get("years") or [])
-            if str(value or "").isdigit()
-        }
-        multi_period = intent in {"comparison", "trend"} and len(years) > 1
+        where_filter = self._build_scope_plan(state)["where_filter"]
         supplemented: List[tuple[Document, float]] = []
         group_candidates: Dict[
             str,
@@ -670,17 +679,9 @@ class FinancialRetrievalPipelineMixin:
         seen: set[str] = set()
         for body, raw_metadata in zip(bodies, metadatas):
             metadata = dict(raw_metadata or {})
+            if not metadata_matches_filter(metadata, where_filter):
+                continue
             company = _normalise_spaces(str(metadata.get("company") or "")).lower()
-            if companies and company not in companies and not any(
-                target in company or company in target for target in companies
-            ):
-                continue
-            try:
-                year = int(metadata.get("year") or 0)
-            except (TypeError, ValueError):
-                year = 0
-            if years and not multi_period and year not in years:
-                continue
 
             body_text = str(body or "")
             source_body = strip_index_metadata_prefix(body_text)
@@ -1107,7 +1108,6 @@ class FinancialRetrievalPipelineMixin:
             "liquidity_context_terms",
             "outflow_terms",
             "policy_section_terms",
-            "policy_period_markers",
         )
         causal_markers = policy_terms_by_key["causal_terms"]
         realized_markers = policy_terms_by_key["realized_terms"]
@@ -1119,7 +1119,6 @@ class FinancialRetrievalPipelineMixin:
         dividend_liquidity_context_terms = policy_terms_by_key["liquidity_context_terms"]
         dividend_outflow_terms = policy_terms_by_key["outflow_terms"]
         dividend_policy_section_terms = policy_terms_by_key["policy_section_terms"]
-        dividend_policy_period_markers = policy_terms_by_key["policy_period_markers"]
         driver_groups = self._narrative_driver_groups(query)
         query_focus_marker_values = query_focus_markers(query)
         active_subtask = dict(state.get("active_subtask") or {})
@@ -1369,7 +1368,7 @@ class FinancialRetrievalPipelineMixin:
         if paragraph_limit > 0:
             for item in paragraph_candidates:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
-                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                chunk_id = _retrieval_document_source_id(doc)
                 if chunk_id and chunk_id in seen_chunk_ids:
                     continue
                 selected.append(item)
@@ -1386,7 +1385,7 @@ class FinancialRetrievalPipelineMixin:
             for item in reranked:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
+                chunk_id = _retrieval_document_source_id(doc)
                 if chunk_id and chunk_id in seen_chunk_ids:
                     continue
                 block_type = str(metadata.get("block_type") or "").strip().lower()
@@ -1411,7 +1410,7 @@ class FinancialRetrievalPipelineMixin:
                 continue
             selected.append(best_item)
             best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
-            best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
+            best_chunk_id = _retrieval_document_source_id(best_doc)
             if best_chunk_id:
                 seen_chunk_ids.add(best_chunk_id)
 
@@ -1426,7 +1425,7 @@ class FinancialRetrievalPipelineMixin:
                     for item in reranked:
                         doc = item[0] if isinstance(item, (tuple, list)) else item
                         metadata = getattr(doc, "metadata", {}) or {}
-                        chunk_id = str(metadata.get("chunk_id") or "")
+                        chunk_id = _retrieval_document_source_id(doc)
                         if chunk_id and chunk_id in seen_chunk_ids:
                             continue
                         surface = _doc_surface(doc)
@@ -1466,11 +1465,11 @@ class FinancialRetrievalPipelineMixin:
                         selected.append(best_item)
                     else:
                         old_doc = selected[replacement_index][0] if isinstance(selected[replacement_index], (tuple, list)) else selected[replacement_index]
-                        old_chunk_id = str((getattr(old_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                        old_chunk_id = _retrieval_document_source_id(old_doc)
                         if old_chunk_id:
                             seen_chunk_ids.discard(old_chunk_id)
                         selected[replacement_index] = best_item
-                    best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                    best_chunk_id = _retrieval_document_source_id(best_doc)
                     if best_chunk_id:
                         seen_chunk_ids.add(best_chunk_id)
 
@@ -1478,7 +1477,7 @@ class FinancialRetrievalPipelineMixin:
             for item in reranked:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
+                chunk_id = _retrieval_document_source_id(doc)
                 if chunk_id and chunk_id in seen_chunk_ids:
                     continue
                 if str(metadata.get("block_type") or "").strip().lower() != "table":
@@ -1512,7 +1511,7 @@ class FinancialRetrievalPipelineMixin:
                 if focus_table_fill_limit and _selected_focus_table_count() >= focus_table_fill_limit:
                     break
                 doc = item[0] if isinstance(item, (tuple, list)) else item
-                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                chunk_id = _retrieval_document_source_id(doc)
                 if chunk_id and chunk_id in seen_chunk_ids:
                     continue
                 selected.append(item)
@@ -1524,7 +1523,7 @@ class FinancialRetrievalPipelineMixin:
             for item in reranked:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
+                chunk_id = _retrieval_document_source_id(doc)
                 if chunk_id and chunk_id in seen_chunk_ids:
                     continue
                 if str(metadata.get("block_type") or "").strip().lower() != "table":
@@ -1548,7 +1547,7 @@ class FinancialRetrievalPipelineMixin:
                 if focus_table_fill_limit and _selected_focus_table_count() >= focus_table_fill_limit:
                     break
                 doc = item[0] if isinstance(item, (tuple, list)) else item
-                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+                chunk_id = _retrieval_document_source_id(doc)
                 if chunk_id and chunk_id in seen_chunk_ids:
                     continue
                 selected.append(item)
@@ -1560,7 +1559,7 @@ class FinancialRetrievalPipelineMixin:
                 for item in reranked:
                     doc = item[0] if isinstance(item, (tuple, list)) else item
                     metadata = getattr(doc, "metadata", {}) or {}
-                    chunk_id = str(metadata.get("chunk_id") or "")
+                    chunk_id = _retrieval_document_source_id(doc)
                     if chunk_id and chunk_id in seen_chunk_ids:
                         continue
                     if not predicate(doc):
@@ -1590,13 +1589,7 @@ class FinancialRetrievalPipelineMixin:
                 section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or "")).lower()
                 return (
                     any(marker in text for marker in dividend_policy_terms)
-                    and (
-                        any(term in section_path for term in dividend_policy_section_terms)
-                        or (
-                            bool(dividend_policy_period_markers)
-                            and all(marker in text for marker in dividend_policy_period_markers)
-                        )
-                    )
+                    and any(term in section_path for term in dividend_policy_section_terms)
                 )
 
             _append_dividend_specific_doc(_is_payout_doc)
@@ -1609,7 +1602,7 @@ class FinancialRetrievalPipelineMixin:
             for item in reranked:
                 doc = item[0] if isinstance(item, (tuple, list)) else item
                 metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
+                chunk_id = _retrieval_document_source_id(doc)
                 if chunk_id and chunk_id in seen_chunk_ids:
                     continue
                 if _policy_realized_priority_for_policy(item, realized_policy)[0] <= 0:
@@ -1623,7 +1616,7 @@ class FinancialRetrievalPipelineMixin:
                 )[0]
                 selected.append(best_item)
                 best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
-                best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                best_chunk_id = _retrieval_document_source_id(best_doc)
                 if best_chunk_id:
                     seen_chunk_ids.add(best_chunk_id)
             elif policy_realized_candidates and effective_k > 0:
@@ -1644,19 +1637,19 @@ class FinancialRetrievalPipelineMixin:
                         replacement_key = candidate_key
                 if replacement_index is not None:
                     old_doc = selected[replacement_index][0] if isinstance(selected[replacement_index], (tuple, list)) else selected[replacement_index]
-                    old_chunk_id = str((getattr(old_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                    old_chunk_id = _retrieval_document_source_id(old_doc)
                     if old_chunk_id:
                         seen_chunk_ids.discard(old_chunk_id)
                     selected[replacement_index] = best_item
                     best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
-                    best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
+                    best_chunk_id = _retrieval_document_source_id(best_doc)
                     if best_chunk_id:
                         seen_chunk_ids.add(best_chunk_id)
 
         final_candidates = []
         for item in reranked:
             doc = item[0] if isinstance(item, (tuple, list)) else item
-            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+            chunk_id = _retrieval_document_source_id(doc)
             if chunk_id and chunk_id in seen_chunk_ids:
                 continue
             if (
@@ -1714,7 +1707,9 @@ class FinancialRetrievalPipelineMixin:
 
         for item in final_candidates:
             doc = item[0] if isinstance(item, (tuple, list)) else item
-            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
+            chunk_id = _retrieval_document_source_id(doc)
+            if chunk_id and chunk_id in seen_chunk_ids:
+                continue
             if (
                 final_fill_priority is not None
                 and local_section_fill_floor
@@ -1730,24 +1725,18 @@ class FinancialRetrievalPipelineMixin:
 
         return selected[:effective_k]
 
-    def _build_plan(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Normalize scope and construct the deterministic retrieval plan."""
-        query = state["query"]
-        retrieval_queries = [str(item).strip() for item in (state.get("retrieval_queries") or []) if str(item).strip()]
+    def _build_scope_plan(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """One source filter for search, local supplementation and final evidence."""
         active_subtask = dict(state.get("active_subtask") or {})
-        active_subtask_query = str(active_subtask.get("query") or "").strip()
-        active_subtask_retrieval_queries = [
-            str(item).strip()
-            for item in (active_subtask.get("retrieval_queries") or [])
-            if str(item).strip()
-        ]
         report_scope = dict(state.get("report_scope") or {})
         companies = list(state.get("companies", []) or [])
         years = list(state.get("years", []) or [])
         scope_company = str(report_scope.get("company") or "").strip()
+        if scope_company:
+            # Caller report scope is a source boundary, not another planner
+            # entity to union into it. Explicit receipt lists still take priority.
+            companies = [scope_company]
         strict_company_scope = should_apply_strict_company_scope(companies, report_scope)
-        if scope_company and strict_company_scope and scope_company not in companies:
-            companies = [scope_company, *companies] if companies else [scope_company]
         scope_year_raw = report_scope.get("year")
         scope_year: Optional[int] = None
         try:
@@ -1762,16 +1751,7 @@ class FinancialRetrievalPipelineMixin:
         scope_source_receipts = report_scope_source_receipts(report_scope)
         has_multi_source_scope = len(scope_source_receipts) > 1
         scope_consolidation = str(report_scope.get("consolidation") or "").strip()
-        section_filter = state.get("section_filter")
         intent = str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type", "qa"))
-        reflection_count = int(state.get("reflection_count") or 0)
-        retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
-        effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
-        report_cache_consumer_assessment = _report_cache_consumer_assessment_for_retrieval(dict(state))
-        report_cache_index_diagnostics = _report_cache_index_diagnostics_for_retrieval(
-            dict(state),
-            state.get("report_cache_index_path") or getattr(self, "report_cache_index_path", ""),
-        )
 
         conditions = []
         if companies and strict_company_scope:
@@ -1813,6 +1793,36 @@ class FinancialRetrievalPipelineMixin:
         else:
             where_filter = {"$and": conditions}
 
+        return {
+            "companies": companies, "years": years, "intent": intent,
+            "strict_company_scope": strict_company_scope,
+            "has_multi_source_scope": has_multi_source_scope,
+            "scope_report_type": scope_report_type,
+            "scope_consolidation": scope_consolidation,
+            "where_filter": where_filter,
+        }
+
+    def _build_plan(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Normalize scope and construct the deterministic retrieval plan."""
+        query = state["query"]
+        retrieval_queries = [str(item).strip() for item in (state.get("retrieval_queries") or []) if str(item).strip()]
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_subtask_query = str(active_subtask.get("query") or "").strip()
+        active_subtask_retrieval_queries = [
+            str(item).strip()
+            for item in (active_subtask.get("retrieval_queries") or [])
+            if str(item).strip()
+        ]
+        scope_plan = self._build_scope_plan(state)
+        intent = str(scope_plan["intent"])
+        reflection_count = int(state.get("reflection_count") or 0)
+        retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
+        effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
+        report_cache_consumer_assessment = _report_cache_consumer_assessment_for_retrieval(dict(state))
+        report_cache_index_diagnostics = _report_cache_index_diagnostics_for_retrieval(
+            dict(state),
+            state.get("report_cache_index_path") or getattr(self, "report_cache_index_path", ""),
+        )
         semantic_program_required = _semantic_program_required(state)
         retrieval_intent = intent
         if semantic_program_required and intent not in {"comparison", "trend", "numeric_fact"}:
@@ -1863,21 +1873,14 @@ class FinancialRetrievalPipelineMixin:
         hint_budget = query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
         section_budget = query_budget_int(getattr(self, "preferred_section_query_budget", 8))
         return {
+            **scope_plan,
             "query": query,
             "active_subtask": active_subtask,
-            "companies": companies,
-            "years": years,
-            "strict_company_scope": strict_company_scope,
-            "scope_report_type": scope_report_type,
-            "has_multi_source_scope": has_multi_source_scope,
-            "scope_consolidation": scope_consolidation,
-            "intent": intent,
             "reflection_count": reflection_count,
             "retry_queries": retry_queries,
             "effective_k": effective_k,
             "report_cache_consumer_assessment": report_cache_consumer_assessment,
             "report_cache_index_diagnostics": report_cache_index_diagnostics,
-            "where_filter": where_filter,
             "semantic_program_required": semantic_program_required,
             "retrieval_intent": retrieval_intent,
             "query_bundle": query_bundle,
@@ -2166,8 +2169,6 @@ class FinancialRetrievalPipelineMixin:
         supplemental_docs = list(searches["supplemental_docs"])
         companies = list(plan["companies"])
         years = list(plan["years"])
-        strict_company_scope = bool(plan["strict_company_scope"])
-        has_multi_source_scope = bool(plan["has_multi_source_scope"])
         where_filter = plan["where_filter"]
         reflection_count = int(plan["reflection_count"])
         retry_queries = list(searches["retry_queries"])
@@ -2189,26 +2190,19 @@ class FinancialRetrievalPipelineMixin:
         # section_filter는 _rerank_docs에서 +0.20 부스트로만 반영.
         # hard filter로 쓰면 LLM이 wrong section을 추출했을 때 관련 청크가 전부 제외됨.
 
-        if companies and strict_company_scope:
-            lowered_companies = {company.lower() for company in companies}
-            docs = self._apply_strict_filter(
-                docs,
-                lambda doc: (
-                    str(doc.metadata.get("company", "")).lower() in lowered_companies
-                    or any(
-                        target in str(doc.metadata.get("company", "")).lower()
-                        or str(doc.metadata.get("company", "")).lower() in target
-                        for target in lowered_companies
-                    )
-                ),
-            )
-
-        if years and not has_multi_source_scope:
-            valid_years = {int(year) for year in years}
-            docs = self._apply_strict_filter(
-                docs,
-                lambda doc: int(doc.metadata.get("year", 0)) in valid_years,
-            )
+        # Search backends, cached/retry docs and local sidecar scans all share
+        # this boundary. Never reintroduce rejected supplements into seed docs.
+        scope_predicate = lambda doc: metadata_matches_filter(dict(doc.metadata or {}), where_filter)
+        input_count = len(docs)
+        supplemental_input_count = len(supplemental_docs)
+        docs = self._apply_strict_filter(docs, scope_predicate)
+        supplemental_docs = self._apply_strict_filter(supplemental_docs, scope_predicate)
+        scope_filter_trace = {
+            "input_count": input_count, "retained_count": len(docs),
+            "excluded_count": input_count - len(docs),
+            "supplemental_input_count": supplemental_input_count,
+            "supplemental_retained_count": len(supplemental_docs),
+        }
 
         reranked = self._rerank_docs(docs, state)
 
@@ -2221,24 +2215,44 @@ class FinancialRetrievalPipelineMixin:
         if not semantic_program_required:
             docs = self._select_narrative_summary_docs(reranked, state, effective_k)
         else:
+            def selection_key(item: Any) -> tuple[str, Any]:
+                source_id = _retrieval_document_source_id(item[0])
+                return ("source", source_id) if source_id else ("object", id(item[0]))
+
+            # Reserve distinct sources, retaining their original rerank order.
+            # Anonymous objects do not establish equality with another source.
+            unique_ranked: Dict[tuple[str, Any], Any] = {}
+            for item in reranked:
+                unique_ranked.setdefault(selection_key(item), item)
+            ranked_docs = list(unique_ranked.values())
             # format_preference에 따라 표/단락 비율 보장
             if format_preference == "table":
                 # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
-                tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
-                paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
+                tables = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") == "table"]
+                paras = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") != "table"]
                 # Paragraphs are supplemental; keep a table in the visible window when available.
                 min_table = 1 if tables else 0
                 min_para = min(2, len(paras), max(effective_k - min_table, 0))
                 docs = (tables[: effective_k - min_para] + paras[:min_para])
             elif format_preference == "paragraph":
                 # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
-                tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
-                paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
+                tables = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") == "table"]
+                paras = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") != "table"]
                 min_para = min(effective_k // 2, len(paras))
                 docs = (paras[:min_para] + tables[: effective_k - min_para])
                 docs.sort(key=lambda x: x[1], reverse=True)
             else:
-                docs = reranked
+                docs = ranked_docs[:effective_k]
+            # A missing source type must not waste the remaining visible budget.
+            # Keep the reserved ordering, then fill from authorized ranked input.
+            selected_keys = {selection_key(item) for item in docs}
+            for item in ranked_docs:
+                if len(docs) >= effective_k:
+                    break
+                key = selection_key(item)
+                if key not in selected_keys:
+                    docs.append(item)
+                    selected_keys.add(key)
 
         seed_docs = reranked[: min(len(reranked), effective_k * 4)]
         if semantic_program_required and supplemental_docs:
@@ -2259,6 +2273,7 @@ class FinancialRetrievalPipelineMixin:
             "retrieved_unidentified_count": retrieved_unidentified_count,
             "seed_source_ids": seed_source_ids,
             "seed_unidentified_count": seed_unidentified_count,
+            "scope_filter": scope_filter_trace,
         }
 
     def _build_trace(
@@ -2381,6 +2396,7 @@ class FinancialRetrievalPipelineMixin:
                 "executed_query_count": len(executed_queries),
             },
             "candidate_count": len(reranked),
+            "scope_filter": dict(selection.get("scope_filter") or {}),
             "seed_count": len(seed_docs),
             "selected_count": len(docs),
             "selected_chunks": selected_chunks,

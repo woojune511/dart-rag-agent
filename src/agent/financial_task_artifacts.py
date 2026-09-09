@@ -980,18 +980,22 @@ def aggregate_answer_artifact_update(
 ) -> Dict[str, Any]:
     """Append the aggregate-answer artifact and attach the synthesis task."""
 
+    structured_result = dict(payload.get("structured_result") or {})
+    artifact_status = str(structured_result.get("status") or "ok").strip().lower()
+    if artifact_status == "ok" and str(planner_feedback or "").strip():
+        artifact_status = "partial"
+    task_status = TaskStatus.COMPLETED if artifact_status == "ok" else TaskStatus.PARTIAL
     artifact_id = f"aggregate:{len(artifacts or []) + 1:03d}"
     updated_artifacts = _append_artifact(
         list(artifacts or []),
         artifact_id=artifact_id,
         task_id="aggregate",
         kind=ArtifactKind.AGGREGATED_ANSWER,
-        status="ok",
+        status=artifact_status,
         summary=str(final_answer or "")[:200],
         payload=payload,
         evidence_refs=evidence_refs,
     )
-    task_status = TaskStatus.PARTIAL if str(planner_feedback or "").strip() else TaskStatus.COMPLETED
     updated_tasks = _upsert_task(
         list(tasks or []),
         task_id="aggregate",

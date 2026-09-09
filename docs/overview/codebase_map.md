@@ -17,34 +17,36 @@
 | `src/agent/financial_runtime_contracts.py` | immutable visibility and V2 full execution-content fingerprint |
 | `src/agent/financial_run_result.py` | versioned `FinancialRunResultV1` |
 
-## Semantic numeric path
+## Shared numeric and narrative path
 
 | Path | Responsibility |
 | --- | --- |
-| `src/agent/financial_graph_planning.py` | routing/requirements and query-written bilingual subject spellings |
-| `src/agent/financial_retrieval_pipeline.py` | retrieval plan, searches, selection, trace |
-| `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; exact bounded narrative-body windows with linked continuations, preserving numeric records |
+| `src/agent/financial_graph_planning.py` | required-output planning for every intent; query-written subjects and requested narrative themes/source hierarchy |
+| `src/agent/financial_retrieval_pipeline.py` | one source scope across searches/supplements/seeds/selection; narrative ownership, filing-qualified dedupe, trace |
+| `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent row readings and exact bounded narrative-body windows, preserving existing numeric records |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
-| `src/agent/financial_candidate_matching.py` | typed applicability and shared whole row/column subject identity; footnote-normalized metric keys precede containment; qualifiers intact, no filing-company relevance bonus |
+| `src/agent/financial_candidate_matching.py` | typed applicability and shared whole row/column subject identity; prose/rows have equal narrative reading eligibility; qualifiers intact, no filing-company relevance bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, islands/targeted retry with read-only dependency inputs; merged explanation uses final validation, local rationale stays in island diagnostics; terminal admission errors propagate |
 | `src/agent/financial_program_projection.py` | narrative evidence bindings에서 ID 목록을 결정적으로 추출; schema는 중복 작성을 요구하지 않고 과거 명시적 선택은 확장하지 않음 |
 | `src/agent/financial_calculation_execution.py` | dimensions/scope and numeric cell-subject authority for direct/input/display selection; unknown subjects request program repair; input provenance separate from display witnesses, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
-| `src/agent/financial_graph_evidence.py` | narrative evidence and validation path |
+| `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |
+| `src/agent/financial_task_artifacts.py` | artifact/ledger projection; aggregate status follows finalized public result |
+| `src/routing/query_router.py`, `src/config/query_routing_prompt.py` | validated canonical success cache, scale-stable similarity, anonymous declarative routing prompt |
 
 ## Ingest and storage
 
 | Path | Responsibility |
 | --- | --- |
 | `src/ingestion/dart_fetcher.py` | DART report fetch |
-| `src/processing/financial_parser.py` | document structure recovery and chunks |
+| `src/processing/financial_parser.py` | literal-preserving XML recovery, explicit data-table versus unit-context structure, and chunks |
 | `src/processing/source_context.py` | bounded exact XML context fragments, hierarchy/adjacency links and source-file identity; no scope inference |
 | `src/processing/table_structure.py`, `table_records.py` | explicit THEAD/TH header scope before grid inference; v2 parser row/cell projection |
 | `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
 | `src/ingestion/ingest_service.py` | end-to-end ingest ownership |
-| `src/storage/vector_store.py` | dense/BM25 store, source coverage and no-embedding sidecar repair |
+| `src/storage/vector_store.py` | scoped dense/BM25 search, private cache copies/commit invalidation, source coverage and no-embedding sidecar repair |
 | `src/storage/atomic_json.py` | atomic JSON replace used by graph, payload, and parent persistence |
 | `src/storage/store_manifest.py` | versioned store identity and readiness |
 

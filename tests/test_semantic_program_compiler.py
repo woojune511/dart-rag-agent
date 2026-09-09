@@ -283,7 +283,7 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         obligations = [
             _obligation("start", "direct_value", "start", scope=_scope(period="2021")),
             _obligation("end", "direct_value", "end", scope=_scope(period="2024")),
-            _obligation("cagr", "derived_value", "three-year CAGR", display_unit="%"),
+            _obligation("cagr", "derived_value", "three-year CAGR", display_unit="%", depends_on=["start", "end"]),
             _obligation(
                 "change_1",
                 "derived_value",

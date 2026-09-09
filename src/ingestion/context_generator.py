@@ -12,6 +12,7 @@ from src.utils.gemini_usage_counts import (
     extract_gemini_usage_counts,
     zero_gemini_usage_counts,
 )
+from src.utils.provider_errors import ProviderAdmissionError
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,8 @@ class ContextGenerator:
         try:
             response = self.llm.invoke(prompt)
             return response.content.strip()
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
             logger.warning("Context generation failed: %s", exc)
             return self._fallback_context(metadata)
@@ -125,6 +128,8 @@ class ContextGenerator:
                 config={"max_concurrency": workers},
                 return_exceptions=True,
             )
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
             logger.warning("Context batch generation failed, falling back to per-item mode: %s", exc)
             return [exc] * len(prompts)
@@ -139,6 +144,8 @@ class ContextGenerator:
         collect_usage: bool,
         log_item_failures: bool,
     ) -> str:
+        if isinstance(response, ProviderAdmissionError):
+            raise response
         if isinstance(response, Exception):
             if log_item_failures:
                 logger.warning("Context generation failed for chunk %s: %s", idx, response)

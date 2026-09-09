@@ -763,14 +763,9 @@ def _semantic_candidate_cohorts(
     for obligation in obligation_rows:
         obligation_id = str(obligation.get("obligation_id") or "").strip()
         is_narrative = str(obligation.get("kind") or "") == "narrative"
-        is_source_defined_group = (
-            is_narrative
-            and str(obligation.get("evidence_mode") or "declared_inputs")
-            == "source_defined_group"
-        )
-        narrative_candidate_kind = (
-            "evidence" if is_source_defined_group else "narrative"
-        )
+        # A narrative may read prose or table cells in either evidence mode.
+        # Source-defined grouping is a separate contract, not table access authority.
+        narrative_candidate_kind = "evidence"
         specifications.append(
             {
                 "cohort_id": f"{obligation_id}:output",
@@ -1229,6 +1224,23 @@ def _merge_targeted_program_retry(
         ]
         return [*preserved, *replacements]
 
+    preserved_program = {
+        key: [dict(item) for item in previous_validation.get(validation_key) or []
+              if str(item.get("obligation_id") or "").strip() not in targets]
+        for validation_key, key in (
+            ("valid_direct_bindings", "direct_bindings"),
+            ("valid_expressions", "expressions"),
+            ("valid_narrative_bindings", "narrative_bindings"),
+        )
+    }
+    preserved_candidate_ids = set(_semantic_program_candidate_ids(preserved_program))
+    for rows in preserved_program.values():
+        for row in rows:
+            preserved_candidate_ids.update(
+                (previous_validation.get("source_candidate_ids_by_obligation") or {}).get(
+                    str(row.get("obligation_id") or ""), []
+                )
+            )
     source_assertions: List[Dict[str, Any]] = []
     for raw_assertion in previous_validation.get("valid_source_assertions") or []:
         assertion = dict(raw_assertion or {})
@@ -1240,12 +1252,42 @@ def _merge_targeted_program_retry(
         assertion.pop("assertion_fingerprint", None)
         if covered_ids and covered_ids.issubset(targets):
             continue
+        if covered_ids.intersection(targets):
+            # A shared assertion may contain a replaced target-only value. Keep
+            # its exact quote, but retain authority only for untouched inputs.
+            assertion["candidate_ids"] = [
+                item for item in assertion.get("candidate_ids") or []
+                if str(item).strip() in preserved_candidate_ids
+            ]
+            if not assertion["candidate_ids"]:
+                continue
         source_assertions.append(assertion)
-    source_assertions.extend(
-        dict(item)
-        for item in retry_program.get("source_assertions") or []
-        if isinstance(item, Mapping)
-    )
+    # Assertions have no owner field, so derive their editable scope from the
+    # target bindings. An extra retry assertion must not revoke a preserved
+    # owner's evidence or turn an unrelated invented ID into a global error.
+    target_candidate_ids = set(_semantic_program_candidate_ids({
+        key: [dict(item) for item in retry_program.get(key) or []
+              if isinstance(item, Mapping)
+              and str(item.get("obligation_id") or "").strip() in targets]
+        for key in ("direct_bindings", "expressions", "narrative_bindings")
+    }))
+    preserved_assertion_ids = {
+        str(candidate_id).strip()
+        for assertion in source_assertions
+        for candidate_id in assertion.get("candidate_ids") or []
+    }
+    for raw_assertion in retry_program.get("source_assertions") or []:
+        if not isinstance(raw_assertion, Mapping):
+            continue
+        candidate_ids = list(dict.fromkeys(
+            str(item).strip() for item in raw_assertion.get("candidate_ids") or []
+            if str(item).strip()
+        ))
+        if not candidate_ids or not set(candidate_ids).issubset(target_candidate_ids):
+            continue
+        editable_ids = [item for item in candidate_ids if item not in preserved_assertion_ids]
+        if editable_ids:
+            source_assertions.append({**dict(raw_assertion), "candidate_ids": editable_ids})
     deduplicated_assertions: List[Dict[str, Any]] = []
     seen_assertions: set[str] = set()
     for assertion in source_assertions:

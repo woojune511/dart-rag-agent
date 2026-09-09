@@ -49,7 +49,9 @@ def split_table_text_fragment(
     marker_positions = [match.start() for match in TABLE_NARRATIVE_BREAK_RE.finditer(text)]
     segments: List[str] = []
     if len(marker_positions) >= 2:
-        positions = marker_positions + [len(text)]
+        # Numbered lists can follow a source-defining introductory sentence.
+        # Segment from the beginning, not just from the first numbered item.
+        positions = sorted({0, *marker_positions, len(text)})
         for start, end in zip(positions, positions[1:]):
             segment = normalize_text(text[start:end])
             if segment:

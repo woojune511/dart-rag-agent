@@ -17,12 +17,8 @@ from src.agent.financial_runtime_trace import (
     resolve_runtime_calculation_trace,
 )
 from src.config import get_financial_ontology
-from src.config.retrieval_policy import (
-    PLANNING_POLICY,
-    active_narrative_policies,
-    narrative_policy_preferred_sections,
-    narrative_policy_query_suffixes,
-)
+from src.config.retrieval_policy import PLANNING_POLICY
+from src.utils.provider_errors import ProviderAdmissionError, provider_error_projection
 
 if TYPE_CHECKING:
     from src.agent.financial_graph_state import FinancialAgentState, PlanningInput, RequirementsPhase, RoutingInput, RoutingPhase
@@ -221,8 +217,11 @@ class FinancialAgentPlanningMixin:
                 }
             )
             planned: Any = structured_llm.invoke(prompt_value)
+        except ProviderAdmissionError:
+            raise
         except Exception as exc:
-            logger.warning("[requirement_plan] structured planner failed: %s", exc)
+            error = provider_error_projection(exc)
+            logger.warning("[requirement_plan] structured planner failed: %s", error)
             companies, years = align_scope_hints(
                 companies=[], years=[], report_scope=report_scope
             )
@@ -235,7 +234,7 @@ class FinancialAgentPlanningMixin:
                 "answer_obligations": [],
                 "retrieval_queries": [query],
                 "tasks": [],
-                "planner_notes": ["requirement_planner_failed", str(exc)],
+                "planner_notes": ["requirement_planner_failed", error["error_type"]],
             }
 
         raw_obligations = [item.model_dump() for item in list(planned.obligations or [])]
@@ -592,73 +591,6 @@ class FinancialAgentPlanningMixin:
             ],
         }
 
-    def _plan_exclusive_narrative_task(
-        self,
-        state: FinancialAgentState,
-        *,
-        query: str,
-        topic: str,
-        report_scope: Dict[str, Any],
-        plan_loop_count: int,
-    ) -> Dict[str, Any]:
-        policies = active_narrative_policies(query)
-        if not any(bool(policy.get("exclusive_narrative_task")) for policy in policies):
-            return {}
-        retrieval_queries = [query]
-        retrieval_queries.extend(
-            _normalise_spaces(f"{query} {suffix}")
-            for suffix in narrative_policy_query_suffixes(policies)
-            if _normalise_spaces(str(suffix))
-        )
-        retrieval_queries = list(dict.fromkeys(retrieval_queries))
-        narrative_task = {
-            "task_id": "task_1",
-            "metric_family": "narrative_summary",
-            "metric_label": _normalise_spaces(topic or query),
-            "query": query,
-            "required_evidence": [],
-            "preferred_statement_types": [],
-            "preferred_sections": narrative_policy_preferred_sections(policies),
-            "retrieval_queries": retrieval_queries,
-            "constraints": {"context_scope": "narrative"},
-        }
-        semantic_plan = {
-            "status": "narrative_policy_exclusive",
-            "program_required": False,
-            "fallback_to_general_search": False,
-            "planned_metric_families": ["narrative_summary"],
-            "answer_obligations": [],
-            "tasks": [narrative_task],
-            "planner_notes": ["exclusive_narrative_task_policy"],
-        }
-        companies, years = align_scope_hints(
-            companies=list(state.get("companies") or []),
-            years=list(state.get("years") or []),
-            report_scope=report_scope,
-        )
-        return {
-            "semantic_plan": semantic_plan,
-            "answer_obligations": [],
-            "planner_mode": "initial",
-            "planner_feedback": "",
-            "plan_loop_count": plan_loop_count,
-            "companies": companies,
-            "years": years,
-            "topic": _normalise_spaces(topic or query),
-            "section_filter": state.get("section_filter"),
-            "calc_subtasks": [],
-            "planned_metric_families": ["narrative_summary"],
-            "retrieval_queries": retrieval_queries,
-            "active_subtask_index": 0,
-            "active_subtask": narrative_task,
-            "subtask_results": [],
-            "subtask_debug_trace": {
-                "status": "narrative_policy_exclusive",
-                "task_count": 0,
-            },
-            "subtask_loop_complete": True,
-        }
-
     def _plan_answer_obligation_program(
         self, state: PlanningInput
     ) -> RequirementsPhase:
@@ -667,48 +599,8 @@ class FinancialAgentPlanningMixin:
         topic = str(state.get("topic") or query)
         report_scope = dict(state.get("report_scope") or {})
         plan_loop_count = int(state.get("plan_loop_count") or 0)
-        format_preference = _normalise_spaces(
-            str(state.get("format_preference") or "")
-        ).lower()
-        requires_semantic_program = (
-            intent in {"comparison", "trend", "numeric_fact"}
-            or format_preference == "mixed"
-        )
-
-        if not requires_semantic_program:
-            exclusive = self._plan_exclusive_narrative_task(
-                state,
-                query=query,
-                topic=topic,
-                report_scope=report_scope,
-                plan_loop_count=plan_loop_count,
-            )
-            if exclusive:
-                return exclusive
-            return {
-                "semantic_plan": {
-                    "status": "fallback_general_search",
-                    "program_required": False,
-                    "fallback_to_general_search": True,
-                    "planned_metric_families": [],
-                    "answer_obligations": [],
-                    "tasks": [],
-                    "planner_notes": ["non_numeric_intent"],
-                },
-                "answer_obligations": [],
-                "planner_mode": "initial",
-                "planner_feedback": "",
-                "plan_loop_count": plan_loop_count,
-                "calc_subtasks": [],
-                "planned_metric_families": [],
-                "retrieval_queries": [query],
-                "active_subtask_index": 0,
-                "active_subtask": {},
-                "subtask_results": [],
-                "subtask_debug_trace": {"reason": "non_numeric_intent"},
-                "subtask_loop_complete": True,
-            }
-
+        # Intent and presentation are routing hints, not permission to skip
+        # requested-output coverage. Narrative uses the same existing compiler.
         plan = self._build_llm_requirement_plan(
             query=query,
             topic=topic,
