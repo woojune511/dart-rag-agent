@@ -1,150 +1,146 @@
 # Project Status
 
-Last updated: 2026-09-09
+Last updated: 2026-09-10
 
 ## Current implementation
 
-The product is the single-agent `FinancialAgent`. The current working branch is
-`codex/reviewed-compiler-selection-gate`, with compiler-gate baseline `e9a5be0`.
-Contract repairs start from `5e13bc6`; the dependency-boundary fix is `af9a07e`.
-Public HTTP fields, `FinancialRunResultV1`, store manifest shape and ID/fingerprint hashing stay intact.
-Parser `financial_parser_v2_source_context` honors THEAD/TH; new row/cell candidate IDs may change. Old catalogs/programs remain immutable.
+The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
+General correctness review baseline: clean `327002c0`.
+Audited runtime/source-preservation implementation commit: `7aa4adf2`.
+[Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
+replace case-by-case trial-and-error as the current work map.
 
-The implemented boundaries are:
+Implemented generic repairs:
 
-- Shared unit scales and source-preserving numeric display; canonical
-  KRW/USD/PERCENT/COUNT, signed composite amounts, USD lookups, and finite-value
-  checks use one normalizer contract. Compiler emits formula/display intent only;
-  code infers dimensions. Table context/header units retain raw hints and exact provenance; ambiguous mixed units stay unknown. Legacy `result_unit` has no validation/render authority.
-- Compiler prompt leads with comparison target, transformations/operations, then
-  formula; generic contrasts use existing `rationale`, not a role enum or new call.
-  Raw signs stay intact; no arithmetic rewrite or validator relaxation was added.
-  Undefined ratios and ambiguous comparisons can remain unanswered.
-- Google phase routes forward explicit output/thinking/retry/thought-text controls;
-  missing settings retain defaults, and explicit zero/false values survive.
-- Planner unit errors block only affected islands. Compiler format retries keep
-  candidates; explicit candidate conflicts carry exact replacement ownership.
-- Structured-output `null`/`none` sentinels normalize to blank only for optional
-  planner display/coupling text. Genuine unsupported units remain fail-closed.
-- `depends_on` is reserved for other answer obligations. Same-obligation raw
-  evidence requirement IDs are removed at planner projection, while known answer
-  dependencies, unknown IDs, and self references retain preflight validation.
-- `CompilationEnvelopeV2` checks full execution content before revalidation or
-  arithmetic. Existing visibility/program/validation checks remain independent.
-- Bundle-first selection retains adjacent values, prose, row notes and contexts. Metric fragments are not inferred subjects; exact metric axes precede containment tiers. No additive scores, filing-company relevance bonuses or weakened explicit subject/scope checks.
-  Physical identity includes filing provenance before dedupe. V6 prompts use compact JSON with exact source/context text. Context bindings resolve unknown scope without changing raw IDs. Unique selectable-ID caps include retries; terminal admission errors do not retry. Opt-in SDK preflight/dispatch share reservations and preserve the first budget stop.
-- Source-first output and separately labelled recomputation coexist.
-  Dependencies use calculated values; primary answer slots use display values.
-- Each formula input records variable/source ID/kind, executed value/unit and validated metadata.
-  Candidate/direct-dependency rows keep physical/context evidence; derived inputs reference prior results.
-  Arithmetic lineage dedupes leaf IDs/rows/anchors, excluding display/compatibility witnesses; input summaries use calculated values/resolved periods.
-- Calendar labels precede fiscal columns, then row-relative labels/roles; raw labels stay provenance. Ambiguous/unanchored fiscal columns cannot fall back to row-relative text; unbound parser focus/labels
-  cannot assign value years. Unknown numeric periods cannot borrow filing scope, including via witnesses. Bound formulas may span sources without physical-ID equality,
-  while scope conflicts, assertions, visibility, coupling and row contracts stay enforced; assertion owner order is stable.
-- Atomic payload-superset/graph-last persistence, failure propagation, strict
-  source coverage, and provider-free sidecar recovery replace partial publication.
-- Graph-source vector rebuilds use one expected store manifest for collection,
-  embedding, and ingest identity. The manifest is published only after health;
-  an interrupted side-by-side target stays unready and resumable.
-- API query/readiness snapshots share a lock. DB/ingest/readiness refresh work is
-  off the event loop. Health reads cached readiness only.
-- Concrete phase inputs/outputs replace the production full-state merge.
-  Numeric/narrative owners return facts; final assembly precedes ledger assembly.
-  `run()` does not rebuild the answer. TypedDicts are not immutability guarantees.
+- All intents use required-output planning and the existing source-bundle compiler.
+  Pure narrative can no longer bypass requested-theme/evidence coverage.
+- Formula inputs require declared dependency authority; targeted assertion retry cannot
+  poison accepted outputs. Boolean/non-finite/overflowing literals and invalid scalar
+  function arity fail validation; function names may also be legitimate variable names.
+- Source filters remain intact across vector failure, BM25 ranking, local supplements,
+  seeds and final selection. No all-filtered-results fallback to unrelated reports.
+- Filing-qualified narrative identity preserves sources sharing local chunk numbers.
+  Table-fragment splitting preserves prose before the first numbered item.
+- Fixed absolute-year bonuses/penalties and dated stopword entries are gone; router
+  examples are anonymous config. No benchmark/company/answer branches were added.
+- Canonical routing validates full finite vector batches before success caching;
+  incomplete embedding identity disables cross-instance reuse. Cosine is scale-stable.
+- Search-cache Documents/provenance are copied, committed writes invalidate caches,
+  and actual persistence errors propagate. Terminal admission failures do not retry
+  through context generation, planning, routing, search or evidence fallbacks.
+- API failure responses redact raw provider text. Aggregate ledger status follows the
+  final public result, including partial/incomplete coverage.
+- XML recovery preserves ampersand text, entity controls and quoted attributes;
+  explicit header/body tables are data even with one small value. Narrative modes can
+  read scalar rows; non-scalar rows retain reading-only evidence. Adding reading rows
+  preserves existing chunk numeric extraction and absolute spans. No scalar guessing,
+  new role taxonomy, company-specific branch or extra model call was introduced.
 
-No role classifier, cross-encoder, metric-specific runtime branch, source-store
-mutation or global tolerance/faithfulness relaxation. Reviewed dataset revisions are opt-in; MAS/Streamlit remain experimental.
+Existing public, source-bundle, unit, physical-row, typed-state, strict-readiness,
+manifest-last ingest and source-first display contracts remain.
+HTTP/`FinancialRunResultV1`, ID/hash algorithms, datasets/evaluator, source stores
+and historical result bytes are not changed by this audit.
 
-## Local acceptance
+## Local verification
 
-Current multi-island explanation repair, Python 3.13.13: full suite `1173 / 1173` (43.402s), new regression tests `5 / 5`, focused compiler/integration/retry suites `75 / 75`, import/topology/docs `24 / 24`. Final multi-island rationale uses the final validator's status, ordered valid/missing/ambiguous IDs and error codes, never concatenated local prose. Island `program_rationale` retains the originals; single-island explanations and V2 authority remain intact. Five captured paid responses replay with identical requests, selections, validation and execution projections; only KB's merged explanation and added diagnostic rationale fields differ. Provider calls 0. The preceding failure-capture repair still retains partial responses on terminal errors, with safe status codes and no retry; no new live quality/release claim.
-Runtime domain audit passes (`84` reviewed literals); docs/import/topology `24 / 24`, pycompile and `git diff --check` pass.
+Baseline: Python 3.13.13, full unittest **1173/1173** before repairs.
+Audit integration was **1236/1236**, including 63 new synthetic regressions.
+Source-preservation successor: **1251/1251** in 40.630s, including **15 additional
+anonymous regressions**. Focused source/compiler/visibility suites and import/topology
+**22/22** pass. Frozen chunk-to-catalog replay preserves all **44,757 numeric records**
+(IDs and complete field contents), not merely selected answer values.
+Pre-commit recheck: **1251/1251** in 33.867s, focused repairs **78/78**, and
+documentation/import/topology **24/24**. No runtime change followed these gates.
+Runtime domain audit: **83 reviewed literals**, down from 84 because the obsolete
+inline router prompt record was removed; no new baseline exception was added.
+Focused parser/retrieval, compiler/executor, storage/API, routing and phase tests pass.
+Import/topology, changed/new Python pycompile and diff hygiene passed at handoff.
 
-- Tests inject failures into actual lower file writes, check same-process and
-  restart recovery, and prove no context/embedding calls during sidecar repair.
-- Actual graph-node tests check declared phase keys, unchanged inputs, and exact
-  public answer/structured-result/trace agreement with the final ledger artifact.
-- Reviewed-fixture v2 passes `5 / 5` with NAV's corrected 십억원 source unit and
-  independent absolute-amount/display/input checks. Common-scale error control fails
-  despite unchanged growth. Related tests `51 / 51`; replay receipts match twice, calls/writes 0.
-  Exact saved replay stays `3 / 5`: KB's explained version mismatch remains correctly rejected, not a fresh numeric failure.
-- `semantic_comparison_contrasts_v1.json` adds 9 synthetic cases: 7 calculations
-  and 2 explicit abstentions. Identical inputs/different intents distinguish valid
-  math from intended math. Offline expected values never drive runtime retry;
-  rehearsals test harness/execution only, not model accuracy or DART evidence.
-- Installed Gemini/LangChain adapters run with a fake client and external sockets
-  blocked. Tests distinguish `MAX_TOKENS` from `STOP`/missing fields, preserve
-  successful and failed responses across retry, exclude private metadata, and
-  verify worker-thread token totals without making a provider request. Both model
-  factories preserve explicit budgets; the installed SDK stops after one simulated 429.
+These are provider-free mechanism tests, not fresh answer accuracy or generalization.
+No provider, new benchmark run, fresh ingest, actual-store repair, or evaluator/dataset
+change was performed. Paid approval is separate from this implementation.
 
-## Read-only saved-case replay
+## Independent holdout preparation
 
-`src.ops.replay_runtime_contract_cases` reads immutable results without providers or store writes.
-The following exact-ID receipts predate filing-qualified identity; they are historical evidence,
-not current-ID compatibility. Current exact replay still rejects a mismatched catalog; inputs are unchanged.
+The [holdout protocol](../evaluation/independent_holdout_protocol.md) freezes the audited
+runtime bytes and a manual three-company/2025 pilot: 대한항공, KT&G and CJ제일제당,
+12 fixed questions. Codex source-reviewed answer drafts and an original-evidence view
+are ready. Offline checks verified 15 source values, six calculations, 27 exact quoted
+byte spans and both narrative themes. The user approved representative narrative sales
+channels with explicit business scope. Per-answer human source confirmation remains
+unclaimed (0 confirmed), and the drafts are not yet scored gold.
+Model runs, Google/OpenAI calls, embeddings, indexing and store mutations are zero.
+Existing reports/datasets and predecessor question/pending-label bytes retain their hashes.
+Initial preparation did not change runtime; the subsequently approved source repairs
+have a separate successor byte freeze and implementation commit, not a holdout score.
+The [final pre-run review](../../benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
+binds the clean build to those exact runtime bytes. Source/period/scale checks,
+six calculations, 27 quotations and seven table-context lines pass; no draft change
+was needed. All 12 labels still await adoption and remain unscored/human-unconfirmed.
 
-| Case | Provider-free result | Claim limit |
-| --- | --- | --- |
-| T2 | `11.5% (재계산값 11.4%)`; calculated value `11.395646606914212` | A copy explicitly selects the already-visible source display |
-| T3 | `26%`, `700,691백만원`, and the existing four-value narrative | Saved program bytes, physical rows, and evidence remain unchanged |
-| Samsung | `28,352,769백만원` plus the existing narrative | A copy restores the recorded first binding and first-attempt authority |
+Subsequent offline whole-report parser/catalog projection preserved **15/15** reviewed
+numeric facts with scope/period/unit/physical provenance and all three asset operand
+pairs in shared row bundles. **11/12** reviewed prose spans survived; XML recovery
+deleted ampersand-adjacent text. Three mixed amount/share rows reached source candidates
+but disappeared from the catalog; four channel rows survived as numeric evidence but
+their narrative admission is mode-dependent. Anonymous synthetic inputs reproduce
+these mechanisms. [Preservation diagnosis](../../benchmarks/results/independent_holdout_preparation_2026-09-10/preservation_probe_v1/README.md).
+The mechanisms are now repaired locally; original diagnostic bytes remain unchanged.
+Successor runtime: `5a74ff8dae428d314a329615038c45034229098ab15885c45406eb199c809d7b`.
+New row readings expand catalog fingerprints, not existing candidate-ID algorithms.
+Fresh raw-source verification retains all **15 numeric facts, 12 prose quotations and
+seven descriptive row associations**. [Final repair evidence](../../benchmarks/results/independent_holdout_preparation_2026-09-10/preservation_repair_v1/README.md)
+uses verification v2, including the full frozen chunk-to-catalog path. This is source
+preservation, not actual-question retrieval, compiler selection or answer completeness.
 
-The modified programs are counterfactual validator/executor/display tests, not
-new LLM or release evidence. The successor also verifies T2 operand metadata.
-The predecessor generic exact-trace audit passed 9 then-current-schema variants, skipped 2 old
-schemas, and covers only 3 questions; reversed inputs produce byte-identical
-receipts (`9901c8fc...e9180`) with no provider/compiler/store activity.
+## Latest provider evidence (immutable predecessor)
 
-## Reviewed provider-free corpus
+The [four-question full-agent run](../../benchmarks/results/diagnostic_four_full_agent_2026-09-09/README.md)
+used clean `cf721258`, admission `a2bd7bdd...a311`, once.
+API/runtime errors were zero and ledgers 4/4 ok; this was not four complete answers.
 
-`tests/fixtures/reviewed_runtime_replay_corpus_v2.json` is the active five-question fixture
-outside the three-question inventory: `KBF_T1_017`, `KBF_T2_018`, `LGE_T1_051`, `NAV_T2_006`, and `CEL_T1_013`.
-Raw values, source excerpts, receipt/row/table provenance, owner visibility, and
-programs go through the real normalizer, validator, `CompilationEnvelopeV2`, and executor.
+| Question group | Observed source outcome |
+| --- | --- |
+| LG context | Consolidated amount answered; requested-period local amount withheld |
+| KB context | Bank-specific ratio cells selected |
+| NAV narrative | Both requested themes covered |
+| Celltrion narrative | Only liquidity theme from management discussion; credit theme and requested note scope missing |
 
-V2 corrects NAV's `2,546.6 / 1,801.1` from 억원 to 십억원 and preserves exact adjacent
-unit/table bytes. Direct amounts normalize to `2,546,600,000,000 / 1,801,100,000,000` 원;
-source growth stays 41.4%. Programs, selections, narrative and other cases are unchanged.
-V1/old receipts remain frozen; all seven test consumers use v2. Receipt `48634f5c...0f9f`.
-The [current evidence matrix](../evaluation/reviewed_case_evidence_status.md) separates source review, replay and provider claims. Admission `ccf79e4a...18a0` ran once on clean `fa0cb0b1` (runtime `62c9be4b`): declared contracts 4/4 with explicit Ultium prior-period abstention, KB 18.08%/15.50%, and two-source NAV/CEL summaries. Five Gemini 2.5 Pro calls, no retry/API error, 60.771s, usage-estimated USD 0.106385375 / 0.90; billing unobserved. [Result](../../benchmarks/results/compiler_partial_capture_admission_2026-09-09/RESULT.md), SHA `313d4161...afa3`; socket-blocked replay matches all programs/outputs/evidence and request bytes, receipt `3b8b4f7d...9d83`. Original 50/predecessor 90 file hashes remain intact. Assistant source comparison supports the two narrative themes but is not a judge/completeness score; stored semantic review remains pending. The historical KB explanation defect is now repaired locally: final multi-island rationale projects validated status/IDs/errors, original rationale stays in island diagnostics, single-island text is unchanged. [Saved-response replay](../../benchmarks/results/island_rationale_repair_2026-09-09/REPORT.md) retains 4/4 contracts, exact SDK requests, numeric/evidence outputs and island fingerprints; receipt `44bb8cac...f02c`. The KB parser-v2 store blocker is now cleared. Approved embedding/publication admission `e5aecbba...d567` ran once on clean `d700810d`: 536 additional inputs, 9/9 OpenAI requests/responses, no API error/retry, 614,940 usage tokens and estimated USD 0.0799422 / 0.10 (billing unobserved), about 59.822s from attempt start to receipt. The [new KB successor](../../benchmarks/results/kbf_parser_openai_store_2026-09-09/README.md) has 2,110 vectors/nodes, 1,707 table payloads and 51 parents, including 1,574 reused vectors. Full content readback and 3 local dense probes pass; manifest-last publication is strict-ready/non-degraded, and independent read-only source integrity has no missing payload/source/unidentified vectors. All 12 original files remain unchanged; original v1 identity and application default-store configuration are untouched. Socket-blocked SDK replay matches all 9 request bodies, usage and 536 supplied vectors, with no result/store mutation; live receipt `b6e5fecc...2e65`, verification `b933dfa5...986a`. Store and prior compiler approvals are exhausted. The approved [four-question full-agent run](../../benchmarks/results/diagnostic_four_full_agent_2026-09-09/README.md) `a2bd7bdd...a311` executed once on clean `cf721258`: four attempts, runtime/API errors 0 and ledgers 4/4 ok, not four complete answers. LG emits consolidated 4,444,179백만원 and withholds the Ultium 2023 value; KB selects bank-specific 18.08%/15.50%; NAVER covers both requested themes. Celltrion answers only liquidity management from management discussion, omitting credit management and the requested consolidated-note scope. Both narrative questions use evidence/compression/validation, not the semantic compiler; their completed aggregate tasks do not establish question coverage. Calls: Flash 10 + Pro 6 + OpenAI 21, retries 0, 177.599s, usage-estimated USD 0.18370008 / 0.80 (billing unobserved). Offline numeric replay 2/2 preserves exact programs/validation/outputs, including LG partial; all 8 narrative quotes match their frozen source chunks, not a semantic completeness score. Input/runtime/store/output hashes are intact; review `5a691fb5...6ac7`. Approval exhausted. Next is provider-free Celltrion theme/source-scope diagnosis and Ultium requested-period source verification, not a paid rerun or release claim. Existing datasets/evaluator/source stores are unchanged. The previous `0395ef99...adba` provider failure remains immutable and its lost responses remain unavailable. Live terminal-error capture was not exercised by this successful run.
+Calls: Flash 10 + Pro 6 + OpenAI 21, retries 0, 177.599s;
+usage-estimated USD 0.18370008 / 0.80, billing unobserved.
+Offline numeric replay reproduced 2/2 programs/outputs; eight narrative quotes match
+frozen source chunks, not proof of semantic completeness. Review `5a691fb5...6ac7`.
+The two narrative questions used the old evidence/compression/validation path; its
+completed aggregate status cannot establish question coverage. Approval exhausted.
 
-## Provider status and next gate
+The [KB successor store](../../benchmarks/results/kbf_parser_openai_store_2026-09-09/README.md)
+has 2,110 vectors, 1,707 payloads and 51 parents, including 536 newly embedded inputs.
+Its recorded publication/readback is strict-ready/non-degraded; all original files
+were preserved. Embedding admission `e5aecbba...d567` is exhausted.
+Application default `data/chroma_dart` is a different incomplete KB 2022 store with
+52 missing payloads. Its manifest alone is not readiness, and it remains untouched.
 
-The historical source-consistent release gate reached `3 / 3 PASS`; immutable T3/Samsung
-artifacts and the one approved `HYU_T2_010` run provide its evidence. T2 selected
-`87.0만 대`, `78.1만 대`, and source display `11.5%`, retaining `11.4%` as the
-labelled recalculation. Both obligations completed with runtime error `0`, ledger
-`ok`, and faithfulness/completeness `1.0 / 1.0`.
+[Reviewed-case evidence status](../evaluation/reviewed_case_evidence_status.md) is the
+index for historical three-case/five-case results, counterfactual runtime tests,
+fixture v2 provenance and known catalog incompatibilities. They do not establish a
+synchronized current-build full-agent release or unseen-question performance.
 
-That admission is exhausted; timing, usage, cost and provenance remain in experiment history.
+## Next work
 
-Earlier four-case comparison: Flash `3/4`, Pro `4/4`; details remain in experiment history.
+- Keep committed source-preservation successor `7aa4adf2` fixed. Source-exposed cases are diagnostic
+  regressions, not untouched parser/catalog generalization evidence; use additional
+  uninspected sources for a broader claim. Prior stored text was not repaired.
+- Adopt/freeze final labels using the approved narrative criterion before any model
+  run. Do not optimize against previous failures or holdout outputs.
+- Keep retrieval coverage, runtime correctness and semantic completeness separate.
+  New reports are not indexed: compiler-only testing would not establish full-agent
+  retrieval quality, and new store preparation needs separate approval.
+- Before any paid validation, prepare a fresh current-build manifest and cost/transmission
+  scope for separate approval. No automatic retry or fresh ingest.
+- Acquisition ambiguity/pagination, complete vector/source text consistency, removal of
+  retired narrative helpers, formula-wide rounding propagation, and default-store
+  recovery are separate bounded work, not silently included fixes.
 
-Earlier five-case Pro-only admission `dd8e92f1...42f1` ran once on clean `bd6bd49`: all five reviewed
-cases passed. Six calls, no internal retry, `74.3s`; estimated USD `0.120409375` (billing unobserved).
-Normal dependency bindings, source-first NAV display and multi-evidence narrative passed;
-retry dependency context was not exercised live. All six responses ended STOP and parsed.
-Validation ready/execution ok, runtime errors 0; socket-blocked replay matched exactly.
-Result: `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`.
-Approval exhausted; defaults unchanged. Compiler-only success does not prove fresh retrieval.
-
-Approved KB copy: `benchmarks/results/reviewed_full_agent_kbf_store_copy_2026-09-07`.
-2,093 vectors; manifest/source coverage and pre-run self-search 3/3 pass. Original store/sidecar bytes are intact.
-Admission `138b5fbc...a028` ran once on `457d776`: T2 → T1, runtime 2/2, errors 0, ledger ok.
-T2: 70.28%, source negatives preserved. T1: 1.83%, +0.10%p; original evaluator headcount false FAIL retained.
-6 Gemini + 17 OpenAI embedding calls, no retries; 107.5s, estimated USD 0.10416639 (not billing).
-Result: `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/kb-2023/results.json`; then-current exact replay 2/2, not current catalog compatibility.
-Count-unit repair excludes word prefixes, retains grammatical suffixes and rejects unsupported real counts.
-Evaluator-only replay is 2/2: `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`.
-Answers/evidence/programs/dataset unchanged; calls 0. Approval exhausted; judges unmeasured, no new release claim.
-Immutable LG/NAV v1 predecessors retain 2,620 OpenAI vectors, 125 parents and 2,099 payloads; their earlier v1 readiness/dense pass is historical, not current v2 readiness. Earlier live 0/2 and local repair evidence remain in experiment history.
-Successor `03f03d99...237e` ran once on clean `5fe3a5f`: required-output completion 2/2, final validation ready/execution ok, errors 0, ledgers ok. 8 Gemini + 19 OpenAI calls, 116.909s; usage-estimated USD 0.17174414 < 0.40, billing unobserved. One allowed LG compiler retry; API failures/run retries 0.
-LG completes 3/3 outputs, preserving original bindings/assertion: precise profit minus approximate 6,769억원 = 1,486,334,000,000원. Numeric FAIL remains: no atomic accepted source/scope/precision variant; do not treat it as a transport or arithmetic failure.
-NAV completes 2/2 outputs without retry: same-row 당기/전기 resolve to 2023/2022, calculation 41.39574110852439%, source display 41.4%. Its new narrative only describes Poshmark service positioning, not acquisition performance; heuristic completeness 0.625, judges unmeasured. An out-of-island missing-ID diagnostic remains in attempt history, not final validation.
-Socket-blocked exact replay 2/2; runtime/input/store hashes unchanged. Review SHA `66d5b927...a051`. Approval exhausted; no runtime/evaluator/dataset edit or paid rerun. `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/README.md`.
-Approved v2 build `ac0a3ea7...2c89` and paid admission `2724f2ed...4432` are exhausted. Frozen stores: 783/1,872 vectors, 2,127 payloads and 125 parents, readiness 2/2, degraded false. The LG → NAV run on `90aacc9` (runtime `bb8eba2`) completed 2/2, errors 0, ledgers ok: 8 Gemini + 19 OpenAI requests, one allowed NAV compiler retry, 115.265s, estimated USD 0.19107573 / 0.40 (billing unobserved). LG uses precise profit/AMPC and computes 1,486,360백만원; its original atomic FAIL remains frozen. NAV retains 41.4% source display and Poshmark performance evidence; judges are unmeasured. Dependency-provenance repair preserves both saved programs, values, physical evidence and ledger agreement. Separately reviewed LG evaluation v2 now requires resolved 2023, exact filing/source-row/header identity and consolidated scope; it admits both note-only and summary-plus-note precise tuples. Frozen/current LG answers both replay as old-contract FAIL and explicit-successor numeric PASS; 16 source-mutation controls fail. Default datasets/profiles, prior verdicts and source stores remain unchanged, and no provider ran. Receipt `6c961c96...1c8e`; [source review and successor](../evaluation/lge_t1_051_calculation_source_review_v2.md). Next LG admission must explicitly use `benchmarks/datasets/reviewed/lge_t1_051_calculation_v2.json` (SHA `c3f9bb83...1150`); no new paid run is needed to verify this contract repair. Celltrion readiness/runtime evidence is recorded below; wider quality/release acceptance remains separate.
-
-Celltrion successor `685b575e...e71fa` ran once on clean `e5f28998` (runtime `5f2e86b1`): **runtime 1/1, numeric PASS, errors 0, ledger ok**. Consolidated 2023 cells `181,624,107천원 / 342,736,271천원` yield **52.99%** from the same physical table; one derived output, two inputs. Flash 2 + Pro 1 + OpenAI 10, no retries, 40.283s, usage-estimated USD 0.04296883 / 0.20 (billing unobserved). Socket-blocked post-run validation/execution outputs are byte-identical; original store and inputs are unchanged. Review `940c972b...526e`; [result and audit](../../benchmarks/results/reviewed_full_agent_celltrion_fiscal_2026-09-08/README.md). Approval exhausted; earlier failed run is preserved. [Five-case consolidation](../evaluation/reviewed_case_evidence_status.md) is complete: NAV fixture correction is complete in v2 without runtime changes; KB catalog mismatch is explained by intentional source/identity/unit changes. Current KB compiler-only selection now passes separately, without admitting old catalog authority. No synchronized five-case current full-agent result exists; unseen-question coverage, judges/release quality, default KB 2022 and formula-wide rounding propagation remain separate.
-
-See [runtime contract](../architecture/agent_runtime_contract.md), [checked topology](runtime_flow_roles.md), and [experiment history](../history/experiment_history.md).
+See [runtime contract](../architecture/agent_runtime_contract.md),
+[code map](codebase_map.md), [checked topology](runtime_flow_roles.md),
+and [experiment history](../history/experiment_history.md).
