@@ -4,11 +4,12 @@ Last updated: 2026-09-10
 
 ## Current state
 
-**Runtime repairs committed; 12 unchanged drafts adopted as provisional pilot references.**
+**One current-build compiler-only pilot completed; further runtime repairs remain.**
 The user accepted the review HTML while explicitly noting that they had not read all
 original filings. This permits pilot-reference use, not a claim of full-report or
-per-answer human source verification. No provider evaluation or store build is approved.
-No FinancialAgent/provider evaluation has run; independent human gold is not claimed.
+per-answer human source verification. The user's later task-scoped request delegated
+one paid compiler pilot without another approval prompt. That run is completed below;
+store builds and full-agent evaluation did not run. Independent human gold is not claimed.
 This pilot checks the generic repairs in the
 [correctness audit](../architecture/general_correctness_audit.md), without selecting
 new fixes from repeated attempts on the previous failed questions.
@@ -131,8 +132,8 @@ switch and is retained only as diagnostic history. No model output guided these 
 
 ## Execution boundary and next step
 
-Preparation used public DART read-only source acquisition only. Google/OpenAI calls,
-embeddings, indexing, model runs and existing-store mutations are all zero.
+Original preparation used public DART read-only source acquisition only, without model
+calls or store mutation. Its immutable zero-call receipts precede the paid run below.
 The final offline review rechecked all 12 drafts against source bytes, row/column and
 period headers, consolidated scope, sign/scale and exact arithmetic. Fifteen values,
 six calculations, 27 quotations and seven table-context lines pass; Codex found no
@@ -141,14 +142,47 @@ Original draft/criteria/selection bytes remain unchanged. Qualified HTML accepta
 adopts these references for the pilot, not independently source-verified human gold.
 The clean implementation recheck passed 1251 tests, 78 focused repairs, 24
 documentation/import/topology tests, domain audit, pycompile and diff hygiene.
-Next: prepare compiler-only inputs/admission, excluding reference answers from prompts.
-Per-answer human source verification remains unclaimed. These source-exposed cases are now regressions for the
-repaired boundaries; do not call a repeated result an untouched generalization test.
-No new provider admission has been prepared.
+Per-answer human source verification remains unclaimed. Source-exposed cases are
+regressions for repaired boundaries, not an untouched generalization test.
 
-The three new reports are not indexed in existing stores. A later compiler-only run
-would test interpretation, not retrieval or the full agent; a full-agent run requires
-separately approved store preparation. Do not call an old-store run a valid holdout.
-Before paid work, bind a clean current build, frozen inputs, exact transmission scope
-and cost to a new manifest, verify two identical no-call rehearsals, and request fresh
-approval. Prior paid admissions do not authorize this pilot. No automatic paid retry.
+### Completed compiler pilot (2026-09-10)
+
+The [execution and review](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
+bind clean `7c7f079a` and unchanged runtime `7aa4adf2` to manifest SHA
+`989566857a7ec8394fc1572fdcbb3f9260226581b11856c2cb28d4029c2fd916`.
+The user requested continuation through paid execution without another confirmation.
+The agent bounded that delegation to these 12 questions and announced a USD 2.00 cap;
+it is not a user-quoted SHA approval or standing authority for later experiments.
+
+Inputs use all three source catalogs, not gold-picked windows: 51,388 candidates before
+current per-owner admission. Requirements are authored from the four frozen question
+families, not planner outputs. Gold files are blocked in the provider runner. Two
+separate socket-blocked SDK rehearsals use abstention-only responses and have identical
+receipt bytes; no reviewed answers or golden programs supply those responses.
+
+All 12 questions ran once: Pro 21 calls, including three existing island retries;
+transport failures 0, arithmetic execution errors 0, runtime complete **7/12**.
+Exact normalized reference comparison matches every output for **4/9 numeric questions**
+(8/21 individual outputs). Float arithmetic allowance for percentages is 1e-12, not
+the four-decimal review display; labels and evaluator tolerances did not change.
+Alternative faithful evidence is allowed. CJ asset numbers match from a different
+summary table, with its actual provenance retained. Coarser summary numbers elsewhere
+are source-selection/precision differences, not failed arithmetic.
+
+Codex's source review finds **0/3 narratives fully meeting both themes and source scope**:
+principal-business omissions, subsidiary-to-group channel generalization, and unsupported
+document-wide absence claims remain. Two narrative cases are runtime complete despite
+these semantic defects; binding coverage must not be reported as answer quality.
+Estimated cost is **USD 0.90074875 / 2.00** without cache discount; billing unobserved.
+
+A frozen factor replay confirms a generic selection defect: `2025년` is inferred as
+a local subject, so a correct metric row can lose to unrelated date-matching rows.
+Correct values may be globally visible but unauthorized for the direct owner; validator
+rejection does not justify weakening owner authority. Future repairs need anonymous
+mechanism regressions, not benchmark names, answer corrections or repeated paid tuning.
+
+OpenAI, embeddings, planner/retrieval, indexing, store writes, paid judges and batch
+reruns were zero. The three reports remain unindexed. This is not a full-agent, ledger,
+release, normal query-latency or untouched-source claim. Inputs/results/references remain
+immutable. The one-shot delegation is consumed; new paid work needs fresh scoped
+authority and a current-build manifest. No automatic paid retry or store preparation.

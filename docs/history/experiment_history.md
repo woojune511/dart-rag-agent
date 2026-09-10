@@ -8160,3 +8160,25 @@ References:
 - Local report: `benchmarks/results/new_question_source_repairs_2026-09-08/REPORT.md`.
   Verified receipt SHA `ac3d4add408432f433e463bed587bac9fee7557ea0565e25991c60ca75da8d17`.
   Outputs remain ignored; any model-backed selection/synthesis check needs new approval.
+
+## Whole-Source Compiler Pilot (2026-09-10)
+
+- After qualified HTML acceptance of 12 provisional references, the user delegated one
+  paid compiler-only run without another confirmation. Agent-announced cap: USD 2.00.
+  Clean checkout `7c7f079a`, runtime `7aa4adf2` / `5a74ff8d...9d7b`; manifest SHA
+  `989566857a7ec8394fc1572fdcbb3f9260226581b11856c2cb28d4029c2fd916`.
+- Whole-filing catalogs contain 51,388 candidates from 대한항공, KT&G and CJ제일제당 2025.
+  Question-authored requirements and current cohorts exclude gold from model inputs.
+  Two separate abstention-only SDK rehearsal receipts are byte-identical; guard/usage tests 16/16.
+- All 12 questions attempted: Pro 21 calls, three internal retries, transport failures 0,
+  arithmetic execution errors 0. Runtime complete 7/12; exact reference scalars 4/9 numeric
+  questions (8/21 outputs). Codex source review finds all three narratives deficient in
+  theme coverage, entity/business scope or absence claims; no new human/paid-judge score.
+- Estimated USD 0.90074875 without cache discount, billing unobserved; compiler loop
+  1,109.637s includes whole-catalog validation, not ordinary query latency measurement.
+- Preserved factor replay infers `2025년` as a local subject, hiding correct metric rows
+  behind date-matching unrelated rows. Numeric precision alternatives and narrative
+  subsidiary/absence claims are reported separately; no runtime or label fixes followed.
+- OpenAI, embedding, store mutation, planner/retrieval, full-agent, paid judges and batch
+  reruns 0. No ledger/release or untouched-source generalization claim. Delegation consumed.
+- [Local report and immutable artifacts](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md).

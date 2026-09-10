@@ -60,7 +60,7 @@ project status; unit/no-call success is not model accuracy or release acceptance
 Synthetic tests vary names, years, source identities, input order, scope, errors and
 mutation, rather than turning reviewed benchmark answers into runtime rules.
 
-The last paid four-question run used clean `cf721258` and exhausted admission
+The last full-agent four-question run used clean `cf721258` and exhausted admission
 `a2bd7bdd...a311`: four attempts, API/runtime errors zero, ledgers 4/4 ok.
 It did **not** complete four answers: LG omitted the requested-period local value;
 Celltrion omitted one theme and used the wrong requested source scope. Those frozen
@@ -80,24 +80,25 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
 1. Source-preservation successor runtime SHA is
    `5a74ff8dae428d314a329615038c45034229098ab15885c45406eb199c809d7b`.
    Runtime code is fixed at `7aa4adf2`; the [pre-run check](benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
-   binds the final clean checkout and unchanged runtime bytes. This is not provider
-   admission: no new manifest or paid approval has been prepared.
-2. All 12 source-grounded drafts are adopted as provisional pilot references after the
-   user's qualified HTML review, not full-report or per-answer human source verification.
-   [Adoption and limits](benchmarks/results/independent_holdout_preparation_2026-09-10/label_adoption_v1/README.md)
-   binds unchanged answers and the approved representative-channel criterion. Individual
-   human source verifications and model runs remain zero.
-   This is a small company/period holdout, not an unseen-template or population claim.
-   The diagnosed XML/row-reading gaps are repaired with anonymous regressions; full
-   unittest recheck is 1251/1251. Frozen chunk-to-catalog replay preserves all 44,757 numeric
-   records byte-for-byte in JSON content. These source-exposed cases are preservation
-   regressions, not an untouched parser/catalog holdout. Final pre-run review found no
-   required draft correction: 15 values, six calculations, 27 exact quotes and seven
-   table-context lines pass. Next is compiler-only input/admission preparation, not
-   another label approval. No model/store work ran.
-3. Any provider run needs a new current-build manifest, transmission scope, cost estimate
-   and separate approval. Prior admissions are exhausted; narrative routing changed, so
-   prior request/count/cost receipts do not authorize the new path.
+   and the [12-question compiler pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
+   bind unchanged runtime bytes. Under the user's task-scoped delegation, admission
+   `98956685...fd916` ran once on clean `7c7f079a`: Gemini Pro 21 calls, 3 internal retries,
+   no transport errors, estimated USD 0.90074875 / 2.00 without cache discount.
+2. Runtime complete is 7/12; exact reference-scalar comparison is 4/9 numeric questions.
+   All three narratives have omissions, scope expansion or unsupported absence claims.
+   These dimensions are not interchangeable. Same-value summary-table evidence retains
+   its own provenance; rounded alternatives are not called arithmetic failures.
+   [Adopted references](benchmarks/results/independent_holdout_preparation_2026-09-10/label_adoption_v1/README.md)
+   remain provisional, with individual human source verifications 0. Whole-filing catalogs
+   and question-authored requirements exclude gold from model inputs; no planner/retrieval,
+   store build, full-agent, ledger, release or untouched-source generalization was tested.
+3. Next: anonymously reproduce and fix period-to-subject inference before further paid
+   trials. A preserved factor trace shows `2025년` inferred as a local subject, hiding the
+   correct metric row behind unrelated date-matching rows. Also review narrative owner
+   scope/coverage: a partial excerpt must not imply report-wide absence or group-wide
+   subsidiary claims. Keep owner visibility and evidence validation strict.
+   The one-shot delegation is consumed; later provider work needs a new scoped authority
+   and current-build manifest. No additional approval was requested for this completed run.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.
 5. Remaining characterized limits: planner theme omission/semantic faithfulness still

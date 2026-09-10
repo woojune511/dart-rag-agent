@@ -57,44 +57,38 @@ Focused parser/retrieval, compiler/executor, storage/API, routing and phase test
 Import/topology, changed/new Python pycompile and diff hygiene passed at handoff.
 
 These are provider-free mechanism tests, not fresh answer accuracy or generalization.
-No provider, new benchmark run, fresh ingest, actual-store repair, or evaluator/dataset
-change was performed. Paid approval is separate from this implementation.
+These implementation gates used no provider, fresh ingest, actual-store repair or
+evaluator/dataset changes. The separate current-build pilot below followed them.
 
-## Independent holdout preparation
+## Independent pilot: current compiler-only result
 
-The [holdout protocol](../evaluation/independent_holdout_protocol.md) freezes the audited
-runtime bytes and a manual three-company/2025 pilot: 대한항공, KT&G and CJ제일제당,
-12 fixed questions. Codex source-reviewed answer drafts and an original-evidence view
-are ready. Offline checks verified 15 source values, six calculations, 27 exact quoted
-byte spans and both narrative themes. The user approved representative narrative sales
-channels with explicit business scope and accepted the 12 drafts after qualified HTML
-review. These are provisional pilot references, not individually human-verified gold.
-Model runs, Google/OpenAI calls, embeddings, indexing and store mutations are zero.
-Existing reports/datasets and predecessor question/pending-label bytes retain their hashes.
-Initial preparation did not change runtime; the subsequently approved source repairs
-have a separate successor byte freeze and implementation commit, not a holdout score.
-The [final pre-run review](../../benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
-binds the clean build to those exact runtime bytes. Source/period/scale checks,
-six calculations, 27 quotations and seven table-context lines pass; no draft change
-was needed. [Label adoption](../../benchmarks/results/independent_holdout_preparation_2026-09-10/label_adoption_v1/README.md)
-binds the unchanged drafts for pilot use; individual human source verification remains 0.
+The [holdout protocol](../evaluation/independent_holdout_protocol.md) fixes 12 questions
+over 대한항공, KT&G and CJ제일제당 2025. The user accepted unchanged provisional references
+after qualified HTML review, not individual human source verification (still 0).
+The source-preservation successor retains 15 numeric facts, 12 prose quotes and seven
+descriptive row associations; original files and all 44,757 frozen numeric records stay
+unchanged. [Repair receipt](../../benchmarks/results/independent_holdout_preparation_2026-09-10/preservation_repair_v1/README.md).
 
-Subsequent offline whole-report parser/catalog projection preserved **15/15** reviewed
-numeric facts with scope/period/unit/physical provenance and all three asset operand
-pairs in shared row bundles. **11/12** reviewed prose spans survived; XML recovery
-deleted ampersand-adjacent text. Three mixed amount/share rows reached source candidates
-but disappeared from the catalog; four channel rows survived as numeric evidence but
-their narrative admission is mode-dependent. Anonymous synthetic inputs reproduce
-these mechanisms. [Preservation diagnosis](../../benchmarks/results/independent_holdout_preparation_2026-09-10/preservation_probe_v1/README.md).
-The mechanisms are now repaired locally; original diagnostic bytes remain unchanged.
-Successor runtime: `5a74ff8dae428d314a329615038c45034229098ab15885c45406eb199c809d7b`.
-New row readings expand catalog fingerprints, not existing candidate-ID algorithms.
-Fresh raw-source verification retains all **15 numeric facts, 12 prose quotations and
-seven descriptive row associations**. [Final repair evidence](../../benchmarks/results/independent_holdout_preparation_2026-09-10/preservation_repair_v1/README.md)
-uses verification v2, including the full frozen chunk-to-catalog path. This is source
-preservation, not actual-question retrieval, compiler selection or answer completeness.
+The user then delegated one paid pilot without another confirmation. Admission
+`98956685...fd916` ran once on clean `7c7f079a`, unchanged runtime `7aa4adf2` /
+`5a74ff8d...9d7b`. [Result and source review](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md).
+Whole-filing catalogs (51,388 candidates) and question-authored requirements feed current
+bounded cohorts. Gold reads are blocked in the runner. Two separate abstention-only SDK
+rehearsals are byte-identical; provider budget/usage tests pass 16/16.
 
-## Latest provider evidence (immutable predecessor)
+- Gemini 2.5 Pro: **21 calls**, **3 internal retries**, 12 questions attempted; transport errors 0.
+- Runtime complete **7/12**; exact reference scalars **4/9 numeric questions** (8/21 outputs).
+- Codex source review finds all **3 narratives incomplete/unfaithful in at least one respect**.
+  This is not a new human or paid-judge score. Same-value summary evidence remains distinct;
+  coarser source displays are source-selection/precision differences, not conversion errors.
+- Cost estimate **USD 0.90074875 / 2.00**, without cache discount; billing unobserved.
+  Compiler loop 1,109.637s includes whole-catalog work, not normal query latency measurement.
+- OpenAI/embedding/store/planner/retrieval/judge calls and batch reruns: **0**.
+
+No full-agent, ledger, release or untouched-source generalization claim. No runtime,
+input, label, tolerance or source-store changes followed the observed model outputs.
+
+## Latest full-agent evidence (immutable predecessor)
 
 The [four-question full-agent run](../../benchmarks/results/diagnostic_four_full_agent_2026-09-09/README.md)
 used clean `cf721258`, admission `a2bd7bdd...a311`, once.
@@ -131,13 +125,16 @@ synchronized current-build full-agent release or unseen-question performance.
 - Keep committed source-preservation successor `7aa4adf2` fixed. Source-exposed cases are diagnostic
   regressions, not untouched parser/catalog generalization evidence; use additional
   uninspected sources for a broader claim. Prior stored text was not repaired.
-- Prepare compiler-only inputs using the frozen, HTML-reviewed provisional pilot labels
-  only for evaluation, never as model input. Do not tune labels against model outputs.
+- Repair the generic period/subject boundary with anonymous provider-free tests first:
+  a preserved trace infers `2025년` as a local subject, promoting unrelated rows above
+  the correct metric row. Correct owner visibility must be restored, not bypassed.
+- Review narrative owner scope and completeness: partial-source absence is not report
+  absence, and subsidiary channels cannot silently become group-wide claims.
 - Keep retrieval coverage, runtime correctness and semantic completeness separate.
-  New reports are not indexed: compiler-only testing would not establish full-agent
+  New reports are not indexed: this compiler-only result does not establish full-agent
   retrieval quality, and new store preparation needs separate approval.
-- Before any paid validation, prepare a fresh current-build manifest and cost/transmission
-  scope for separate approval. No automatic retry or fresh ingest.
+- The one-shot delegated execution is consumed. Later paid work needs fresh scoped
+  authority and a current-build manifest; no automatic rerun or fresh ingest.
 - Acquisition ambiguity/pagination, complete vector/source text consistency, removal of
   retired narrative helpers, formula-wide rounding propagation, and default-store
   recovery are separate bounded work, not silently included fixes.
