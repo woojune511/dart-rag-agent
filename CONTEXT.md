@@ -83,7 +83,7 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
 
 ## Next work and hard stops
 
-1. The last paid pilot's predecessor runtime SHA is
+1. The 12-question paid predecessor's runtime SHA is
    `5a74ff8dae428d314a329615038c45034229098ab15885c45406eb199c809d7b`.
    That run used `7aa4adf2`; the [pre-run check](benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
    and the [12-question compiler pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
@@ -101,11 +101,13 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
 3. Period-to-subject inference is repaired with anonymous real-catalog tests; no rank
    weights, owner visibility or source validation were relaxed. Offline projection is
    candidate-visibility evidence only, not a new answer result; see project status.
-   Narrative call-scope framing is now explicit and tested offline. It does not change
-   candidate ranking or certify model adherence. Missing principal themes and local-to-group
-   generalization remain unverified until a separately scoped provider comparison/review.
-   The one-shot delegation is consumed; later provider work needs a new scoped authority
-   and current-build manifest. No additional approval was requested for this completed run.
+   The separately approved [three-narrative comparison](benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md)
+   ran once on `3447ade7`, manifest `5e478bb7...2cc16`: Pro 6 calls, retry/errors 0,
+   estimated USD 0.24888625 / 0.90. Runtime complete remains 2/3; source-reviewed semantic
+   completeness remains 0/3. Unsupported absence claims disappeared and subsidiary-channel
+   attribution improved, but two major-business omissions and one missing channel remain.
+   Actual SDK requests match the no-call receipts. Next: provider-free narrative evidence
+   coverage diagnosis; do not substitute a prompt-only rerun or gold-ID selection. Approval consumed.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.
 5. Remaining characterized limits: planner theme omission/semantic faithfulness still

@@ -62,7 +62,14 @@ visible and catalog bytes unchanged. Runtime SHA `b1e6336e...b3add`; no new sema
 
 These are provider-free mechanism/prompt tests, not fresh answer accuracy or generalization.
 These implementation gates used no provider, fresh ingest, actual-store repair or
-evaluator/dataset changes. The pilot below belongs to the earlier runtime, not this repair.
+evaluator/dataset changes. The 12-question pilot below belongs to the earlier runtime.
+
+Current-build [three-narrative provider comparison](../../benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md):
+`3447ade7`, admission `5e478bb7...2cc16`, Pro **6 calls**, retry/errors **0**, estimated
+**USD 0.24888625 / 0.90**; billing unobserved. Runtime complete **2/3**, Codex source-reviewed
+semantic complete **0/3**. Unsupported absence claims disappeared; subsidiary attribution
+improved. Aerospace, real estate and one channel output remain omitted. Actual SDK requests
+match the two identical no-call receipts. Inputs/criteria are unchanged; no full-agent claim.
 
 ## Independent pilot: immutable compiler-only predecessor
 
@@ -126,17 +133,13 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- Period/subject matching is repaired without changing ranking weights, owner authority,
-  catalog identities or period resolution. Source-exposed cases remain diagnostic, not
-  untouched-source generalization evidence; prior stored text was not repaired.
-- Narrative call-scope instructions are repaired, not model quality certified. Validator
-  ID/scope/number checks cannot prove arbitrary-text entailment or complete theme coverage.
-  Check local-subject attribution, omissions and absence claims in a future bounded comparison.
-- Keep retrieval coverage, runtime correctness and semantic completeness separate.
-  New reports are not indexed: this compiler-only result does not establish full-agent
-  retrieval quality, and new store preparation needs separate approval.
-- The one-shot delegated execution is consumed. Later paid work needs fresh scoped
-  authority and a current-build manifest; no automatic rerun or fresh ingest.
+- Diagnose narrative evidence coverage provider-free: broad summaries versus detail rows,
+  and requested-source/theme coverage. The missing channel owner saw six financial-section
+  candidates despite a source business-channel table. Catalog/ranking cause remains unproven.
+- Keep source-exposed regression, full-agent retrieval and semantic completeness distinct;
+  ID/scope/number validation is not entailment. New reports are not indexed.
+- Paid admissions are consumed. New paid work/store preparation needs scoped authority and
+  a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.
 - Acquisition ambiguity/pagination, complete vector/source text consistency, removal of
   retired narrative helpers, formula-wide rounding propagation, and default-store
   recovery are separate bounded work, not silently included fixes.
