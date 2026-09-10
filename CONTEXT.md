@@ -7,7 +7,7 @@ Last updated: 2026-09-10
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Audited runtime and source-preservation fixes are committed at `7aa4adf2`.
+Audited source-preservation baseline: `7aa4adf2`; the current successor repairs period-to-subject inference.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -39,6 +39,8 @@ defects, generic regressions, coverage limits, and remaining work.
   Filing-local chunk numbers cannot collapse distinct or unidentified documents.
 - Fixed-year selection priorities were removed. Generic year patterns replace dated
   stopword lists. Routing prompt examples are anonymous declarative data.
+- Whole calendar/relative/fiscal labels, including abbreviated years, cannot become
+  inferred local subjects. Entity-name substrings and explicit subject authority stay intact.
 - Canonical routing caches only complete, finite, correctly dimensioned successful
   batches with known identity. Search-cache values are owned copies, invalidated at
   successful source commits. Persistence failures propagate.
@@ -77,9 +79,9 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
 
 ## Next work and hard stops
 
-1. Source-preservation successor runtime SHA is
+1. The last paid pilot's predecessor runtime SHA is
    `5a74ff8dae428d314a329615038c45034229098ab15885c45406eb199c809d7b`.
-   Runtime code is fixed at `7aa4adf2`; the [pre-run check](benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
+   That run used `7aa4adf2`; the [pre-run check](benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
    and the [12-question compiler pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    bind unchanged runtime bytes. Under the user's task-scoped delegation, admission
    `98956685...fd916` ran once on clean `7c7f079a`: Gemini Pro 21 calls, 3 internal retries,
@@ -92,11 +94,11 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    remain provisional, with individual human source verifications 0. Whole-filing catalogs
    and question-authored requirements exclude gold from model inputs; no planner/retrieval,
    store build, full-agent, ledger, release or untouched-source generalization was tested.
-3. Next: anonymously reproduce and fix period-to-subject inference before further paid
-   trials. A preserved factor trace shows `2025년` inferred as a local subject, hiding the
-   correct metric row behind unrelated date-matching rows. Also review narrative owner
-   scope/coverage: a partial excerpt must not imply report-wide absence or group-wide
-   subsidiary claims. Keep owner visibility and evidence validation strict.
+3. Period-to-subject inference is repaired with anonymous real-catalog tests; no rank
+   weights, owner visibility or source validation were relaxed. Offline projection is
+   candidate-visibility evidence only, not a new answer result; see project status.
+   Next: review narrative owner scope/coverage. A partial excerpt must not imply
+   report-wide absence or group-wide subsidiary claims.
    The one-shot delegation is consumed; later provider work needs a new scoped authority
    and current-build manifest. No additional approval was requested for this completed run.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,

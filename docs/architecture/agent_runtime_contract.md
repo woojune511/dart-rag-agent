@@ -113,7 +113,7 @@ Narratives may use filing-year document scope, but that scope cannot bridge a nu
 
 The complete immutable candidate catalog is projected into generic fact views.
 Owner ranking compares scope/applicability, explicit local-subject, owner-kind, unit, metric, and physical-locality. Prose and structured rows have equal narrative reading eligibility in both evidence modes; source-defined grouping remains separate. Document-company matches are diagnostic only; filing scope rejects conflicts but adds no implicit value-subject bonus.
-Repeated words do not accumulate additive relevance or compensate for conflicts. Legacy subject inference must not promote a fragment of a declared concept alias/metric surface into a local entity; explicit local subjects remain authoritative.
+Repeated words do not accumulate additive relevance or compensate for conflicts. Legacy subject inference excludes fragments of declared concepts/metrics and whole calendar (including abbreviated year), relative or fiscal period labels. This does not resolve a value's year or strip temporal substrings from entity names; explicit local subjects remain authoritative.
 Within each cohort, `compatible` precedes `unknown_only`; explicit conflicts are excluded. Exact row/cell metric matches precede containment-only matches as ordinal tiers, not additive scores. Comparison keys remove parser footnotes, never semantic qualifiers; empty keys cannot match. Source axes, IDs and catalog fingerprints stay intact. Equal tiers remain deterministic and source-diverse.
 
 `SourceBundleV1` is the source-reading unit: deterministic ID, source kind/anchor, context fingerprint,

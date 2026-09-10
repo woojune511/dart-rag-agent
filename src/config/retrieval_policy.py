@@ -632,6 +632,15 @@ SEMANTIC_REQUIRED_EVIDENCE_POLICY: Dict[str, int] = {
 }
 
 
+# Whole labels only: a calendar spelling is context, not an inferred entity.
+# Do not search this grammar inside names or use it to assign a value's year.
+CALENDAR_PERIOD_LABEL_PATTERN = (
+    r"(?i)(?:FY\s*)?(?:['’]\s*)?(?:\d{4}|\d{2})"
+    r"(?:\s*년(?:\s*\d{1,2}\s*월(?:\s*\d{1,2}\s*일)?)?"
+    r"|[./-]\d{1,2}(?:[./-]\d{1,2})?\.?)?(?:\s*말)?"
+)
+
+
 ANNUAL_RELATIVE_PERIOD_LABEL_POLICY = (
     # Cell/header labels only; do not match these inside prose or subject words.
     (0, r"(?<!\w)당기(?:말)?(?!\w)"),

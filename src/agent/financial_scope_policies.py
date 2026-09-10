@@ -8,8 +8,27 @@ from typing import Any, Dict, List
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.config.retrieval_policy import (
     ANNUAL_RELATIVE_PERIOD_LABEL_POLICY,
+    CALENDAR_PERIOD_LABEL_PATTERN,
     CONSOLIDATION_SCOPE_POLICY,
+    SEMANTIC_CANDIDATE_POLICY,
 )
+
+
+def is_period_only_surface(surface: str) -> bool:
+    """Recognize whole period labels, never temporal fragments inside names.
+
+    This only bounds legacy subject inference. It neither resolves value years
+    nor overrides a query-declared subject that happens to resemble a period.
+    """
+    normalized = _normalise_spaces(surface)
+    return bool(normalized) and any(
+        re.fullmatch(pattern, normalized)
+        for pattern in (
+            CALENDAR_PERIOD_LABEL_PATTERN,
+            SEMANTIC_CANDIDATE_POLICY["fiscal_period_ordinal_pattern"],
+            *(pattern for _offset, pattern in ANNUAL_RELATIVE_PERIOD_LABEL_POLICY),
+        )
+    )
 
 
 def relative_period_offsets(*surfaces: Any) -> set[int]:

@@ -6,7 +6,7 @@ Last updated: 2026-09-10
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Audited runtime/source-preservation implementation commit: `7aa4adf2`.
+Audited source-preservation baseline: `7aa4adf2`; current successor repairs period/subject inference.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -23,6 +23,8 @@ Implemented generic repairs:
   Table-fragment splitting preserves prose before the first numbered item.
 - Fixed absolute-year bonuses/penalties and dated stopword entries are gone; router
   examples are anonymous config. No benchmark/company/answer branches were added.
+- Whole calendar/relative/fiscal labels cannot become inferred subjects, including
+  abbreviated years. Explicit subjects and names containing temporal text stay intact.
 - Canonical routing validates full finite vector batches before success caching;
   incomplete embedding identity disables cross-instance reuse. Cosine is scale-stable.
 - Search-cache Documents/provenance are copied, committed writes invalidate caches,
@@ -43,24 +45,28 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Baseline: Python 3.13.13, full unittest **1173/1173** before repairs.
-Audit integration was **1236/1236**, including 63 new synthetic regressions.
-Source-preservation successor: **1251/1251** in 40.630s, including **15 additional
-anonymous regressions**. Focused source/compiler/visibility suites and import/topology
-**22/22** pass. Frozen chunk-to-catalog replay preserves all **44,757 numeric records**
-(IDs and complete field contents), not merely selected answer values.
-Pre-commit recheck: **1251/1251** in 33.867s, focused repairs **78/78**, and
-documentation/import/topology **24/24**. No runtime change followed these gates.
+Python 3.13.13. The source-preservation baseline passed **1251/1251**; its frozen
+chunk-to-catalog replay preserved all **44,757 numeric records** (IDs and full fields).
+Period/subject regressions use actual catalog normalization, not hand-scaled values:
+five tests vary years, dates, relative/fiscal/abbreviated labels, names, owner kinds
+and input order. They reproduce loss of the correct row under the two-bundle limit.
+Focused matching/subject/period tests: **54/54**; broader cohort/authority/period/import/
+topology checks: **66/66**. Final full unittest: **1256/1256** in 35.932s.
 Runtime domain audit: **83 reviewed literals**, down from 84 because the obsolete
 inline router prompt record was removed; no new baseline exception was added.
 Focused parser/retrieval, compiler/executor, storage/API, routing and phase tests pass.
 Import/topology, changed/new Python pycompile and diff hygiene passed at handoff.
+The [offline successor projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md)
+checks nine direct owners in six frozen questions: no period-only inferred subjects;
+both periods' original asset cells regain proper owner visibility for two filings,
+and three previously accepted cash-flow IDs remain visible. Catalog bytes are unchanged.
+Runtime SHA `41de17bf...3f2c0`; receipt SHA `62da1e65...7b896`. This is visibility, not model accuracy.
 
 These are provider-free mechanism tests, not fresh answer accuracy or generalization.
 These implementation gates used no provider, fresh ingest, actual-store repair or
-evaluator/dataset changes. The separate current-build pilot below followed them.
+evaluator/dataset changes. The pilot below belongs to the earlier runtime, not this repair.
 
-## Independent pilot: current compiler-only result
+## Independent pilot: immutable compiler-only predecessor
 
 The [holdout protocol](../evaluation/independent_holdout_protocol.md) fixes 12 questions
 over 대한항공, KT&G and CJ제일제당 2025. The user accepted unchanged provisional references
@@ -85,8 +91,8 @@ rehearsals are byte-identical; provider budget/usage tests pass 16/16.
   Compiler loop 1,109.637s includes whole-catalog work, not normal query latency measurement.
 - OpenAI/embedding/store/planner/retrieval/judge calls and batch reruns: **0**.
 
-No full-agent, ledger, release or untouched-source generalization claim. No runtime,
-input, label, tolerance or source-store changes followed the observed model outputs.
+No full-agent, ledger, release or untouched-source generalization claim. This later
+period/subject repair does not rewrite that run's results, inputs, labels or source stores.
 
 ## Latest full-agent evidence (immutable predecessor)
 
@@ -122,12 +128,9 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- Keep committed source-preservation successor `7aa4adf2` fixed. Source-exposed cases are diagnostic
-  regressions, not untouched parser/catalog generalization evidence; use additional
-  uninspected sources for a broader claim. Prior stored text was not repaired.
-- Repair the generic period/subject boundary with anonymous provider-free tests first:
-  a preserved trace infers `2025년` as a local subject, promoting unrelated rows above
-  the correct metric row. Correct owner visibility must be restored, not bypassed.
+- Period/subject matching is repaired without changing ranking weights, owner authority,
+  catalog identities or period resolution. Source-exposed cases remain diagnostic, not
+  untouched-source generalization evidence; prior stored text was not repaired.
 - Review narrative owner scope and completeness: partial-source absence is not report
   absence, and subsidiary channels cannot silently become group-wide claims.
 - Keep retrieval coverage, runtime correctness and semantic completeness separate.

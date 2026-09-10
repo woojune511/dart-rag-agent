@@ -12,6 +12,7 @@ from dataclasses import dataclass, replace
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 
 from src.agent.financial_row_surfaces import strip_financial_label_annotations
+from src.agent.financial_scope_policies import is_period_only_surface
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
@@ -622,6 +623,7 @@ def build_candidate_matches(
             if len(_compact(observed)) >= 3
             and any(character.isalpha() for character in observed)
             and _surface_contains(owner_text, observed)
+            and not is_period_only_surface(strip_financial_label_annotations(observed))
             and not any(
                 _surface_contains(metric, observed)
                 for metric in declared_metric_surfaces
