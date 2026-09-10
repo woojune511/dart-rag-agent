@@ -6,7 +6,7 @@ Last updated: 2026-09-10
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Audited source-preservation baseline: `7aa4adf2`; current successor repairs period/subject inference.
+Source-preservation baseline: `7aa4adf2`; period/subject repair: `3d3f64cd`; successor clarifies compiler call scope.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -25,6 +25,9 @@ Implemented generic repairs:
   examples are anonymous config. No benchmark/company/answer branches were added.
 - Whole calendar/relative/fiscal labels cannot become inferred subjects, including
   abbreviated years. Explicit subjects and names containing temporal text stay intact.
+- Initial/retry prompts explicitly limit active outputs and mark evidence as bounded
+  excerpts. Narrative instructions preserve local subjects and required themes; missing
+  visible evidence is not report-wide absence. No extra model call or validator relaxation.
 - Canonical routing validates full finite vector batches before success caching;
   incomplete embedding identity disables cross-instance reuse. Cosine is scale-stable.
 - Search-cache Documents/provenance are copied, committed writes invalidate caches,
@@ -45,24 +48,19 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13. The source-preservation baseline passed **1251/1251**; its frozen
-chunk-to-catalog replay preserved all **44,757 numeric records** (IDs and full fields).
-Period/subject regressions use actual catalog normalization, not hand-scaled values:
-five tests vary years, dates, relative/fiscal/abbreviated labels, names, owner kinds
-and input order. They reproduce loss of the correct row under the two-bundle limit.
-Focused matching/subject/period tests: **54/54**; broader cohort/authority/period/import/
-topology checks: **66/66**. Final full unittest: **1256/1256** in 35.932s.
-Runtime domain audit: **83 reviewed literals**, down from 84 because the obsolete
-inline router prompt record was removed; no new baseline exception was added.
-Focused parser/retrieval, compiler/executor, storage/API, routing and phase tests pass.
-Import/topology, changed/new Python pycompile and diff hygiene passed at handoff.
-The [offline successor projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md)
-checks nine direct owners in six frozen questions: no period-only inferred subjects;
-both periods' original asset cells regain proper owner visibility for two filings,
-and three previously accepted cash-flow IDs remain visible. Catalog bytes are unchanged.
-Runtime SHA `41de17bf...3f2c0`; receipt SHA `62da1e65...7b896`. This is visibility, not model accuracy.
+Python 3.13.13; current full unittest: **1262/1262** in 57.830s.
+Six new anonymous call-scope tests cover independent islands, targeted retry/accepted
+bytes, candidate-versus-document coverage, local subject projection and strict scope.
+Focused scope/narrative/compiler: **29/29**; integration/validator/executor/import/topology:
+**111/111**. Domain audit: **83 reviewed literals**, no new exception. Pycompile/diff pass.
+The [period/subject predecessor projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md)
+restored four asset cells' proper owner visibility and retained three accepted cash-flow
+IDs without changing catalogs. That receipt remains bound to `3d3f64cd`, not this prompt change.
+The [narrative prompt replay](../../benchmarks/results/narrative_compilation_scope_2026-09-10/README.md)
+records six mock calls over three frozen questions, with all 16 previous references still
+visible and catalog bytes unchanged. Runtime SHA `b1e6336e...b3add`; no new semantic result.
 
-These are provider-free mechanism tests, not fresh answer accuracy or generalization.
+These are provider-free mechanism/prompt tests, not fresh answer accuracy or generalization.
 These implementation gates used no provider, fresh ingest, actual-store repair or
 evaluator/dataset changes. The pilot below belongs to the earlier runtime, not this repair.
 
@@ -131,8 +129,9 @@ synchronized current-build full-agent release or unseen-question performance.
 - Period/subject matching is repaired without changing ranking weights, owner authority,
   catalog identities or period resolution. Source-exposed cases remain diagnostic, not
   untouched-source generalization evidence; prior stored text was not repaired.
-- Review narrative owner scope and completeness: partial-source absence is not report
-  absence, and subsidiary channels cannot silently become group-wide claims.
+- Narrative call-scope instructions are repaired, not model quality certified. Validator
+  ID/scope/number checks cannot prove arbitrary-text entailment or complete theme coverage.
+  Check local-subject attribution, omissions and absence claims in a future bounded comparison.
 - Keep retrieval coverage, runtime correctness and semantic completeness separate.
   New reports are not indexed: this compiler-only result does not establish full-agent
   retrieval quality, and new store preparation needs separate approval.

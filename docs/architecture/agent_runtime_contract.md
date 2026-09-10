@@ -143,7 +143,7 @@ bundle and selected candidate IDs and copy an exact contiguous source substring
 covering every referenced value span. Code verifies bundle membership, owner
 visibility, exact bytes, and span coverage before execution and fingerprints the
 validated assertion; coverage follows declared obligation order. Table cells use row/cell provenance; narratives keep multi-evidence bindings.
-Narratives emit `evidence_bindings` once; `candidate_ids` is a code-derived, schema-hidden projection. Blank requirement IDs identify owner-only support and satisfy no requirement; owner/scope/number/group validation remains enforced.
+Narratives emit `evidence_bindings` once; `candidate_ids` is a code-derived, schema-hidden projection. Blank requirement IDs identify owner-only support and satisfy no requirement; owner/scope/number/group checks are necessary, not semantic entailment or theme-completeness certification. Compiler text must preserve source-local subjects and explain its own required themes; filing identity cannot broaden a member's claim to the group.
 Explicit historical `candidate_ids` are validated as declared, never widened from bindings. Current compiler prompts do not request that duplicate list; input objects and saved programs are not mutated.
 Narrative bodies exclude recognized parser metadata prefixes and use exact consecutive windows of at most 1200 characters, 4800 body characters per source. Later windows are `source_continuation` context links on the same candidate, serialized once; source-candidate offsets are not XML offsets. `source_body_coverage` exposes omitted tails. No extra selectable IDs; numeric/table projection and ID/catalog hashing stay intact.
 The retained body grounds narrative matching/number validation; window/context content is bound by V2 execution authority. Meaning such as total, component, rate, or derived display is represented by obligation
@@ -212,7 +212,7 @@ the same change; long-lived dual-write is forbidden.
 
 Intermediate nodes do not write `tasks`, `artifacts`, or the final answer.
 Numeric execution returns calculation rows, display slots, and evidence;
-narrative validation returns supported sentences and evidence.
+narrative validation returns scope/ID/number-checked text and evidence, not certified semantic entailment.
 `assemble_ledger` records the finalized public answer, structured result,
 trace, and narrative source material as one `LedgerSnapshot`. Aggregate status follows public `structured_result.status`; partial/incomplete results are not completed tasks. Ledger integrity is structural, not semantic completeness.
 `assemble_final` is the only graph node that assembles answer, citations, and
@@ -239,7 +239,7 @@ Every retry candidate replacement also checks the query-wide union, including
 already accepted and not-yet-compiled islands. An overflowing retry makes no
 provider call and preserves accepted program bytes; bundles are never truncated.
 
-Islands compile sequentially in obligation order, with at most one internal retry:
+Every initial/retry prompt declares `semantic_compilation_scope_v1`: active output IDs, original question as context only, bounded excerpts and no established document-wide absence. Complete candidate bodies do not establish complete document coverage. Text/status concern active owners only; insufficient visible evidence requests missing/ambiguous, not an absence claim about other outputs or the full report. This is a compiler instruction, not a new semantic validator. Islands compile sequentially in obligation order, with at most one internal retry:
 
 - candidate validation failure excludes the rejected candidate's source bundle
   for that owner and promotes the next ranked bundle;

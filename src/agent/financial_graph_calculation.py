@@ -1917,9 +1917,17 @@ class FinancialAgentCalculationMixin:
                         if attempt and retry_target_ids
                         else obligations
                     )
+                    compilation_scope = {
+                        "schema": "semantic_compilation_scope_v1",
+                        "active_obligation_ids": [str(item["obligation_id"]) for item in prompt_obligations],
+                        "question_role": "context_only",
+                        "evidence_coverage": "bounded_excerpts",
+                        "document_absence_established": False,
+                    }
                     prompt_value = prompt.invoke(
                         {
                             "query": query,
+                            "compilation_scope": _compiler_json(compilation_scope),
                             "obligations": _compiler_json(prompt_obligations),
                             "candidate_catalog": active_prompt_catalog_json,
                             "retry_feedback": retry_feedback,
@@ -2020,6 +2028,7 @@ class FinancialAgentCalculationMixin:
                     {
                         "attempt": attempt + 1,
                         "target_obligation_ids": list(retry_target_ids),
+                        "compilation_scope": compilation_scope,
                         "read_only_dependency_ids": list(read_only_dependency_outputs),
                         "serialized_dependency_bytes": len(json.dumps(
                             read_only_dependency_outputs, ensure_ascii=False, indent=2,

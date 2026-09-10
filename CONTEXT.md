@@ -7,7 +7,7 @@ Last updated: 2026-09-10
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Audited source-preservation baseline: `7aa4adf2`; the current successor repairs period-to-subject inference.
+Source-preservation baseline: `7aa4adf2`; period/subject repair: `3d3f64cd`. Current successor clarifies compiler call scope.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -22,6 +22,10 @@ defects, generic regressions, coverage limits, and remaining work.
 - Compiler selects meaning, bindings, formulas and source display. Deterministic code
   owns units, arithmetic, scope/ID authority, exact source assertions and execution.
   No seven-role classifier, cross-encoder, extra judge or benchmark-ID branch was added.
+- Each compiler attempt declares active outputs and bounded-excerpt coverage. Original
+  query is context, not a request to answer other islands. Narrative instructions preserve
+  local subjects/themes and forbid inferring report absence from missing visible evidence.
+  These instructions are not deterministic proof of narrative faithfulness/completeness.
 - `CompilationEnvelopeV2` binds full catalog content, ordered obligations and query.
   Only declared `depends_on` outputs may become formula inputs. Retry assertion
   projection cannot modify unrelated accepted outputs or introduce foreign evidence.
@@ -97,8 +101,9 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
 3. Period-to-subject inference is repaired with anonymous real-catalog tests; no rank
    weights, owner visibility or source validation were relaxed. Offline projection is
    candidate-visibility evidence only, not a new answer result; see project status.
-   Next: review narrative owner scope/coverage. A partial excerpt must not imply
-   report-wide absence or group-wide subsidiary claims.
+   Narrative call-scope framing is now explicit and tested offline. It does not change
+   candidate ranking or certify model adherence. Missing principal themes and local-to-group
+   generalization remain unverified until a separately scoped provider comparison/review.
    The one-shot delegation is consumed; later provider work needs a new scoped authority
    and current-build manifest. No additional approval was requested for this completed run.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
