@@ -25,7 +25,7 @@ from src.agent.financial_calculation_execution import (
     validate_semantic_calculation_program,
 )
 from src.agent.financial_graph_model_loaders import semantic_calculation_program_model
-from src.agent.financial_program_projection import narrative_candidate_ids
+from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids
 from src.agent.financial_graph_state import (
     FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase,
     NumericExecutionInput, NumericResultPhase,
@@ -1712,6 +1712,7 @@ class FinancialAgentCalculationMixin:
     def _semantic_program_evidence_items(
         catalog: List[Dict[str, Any]],
         selected_candidate_ids: List[str],
+        *, validation: Optional[Mapping[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         candidate_by_id = {
             str(item.get("candidate_id") or ""): dict(item)
@@ -1719,11 +1720,19 @@ class FinancialAgentCalculationMixin:
             if str(item.get("candidate_id") or "")
         }
         rows: List[Dict[str, Any]] = []
+        description_only_ids = narrative_description_only_ids(validation or {})
+        readings_by_candidate: Dict[str, List[Dict[str, Any]]] = {}
+        for binding in (validation or {}).get("valid_narrative_bindings") or []:
+            for reading in binding.get("description_readings") or []:
+                readings_by_candidate.setdefault(reading["candidate_id"], []).append(dict(reading))
         for candidate_id in dict.fromkeys(selected_candidate_ids):
             candidate = candidate_by_id.get(str(candidate_id or ""))
             if not candidate:
                 continue
             source_text = _normalise_spaces(str(candidate.get("source_text") or ""))
+            description_only = candidate_id in description_only_ids
+            if description_only:
+                source_text = " ".join(dict.fromkeys(reading["quote"] for reading in readings_by_candidate[candidate_id]))
             numeric_surface = _normalise_spaces(
                 " ".join(
                     str(value or "")
@@ -1745,11 +1754,11 @@ class FinancialAgentCalculationMixin:
                     "quote_span": source_text or numeric_surface,
                     "support_level": "direct",
                     "question_relevance": "high",
-                    "raw_value": str(candidate.get("raw_value") or ""),
-                    "raw_unit": str(candidate.get("raw_unit") or ""),
+                    "raw_value": "" if description_only else str(candidate.get("raw_value") or ""),
+                    "raw_unit": "" if description_only else str(candidate.get("raw_unit") or ""),
                     "source_row_id": str(candidate.get("source_row_id") or ""),
                     "source_candidate_id": str(candidate.get("source_candidate_id") or ""),
-                    "metadata": {
+                    "metadata": {**{
                         key: candidate.get(key)
                         for key in (
                             "company", "year", "value_year", "period",
@@ -1759,7 +1768,7 @@ class FinancialAgentCalculationMixin:
                             "physical_cell_id", "physical_value_id", "physical_cell_key",
                         )
                         if candidate.get(key) not in (None, "")
-                    },
+                    }, **({"description_readings": readings_by_candidate[candidate_id]} if description_only else {})},
                 }
             )
         return rows
@@ -2337,8 +2346,9 @@ class FinancialAgentCalculationMixin:
             if candidate_id and candidate_id not in direct_binding_by_candidate_id:
                 direct_binding_by_candidate_id[candidate_id] = dict(binding)
         operand_rows: List[Dict[str, Any]] = []
+        description_only_ids = narrative_description_only_ids(validation)
         for item in selected_candidates:
-            if str(item.get("kind") or "") != "numeric":
+            if str(item.get("kind") or "") != "numeric" or item.get("candidate_id") in description_only_ids:
                 continue
             candidate_id = str(item.get("candidate_id") or "")
             binding = direct_binding_by_candidate_id.get(candidate_id)
@@ -2901,8 +2911,9 @@ class FinancialAgentCalculationMixin:
             if str(binding.get("candidate_id") or "")
         }
         operand_rows: List[Dict[str, Any]] = []
+        description_only_ids = narrative_description_only_ids(validation)
         for candidate in selected_candidates:
-            if str(candidate.get("kind") or "") != "numeric":
+            if str(candidate.get("kind") or "") != "numeric" or candidate.get("candidate_id") in description_only_ids:
                 continue
             candidate_id = str(candidate.get("candidate_id") or "")
             binding = direct_binding_by_candidate_id.get(candidate_id)
@@ -3154,7 +3165,7 @@ class FinancialAgentCalculationMixin:
         return {
             "execution": execution,
             "calculation_plan": dict(current_trace.get("calculation_plan") or {}),
-            "evidence_items": self._semantic_program_evidence_items(catalog, selected_ids),
+            "evidence_items": self._semantic_program_evidence_items(catalog, selected_ids, validation=execution["validation"]),
         }
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:

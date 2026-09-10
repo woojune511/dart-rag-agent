@@ -21,7 +21,7 @@ from src.agent.financial_answer_slots import (
     build_operand_value_slot,
 )
 from src.agent.financial_formula_eval import safe_eval_formula
-from src.agent.financial_program_projection import narrative_candidate_ids
+from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids
 from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
 )
@@ -566,6 +566,7 @@ def _scope_errors(
     include_basis: bool = True,
     applicable_unknown_fields: Sequence[str] = (),
     conflicts_only: bool = False,
+    row_description: bool = False,
 ) -> List[str]:
     scope = dict(obligation.get("scope") or {})
     applicable = {
@@ -584,10 +585,50 @@ def _scope_errors(
         if state == "match" or (state == "unknown" and field in applicable):
             continue
         errors.append(f"scope mismatch: {field}")
-    period_state = _scope_match_state("period", scope.get("period"), candidate)
+    period_state = _narrative_period_scope_state(scope.get("period"), candidate, row_description=row_description)
     if period_state != "match" and (not conflicts_only or period_state == "conflict"):
         errors.append("scope mismatch: period")
     return errors
+
+
+def _narrative_period_scope_state(
+    expected: Any, candidate: Mapping[str, Any], *, row_description: bool = False,
+) -> str:
+    state = _period_scope_state(expected, candidate)
+    if not row_description:
+        return state
+    # The caller has checked the exact row quote and document identity. Keep
+    # measurement conflicts; a document reading never resolves the cell year.
+    document_state = _period_scope_state(expected, {"kind": "narrative", "year": candidate.get("year")})
+    if "conflict" in (state, document_state):
+        return "conflict"
+    return document_state
+
+
+def _row_description_reading(candidate: Mapping[str, Any], quote: Any) -> Dict[str, Any]:
+    """Validate a binding-local descriptive axis quote, never a scalar fallback."""
+    if not isinstance(quote, str) or not quote.strip():
+        raise ValueError("invalid_row_description_quote")
+    if not all(candidate.get(field) for field in ("source_document_id", "physical_table_id", "physical_row_id")):
+        raise ValueError("unlocated_row_description")
+    year = candidate.get("year")
+    if isinstance(year, bool) or not str(year or "").isdigit():
+        raise ValueError("unlocated_row_description")
+    text = str(candidate.get("source_bundle_text") or candidate.get("source_text") or "")
+    axes = [candidate.get("row_label"), *(candidate.get("row_headers") or [])]
+    start = text.find(quote)
+    if start < 0 or not any(isinstance(axis, str) and quote in axis for axis in axes):
+        raise ValueError("invalid_row_description_quote")
+    scalar_tokens = set(_narrative_number_tokens(str(candidate.get("raw_value") or "")))
+    if scalar_tokens.intersection(_narrative_number_tokens(quote)):
+        raise ValueError("invalid_row_description_quote")
+    return {
+        "source_document_id": str(candidate["source_document_id"]),
+        "physical_table_id": str(candidate["physical_table_id"]),
+        "physical_row_id": str(candidate["physical_row_id"]),
+        "document_year": int(year), "quote": quote, "quote_span": [start, start + len(quote)],
+        "quote_source_field": "source_bundle_text" if candidate.get("source_bundle_text") else "source_text",
+    }
 
 
 def _evidence_requirement_scope_conflicts(
@@ -806,6 +847,7 @@ def _collective_narrative_scope_errors(
     obligation: Mapping[str, Any],
     *,
     applicable_unknown_fields: Sequence[str] = (),
+    description_candidate_ids: Sequence[str] = (),
 ) -> List[str]:
     scope = dict(obligation.get("scope") or {})
     applicable = {
@@ -819,7 +861,12 @@ def _collective_narrative_scope_errors(
         wanted = _normalise_spaces(str(expected or "")).lower()
         if not wanted or wanted == "unknown":
             continue
-        states = [_scope_match_state(field, expected, candidate) for candidate in candidates]
+        states = [
+            _narrative_period_scope_state(expected, candidate,
+                row_description=str(candidate.get("candidate_id") or "") in description_candidate_ids)
+            if field == "period" else _scope_match_state(field, expected, candidate)
+            for candidate in candidates
+        ]
         if "conflict" in states or (
             "match" not in states and field not in applicable
         ):
@@ -852,6 +899,10 @@ def _expression_context_conflicts(
         if len(values) > 1:
             conflicts.append(field)
     return conflicts
+
+
+def _narrative_number_tokens(text: str) -> List[str]:
+    return [token.replace(",", "") for token in re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", text)]
 
 
 def _ungrounded_narrative_numbers(
@@ -1906,6 +1957,8 @@ def validate_semantic_calculation_program(
 
     for raw in program.get("narrative_bindings") or []:
         binding = dict(raw or {})
+        # Resolution is validator-owned, not a model-written permission.
+        binding.pop("description_readings", None)
         obligation_id = str(binding.get("obligation_id") or "").strip()
         obligation = obligation_by_id.get(obligation_id)
         candidate_ids = narrative_candidate_ids(binding)
@@ -1971,12 +2024,43 @@ def validate_semantic_calculation_program(
                 semantic_conflict_id,
             )
             invalid = True
+        description_readings: List[Dict[str, Any]] = []
+        description_quotes: Dict[str, List[str]] = {}
+        scalar_evidence_ids: set[str] = set()
+        for raw_evidence_binding in binding.get("evidence_bindings") or []:
+            evidence_binding = dict(raw_evidence_binding or {})
+            candidate_id = str(evidence_binding.get("candidate_id") or "").strip()
+            quote = evidence_binding.get("row_description_quote", "")
+            if quote == "":
+                scalar_evidence_ids.add(candidate_id)
+                continue
+            candidate = candidate_by_id.get(candidate_id)
+            if not candidate or candidate_id not in candidate_ids:
+                continue  # The ordinary ID checks below reject this binding.
+            requirement_id = str(evidence_binding.get("source_requirement_id") or "").strip()
+            try:
+                reading = _row_description_reading(candidate, quote)
+            except ValueError as exc:
+                error(str(exc), obligation_id, owner_id=requirement_id or obligation_id,
+                    candidate_id=candidate_id, location="narrative_input")
+                invalid = True
+                continue
+            description_quotes.setdefault(candidate_id, []).append(quote)
+            description_readings.append({"candidate_id": candidate_id,
+                "source_requirement_id": requirement_id, **reading})
+        description_only_ids = set(description_quotes) - scalar_evidence_ids
+        number_sources = [
+            {"source_text": " ".join(description_quotes[str(candidate["candidate_id"])]),
+             "year": candidate.get("year")}
+            if str(candidate.get("candidate_id") or "") in description_only_ids else candidate
+            for candidate in selected
+        ]
         text = _normalise_spaces(str(binding.get("text") or ""))
         if not text:
             error("empty_narrative_output", obligation_id)
             invalid = True
         ungrounded_numbers = (
-            _ungrounded_narrative_numbers(text, selected) if text and selected else []
+            _ungrounded_narrative_numbers(text, number_sources) if text and selected else []
         )
         if ungrounded_numbers:
             error(
@@ -1986,10 +2070,22 @@ def validate_semantic_calculation_program(
             )
             invalid = True
         if obligation:
+            for candidate in selected:
+                candidate_id = str(candidate.get("candidate_id") or "")
+                if candidate.get("kind") != "numeric" or candidate_id in description_only_ids:
+                    continue
+                period_state = _period_scope_state((obligation.get("scope") or {}).get("period"), candidate,
+                    allow_filing_scope=False)
+                if period_state != "match":
+                    error("candidate_scope_mismatch", obligation_id, "scope mismatch: period",
+                        candidate_id=candidate_id, location="narrative_input",
+                        repair_action="replace_candidate" if period_state == "conflict" else "repair_program")
+                    invalid = True
             for detail in _collective_narrative_scope_errors(
                 selected,
                 obligation,
                 applicable_unknown_fields=scope_applicability_fields,
+                description_candidate_ids=description_only_ids,
             ):
                 error("candidate_scope_mismatch", obligation_id, detail)
                 invalid = True
@@ -2073,6 +2169,7 @@ def validate_semantic_calculation_program(
                     candidate,
                     {"scope": dict(requirement.get("scope") or {})},
                     applicable_unknown_fields=scope_applicability_fields,
+                    row_description=bool(evidence_binding.get("row_description_quote")) and candidate_id in description_quotes,
                 ):
                     error(
                         "candidate_requirement_scope_mismatch",
@@ -2080,7 +2177,8 @@ def validate_semantic_calculation_program(
                         f"{requirement_id}: {detail}",
                         owner_id=requirement_id, candidate_id=candidate_id,
                         location="narrative_input",
-                        repair_action="replace_candidate" if detail in _scope_errors(candidate, {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True) else "repair_program",
+                        repair_action="replace_candidate" if detail in _scope_errors(candidate, {"scope": dict(requirement.get("scope") or {})}, conflicts_only=True,
+                            row_description=bool(evidence_binding.get("row_description_quote")) and candidate_id in description_quotes) else "repair_program",
                     )
                     invalid = True
             for missing_requirement_id in sorted(
@@ -2183,6 +2281,7 @@ def validate_semantic_calculation_program(
                 "text": text,
                 "candidate_ids": candidate_ids,
                 "scope_applicability_fields": scope_applicability_fields,
+                **({"description_readings": description_readings} if description_readings else {}),
             }
         )
         sources_by_output[obligation_id] = candidate_ids
@@ -3536,6 +3635,8 @@ def execute_semantic_calculation_program(
                 )
             ),
             "operation_family": "narrative",
+            **({"description_readings": deepcopy(binding["description_readings"])}
+               if binding.get("description_readings") else {}),
         }
 
     required_ids = [
@@ -3593,9 +3694,10 @@ def execute_semantic_calculation_program(
             display_binding_by_candidate_id[candidate_id] = {
                 "context_resolution": expression.get("source_display_context_resolution")}
     operands: List[Dict[str, Any]] = []
+    description_only_ids = narrative_description_only_ids(validation)
     for candidate_id in selected_candidate_ids:
         candidate = candidate_by_id.get(candidate_id)
-        if not candidate or candidate.get("kind") != "numeric":
+        if not candidate or candidate.get("kind") != "numeric" or candidate_id in description_only_ids:
             continue
         binding = direct_binding_by_candidate_id.get(candidate_id)
         obligation_id = str((binding or {}).get("obligation_id") or "")

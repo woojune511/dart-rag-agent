@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Source-preservation baseline: `7aa4adf2`; period/subject repair: `3d3f64cd`; current successor separates narrative reading/selection.
+Source-preservation baseline: `7aa4adf2`; reading/selection: `ff283a58`; current successor separates row-description use from scalar authority.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -37,9 +37,9 @@ Implemented generic repairs:
   final public result, including partial/incomplete coverage.
 - XML recovery preserves ampersand text, entity controls and quoted attributes;
   explicit header/body tables are data even with one small value. Narrative modes can
-  read scalar rows; non-scalar rows retain reading-only evidence. Adding reading rows
-  preserves existing chunk numeric extraction and absolute spans. No scalar guessing,
-  new role taxonomy, company-specific branch or extra model call was introduced.
+  read scalar rows; non-scalar rows retain reading-only evidence. Optional exact
+  `row_description_quote` uses physical/document scope without scalar permission;
+  description-only references stay out of numeric operands/raw-value evidence. No new IDs or calls.
 
 Existing public, source-bundle, unit, physical-row, typed-state, strict-readiness,
 manifest-last ingest and source-first display contracts remain.
@@ -48,11 +48,11 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1274/1274** in 36.969s.
-Twelve new anonymous reading/selection regressions cover local context, format neutrality,
-hierarchical diversity, input order, parent ownership and preserved explicit conflicts.
-Focused reading/matching/subject/windows: **47/47**; cohort/compiler/validator/executor/
-source/integration: **133/133**. Domain audit: **83 reviewed literals**, no new exception; pycompile/diff pass.
+Python 3.13.13; current full unittest: **1289/1289** in 33.519s.
+Fifteen new anonymous row-description tests cover real-parser projection, exact quotes,
+scope/ID/number authority, mixed scalar use, V2 drift and unchanged-island retry bytes.
+Focused/integration gates pass; import/topology/docs **24/24**. Domain audit: **83 reviewed literals**,
+no new exception; pycompile/diff pass. Numeric periods cannot borrow a description's filing year.
 The [period/subject predecessor projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md)
 restored four asset cells' proper owner visibility and retained three accepted cash-flow
 IDs without changing catalogs. That receipt remains bound to `3d3f64cd`, not this selection change.
@@ -60,7 +60,7 @@ The [reading/selection replay](../../benchmarks/results/narrative_reading_select
 exposes both previously omitted overview passages and a channel-table row in actual
 payloads: six mock calls, no retry, unchanged catalogs. Runtime SHA `cb6ebb3a...da7ba`.
 
-These are provider-free mechanism/prompt tests, not fresh answer accuracy or generalization.
+The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
 These implementation gates used no provider, fresh ingest, actual-store repair or
 evaluator/dataset changes. The 12-question pilot below belongs to the earlier runtime.
 
@@ -134,9 +134,9 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- Next: provider-free contracts separating document/row reading from scalar measurement
-  periods, preserving explicit requested-section/local-subject scope. Reproduce incorrect
-  local-heading inheritance with anonymous XML fixtures; do not tune reviewed-source IDs.
+- Next: explicit requested-section authority, then source-local subject scope and
+  incorrect local-heading inheritance with anonymous XML fixtures. The description-use
+  contract does not repair these semantic errors; do not tune reviewed-source IDs.
 - Keep source-exposed regression, full-agent retrieval and semantic completeness distinct;
   ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and

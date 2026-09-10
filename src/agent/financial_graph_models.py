@@ -342,6 +342,16 @@ class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):
         default="",
         description="Declared requirement this evidence satisfies; blank for owner-only supporting evidence.",
     )
+    row_description_quote: str = Field(
+        default="",
+        description=(
+            "For reading a physical row's description without using its scalar value, "
+            "copy an exact excerpt from one row_label/row_headers surface also present in "
+            "the source text. Requires document/year and physical table/row provenance. "
+            "Only this quote grounds the reading, not the cell value or surrounding numbers. "
+            "Leave empty for ordinary evidence, including numeric use."
+        ),
+    )
 
 
 class SemanticProgramNarrativeBinding(_DeferredBaseModel):
