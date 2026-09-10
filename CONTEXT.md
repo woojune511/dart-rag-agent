@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Source-preservation baseline: `7aa4adf2`; period/subject repair: `3d3f64cd`. Current successor clarifies compiler call scope.
+Source-preservation baseline: `7aa4adf2`; period/subject repair: `3d3f64cd`. Current successor separates narrative reading/selection.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -35,6 +35,9 @@ defects, generic regressions, coverage limits, and remaining work.
 - XML recovery preserves ampersand text and quoted attributes; explicit header/body
   tables remain data. Both narrative modes can read numeric rows. Non-scalar rows gain
   reading-only evidence without changing existing chunk numeric extraction or spans.
+- Narrative selection reads local row/body context with format-neutral positive-match
+  tiers and document/section/source/row diversity. Numeric metric isolation, explicit
+  scope/subject/unit conflicts, owner quotas and global visibility caps remain intact.
 - One unit contract preserves scale, sign, currency and finite arithmetic.
   Source display is primary; a differing recalculation is labelled separately.
   Downstream formulas consume calculated values, not rounded display values.
@@ -106,11 +109,13 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    estimated USD 0.24888625 / 0.90. Runtime complete remains 2/3; source-reviewed semantic
    completeness remains 0/3. Unsupported absence claims disappeared and subsidiary-channel
    attribution improved, but two major-business omissions and one missing channel remain.
-   Actual SDK requests match the no-call receipts. The [offline coverage diagnosis](benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md)
-   now reproduces selection causes: narrative inherits cell-locality priority and loses
-   structured local reading text. All three omitted sources exist in the catalog; anonymous
-   mechanism checks are 5/5, not a repair or new answer score. Next: separate narrative
-   reading/selection from numeric metric isolation, preserving strict authority. Approval consumed.
+   Actual SDK requests match the no-call receipts. The [diagnosed selection boundary](benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md)
+   is now repaired with 12 anonymous regressions; full unittest is 1274/1274.
+   The [provider-free successor replay](benchmarks/results/narrative_reading_selection_2026-09-11/README.md)
+   exposes both omitted overviews and a channel-table row in actual payloads: six mock
+   calls, no retry, unchanged catalogs. This is visibility evidence, not new answer quality.
+   Next: if a provider comparison is needed, prepare a fresh manifest and two identical
+   no-call rehearsals; obtain scoped authority before execution. Prior approval is consumed.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.
 5. Remaining characterized limits: planner theme omission/semantic faithfulness still

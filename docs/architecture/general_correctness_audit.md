@@ -82,7 +82,7 @@ New focused files also include `test_semantic_compiler_authority_audit.py`,
 `test_storage_failure_boundaries.py`, `test_ingest_admission_boundaries.py`, and
 `test_api_error_boundary.py`. No existing benchmark fixture was relabelled.
 
-## Current narrative selection diagnosis — repair pending
+## Narrative reading/selection repair
 
 On 2026-09-11, the [provider-free source/rank diagnosis](../../benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md)
 located the omitted source passages in all three frozen narrative catalogs. Recomputed
@@ -90,19 +90,20 @@ selection IDs match the completed paid run's output and requirement visibility.
 Two business-overview prose candidates are outranked by detail rows; a channel table's
 local title exists in its row rendering but is absent from the matching fact view.
 
-`project_candidate_fact` applies numeric metric isolation to narrative structured reading;
-`build_candidate_matches` also keeps cell-locality priority for narrative owners.
-Shared-heading word matches elevate detail rows, while unknown-only ties fall back to
-source-key order. Eligibility/source diversity therefore does not imply theme coverage.
-Five anonymous, socket-blocked characterizations reproduce these mechanisms and preserve
-explicit-company conflict rejection. They are ignored diagnostic artifacts, not regression
-tests that require known defects forever. Runtime and original inputs remain unchanged.
+Numeric metric isolation had also hidden structured local reading text from narrative
+matching; cell-locality and fine word-match tiers crowded out broader source sections.
+The successor leaves numeric fact projection unchanged and adds narrative-only local
+reading/context match states. Existing positive matches share a format-neutral tier;
+document/section/source/physical-row interleaving prevents one detail group consuming
+every slot before its peers. IDs, scope/subject/unit rejection and 96/32 budgets remain.
 
-Next bounded repair: owner-aware narrative reading projection and hierarchy-aware source
-selection, preserving numeric metric isolation, scope/subject/ID authority and budgets.
-Do not add reviewed business keywords, promote gold IDs, declare prose universally better,
-or rerun the model before fixing input coverage. This is compiler-only whole-catalog
-diagnosis, not full-agent retrieval measurement, a completed fix, or new answer accuracy.
+Twelve anonymous regressions cover local row text, format neutrality, section/row/document
+diversity, shifted years and IDs, input reversal, inherited requirement ownership,
+source windows, exclusions and conflicts. The five predecessor characterizations remain
+immutable ignored evidence, not tests that require known defects forever. No reviewed
+business keywords, gold-ID promotion, source/store mutation or extra model call was added.
+This repair establishes exposure mechanisms, not semantic completeness or unseen accuracy;
+the compiler must still interpret the bounded sources. Full-agent retrieval is separate.
 
 ## Review limits and next bounded work
 

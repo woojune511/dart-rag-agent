@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Source-preservation baseline: `7aa4adf2`; period/subject repair: `3d3f64cd`; successor clarifies compiler call scope.
+Source-preservation baseline: `7aa4adf2`; period/subject repair: `3d3f64cd`; current successor separates narrative reading/selection.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -48,23 +48,23 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1262/1262** in 57.830s.
-Six new anonymous call-scope tests cover independent islands, targeted retry/accepted
-bytes, candidate-versus-document coverage, local subject projection and strict scope.
-Focused scope/narrative/compiler: **29/29**; integration/validator/executor/import/topology:
-**111/111**. Domain audit: **83 reviewed literals**, no new exception. Pycompile/diff pass.
+Python 3.13.13; current full unittest: **1274/1274** in 36.969s.
+Twelve new anonymous reading/selection regressions cover local context, format neutrality,
+hierarchical diversity, input order, parent ownership and preserved explicit conflicts.
+Focused reading/matching/subject/windows: **47/47**; cohort/compiler/validator/executor/
+source/integration: **133/133**. Domain audit: **83 reviewed literals**, no new exception; pycompile/diff pass.
 The [period/subject predecessor projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md)
 restored four asset cells' proper owner visibility and retained three accepted cash-flow
-IDs without changing catalogs. That receipt remains bound to `3d3f64cd`, not this prompt change.
-The [narrative prompt replay](../../benchmarks/results/narrative_compilation_scope_2026-09-10/README.md)
-records six mock calls over three frozen questions, with all 16 previous references still
-visible and catalog bytes unchanged. Runtime SHA `b1e6336e...b3add`; no new semantic result.
+IDs without changing catalogs. That receipt remains bound to `3d3f64cd`, not this selection change.
+The [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md)
+exposes both previously omitted overview passages and a channel-table row in actual
+payloads: six mock calls, no retry, unchanged catalogs. Runtime SHA `cb6ebb3a...da7ba`.
 
 These are provider-free mechanism/prompt tests, not fresh answer accuracy or generalization.
 These implementation gates used no provider, fresh ingest, actual-store repair or
 evaluator/dataset changes. The 12-question pilot below belongs to the earlier runtime.
 
-Current-build [three-narrative provider comparison](../../benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md):
+Prior-runtime [three-narrative provider comparison](../../benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md):
 `3447ade7`, admission `5e478bb7...2cc16`, Pro **6 calls**, retry/errors **0**, estimated
 **USD 0.24888625 / 0.90**; billing unobserved. Runtime complete **2/3**, Codex source-reviewed
 semantic complete **0/3**. Unsupported absence claims disappeared; subsidiary attribution
@@ -133,10 +133,10 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- [Coverage diagnosis](../../benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md) locates all three omitted sources in frozen catalogs.
-  Narrative inherits cell-locality priority and drops structured local reading text; anonymous
-  reproductions 5/5, paid visibility matched. Next: owner-aware reading/selection repair,
-  preserving numeric isolation and strict authority. No runtime change or new answer result yet.
+- Owner-aware narrative reading/selection is implemented and locally verified. If a new
+  provider comparison is needed, prepare a fresh manifest and two identical no-call receipts
+  before scoped execution authority. Current source visibility is not a new answer result;
+  do not tune reviewed-source IDs or treat bounded coverage as document completeness.
 - Keep source-exposed regression, full-agent retrieval and semantic completeness distinct;
   ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and

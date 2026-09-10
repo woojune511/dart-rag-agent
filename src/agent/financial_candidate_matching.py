@@ -8,6 +8,7 @@ subject or unit conflict.
 from __future__ import annotations
 
 import re
+from collections import deque
 from dataclasses import dataclass, replace
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 
@@ -40,6 +41,9 @@ CANDIDATE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
     "unit",
     "metric",
     "structured_locality",
+)
+NARRATIVE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
+    *CANDIDATE_MATCH_RANK_FACTORS[:4], "reading_match", "format_neutral",
 )
 
 
@@ -213,12 +217,15 @@ class CandidateMatchV1:
     rank_vector: Tuple[int, int, int, int, int, int]
     target_concept_keys: Tuple[str, ...]
     target_local_subjects: Tuple[str, ...]
+    selection_mode: str = "numeric"
+    reading_metric_state: str = ""
+    context_metric_state: str = ""
 
 
 def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
     """Return the explicit prompt/diagnostic projection for an immutable match."""
 
-    return {
+    projection = {
         "state": match.state,
         "scope_state": match.scope_state,
         "subject_state": match.subject_state,
@@ -230,6 +237,11 @@ def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
         "target_concept_keys": list(match.target_concept_keys),
         "target_local_subjects": list(match.target_local_subjects),
     }
+    if match.selection_mode == "narrative":
+        projection.update(selection_mode=match.selection_mode,
+                          reading_metric_state=match.reading_metric_state,
+                          context_metric_state=match.context_metric_state)
+    return projection
 
 
 def summarize_candidate_match_ranking(
@@ -239,6 +251,7 @@ def summarize_candidate_match_ranking(
     """Summarize factor tiers without collapsing them into one additive score."""
 
     rows: list[tuple[Tuple[int, ...], str, str]] = []
+    selection_modes: set[str] = set()
     unresolved_count = 0
     for candidate_id in dict.fromkeys(
         str(item).strip()
@@ -249,8 +262,10 @@ def summarize_candidate_match_ranking(
         if isinstance(raw_match, CandidateMatchV1):
             state = raw_match.state
             rank_vector = tuple(raw_match.rank_vector)
+            selection_modes.add(raw_match.selection_mode)
         elif isinstance(raw_match, Mapping):
             state = str(raw_match.get("state") or "")
+            selection_modes.add(str(raw_match.get("selection_mode") or "numeric"))
             try:
                 rank_vector = tuple(
                     int(value) for value in (raw_match.get("rank_vector") or [])
@@ -280,6 +295,7 @@ def summarize_candidate_match_ranking(
     else:
         relation = "separated"
 
+    factors = NARRATIVE_MATCH_RANK_FACTORS if selection_modes == {"narrative"} else CANDIDATE_MATCH_RANK_FACTORS
     first_differing_factor = ""
     first_differing_delta = 0
     if relation == "separated":
@@ -288,7 +304,7 @@ def summarize_candidate_match_ranking(
         ):
             if top_value == runner_up_value:
                 continue
-            first_differing_factor = CANDIDATE_MATCH_RANK_FACTORS[index]
+            first_differing_factor = factors[index]
             first_differing_delta = top_value - runner_up_value
             break
 
@@ -302,7 +318,7 @@ def summarize_candidate_match_ranking(
     unknown_only_count = state_counts["unknown_only"]
     return {
         "schema": "candidate_ranking_diagnostics_v1",
-        "factor_order": list(CANDIDATE_MATCH_RANK_FACTORS),
+        "factor_order": list(factors),
         "eligible_candidate_count": eligible_count,
         "unresolved_rank_vector_count": unresolved_count,
         "rank_tier_count": len({row[0] for row in rows}),
@@ -578,6 +594,82 @@ def _best_metric_state(
     return "unknown", 0
 
 
+def _narrative_metric_states(
+    candidate: Mapping[str, Any], fact: CandidateFactViewV1, target: ResolvedOwnerTargetV1,
+) -> tuple[str, str]:
+    """Read already exposed local text, without changing numeric fact identity.
+
+    A narrative may read a physical row's rendering and its attached context.
+    These are exposure hints, not proof that a row answers a theme. Body and
+    inherited-context matches stay separately observable; fine numeric metric
+    tiers and physical-cell precision do not rank narrative completeness.
+    """
+    contexts = candidate.get("source_contexts") or []
+    reading = replace(fact, text_metric_surfaces=_ordered_surfaces([
+        candidate.get("source_text"), candidate.get("row_context_text"),
+        *[context.get("source_text") for context in contexts
+          if context.get("relation") == "source_continuation"],
+    ]))
+    context = replace(fact, cell_metric_surfaces=(), row_metric_surfaces=(),
+        text_metric_surfaces=_ordered_surfaces([
+            item.get("source_text") for item in contexts
+            if item.get("relation") in {"ancestor_heading", "caption", "preceding_block"}
+        ]))
+    return _best_metric_state(reading, target)[0], _best_metric_state(context, target)[0]
+
+
+def narrative_candidate_source_path(candidate: Mapping[str, Any]) -> Tuple[Tuple[str, str], ...]:
+    """Source hierarchy for budget diversity only, never scope/identity authority.
+
+    Existing catalogs retain the canonical [company | year | section | relation]
+    anchor even when section_path is absent. The optional relation suffix is not
+    a section. No title vocabulary or presumed summary section is privileged.
+    """
+    fact = project_candidate_fact(candidate)
+    document = str(candidate.get("source_document_id") or candidate.get("source_document_sha256") or fact.source_key)
+    section = str(candidate.get("section_path") or "")
+    anchor = str(candidate.get("source_anchor") or "").strip()
+    if not section and anchor.startswith("[") and anchor.endswith("]"):
+        parts = anchor[1:-1].split("|")
+        if len(parts) >= 3:
+            section = parts[2].strip()
+    headings = tuple(part.strip() for part in section.split(">") if part.strip() and part.strip() != "?")
+    if not headings:
+        headings = _ordered_surfaces(
+            item.get("source_text") for item in candidate.get("source_contexts") or []
+            if item.get("relation") == "ancestor_heading"
+        )
+    return (("document", document), *[("section", heading) for heading in headings],
+            ("source", fact.source_key), ("row", fact.physical_row_id or fact.source_key))
+
+
+def _interleave_narrative_sources(
+    matches: Sequence[CandidateMatchV1], candidate_by_id: Mapping[str, Mapping[str, Any]],
+) -> Iterable[CandidateMatchV1]:
+    paths = {match.candidate_id: narrative_candidate_source_path(candidate_by_id[match.candidate_id])
+             for match in matches}
+
+    def walk(rows: Sequence[CandidateMatchV1], depth: int) -> Iterable[CandidateMatchV1]:
+        if all(depth >= len(paths[row.candidate_id]) for row in rows):
+            yield from rows  # The tier is already candidate-ID sorted.
+            return
+        groups: Dict[Tuple[str, str], list[CandidateMatchV1]] = {}
+        for row in rows:
+            path = paths[row.candidate_id]
+            key = path[depth] if depth < len(path) else ("candidate", row.candidate_id)
+            groups.setdefault(key, []).append(row)
+        queues = deque(iter(walk(groups[key], depth + 1)) for key in sorted(groups))
+        while queues:
+            queue = queues.popleft()
+            try:
+                yield next(queue)
+                queues.append(queue)
+            except StopIteration:
+                pass
+
+    yield from walk(matches, 0)
+
+
 def build_candidate_matches(
     catalog: Sequence[Mapping[str, Any]],
     *,
@@ -590,6 +682,7 @@ def build_candidate_matches(
     target = resolve_owner_target(owner, parent_owner=parent_owner)
     owner_kind = str(owner.get("kind") or (parent_owner or {}).get("kind") or "")
     facts = [project_candidate_fact(candidate) for candidate in catalog]
+    candidate_by_id = {str(row.get("candidate_id") or ""): row for row in catalog}
     declared_subjects = declared_local_subjects(owner, parent_owner)
     strict_subject_by_id = {
         str(candidate.get("candidate_id") or ""): structured_subject_evidence(candidate, declared_subjects)
@@ -707,7 +800,17 @@ def build_candidate_matches(
         else:
             unit_state, unit_rank = "conflict", 0
 
-        metric_state, metric_rank = _best_metric_state(fact, target)
+        reading_metric_state = context_metric_state = ""
+        if owner_kind == "narrative":
+            reading_metric_state, context_metric_state = _narrative_metric_states(
+                candidate_by_id[fact.candidate_id], fact, target,
+            )
+            metric_state = (f"reading:{reading_metric_state}" if reading_metric_state != "unknown"
+                            else f"context:{context_metric_state}" if context_metric_state != "unknown"
+                            else "unknown")
+            metric_rank = int(metric_state != "unknown")
+        else:
+            metric_state, metric_rank = _best_metric_state(fact, target)
         metric_is_declared = bool(
             target.concept_aliases or target.metric_surfaces
         )
@@ -737,6 +840,8 @@ def build_candidate_matches(
             if fact.candidate_kind == "chunk"
             else 0
         )
+        if owner_kind == "narrative":
+            locality_rank = 0
         matches[fact.candidate_id] = CandidateMatchV1(
             candidate_id=fact.candidate_id,
             state=state,
@@ -756,6 +861,9 @@ def build_candidate_matches(
             ),
             target_concept_keys=target.concept_keys,
             target_local_subjects=target.local_subjects,
+            selection_mode="narrative" if owner_kind == "narrative" else "numeric",
+            reading_metric_state=reading_metric_state,
+            context_metric_state=context_metric_state,
         )
     return matches
 
@@ -791,11 +899,21 @@ def rank_candidate_matches(
     )
     selected: list[Dict[str, Any]] = []
     bounded_limit = max(0, int(limit))
+    if not bounded_limit:
+        return []
     for tier_vector in tier_vectors:
         tier = sorted(
             (match for match in eligible if match.rank_vector == tier_vector),
             key=lambda item: item.candidate_id,
         )
+        if all(match.selection_mode == "narrative" for match in tier):
+            for match in _interleave_narrative_sources(tier, candidate_by_id):
+                selected.append(candidate_by_id[match.candidate_id])
+                if len(selected) >= bounded_limit:
+                    break
+            if len(selected) >= bounded_limit:
+                break
+            continue
         by_source: Dict[str, list[CandidateMatchV1]] = {}
         for match in tier:
             source_key = project_candidate_fact(candidate_by_id[match.candidate_id]).source_key

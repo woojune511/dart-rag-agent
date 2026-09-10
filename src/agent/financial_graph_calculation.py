@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from src.agent.financial_candidate_matching import (
     build_physical_evidence_bundle_constraints,
     build_candidate_matches,
+    narrative_candidate_source_path,
     project_candidate_match,
     project_candidate_fact,
     rank_candidate_matches,
@@ -692,11 +693,18 @@ def _rank_applicable_owner_candidates(
             "population": "eligible_catalog",
             "source": "runtime_candidate_matching",
             "selection_unit": (
-                "source_bundle" if candidate_kind == "numeric" else "candidate"
+                "source_bundle" if candidate_kind == "numeric" else
+                "narrative_source_hierarchy" if str(owner.get("kind") or (parent_owner or {}).get("kind")) == "narrative"
+                else "candidate"
             ),
             "selected_source_bundle_ids": selected_bundle_ids,
         }
     )
+    if ranking_diagnostics["selection_unit"] == "narrative_source_hierarchy":
+        ranking_diagnostics["selected_source_paths_by_id"] = {
+            str(row["candidate_id"]): [list(part) for part in narrative_candidate_source_path(row)]
+            for row in selected
+        }
     return (
         selected,
         counts,
