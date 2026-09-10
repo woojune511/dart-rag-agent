@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Source-preservation baseline: `7aa4adf2`; reading/selection: `ff283a58`; row-description authority: `16e4a1eb`. Current successor enforces requested source sections.
+Source preservation: `7aa4adf2`; reading/selection: `ff283a58`; row descriptions: `16e4a1eb`; requested sections: `0f7f7b9a`. Current successor repairs source-local heading/body boundaries.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -43,6 +43,9 @@ Implemented generic repairs:
   read scalar rows; non-scalar rows retain reading-only evidence. Optional exact
   `row_description_quote` uses physical/document scope without scalar permission;
   description-only references stay out of numeric operands/raw-value evidence. No new IDs or calls.
+- Peer headings survive layout variation; table context cannot cross heading boundaries.
+  Captions retain enclosing scope. Balanced parser prefixes stay outside exact body
+  windows; prompt `local_heading` is separate, not a filing-company or subject assertion.
 
 Existing public, source-bundle, unit, physical-row, typed-state, strict-readiness,
 manifest-last ingest and source-first display contracts remain.
@@ -51,17 +54,16 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1307/1307** in 43.417s.
-Eighteen new anonymous section-authority tests cover planner preflight, actual parser
-paths, source/owner/input/dependency isolation, retrieval quotas, V2 drift and retry bytes.
-Focused/integration gates pass; import/topology/docs **24/24**. Domain audit: **83 reviewed literals**,
-no new exception; pycompile/diff pass. Existing row-description/scalar checks remain intact.
+Python 3.13.13; current full unittest: **1317/1317** in 33.983s.
+Ten new anonymous tests cover peer/section/caption scope, exact body offsets, malformed
+prefix preservation, unchanged same-source numeric IDs/records, and V2 heading drift.
+Focused/integration **188/188**, import/topology/docs **24/24**; audit **83 reviewed literals**, no new exception; pycompile/diff pass.
 The [period/subject projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md) remains bound to `3d3f64cd`; [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md) to `cb6ebb3a...da7ba`. Neither is current-head model output.
 
 The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
-The [section-authority counterfactual](../../benchmarks/results/requested_source_sections_2026-09-11/README.md) rejects two foreign-section CJ IDs; the other saved in-section IDs remain visible. It adds explicit section annotations to copied requirements, not new planner/compiler output. Runtime `f95f3cd2...705b`.
-These implementation gates used no provider, fresh ingest, actual-store repair or
-evaluator/dataset changes. The 12-question pilot below belongs to the earlier runtime.
+The [section-authority counterfactual](../../benchmarks/results/requested_source_sections_2026-09-11/README.md) rejects two foreign-section CJ IDs without new planner/compiler output; runtime `f95f3cd2...705b`.
+The [source-local probe](../../benchmarks/results/local_heading_scope_2026-09-11/README.md) corrects inherited headings in memory: 27 source/table blocks unchanged, 18 chunks before/after. Same saved source retains candidate IDs/catalog fingerprint. Runtime `9d3b36e7...3cec`; no provider, ingest, store or evaluator/dataset mutation.
+The saved group-broadened text still passes structural validation: an explicit negative control, not semantic success. Existing stored headings remain untouched.
 
 Latest [reading/selection provider comparison](../../benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md):
 clean `ff283a58`, admission `8eae0a6b...65c61`, Pro **7 calls**, one internal retry,
@@ -133,11 +135,10 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- Next: source-local subject scope and incorrect local-heading inheritance with
-  anonymous XML fixtures. Section authority rejects misplaced evidence but does not
-  certify narrative entailment, theme coverage or parser correctness; do not tune IDs.
-- Keep source-exposed regression, full-agent retrieval and semantic completeness distinct;
-  ID/scope/number validation is not entailment. New reports are not indexed.
+- Next: narrative claim-to-source attribution with anonymous positive/negative pairs.
+  Correct input hints do not certify entailment; no company-name rules or extra judge
+  was added. Corrected source projection is not a repaired store or a new model answer.
+- Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.
 - Acquisition ambiguity/pagination, complete vector/source text consistency, removal of

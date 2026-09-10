@@ -39,6 +39,7 @@ their quality must be measured on an independently selected holdout.
 | Selection capacity | Preferred document-type quota left unused slots despite available sources | Preserve quotas/order, fill spare capacity from authorized ranked sources, suppress known duplicates |
 | Parser | Splitting numbered table explanations lost the introductory source text | Include the original start boundary; synthetic coverage tests, no stored document rewrite |
 | Source preservation | XML recovery dropped ampersand text; non-scalar rows disappeared and narrative modes had different table access | Literal-safe XML recovery; retain explicit header/body tables and scalar-independent row readings; equal narrative row/prose eligibility without changing original chunk numeric extraction |
+| Source-local context | Standalone peer headings were discarded, prior-heading paragraphs leaked into table context, and nested metadata remained in narrative body | Preserve recognized peers, retain caption/enclosing scope separately, bound adjacency, and remove only complete recognized prefix lines; ten anonymous tests, no new subject classifier |
 | Date/prompt priors | Only named years were prioritized or filtered; router few-shots contradicted generic intent rules | Remove absolute-year ranks; use existing year grammar; anonymous operation-based config examples |
 | Routing vectors | Truncated/non-finite/empty batches were cached; extreme finite cosine overflowed | Validate complete successful batches and identity; stable cosine scaling, invalid query vectors explicitly degrade |
 | Search cache | Caller-mutated Documents polluted later reads; committed writes left stale results | Deep-copy cached documents/provenance; invalidate only after successful graph publication |
@@ -106,6 +107,8 @@ This repair establishes exposure mechanisms, not semantic completeness or unseen
 the compiler must still interpret the bounded sources. Full-agent retrieval is separate.
 
 ## Review limits and next bounded work
+
+The [source-local probe](../../benchmarks/results/local_heading_scope_2026-09-11/README.md) verifies heading repairs without changing the sampled section's source/table blocks, and body projection without rekeying the same saved source. It also retains a negative control: saved subsidiary-to-group wording still passes structural validation. Clean inputs and prompt attribution instructions are not a semantic rejection mechanism; source-local narrative attribution remains open.
 
 1. Freeze the generic mechanism fixes, then select holdout documents, periods and
    question structures independently of the failed examples. Separate retrieval

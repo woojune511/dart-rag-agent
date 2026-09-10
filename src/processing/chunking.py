@@ -284,6 +284,7 @@ def chunk_blocks(
     pending_blocks: List[Dict[str, Any]] = []
     standalone_threshold = chunk_size // 2
     last_paragraph_context = section_path
+    last_paragraph_heading = None
 
     def flush_pending() -> None:
         if not pending_blocks:
@@ -352,8 +353,15 @@ def chunk_blocks(
 
         if block_type == "paragraph":
             last_paragraph_context = summarize_for_context(text)
+            last_paragraph_heading = block.get("local_heading_scope", next_heading)
 
         if block_type == "table":
+            table_heading = block.get("local_heading_scope", next_heading)
+            if table_heading != last_paragraph_heading:
+                # Adjacency context cannot cross a peer/child heading boundary.
+                # An explicit caption retains its enclosing heading scope.
+                last_paragraph_context = section_path
+                last_paragraph_heading = table_heading
             block = {
                 **block,
                 "table_context": last_paragraph_context or section_path,

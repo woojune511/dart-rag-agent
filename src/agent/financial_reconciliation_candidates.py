@@ -1049,6 +1049,42 @@ def _table_context_text(
     return _normalise_spaces(" ".join(parts))
 
 
+def _source_prefix_line_labels(line: str) -> set[str]:
+    """Recognize complete metadata tokens, including brackets inside values.
+
+    Mixed prose and malformed tokens are source text, not removable metadata.
+    The caller decides which labels are known; values never infer identity.
+    """
+    labels: set[str] = set()
+    index = 0
+    while index < len(line):
+        if line[index].isspace():
+            index += 1
+            continue
+        if line[index] != "[":
+            return set()
+        label_end = index + 1
+        while label_end < len(line) and line[label_end] not in ":[]":
+            label_end += 1
+        if label_end == len(line) or line[label_end] != ":":
+            return set()
+        label = line[index + 1:label_end].strip().casefold()
+        if not label:
+            return set()
+        depth = 1
+        index = label_end + 1
+        while index < len(line) and depth:
+            if line[index] == "[":
+                depth += 1
+            elif line[index] == "]":
+                depth -= 1
+            index += 1
+        if depth:
+            return set()
+        labels.add(label)
+    return labels
+
+
 def _source_body_lines(
     text: str, *, prefix_labels: Optional[set[str]] = None,
 ) -> List[tuple[int, int, List[str]]]:
@@ -1059,9 +1095,9 @@ def _source_body_lines(
     for match in re.finditer(r"[^\r\n]+", text):
         if not match.group().strip():
             continue
-        if in_prefix and re.fullmatch(r"\s*(?:\[[^\]\n]+:[^\]\n]*\]\s*)+", match.group()):
-            labels = {label.strip().casefold() for label in re.findall(r"\[([^:\]\n]+):", match.group())}
-            if prefix_labels is None or labels <= prefix_labels:
+        if in_prefix:
+            labels = _source_prefix_line_labels(match.group())
+            if labels and (prefix_labels is None or labels <= prefix_labels):
                 continue
         in_prefix = False
         lines.append((match.start(), match.end(), [
@@ -2316,6 +2352,10 @@ def build_semantic_candidate_catalog(
         }
         if metadata.get("source_context_provenance"):
             base_record["source_context_provenance"] = dict(metadata["source_context_provenance"])
+        if metadata.get("local_heading"):
+            # Parser context remains a separate, non-authoritative observation;
+            # never promote it or the filing company into a local subject.
+            base_record["local_heading"] = str(metadata["local_heading"])
         for key in ("source_contexts", "source_table_locator", "source_document_sha256"):
             if metadata.get(key):
                 # Context is execution content, never candidate identity material.

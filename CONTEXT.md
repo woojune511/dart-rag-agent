@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Source-preservation baseline: `7aa4adf2`; reading/selection: `ff283a58`; row-description authority: `16e4a1eb`. Current successor enforces explicit requested source sections.
+Source preservation: `7aa4adf2`; reading/selection: `ff283a58`; row descriptions: `16e4a1eb`; requested sections: `0f7f7b9a`. Current successor repairs source-local heading/body boundaries.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -38,6 +38,9 @@ defects, generic regressions, coverage limits, and remaining work.
 - XML recovery preserves ampersand text and quoted attributes; explicit header/body
   tables remain data. Both narrative modes can read numeric rows. Non-scalar rows gain
   reading-only evidence without changing existing chunk numeric extraction or spans.
+- Standalone peer headings persist; paragraph-to-table context stops at heading changes,
+  while captions retain enclosing scope. Nested metadata stays outside exact narrative
+  body windows; `local_heading` is a separate parser hint, never subject authority.
 - Narrative selection reads local row/body context with format-neutral positive-match
   tiers and document/section/source/row diversity. Numeric metric isolation, explicit
   scope/subject/unit conflicts, owner quotas and global visibility caps remain intact.
@@ -122,14 +125,16 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    A socket-blocked replay of three saved responses matches every paid prompt hash and
    final program/validation bytes. The same cohort is retained on retry; no new call.
    The [prior prompt comparison](benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md)
-   remains immutable (runtime 2/3, source review 0/3). Current local tests are 1307/1307.
+   remains immutable (runtime 2/3, source review 0/3). Current local gates are in project status.
    Description-use authority is now implemented with 15 anonymous regressions; the
    [offline counterfactual](benchmarks/results/narrative_row_description_2026-09-11/README.md)
    is an authored-quote contract check, not new model output. Explicit section authority
    now has 18 anonymous regressions. Its [counterfactual](benchmarks/results/requested_source_sections_2026-09-11/README.md)
    rejects CJ's two foreign-section IDs while retaining the other saved in-section IDs;
-   no new planner/compiler output is claimed. Next: source-local subject scope and
-   anonymous heading-inheritance repair, not another paid trial of known semantic gaps.
+   no new planner/compiler output is claimed. The [source-local probe](benchmarks/results/local_heading_scope_2026-09-11/README.md)
+   confirms heading/body repairs with unchanged source/table blocks and same-source IDs.
+   Saved group-broadened text still passes structural validation: narrative attribution
+   remains next, not a solved semantic gate. Fresh parsing was in memory, not store repair.
    This admission is consumed; no fresh paid execution is prepared or authorized.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.

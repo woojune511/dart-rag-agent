@@ -512,7 +512,10 @@ def _classify_bracket_heading(
         if _bracket_label_inner_length(normalized) <= _SHORT_BRACKET_LABEL_MAX_CHARS:
             return "defer_section_label"
         return "section_label"
-    return "discard"
+    # A source-written peer heading is not disposable merely because this
+    # section has no title-specific policy. Dropping it leaves the prior peer's
+    # scope active. Immediate table labels and dated notes were handled above.
+    return "section_label"
 
 
 def _should_promote_deferred_bracket_heading(heading: str, section_path: str) -> bool:

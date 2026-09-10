@@ -61,6 +61,10 @@ def collect_blocks(
         }
         if extra_metadata:
             block.update(extra_metadata)
+        if local_heading_override is not None:
+            # A table caption labels the table, not a new enclosing section.
+            # Keep its enclosing scope for adjacency checks during chunking.
+            block["local_heading_scope"] = soft_heading_path(heading_stack)
         blocks.append(block)
 
     def process(elem: Any, next_tag: Optional[str] = None) -> None:

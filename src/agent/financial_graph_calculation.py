@@ -1597,6 +1597,7 @@ class FinancialAgentCalculationMixin:
                 "context_fingerprint": str(item.get("context_fingerprint") or ""),
                 "source_anchor": str(item.get("source_anchor") or ""),
                 "source_section_path": list(candidate_section_path(item)),
+                **({"local_heading": str(item["local_heading"])} if item.get("local_heading") else {}),
                 **({"source_context_provenance": dict(item["source_context_provenance"])}
                    if item.get("source_context_provenance") else {}),
                 "candidate_kind": str(item.get("candidate_kind") or ""),

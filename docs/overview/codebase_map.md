@@ -23,7 +23,7 @@
 | --- | --- |
 | `src/agent/financial_graph_planning.py` | required-output planning for every intent; query-written subjects/themes and explicit source-section constraints, separately from retrieval hints |
 | `src/agent/financial_retrieval_pipeline.py` | one source scope across searches/supplements/seeds/selection; narrative ownership, filing-qualified dedupe, trace |
-| `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent row readings and exact bounded narrative-body windows, preserving existing numeric records |
+| `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent readings, balanced parser-prefix separation, exact bounded body windows and separate local-heading hints |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_scope.py` | query-copied section/path authority, whole-component descendant membership from located metadata/legacy anchors, parent/input intersection and shared retrieval union; no body/heading-context authority |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
@@ -42,7 +42,8 @@
 | Path | Responsibility |
 | --- | --- |
 | `src/ingestion/dart_fetcher.py` | DART report fetch |
-| `src/processing/financial_parser.py` | literal-preserving XML recovery, explicit data-table versus unit-context structure, and chunks |
+| `src/processing/financial_parser.py` | literal-preserving XML recovery, explicit data-table versus unit-context structure, and peer-heading classification |
+| `src/processing/block_collection.py`, `chunking.py` | local-heading scope, caption/enclosing-scope separation and heading-bounded paragraph-to-table context |
 | `src/processing/source_context.py` | bounded exact XML context fragments, hierarchy/adjacency links and source-file identity; no scope inference |
 | `src/processing/table_structure.py`, `table_records.py` | explicit THEAD/TH header scope before grid inference; v2 parser row/cell projection |
 | `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
