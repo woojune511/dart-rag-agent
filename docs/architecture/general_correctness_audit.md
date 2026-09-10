@@ -82,6 +82,28 @@ New focused files also include `test_semantic_compiler_authority_audit.py`,
 `test_storage_failure_boundaries.py`, `test_ingest_admission_boundaries.py`, and
 `test_api_error_boundary.py`. No existing benchmark fixture was relabelled.
 
+## Current narrative selection diagnosis — repair pending
+
+On 2026-09-11, the [provider-free source/rank diagnosis](../../benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md)
+located the omitted source passages in all three frozen narrative catalogs. Recomputed
+selection IDs match the completed paid run's output and requirement visibility.
+Two business-overview prose candidates are outranked by detail rows; a channel table's
+local title exists in its row rendering but is absent from the matching fact view.
+
+`project_candidate_fact` applies numeric metric isolation to narrative structured reading;
+`build_candidate_matches` also keeps cell-locality priority for narrative owners.
+Shared-heading word matches elevate detail rows, while unknown-only ties fall back to
+source-key order. Eligibility/source diversity therefore does not imply theme coverage.
+Five anonymous, socket-blocked characterizations reproduce these mechanisms and preserve
+explicit-company conflict rejection. They are ignored diagnostic artifacts, not regression
+tests that require known defects forever. Runtime and original inputs remain unchanged.
+
+Next bounded repair: owner-aware narrative reading projection and hierarchy-aware source
+selection, preserving numeric metric isolation, scope/subject/ID authority and budgets.
+Do not add reviewed business keywords, promote gold IDs, declare prose universally better,
+or rerun the model before fixing input coverage. This is compiler-only whole-catalog
+diagnosis, not full-agent retrieval measurement, a completed fix, or new answer accuracy.
+
 ## Review limits and next bounded work
 
 1. Freeze the generic mechanism fixes, then select holdout documents, periods and

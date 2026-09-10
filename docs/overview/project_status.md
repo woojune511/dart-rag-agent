@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-10
+Last updated: 2026-09-11
 
 ## Current implementation
 
@@ -133,9 +133,10 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- Diagnose narrative evidence coverage provider-free: broad summaries versus detail rows,
-  and requested-source/theme coverage. The missing channel owner saw six financial-section
-  candidates despite a source business-channel table. Catalog/ranking cause remains unproven.
+- [Coverage diagnosis](../../benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md) locates all three omitted sources in frozen catalogs.
+  Narrative inherits cell-locality priority and drops structured local reading text; anonymous
+  reproductions 5/5, paid visibility matched. Next: owner-aware reading/selection repair,
+  preserving numeric isolation and strict authority. No runtime change or new answer result yet.
 - Keep source-exposed regression, full-agent retrieval and semantic completeness distinct;
   ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and

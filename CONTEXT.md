@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-10
+Last updated: 2026-09-11
 
 ## Product and authority
 
@@ -106,8 +106,11 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    estimated USD 0.24888625 / 0.90. Runtime complete remains 2/3; source-reviewed semantic
    completeness remains 0/3. Unsupported absence claims disappeared and subsidiary-channel
    attribution improved, but two major-business omissions and one missing channel remain.
-   Actual SDK requests match the no-call receipts. Next: provider-free narrative evidence
-   coverage diagnosis; do not substitute a prompt-only rerun or gold-ID selection. Approval consumed.
+   Actual SDK requests match the no-call receipts. The [offline coverage diagnosis](benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md)
+   now reproduces selection causes: narrative inherits cell-locality priority and loses
+   structured local reading text. All three omitted sources exist in the catalog; anonymous
+   mechanism checks are 5/5, not a repair or new answer score. Next: separate narrative
+   reading/selection from numeric metric isolation, preserving strict authority. Approval consumed.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.
 5. Remaining characterized limits: planner theme omission/semantic faithfulness still
