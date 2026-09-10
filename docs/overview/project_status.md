@@ -64,12 +64,13 @@ These are provider-free mechanism/prompt tests, not fresh answer accuracy or gen
 These implementation gates used no provider, fresh ingest, actual-store repair or
 evaluator/dataset changes. The 12-question pilot below belongs to the earlier runtime.
 
-Prior-runtime [three-narrative provider comparison](../../benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md):
-`3447ade7`, admission `5e478bb7...2cc16`, Pro **6 calls**, retry/errors **0**, estimated
-**USD 0.24888625 / 0.90**; billing unobserved. Runtime complete **2/3**, Codex source-reviewed
-semantic complete **0/3**. Unsupported absence claims disappeared; subsidiary attribution
-improved. Aerospace, real estate and one channel output remain omitted. Actual SDK requests
-match the two identical no-call receipts. Inputs/criteria are unchanged; no full-agent claim.
+Latest [reading/selection provider comparison](../../benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md):
+clean `ff283a58`, admission `8eae0a6b...65c61`, Pro **7 calls**, one internal retry,
+provider/execution errors **0**, estimated **USD 0.221395 / 0.90**; billing unobserved.
+Runtime complete **2/3**, Codex source-reviewed semantic complete **1/3**. Both overview
+omissions improve; KT&G still broadens subsidiary scope. CJ uses an unrequested section,
+omits logistics, and loses channel output after scalar-period rejection. Saved-response
+replay matches all three prompt hashes/final program bytes; inputs/criteria remain frozen.
 
 ## Independent pilot: immutable compiler-only predecessor
 
@@ -133,10 +134,9 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- Owner-aware narrative reading/selection is implemented and locally verified. If a new
-  provider comparison is needed, prepare a fresh manifest and two identical no-call receipts
-  before scoped execution authority. Current source visibility is not a new answer result;
-  do not tune reviewed-source IDs or treat bounded coverage as document completeness.
+- Next: provider-free contracts separating document/row reading from scalar measurement
+  periods, preserving explicit requested-section/local-subject scope. Reproduce incorrect
+  local-heading inheritance with anonymous XML fixtures; do not tune reviewed-source IDs.
 - Keep source-exposed regression, full-agent retrieval and semantic completeness distinct;
   ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and

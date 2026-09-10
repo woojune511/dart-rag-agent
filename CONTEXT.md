@@ -104,18 +104,22 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
 3. Period-to-subject inference is repaired with anonymous real-catalog tests; no rank
    weights, owner visibility or source validation were relaxed. Offline projection is
    candidate-visibility evidence only, not a new answer result; see project status.
-   The separately approved [three-narrative comparison](benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md)
-   ran once on `3447ade7`, manifest `5e478bb7...2cc16`: Pro 6 calls, retry/errors 0,
-   estimated USD 0.24888625 / 0.90. Runtime complete remains 2/3; source-reviewed semantic
-   completeness remains 0/3. Unsupported absence claims disappeared and subsidiary-channel
-   attribution improved, but two major-business omissions and one missing channel remain.
-   Actual SDK requests match the no-call receipts. The [diagnosed selection boundary](benchmarks/results/narrative_evidence_coverage_diagnosis_2026-09-10/README.md)
-   is now repaired with 12 anonymous regressions; full unittest is 1274/1274.
-   The [provider-free successor replay](benchmarks/results/narrative_reading_selection_2026-09-11/README.md)
-   exposes both omitted overviews and a channel-table row in actual payloads: six mock
-   calls, no retry, unchanged catalogs. This is visibility evidence, not new answer quality.
-   Next: if a provider comparison is needed, prepare a fresh manifest and two identical
-   no-call rehearsals; obtain scoped authority before execution. Prior approval is consumed.
+   The [reading/selection comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
+   ran once on clean `ff283a58`, admission `8eae0a6b...65c61`: Pro 7 calls, one internal
+   retry, provider/execution errors 0, estimated USD 0.221395 / 0.90. Runtime complete
+   is 2/3; Codex source-reviewed semantic completeness is 1/3, not a human/judge score.
+   Both overview omissions improve. Korean Air covers both themes; KT&G broadens a
+   subsidiary's channels to group-level wording. CJ uses the wrong requested source
+   section, omits logistics, and has no final channel output. The visible channel row
+   was rejected for its scalar carrier's unresolved period, not absent from the source.
+   A socket-blocked replay of three saved responses matches every paid prompt hash and
+   final program/validation bytes. The same cohort is retained on retry; no new call.
+   The [prior prompt comparison](benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md)
+   remains immutable (runtime 2/3, source review 0/3). Current local tests are 1274/1274.
+   Next: provider-free contracts for document/row reading versus measurement-period
+   authority, requested section and local subject scope; do not weaken numeric checks.
+   Local-heading inheritance also needs an anonymous source-structure reproduction.
+   This admission is consumed; no fresh paid execution is prepared or authorized.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.
 5. Remaining characterized limits: planner theme omission/semantic faithfulness still
