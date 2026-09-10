@@ -73,6 +73,9 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                                 }
                             ],
                             "text": summary_text,
+                            "claims": [{"subject": "target unit", "text": summary_text,
+                                "evidence_bindings": [{"candidate_id": "cand-summary",
+                                    "source_requirement_id": "ob_003:req_001", "evidence_text": summary_text}]}],
                         }
                     ]
                 }

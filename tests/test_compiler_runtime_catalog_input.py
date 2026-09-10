@@ -15,7 +15,7 @@ from src.ops.replay_reviewed_compiler_selection import (
 from src.ops.replay_reviewed_runtime_corpus import _materialize_catalog
 
 
-FIXTURE = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v2.json"
+FIXTURE = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v3.json"
 
 
 def runtime_case(catalog):

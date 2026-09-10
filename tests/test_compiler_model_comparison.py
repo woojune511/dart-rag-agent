@@ -29,7 +29,7 @@ class CompilerModelComparisonTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         synthetic = json.loads((FIXTURES / "semantic_comparison_contrasts_v1.json").read_text(encoding="utf-8"))
-        reviewed = json.loads((FIXTURES / "reviewed_runtime_replay_corpus_v2.json").read_text(encoding="utf-8"))
+        reviewed = json.loads((FIXTURES / "reviewed_runtime_replay_corpus_v3.json").read_text(encoding="utf-8"))
         self.corpus = {
             **synthetic,
             "cases": [synthetic["cases"][i] for i in (8, 3, 5)] + [reviewed["cases"][1]],

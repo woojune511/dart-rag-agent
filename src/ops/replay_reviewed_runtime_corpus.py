@@ -208,6 +208,8 @@ def _replay_case(raw_case: Mapping[str, Any]) -> dict[str, Any]:
             "schema_errors": _schema_errors(error),
         }
 
+    legacy_narrative = any(not row.get("claims") for row in program.get("narrative_bindings") or [])
+    base["narrative_claims_enforced"] = not legacy_narrative
     catalog_fingerprint = semantic_candidate_catalog_fingerprint(catalog)
     try:
         visibility = CandidateVisibilityV1.create(
@@ -249,7 +251,9 @@ def _replay_case(raw_case: Mapping[str, Any]) -> dict[str, Any]:
         candidate_catalog=catalog,
         query=query,
         compilation_envelope=envelope,
-        require_compilation_envelope=True,
+        # An explicit envelope still verifies all content/validation fingerprints.
+        # This offline reader replays frozen flat narratives, not current compiler authority.
+        require_compilation_envelope=not legacy_narrative,
     )
 
     expected = dict(case.get("expected") or {})

@@ -11,7 +11,7 @@ from src.agent.financial_graph_calculation import _semantic_candidate_visibility
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.agent.financial_reconciliation_candidates import semantic_candidate_catalog_fingerprint
 from src.ops.replay_reviewed_compiler_selection import _CompilerOnlyAgent, _case_state
-from tests.semantic_program_test_support import _candidate, _obligation, _requirement, _scope, _StructuredQueueLLM
+from tests.semantic_program_test_support import _candidate, _obligation, _requirement, _scope, _StructuredQueueLLM, _with_narrative_claims
 
 
 class NarrativeRowDescriptionTests(unittest.TestCase):
@@ -164,7 +164,7 @@ class NarrativeRowDescriptionTests(unittest.TestCase):
                     self.assertTrue(any("unit" in error["code"] for error in result["errors"]))
 
     def test_model_compiler_and_executor_keep_description_out_of_numeric_operands(self):
-        program = SemanticCalculationProgram.model_validate(self.program)
+        program = self.claimed_program(self.program)
         llm = _StructuredQueueLLM(program)
         state = _case_state({"question": "Describe routes.", "obligations": self.owners}, self.catalog)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
@@ -206,8 +206,7 @@ class NarrativeRowDescriptionTests(unittest.TestCase):
         accepted = SemanticCalculationProgram.model_validate({"direct_bindings": [{"obligation_id": "count", "candidate_id": "count-cell"}]})
         bad = deepcopy(self.program)
         bad["narrative_bindings"][0]["evidence_bindings"][0]["row_description_quote"] = "Invented quote"
-        llm = _StructuredQueueLLM(accepted, SemanticCalculationProgram.model_validate(bad),
-            SemanticCalculationProgram.model_validate(self.program))
+        llm = _StructuredQueueLLM(accepted, self.claimed_program(bad), self.claimed_program(self.program))
         state = _case_state({"question": "Return count and describe routes.", "obligations": self.owners}, self.catalog)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
         self.assertEqual(len(llm.prompts), 3)
@@ -218,6 +217,10 @@ class NarrativeRowDescriptionTests(unittest.TestCase):
             text = prompt.to_messages()[0].content.split("Source bundles, candidate cohorts, and candidates_by_id:\n", 1)[1]
             return json.JSONDecoder().raw_decode(text.lstrip())[0]
         self.assertEqual(visible_payload(llm.prompts[1]), visible_payload(llm.prompts[2]))
+
+    def claimed_program(self, program):
+        return SemanticCalculationProgram.model_validate(_with_narrative_claims(program,
+            subject="Partners", quotes={"cell": "Partners | Regional outlets"}))
 
 
 if __name__ == "__main__":

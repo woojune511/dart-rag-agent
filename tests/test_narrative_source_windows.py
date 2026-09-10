@@ -141,6 +141,11 @@ class NarrativeSourceWindowTests(unittest.TestCase):
         program = {"status": "ready", "narrative_bindings": [{
             "obligation_id": owner["obligation_id"], "candidate_ids": [narrative["candidate_id"]],
             "text": "Final delivery count is 47.",
+            "claims": [{"subject": "Final delivery count", "text": "Final delivery count is 47.",
+                "evidence_bindings": [{"candidate_id": narrative["candidate_id"],
+                    "evidence_text": "Final delivery count is 47.",
+                    "context_id": next(row["context_id"] for row in narrative["source_contexts"]
+                        if "Final delivery count is 47." in row["source_text"])}]}],
         }]}
         validation = validate_semantic_calculation_program(program=program, candidate_visibility=visibility, **inputs)
         self.assertEqual(validation["status"], "ready", validation["errors"])

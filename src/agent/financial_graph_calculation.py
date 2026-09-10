@@ -1250,6 +1250,9 @@ def _merge_targeted_program_retry(
             for item in previous_validation.get(validation_key) or []
             if str((item or {}).get("obligation_id") or "").strip() not in targets
         ]
+        for row in preserved:
+            # Validation-owned quote locations are trace, not model program JSON.
+            row.pop("claim_readings", None)
         replacements = [
             dict(item)
             for item in retry_program.get(program_key) or []
@@ -1908,6 +1911,7 @@ class FinancialAgentCalculationMixin:
         }
         validation = validate_semantic_calculation_program(
             program=program_data,
+            require_narrative_claims=True,
             obligations=obligations,
             candidate_catalog=catalog,
             query=query,
@@ -2018,6 +2022,7 @@ class FinancialAgentCalculationMixin:
                     )
                 validation = validate_semantic_calculation_program(
                     program=program_data,
+                    require_narrative_claims=True,
                     obligations=obligations,
                     candidate_catalog=catalog,
                     query=query,
@@ -2586,6 +2591,7 @@ class FinancialAgentCalculationMixin:
                 }
                 validation = validate_semantic_calculation_program(
                     program=program,
+                    require_narrative_claims=True,
                     obligations=island_obligations,
                     candidate_catalog=catalog,
                     query=query,
@@ -2876,6 +2882,7 @@ class FinancialAgentCalculationMixin:
         )
         validation = validate_semantic_calculation_program(
             program=merged_program,
+            require_narrative_claims=True,
             obligations=obligations,
             candidate_catalog=catalog,
             query=query,

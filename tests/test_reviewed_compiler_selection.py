@@ -24,7 +24,7 @@ from src.ops.replay_reviewed_compiler_selection import (
 FIXTURE_PATH = (
     Path(__file__).parent
     / "fixtures"
-    / "reviewed_runtime_replay_corpus_v2.json"
+    / "reviewed_runtime_replay_corpus_v3.json"
 )
 
 

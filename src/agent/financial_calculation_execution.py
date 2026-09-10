@@ -22,7 +22,8 @@ from src.agent.financial_answer_slots import (
 )
 from src.agent.financial_formula_eval import safe_eval_formula
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
-from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids
+from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
+from src.agent.financial_narrative_claims import validate_narrative_claims
 from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
 )
@@ -1035,6 +1036,7 @@ def validate_semantic_calculation_program(
     candidate_catalog: Sequence[Mapping[str, Any]],
     query: str,
     candidate_visibility: Optional[CandidateVisibilityV1] = None,
+    require_narrative_claims: bool = False,
     selectable_candidate_ids: Optional[Sequence[str]] = None,
     selectable_candidate_ids_by_owner: Optional[
         Mapping[str, Sequence[str]]
@@ -1981,8 +1983,15 @@ def validate_semantic_calculation_program(
 
     for raw in program.get("narrative_bindings") or []:
         binding = dict(raw or {})
+        obligation_id = str(binding.get("obligation_id") or "").strip()
+        try:
+            binding = project_narrative_claims(binding)
+        except ValueError as exc:
+            error(str(exc), obligation_id, location="narrative_claims")
+            continue
         # Resolution is validator-owned, not a model-written permission.
         binding.pop("description_readings", None)
+        binding.pop("claim_readings", None)
         obligation_id = str(binding.get("obligation_id") or "").strip()
         obligation = obligation_by_id.get(obligation_id)
         candidate_ids = narrative_candidate_ids(binding)
@@ -2005,6 +2014,16 @@ def validate_semantic_calculation_program(
             )
         )
         invalid = False
+        if require_narrative_claims and not binding.get("claims"):
+            error("missing_narrative_claims", obligation_id, location="narrative_claims")
+            invalid = True
+        claim_readings, claim_errors = validate_narrative_claims(
+            {**binding, "candidate_ids": candidate_ids}, candidate_by_id,
+            number_check=_ungrounded_narrative_numbers,
+            visible_candidate_ids=None if selectable_ids is None else sorted(selectable_ids))
+        for claim_error in claim_errors:
+            error(obligation_id=obligation_id, **claim_error)
+            invalid = True
         if not obligation or str(obligation.get("kind") or "") != "narrative":
             error("invalid_narrative_obligation", obligation_id)
             invalid = True
@@ -2306,6 +2325,7 @@ def validate_semantic_calculation_program(
                 "candidate_ids": candidate_ids,
                 "scope_applicability_fields": scope_applicability_fields,
                 **({"description_readings": description_readings} if description_readings else {}),
+                **({"claim_readings": claim_readings} if claim_readings else {}),
             }
         )
         sources_by_output[obligation_id] = candidate_ids
@@ -3345,6 +3365,7 @@ def execute_semantic_calculation_program(
         candidate_catalog=candidate_catalog,
         query=query,
         candidate_visibility=candidate_visibility,
+        require_narrative_claims=require_compilation_envelope,
     )
     if (
         compilation_envelope is not None
@@ -3661,6 +3682,8 @@ def execute_semantic_calculation_program(
             "operation_family": "narrative",
             **({"description_readings": deepcopy(binding["description_readings"])}
                if binding.get("description_readings") else {}),
+            **({"claim_readings": deepcopy(binding["claim_readings"])}
+               if binding.get("claim_readings") else {}),
         }
 
     required_ids = [

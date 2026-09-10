@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import json
 import unittest
 from pathlib import Path
@@ -50,6 +51,17 @@ from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     PLANNING_POLICY,
 )
+
+
+def _with_narrative_claims(program, *, subject, quotes):
+    """Explicit authored witnesses, not inference or a production fallback."""
+    from copy import deepcopy
+    result = deepcopy(program)
+    for binding in result.get("narrative_bindings", []):
+        binding["claims"] = [{"subject": subject, "text": binding["text"],
+            "evidence_bindings": [{**row, "evidence_text": quotes[row["candidate_id"]]}
+                for row in binding["evidence_bindings"]]}]
+    return result
 
 
 def execute_semantic_calculation_program(**inputs):

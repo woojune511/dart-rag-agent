@@ -41,8 +41,11 @@ class SemanticCompilationScopeTests(unittest.TestCase):
             scope=_scope(company="Filing Group", period="2031", segment=subject))
             for key, label, subject in (("operations", "shared operations", "Cedar Unit"),
                                        ("distribution", "regional distributors", "River Unit"))]
-        self.bindings = [binding(owner["obligation_id"], candidate["candidate_id"], candidate["source_text"])
-                         for owner, candidate in zip(self.owners, self.catalog)]
+        self.bindings = [{"obligation_id": owner["obligation_id"], "claims": [{
+            "subject": candidate["local_entity_surfaces"][0], "text": candidate["source_text"],
+            "evidence_bindings": [{"candidate_id": candidate["candidate_id"],
+                "evidence_text": candidate["source_text"]}]}]}
+            for owner, candidate in zip(self.owners, self.catalog)]
 
     def compile(self, programs):
         llm = _StructuredQueueLLM(*[SemanticCalculationProgram.model_validate(item) for item in programs])
@@ -83,7 +86,7 @@ class SemanticCompilationScopeTests(unittest.TestCase):
             owner["scope"]["segment"] = ""
             owner["coupling_key"] = "same-basis"
         bad = deepcopy(self.bindings[1])
-        bad["text"] = ""
+        bad["claims"][0]["text"] = ""
         result, prompts = self.compile([
             {"narrative_bindings": [self.bindings[0], bad]},
             {"narrative_bindings": [self.bindings[1]]},

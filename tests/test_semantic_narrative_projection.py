@@ -10,7 +10,7 @@ from src.agent.financial_calculation_execution import (
 from src.agent.financial_graph_calculation import _semantic_candidate_visibility
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.ops.replay_reviewed_compiler_selection import _CompilerOnlyAgent, _case_state
-from tests.semantic_program_test_support import _candidate, _obligation, _requirement, _scope, _StructuredQueueLLM
+from tests.semantic_program_test_support import _candidate, _obligation, _requirement, _scope, _StructuredQueueLLM, _with_narrative_claims
 
 
 class SemanticNarrativeProjectionTests(unittest.TestCase):
@@ -110,7 +110,7 @@ class SemanticNarrativeProjectionTests(unittest.TestCase):
         self.assertIn("missing_required_evidence_binding", {item["code"] for item in self.validate(projection)["errors"]})
 
     def test_compiler_executes_first_narrative_response_without_retry(self):
-        llm = _StructuredQueueLLM(SemanticCalculationProgram.model_validate(self.program))
+        llm = _StructuredQueueLLM(self.claimed_program())
         state = _case_state({"question": "Summarize both activities.", "obligations": self.obligations}, self.catalog)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
         self.assertEqual(len(llm.prompts), 1)
@@ -122,7 +122,7 @@ class SemanticNarrativeProjectionTests(unittest.TestCase):
         self.assertEqual(execution["selected_candidate_ids"], ["note-first", "note-second"])
 
     def test_accepted_narrative_bytes_survive_other_island_retry(self):
-        narrative = SemanticCalculationProgram.model_validate(self.program)
+        narrative = self.claimed_program()
         obligations = [*self.obligations, _obligation("quantity", "direct_value", "quantity")]
         catalog = [*self.catalog, _candidate("quantity-cell", 10)]
         llm = _StructuredQueueLLM(narrative,
@@ -134,6 +134,11 @@ class SemanticNarrativeProjectionTests(unittest.TestCase):
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
         self.assertEqual(json.dumps(compiled["semantic_program"]["narrative_bindings"], sort_keys=True),
             json.dumps(narrative.model_dump()["narrative_bindings"], sort_keys=True))
+
+    def claimed_program(self):
+        return SemanticCalculationProgram.model_validate(_with_narrative_claims(self.program,
+            subject="The teams", quotes={"note-first": "The teams combine shared operations.",
+                "note-second": "The teams provide hosted services."}))
 
 
 if __name__ == "__main__":

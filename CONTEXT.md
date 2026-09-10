@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Source preservation: `7aa4adf2`; reading/selection: `ff283a58`; row descriptions: `16e4a1eb`; requested sections: `0f7f7b9a`. Current successor repairs source-local heading/body boundaries.
+Source-local boundaries: `3cbae398`. Current successor adds claim-local narrative grounding; Git records prior preservation/selection/section repairs.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -25,10 +25,10 @@ defects, generic regressions, coverage limits, and remaining work.
 - Compiler selects meaning, bindings, formulas and source display. Deterministic code
   owns units, arithmetic, scope/ID authority, exact source assertions and execution.
   No seven-role classifier, cross-encoder, extra judge or benchmark-ID branch was added.
-- Each compiler attempt declares active outputs and bounded-excerpt coverage. Original
-  query is context, not a request to answer other islands. Narrative instructions preserve
-  local subjects/themes and forbid inferring report absence from missing visible evidence.
-  These instructions are not deterministic proof of narrative faithfulness/completeness.
+- Each compiler attempt declares active outputs and bounded-excerpt coverage. Narrative
+  `claims` connect source-copied subjects/text to exact visible quotes; code derives the
+  final paragraph/evidence IDs and checks claim-local numbers. Current compiler/executor
+  reject flat unattributed text. These checks do not prove semantic entailment/completeness.
 - `CompilationEnvelopeV2` binds full catalog content, ordered obligations and query.
   Only declared `depends_on` outputs may become formula inputs. Retry assertion
   projection cannot modify unrelated accepted outputs or introduce foreign evidence.
@@ -96,49 +96,29 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
 
 ## Next work and hard stops
 
-1. The 12-question paid predecessor's runtime SHA is
-   `5a74ff8dae428d314a329615038c45034229098ab15885c45406eb199c809d7b`.
-   That run used `7aa4adf2`; the [pre-run check](benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
-   and the [12-question compiler pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
-   bind unchanged runtime bytes. Under the user's task-scoped delegation, admission
-   `98956685...fd916` ran once on clean `7c7f079a`: Gemini Pro 21 calls, 3 internal retries,
-   no transport errors, estimated USD 0.90074875 / 2.00 without cache discount.
-2. Runtime complete is 7/12; exact reference-scalar comparison is 4/9 numeric questions.
-   All three narratives have omissions, scope expansion or unsupported absence claims.
-   These dimensions are not interchangeable. Same-value summary-table evidence retains
-   its own provenance; rounded alternatives are not called arithmetic failures.
-   [Adopted references](benchmarks/results/independent_holdout_preparation_2026-09-10/label_adoption_v1/README.md)
-   remain provisional, with individual human source verifications 0. Whole-filing catalogs
-   and question-authored requirements exclude gold from model inputs; no planner/retrieval,
-   store build, full-agent, ledger, release or untouched-source generalization was tested.
-3. Period-to-subject inference is repaired with anonymous real-catalog tests; no rank
-   weights, owner visibility or source validation were relaxed. Offline projection is
-   candidate-visibility evidence only, not a new answer result; see project status.
-   The [reading/selection comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
-   ran once on clean `ff283a58`, admission `8eae0a6b...65c61`: Pro 7 calls, one internal
-   retry, provider/execution errors 0, estimated USD 0.221395 / 0.90. Runtime complete
-   is 2/3; Codex source-reviewed semantic completeness is 1/3, not a human/judge score.
-   Both overview omissions improve. Korean Air covers both themes; KT&G broadens a
-   subsidiary's channels to group-level wording. CJ uses the wrong requested source
-   section, omits logistics, and has no final channel output. The visible channel row
-   was rejected for its scalar carrier's unresolved period, not absent from the source.
-   A socket-blocked replay of three saved responses matches every paid prompt hash and
-   final program/validation bytes. The same cohort is retained on retry; no new call.
-   The [prior prompt comparison](benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md)
-   remains immutable (runtime 2/3, source review 0/3). Current local gates are in project status.
-   Description-use authority is now implemented with 15 anonymous regressions; the
-   [offline counterfactual](benchmarks/results/narrative_row_description_2026-09-11/README.md)
-   is an authored-quote contract check, not new model output. Explicit section authority
-   now has 18 anonymous regressions. Its [counterfactual](benchmarks/results/requested_source_sections_2026-09-11/README.md)
-   rejects CJ's two foreign-section IDs while retaining the other saved in-section IDs;
-   no new planner/compiler output is claimed. The [source-local probe](benchmarks/results/local_heading_scope_2026-09-11/README.md)
-   confirms heading/body repairs with unchanged source/table blocks and same-source IDs.
-   Saved group-broadened text still passes structural validation: narrative attribution
-   remains next, not a solved semantic gate. Fresh parsing was in memory, not store repair.
-   This admission is consumed; no fresh paid execution is prepared or authorized.
-4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
+1. The claim contract is implemented, not a semantic judge. Its
+   [socket-blocked counterfactual](benchmarks/results/narrative_claim_grounding_2026-09-11/README.md)
+   rejects a metadata-only issuer subject and accepts an authored source-local quote.
+   Retagging the old broadened paragraph with its mentioned subsidiary still passes:
+   this negative control remains open. No new model answer or semantic score is claimed.
+2. Next is a bounded current-compiler interpretation comparison, with anonymous negative
+   controls and source-reviewed meaning/coverage criteria separate from runtime readiness.
+   Do not add company rules, a subject classifier, or declare exact-quote matching a judge.
+   Old flat replay is explicitly historical; annotated fixture v3 preserves v2 questions,
+   sources, numeric programs, expected answers and IDs, and is not new human/model review.
+3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
+   remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
+   The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
+   remains runtime 2/3, Codex source-review 1/3 on `ff283a58`, not current-head output.
+   Original sources/results/labels remain immutable. Provisional reference adoption is
+   not individual human source verification or untouched-source generalization.
+4. Prior [row-description](benchmarks/results/narrative_row_description_2026-09-11/README.md),
+   [section](benchmarks/results/requested_source_sections_2026-09-11/README.md) and
+   [source-local](benchmarks/results/local_heading_scope_2026-09-11/README.md) probes are
+   source-exposed contract regressions, not repaired stores or paid response improvements.
+5. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.
-5. Remaining characterized limits: planner theme omission/semantic faithfulness still
+6. Remaining characterized limits: planner theme omission/semantic faithfulness still
    require independent review; document acquisition ambiguity/pagination, full source
    text bijection, and retired narrative-helper removal need separate bounded work.
    Formula-wide rounding propagation and default-store recovery remain deferred.

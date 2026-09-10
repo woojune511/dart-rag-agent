@@ -14,7 +14,7 @@ from src.agent.financial_reconciliation_candidates import (
 )
 from src.agent.financial_runtime_contracts import CompilationEnvelopeV2
 from src.ops.replay_reviewed_compiler_selection import _CompilerOnlyAgent, _case_state
-from tests.semantic_program_test_support import _candidate, _obligation, _requirement, _scope, _StructuredQueueLLM
+from tests.semantic_program_test_support import _candidate, _obligation, _requirement, _scope, _StructuredQueueLLM, _with_narrative_claims
 from tests.test_retrieval_scope_isolation import _Pipeline, _doc, _state
 
 
@@ -30,6 +30,11 @@ def candidate(cid, path, *, kind="narrative"):
 def binding(owner_id, cid):
     return {"obligation_id": owner_id, "text": "Services include shared operations.",
         "evidence_bindings": [{"candidate_id": cid}]}
+
+
+def claimed_model(program):
+    return SemanticCalculationProgram.model_validate(_with_narrative_claims(program,
+        subject="Services", quotes={key: "Services include shared operations." for key in ("right", "wrong")}))
 
 
 class RequestedSourceSectionTests(unittest.TestCase):
@@ -215,9 +220,9 @@ class RequestedSourceSectionTests(unittest.TestCase):
     def test_compiler_keeps_independent_owner_spaces_and_accepted_retry_bytes(self):
         other = _obligation("notes", "narrative", "Services", source_sections=["Notes"])
         self.query += ' Also summarize "Notes".'
-        accepted = SemanticCalculationProgram.model_validate({"narrative_bindings": [binding("services", "right")]})
-        bad = SemanticCalculationProgram.model_validate({"narrative_bindings": [binding("notes", "right")]})
-        good = SemanticCalculationProgram.model_validate({"narrative_bindings": [binding("notes", "wrong")]})
+        accepted = claimed_model({"narrative_bindings": [binding("services", "right")]})
+        bad = claimed_model({"narrative_bindings": [binding("notes", "right")]})
+        good = claimed_model({"narrative_bindings": [binding("notes", "wrong")]})
         llm = _StructuredQueueLLM(accepted, bad, good)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(_case_state(
             {"question": self.query, "obligations": [self.owner, other]}, self.catalog))
@@ -235,7 +240,7 @@ class RequestedSourceSectionTests(unittest.TestCase):
             {"obligation_id": "invented", "kind": "narrative", "label": "Services", "source_sections": ["Unmentioned section"]},
             {**self.owner, "evidence_requirements": [_requirement("evidence", "Services")]},
         ]})
-        llm = _StructuredQueueLLM(planned_response, SemanticCalculationProgram.model_validate({
+        llm = _StructuredQueueLLM(planned_response, claimed_model({
             "narrative_bindings": [{**binding("ob_002", "right"), "evidence_bindings": [
                 {"candidate_id": "right", "source_requirement_id": "ob_002:req_001"}]}]}))
         agent = FinancialAgent.__new__(FinancialAgent)

@@ -6,7 +6,7 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic.json_schema import SkipJsonSchema
 
-from src.agent.financial_program_projection import narrative_candidate_ids
+from src.agent.financial_program_projection import narrative_candidate_ids, project_narrative_claims
 
 
 _SEMANTIC_COUPLING_KEY_MAX_CHARS = 128
@@ -365,15 +365,32 @@ class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):
     )
 
 
-class SemanticProgramNarrativeBinding(_DeferredBaseModel):
+class SemanticProgramNarrativeClaimEvidence(SemanticProgramNarrativeEvidenceBinding):
+    evidence_text: str = Field(description="Exact continuous quote from this candidate's visible source bundle or attached context.")
+    context_id: str = Field(default="", description="Attached visible context ID; empty means the candidate's source bundle.")
+
+
+class SemanticProgramNarrativeClaim(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    subject: str = Field(description="Source-local subject surface copied from a cited quote, also preserved in text; never inferred from filing metadata.")
+    text: str = Field(description="One source-supported statement about that subject; do not broaden its scope.")
+    evidence_bindings: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
+
+
+class SemanticProgramNarrativeBinding(_DeferredBaseModel):
+    # The provider schema is current-only; parsing can still inspect frozen flat programs.
+    model_config = ConfigDict(defer_build=True, extra="forbid",
+        json_schema_extra={"required": ["obligation_id", "claims"]})
 
     obligation_id: str
     # Internal projection / historical input, never a second model-written list.
     candidate_ids: SkipJsonSchema[List[str]] = Field(default_factory=list)
-    evidence_bindings: List[SemanticProgramNarrativeEvidenceBinding] = Field(
+    evidence_bindings: SkipJsonSchema[List[SemanticProgramNarrativeEvidenceBinding]] = Field(
         default_factory=list
     )
+    claims: List[SemanticProgramNarrativeClaim] = Field(default_factory=list, json_schema_extra={"minItems": 1},
+        description="Required for every current narrative output. Statements are composed in order; omit the output if evidence is insufficient.")
     scope_applicability_fields: List[
         Literal["consolidation_scope", "segment", "basis"]
     ] = Field(
@@ -384,10 +401,20 @@ class SemanticProgramNarrativeBinding(_DeferredBaseModel):
             "Explicit conflicts, company, and period cannot be bridged."
         ),
     )
-    text: str
+    text: SkipJsonSchema[str] = ""
 
     @model_validator(mode="after")
     def _project_evidence_members(self) -> "SemanticProgramNarrativeBinding":
+        if self.claims:
+            projection = project_narrative_claims({
+                "claims": [claim.model_dump() for claim in self.claims],
+                **({"text": self.text} if "text" in self.model_fields_set else {}),
+                **({"evidence_bindings": [item.model_dump() for item in self.evidence_bindings]}
+                   if "evidence_bindings" in self.model_fields_set else {}),
+            })
+            self.text = projection["text"]
+            self.evidence_bindings = [SemanticProgramNarrativeEvidenceBinding.model_validate(row)
+                for row in projection["evidence_bindings"]]
         if "candidate_ids" not in self.model_fields_set:
             self.candidate_ids = narrative_candidate_ids({
                 "evidence_bindings": [binding.model_dump() for binding in self.evidence_bindings],

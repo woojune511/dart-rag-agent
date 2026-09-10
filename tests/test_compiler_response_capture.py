@@ -30,7 +30,7 @@ from src.ops.replay_reviewed_compiler_selection import (
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
 
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures/reviewed_runtime_replay_corpus_v2.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures/reviewed_runtime_replay_corpus_v3.json"
 
 
 def _response(text: str, *, finish_reason=types.FinishReason.STOP, thoughts=False):

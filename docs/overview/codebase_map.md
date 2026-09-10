@@ -29,7 +29,8 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
 | `src/agent/financial_candidate_matching.py` | typed applicability and row/column subject identity; numeric metric isolation, owner-aware narrative reading and document/section/source/row budget diversity; no cell-precision or filing-company narrative bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, explicit active-output/bounded-evidence call scope, islands/targeted retry with read-only dependency inputs; merged explanation uses final validation, local rationale stays in island diagnostics; terminal admission errors propagate |
-| `src/agent/financial_program_projection.py` | narrative binding ID projection and validated description-only ID separation across compilation/execution/evidence; historical selection is never widened |
+| `src/agent/financial_program_projection.py` | claim-to-text/evidence/ID projection, no second model-written paragraph; validated description-only separation, no historical ID widening |
+| `src/agent/financial_narrative_claims.py` | exact claim-local quote/subject/number attachment to visible bundles or candidate-linked contexts and located trace; not semantic entailment |
 | `src/agent/financial_calculation_execution.py` | dimensions/scope, numeric cell-subject and explicit source-section authority (including dependencies); exact row descriptions without scalar authority; provenance, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |
@@ -65,7 +66,7 @@
 | `src/ops/build_parser_store_successor.py` | explicit source-copy preparation, exact-input vector reuse, separately supplied missing vectors, snapshot readback and manifest-last publication; no provider clients |
 | `src/ops/replay_runtime_contract_cases.py` | read-only saved-case/counterfactual runtime contract replay; no provider/release claim |
 | `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
-| `src/ops/replay_reviewed_runtime_corpus.py` | provider-free replay of source-derived reviewed fixtures through normalization/visibility/validator/envelope/executor; no retrieval/compiler claim |
+| `src/ops/replay_reviewed_runtime_corpus.py` | provider-free fixture replay with V2 fingerprints; legacy flat narrative explicitly marks claim enforcement off, not current compiler/semantic acceptance |
 | `src/ops/replay_reviewed_compiler_selection.py` | explicit Flash/Pro admissions; source-bound selection checks; terminal stops retain completed cases and interrupted raw responses without executing that case, continuing models or inventing usage; narrative semantic review stays separate; no retrieval/evaluator/embedding/store access |
 | `src/utils/gemini_usage_counts.py` | dependency-light answer/thinking/cache normalization and cost accounting; no double-counted reasoning |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |

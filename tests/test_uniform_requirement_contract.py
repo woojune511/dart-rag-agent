@@ -12,7 +12,7 @@ from src.config.retrieval_policy import (
     EVIDENCE_EXTRACTION_POLICY, QUERY_FOCUS_STOPWORDS,
 )
 from src.utils.provider_errors import ProviderAdmissionError
-from tests.semantic_program_test_support import _candidate, _StructuredQueueLLM
+from tests.semantic_program_test_support import _candidate, _StructuredQueueLLM, _with_narrative_claims
 
 
 def _plan():
@@ -28,13 +28,14 @@ def _plan():
 
 def _program(index):
     owner = f"ob_{index:03d}"
-    return SemanticCalculationProgram.model_validate({"narrative_bindings": [{
+    text = "The teams combine shared operations." if index == 1 else "The teams provide hosted services."
+    return SemanticCalculationProgram.model_validate(_with_narrative_claims({"narrative_bindings": [{
         "obligation_id": owner,
         "evidence_bindings": [{"candidate_id": f"note-{index}",
                                "source_requirement_id": owner + ":req_001"}],
         "text": ("The teams combine shared operations." if index == 1
                  else "The teams provide hosted services."),
-    }]})
+    }]}, subject="The teams", quotes={f"note-{index}": text}))
 
 
 class UniformRequirementContractTests(unittest.TestCase):
