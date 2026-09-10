@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Source-preservation baseline: `7aa4adf2`; reading/selection: `ff283a58`. Current successor separates row-description use from scalar authority.
+Source-preservation baseline: `7aa4adf2`; reading/selection: `ff283a58`; row-description authority: `16e4a1eb`. Current successor enforces explicit requested source sections.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -19,6 +19,9 @@ defects, generic regressions, coverage limits, and remaining work.
 - Every intent, including pure narrative, uses the existing requirement planner and
   source-bundle compiler. Intent/format cannot bypass requested-output coverage.
   The planner preserves explicitly requested themes and source hierarchy.
+- Query-copied `source_sections` is separate from soft search hints. Parent/input
+  restrictions intersect; located paths gate cohorts and validation, including dependency
+  evidence. Wrong/unlocated sections cannot spend owner budgets or bypass via context.
 - Compiler selects meaning, bindings, formulas and source display. Deterministic code
   owns units, arithmetic, scope/ID authority, exact source assertions and execution.
   No seven-role classifier, cross-encoder, extra judge or benchmark-ID branch was added.
@@ -119,11 +122,14 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    A socket-blocked replay of three saved responses matches every paid prompt hash and
    final program/validation bytes. The same cohort is retained on retry; no new call.
    The [prior prompt comparison](benchmarks/results/narrative_scope_compiler_2026-09-10/RESULTS.md)
-   remains immutable (runtime 2/3, source review 0/3). Current local tests are 1289/1289.
+   remains immutable (runtime 2/3, source review 0/3). Current local tests are 1307/1307.
    Description-use authority is now implemented with 15 anonymous regressions; the
    [offline counterfactual](benchmarks/results/narrative_row_description_2026-09-11/README.md)
-   is an authored-quote contract check, not new model output. Next: explicit requested-
-   section authority, then local-subject scope and anonymous heading-inheritance repair.
+   is an authored-quote contract check, not new model output. Explicit section authority
+   now has 18 anonymous regressions. Its [counterfactual](benchmarks/results/requested_source_sections_2026-09-11/README.md)
+   rejects CJ's two foreign-section IDs while retaining the other saved in-section IDs;
+   no new planner/compiler output is claimed. Next: source-local subject scope and
+   anonymous heading-inheritance repair, not another paid trial of known semantic gaps.
    This admission is consumed; no fresh paid execution is prepared or authorized.
 4. No automatic paid rerun, fresh ingest, store adoption/mutation, answer-key adjustment,
    tolerance relaxation, or experimental artifact commit.

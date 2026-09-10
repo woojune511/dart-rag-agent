@@ -21,6 +21,7 @@ from src.agent.financial_answer_slots import (
     build_operand_value_slot,
 )
 from src.agent.financial_formula_eval import safe_eval_formula
+from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids
 from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
@@ -1102,7 +1103,24 @@ def validate_semantic_calculation_program(
             }
         )
 
+    def candidate_section_is_authorized(candidate_id: str, owner_id: str, *, dependency: bool = False) -> bool:
+        obligation_id = requirement_owner_by_id.get(owner_id, owner_id)
+        owner = requirement_by_id.get(owner_id, obligation_by_id.get(owner_id, {}))
+        parent = obligation_by_id.get(obligation_id) if owner_id in requirement_by_id else None
+        section = source_section_applicability(candidate_by_id.get(candidate_id, {}), owner, parent)
+        if section["state"] not in {"unrestricted", "match"}:
+            error(
+                "candidate_source_section_mismatch" if section["state"] == "conflict" else "candidate_source_section_unresolved",
+                obligation_id, owner_id=owner_id, candidate_id=candidate_id,
+                location="expression_input.dependency_source" if dependency else "candidate.source_section_path",
+                repair_action="replace_candidate" if section["state"] == "conflict" and not dependency else "repair_program",
+            )
+            return False
+        return True
+
     def candidate_is_exposed(candidate_id: str, owner_id: str) -> bool:
+        if not candidate_section_is_authorized(candidate_id, owner_id):
+            return False
         if selectable_ids_by_owner is not None:
             return candidate_id in selectable_ids_by_owner.get(owner_id, set())
         return selectable_ids is None or candidate_id in selectable_ids
@@ -1133,7 +1151,9 @@ def validate_semantic_calculation_program(
     requirement_by_id: Dict[str, Dict[str, Any]] = {}
     requirement_owner_by_id: Dict[str, str] = {}
     requirement_count = 0
-    invalid_evidence_obligation_ids: set[str] = set()
+    section_errors = source_section_requirement_errors(obligation_rows, query)
+    errors.extend(section_errors)
+    invalid_evidence_obligation_ids = {item["obligation_id"] for item in section_errors}
     for obligation_id, obligation in obligation_by_id.items():
         raw_requirements = list(obligation.get("evidence_requirements") or [])
         requirements = [
@@ -1158,6 +1178,7 @@ def validate_semantic_calculation_program(
                     for field, default in (
                         ("label", ""),
                         ("scope", {}),
+                        ("source_sections", []),
                         ("retrieval_hints", []),
                         ("concept_hints", []),
                         ("semantic_target", {}),
@@ -1778,6 +1799,9 @@ def validate_semantic_calculation_program(
                             )
                             invalid = True
                         variable_units[variable] = output_units[source_id]
+                        for inherited_id in sources_by_output.get(source_id, []):
+                            if not candidate_section_is_authorized(inherited_id, obligation_id, dependency=True):
+                                invalid = True
                         source_candidates.extend(sources_by_output.get(source_id, []))
             if obligation:
                 required_requirement_ids = {

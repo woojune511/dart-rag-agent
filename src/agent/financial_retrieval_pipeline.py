@@ -32,6 +32,7 @@ from src.agent.financial_retrieval_hints import (
 )
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
+from src.agent.financial_source_scope import source_section_allowed_for_query
 from src.agent.financial_scope_policies import (
     desired_consolidation_scope,
     is_scope_only_period_surface,
@@ -680,6 +681,8 @@ class FinancialRetrievalPipelineMixin:
         for body, raw_metadata in zip(bodies, metadatas):
             metadata = dict(raw_metadata or {})
             if not metadata_matches_filter(metadata, where_filter):
+                continue
+            if not source_section_allowed_for_query(metadata, state.get("answer_obligations") or []):
                 continue
             company = _normalise_spaces(str(metadata.get("company") or "")).lower()
 
@@ -2187,12 +2190,15 @@ class FinancialRetrievalPipelineMixin:
             len(docs),
         )
 
-        # section_filter는 _rerank_docs에서 +0.20 부스트로만 반영.
-        # hard filter로 쓰면 LLM이 wrong section을 추출했을 때 관련 청크가 전부 제외됨.
+        # Legacy section_filter is a soft relevance hint. Explicit source_sections
+        # are separate query authority and never fall back to foreign sections.
 
         # Search backends, cached/retry docs and local sidecar scans all share
         # this boundary. Never reintroduce rejected supplements into seed docs.
-        scope_predicate = lambda doc: metadata_matches_filter(dict(doc.metadata or {}), where_filter)
+        obligations = state.get("answer_obligations") or []
+        def scope_predicate(doc):
+            metadata = dict(doc.metadata or {})
+            return metadata_matches_filter(metadata, where_filter) and source_section_allowed_for_query(metadata, obligations)
         input_count = len(docs)
         supplemental_input_count = len(supplemental_docs)
         docs = self._apply_strict_filter(docs, scope_predicate)
@@ -2203,6 +2209,11 @@ class FinancialRetrievalPipelineMixin:
             "supplemental_input_count": supplemental_input_count,
             "supplemental_retained_count": len(supplemental_docs),
         }
+        if any(owner.get("source_sections") for owner in obligations):
+            scope_filter_trace["source_sections_by_owner"] = {
+                str(owner.get("obligation_id") or ""): list(owner.get("source_sections") or [])
+                for owner in obligations
+            }
 
         reranked = self._rerank_docs(docs, state)
 

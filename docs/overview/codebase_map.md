@@ -21,15 +21,16 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `src/agent/financial_graph_planning.py` | required-output planning for every intent; query-written subjects and requested narrative themes/source hierarchy |
+| `src/agent/financial_graph_planning.py` | required-output planning for every intent; query-written subjects/themes and explicit source-section constraints, separately from retrieval hints |
 | `src/agent/financial_retrieval_pipeline.py` | one source scope across searches/supplements/seeds/selection; narrative ownership, filing-qualified dedupe, trace |
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent row readings and exact bounded narrative-body windows, preserving existing numeric records |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
+| `src/agent/financial_source_scope.py` | query-copied section/path authority, whole-component descendant membership from located metadata/legacy anchors, parent/input intersection and shared retrieval union; no body/heading-context authority |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
 | `src/agent/financial_candidate_matching.py` | typed applicability and row/column subject identity; numeric metric isolation, owner-aware narrative reading and document/section/source/row budget diversity; no cell-precision or filing-company narrative bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, explicit active-output/bounded-evidence call scope, islands/targeted retry with read-only dependency inputs; merged explanation uses final validation, local rationale stays in island diagnostics; terminal admission errors propagate |
 | `src/agent/financial_program_projection.py` | narrative binding ID projection and validated description-only ID separation across compilation/execution/evidence; historical selection is never widened |
-| `src/agent/financial_calculation_execution.py` | dimensions/scope and numeric cell-subject authority; exact row-description quotes use document scope without scalar authority; input/display/description provenance, validation/execution and pure final assembly |
+| `src/agent/financial_calculation_execution.py` | dimensions/scope, numeric cell-subject and explicit source-section authority (including dependencies); exact row descriptions without scalar authority; provenance, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |

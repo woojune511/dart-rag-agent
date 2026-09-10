@@ -124,6 +124,11 @@ class EvidenceRequirement(_DeferredBaseModel):
     label: str
     required: bool = True
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
+    source_sections: List[str] = Field(default_factory=list, description=(
+        "Explicit query-requested section titles or paths, copied from the query. "
+        "Alternatives within this list; intersects the parent output's restriction. "
+        "Use > between path components. Empty means no additional restriction."
+    ))
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
     semantic_target: SemanticTargetV1 = Field(default_factory=SemanticTargetV1)
@@ -141,6 +146,11 @@ class AnswerObligation(_DeferredBaseModel):
     display_unit: str = ""
     display_format: str = ""
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
+    source_sections: List[str] = Field(default_factory=list, description=(
+        "Explicit query-requested section titles or paths, not inferred search hints. "
+        "Copy title components from the query, using > for hierarchy. Entries are "
+        "alternatives; empty means unrestricted. Applies to all supporting inputs."
+    ))
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
     semantic_target: SemanticTargetV1 = Field(default_factory=SemanticTargetV1)
@@ -193,6 +203,7 @@ class AnswerObligation(_DeferredBaseModel):
         requirement = EvidenceRequirement(
             label=self.label,
             scope=self.scope.model_copy(deep=True),
+            source_sections=list(self.source_sections),
             retrieval_hints=list(self.retrieval_hints),
             concept_hints=list(self.concept_hints),
             semantic_target=self.semantic_target.model_copy(deep=True),

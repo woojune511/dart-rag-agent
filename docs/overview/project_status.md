@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Source-preservation baseline: `7aa4adf2`; reading/selection: `ff283a58`; current successor separates row-description use from scalar authority.
+Source-preservation baseline: `7aa4adf2`; reading/selection: `ff283a58`; row-description authority: `16e4a1eb`. Current successor enforces requested source sections.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -14,6 +14,9 @@ Implemented generic repairs:
 
 - All intents use required-output planning and the existing source-bundle compiler.
   Pure narrative can no longer bypass requested-theme/evidence coverage.
+- Explicit query `source_sections` gates retrieval union, owner/input cohorts and
+  validation (including dependencies). Whole located paths grant authority, not body
+  mentions or inherited context. Inputs cannot widen parents; hints stay soft.
 - Formula inputs require declared dependency authority; targeted assertion retry cannot
   poison accepted outputs. Boolean/non-finite/overflowing literals and invalid scalar
   function arity fail validation; function names may also be legitimate variable names.
@@ -48,19 +51,15 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1289/1289** in 33.519s.
-Fifteen new anonymous row-description tests cover real-parser projection, exact quotes,
-scope/ID/number authority, mixed scalar use, V2 drift and unchanged-island retry bytes.
+Python 3.13.13; current full unittest: **1307/1307** in 43.417s.
+Eighteen new anonymous section-authority tests cover planner preflight, actual parser
+paths, source/owner/input/dependency isolation, retrieval quotas, V2 drift and retry bytes.
 Focused/integration gates pass; import/topology/docs **24/24**. Domain audit: **83 reviewed literals**,
-no new exception; pycompile/diff pass. Numeric periods cannot borrow a description's filing year.
-The [period/subject predecessor projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md)
-restored four asset cells' proper owner visibility and retained three accepted cash-flow
-IDs without changing catalogs. That receipt remains bound to `3d3f64cd`, not this selection change.
-The [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md)
-exposes both previously omitted overview passages and a channel-table row in actual
-payloads: six mock calls, no retry, unchanged catalogs. Runtime SHA `cb6ebb3a...da7ba`.
+no new exception; pycompile/diff pass. Existing row-description/scalar checks remain intact.
+The [period/subject projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md) remains bound to `3d3f64cd`; [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md) to `cb6ebb3a...da7ba`. Neither is current-head model output.
 
 The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
+The [section-authority counterfactual](../../benchmarks/results/requested_source_sections_2026-09-11/README.md) rejects two foreign-section CJ IDs; the other saved in-section IDs remain visible. It adds explicit section annotations to copied requirements, not new planner/compiler output. Runtime `f95f3cd2...705b`.
 These implementation gates used no provider, fresh ingest, actual-store repair or
 evaluator/dataset changes. The 12-question pilot below belongs to the earlier runtime.
 
@@ -134,9 +133,9 @@ synchronized current-build full-agent release or unseen-question performance.
 
 ## Next work
 
-- Next: explicit requested-section authority, then source-local subject scope and
-  incorrect local-heading inheritance with anonymous XML fixtures. The description-use
-  contract does not repair these semantic errors; do not tune reviewed-source IDs.
+- Next: source-local subject scope and incorrect local-heading inheritance with
+  anonymous XML fixtures. Section authority rejects misplaced evidence but does not
+  certify narrative entailment, theme coverage or parser correctness; do not tune IDs.
 - Keep source-exposed regression, full-agent retrieval and semantic completeness distinct;
   ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and

@@ -50,6 +50,10 @@ from src.agent.financial_source_bundles import (
     source_bundle_id_by_candidate_id,
 )
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace, runtime_trace_state_update
+from src.agent.financial_source_scope import (
+    candidate_section_path, has_source_section_constraint,
+    source_section_applicability, source_section_requirement_errors,
+)
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 from src.utils.provider_errors import ProviderAdmissionError
 
@@ -85,6 +89,7 @@ def build_semantic_compilation_islands(
     obligations: Sequence[Mapping[str, Any]],
     *,
     evidence_bundle_constraints: Sequence[Mapping[str, Any]] = (),
+    query: str = "",
 ) -> Dict[str, Any]:
     """Build deterministic dependency/coupling/bundle components."""
 
@@ -106,6 +111,8 @@ def build_semantic_compilation_islands(
     errors_by_id: Dict[str, List[Dict[str, str]]] = {
         obligation_id: [] for obligation_id in order
     }
+    for section_error in source_section_requirement_errors(rows, query):
+        errors_by_id[section_error["obligation_id"]].append(section_error)
     dependency_edges: List[tuple[str, str]] = []
     for obligation_id, obligation in obligation_by_id.items():
         declared_unit = _normalise_spaces(str(obligation.get("display_unit") or ""))
@@ -556,6 +563,16 @@ def _rank_applicable_owner_candidates(
         if candidate_kind == "evidence"
         else {candidate_kind}
     )
+    full_catalog = catalog
+    source_section_counts: Dict[str, int] = {}
+    if has_source_section_constraint(owner, parent_owner):
+        eligible = []
+        for candidate in catalog:
+            section_state = source_section_applicability(candidate, owner, parent_owner)["state"]
+            source_section_counts[section_state] = source_section_counts.get(section_state, 0) + 1
+            if section_state == "match":
+                eligible.append(candidate)
+        catalog = eligible
     base_applicability_by_id: Dict[str, Dict[str, Any]] = {}
     for raw_candidate in catalog:
         candidate = dict(raw_candidate or {})
@@ -584,7 +601,7 @@ def _rank_applicable_owner_candidates(
     }
     selected_bundle_ids: List[str] = []
     if candidate_kind == "numeric":
-        bundles = build_semantic_source_bundles(catalog)
+        bundles = build_semantic_source_bundles(full_catalog)
         bundle_id_by_candidate = source_bundle_id_by_candidate_id(bundles)
         order_by_bundle = {
             bundle.source_bundle_id: {
@@ -700,6 +717,8 @@ def _rank_applicable_owner_candidates(
             "selected_source_bundle_ids": selected_bundle_ids,
         }
     )
+    if source_section_counts:
+        ranking_diagnostics["source_section_filter"] = source_section_counts
     if ranking_diagnostics["selection_unit"] == "narrative_source_hierarchy":
         ranking_diagnostics["selected_source_paths_by_id"] = {
             str(row["candidate_id"]): [list(part) for part in narrative_candidate_source_path(row)]
@@ -932,7 +951,9 @@ def _semantic_candidate_cohorts(
             for obligation in obligation_rows
         }
         selection = select_source_defined_physical_row_group(
-            catalog,
+            [candidate for candidate in catalog if source_section_applicability(
+                candidate, obligation_by_id[parent_id]
+            )["state"] in {"unrestricted", "match"}],
             explicitly_compatible_ids,
             owner=obligation_by_id.get(parent_id),
             limit=int(cohort.get("limit") or 0),
@@ -973,6 +994,7 @@ def _semantic_candidate_cohorts(
             "evidence_bundle_option_selections": [],
         }
 
+    specification_by_cohort = {item["cohort_id"]: item for item in specifications}
     for cohort in cohorts:
         parent_id = str(cohort.get("parent_obligation_id") or "")
         selection = source_group_selection_by_parent.get(parent_id)
@@ -981,10 +1003,13 @@ def _semantic_candidate_cohorts(
         owner_excluded_ids = set(
             excluded_by_owner.get(str(cohort.get("owner_id") or ""), [])
         )
+        specification = specification_by_cohort[cohort["cohort_id"]]
         candidate_ids = [
             candidate_id
             for candidate_id in (selection.get("candidate_ids") or [])
             if candidate_id not in owner_excluded_ids
+            and source_section_applicability(candidate_by_id[candidate_id],
+                specification["owner"], specification["parent_owner"])["state"] in {"unrestricted", "match"}
         ]
         cohort["candidate_ids"] = candidate_ids
         cohort["candidate_id_fingerprint"] = (
@@ -1571,6 +1596,7 @@ class FinancialAgentCalculationMixin:
                 "source_row_id": str(item.get("source_row_id") or ""),
                 "context_fingerprint": str(item.get("context_fingerprint") or ""),
                 "source_anchor": str(item.get("source_anchor") or ""),
+                "source_section_path": list(candidate_section_path(item)),
                 **({"source_context_provenance": dict(item["source_context_provenance"])}
                    if item.get("source_context_provenance") else {}),
                 "candidate_kind": str(item.get("candidate_kind") or ""),
@@ -2493,6 +2519,7 @@ class FinancialAgentCalculationMixin:
         )
         island_plan = build_semantic_compilation_islands(
             obligations,
+            query=str(state.get("query") or ""),
             evidence_bundle_constraints=list(
                 global_cohort_plan.get("evidence_bundle_constraints") or []
             ),

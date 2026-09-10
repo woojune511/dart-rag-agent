@@ -159,16 +159,13 @@ Candidate/direct-dependency rows retain validated requirement/owner metadata, ph
 `calculated_provenance` dedupes transitive input candidate IDs, row IDs and anchors in first-use order, excluding display/compatibility witnesses. General evidence IDs retain witnesses without extra authority.
 Requirement scope fallback stays marked `period_source=requirement_scope`; source text stays source-only.
 
-Numeric owners have capacity two source bundles, narrative requirements six
-candidates, and numeric compatibility narrative capacity two. Query-wide
-visibility remains bounded by 96 unique numeric and 32 narrative candidates.
-Bundle expansion is atomic: overflow fails before compiler calls, and a bundle
-is never partially trimmed to meet capacity.
+`source_sections` is explicit query authority, not a retrieval hint. Planner copies title/path components from the query; malformed or unmentioned declarations stay recorded and block only the affected island before compiler calls.
+List entries are alternatives; parent/input restrictions intersect. Whole contiguous path components match descendants, ignoring case/spacing and observed ordinal prefixes only when the request omits them. Wrong and unlocated sections are excluded before owner budgets; no foreign-section fallback is allowed.
+Only located section metadata or the canonical legacy anchor's section field establishes membership; body text, local headings, attached context and graph-relation suffixes do not grant authority. Prompt rows project the path without changing catalog IDs/content.
+Validation independently checks direct/operand/display/compatibility/narrative sources and transitive dependency evidence against each consuming owner. Known conflicts may replace candidates; unknowns retain same-cohort repair. V2 binds the declaration and original source location; source scope is not a proof of entailment or parser correctness.
+Numeric owners have capacity two source bundles, narrative requirements six candidates, and numeric compatibility narrative capacity two. Query-wide visibility stays bounded by 96 unique numeric and 32 narrative candidates. Bundle expansion is atomic: capacity overflow fails before compiler calls, never trims a bundle.
 
-Coupling applies only when two or more distinct obligations share the same
-non-empty `coupling_key`. Multiple period operands of one derived obligation do
-not create a cross-obligation coupling mismatch. A true coupled basis conflict
-must fail validation.
+Coupling applies only when two or more distinct obligations share the same non-empty `coupling_key`. Multiple period operands of one derived obligation do not create a cross-obligation coupling mismatch. A true coupled basis conflict must fail validation.
 
 Formula inputs bound to declared requirements or validated dependencies may span
 physical sources, including a separately sourced display. Formula compatibility checks
@@ -268,7 +265,7 @@ inside one owner without changing the external graph node or search-result order
 `retrieval_debug_trace` records query bundles, filters, executed and reused
 queries, selected chunks, policy decisions, and degraded mode. Seed evidence may
 be preserved when graph expansion pushes it outside the final window only if it
-satisfies the active operand and provenance contract. Search, supplements, seeds and final selection use one source filter; empty scoped results stay empty, and failures never authorize unfiltered retries. BM25 filters before truncation. Narrative requirements inherit narrative ownership; preferred-format quotas fill remaining capacity from authorized ranked sources.
+satisfies the active operand and provenance contract. Search, supplements, seeds and final selection use one source filter; empty scoped results stay empty, and failures never authorize unfiltered retries. Explicit source-section restrictions use the union of output scopes; any unrestricted output keeps shared retrieval open, without widening per-owner compilation. BM25 supplements filter before truncation. Trace retains owner section declarations/counts. Narrative requirements inherit narrative ownership; format quotas fill remaining capacity from authorized ranked sources.
 Search-cache hits preserve retrieval mode/fallback reason and return owned deep copies. Narrative dedupe requires filing-qualified identity; an unidentified local chunk number cannot merge sources. Parser splitting preserves introductory prose as well as numbered fragments. XML recovery preserves literal ampersand text, predefined/numeric entities, CDATA, comments, processing instructions and quoted attributes. Explicit header/body data tables are not standalone unit hints, even with one small value; prior stored text is not rewritten.
 
 Canonical routing embeddings use a process-wide success cache keyed by canonical

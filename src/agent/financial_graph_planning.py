@@ -12,6 +12,7 @@ from src.agent.financial_langchain_loaders import chat_prompt_template_from_temp
 from src.agent.financial_retrieval_hints import infer_statement_and_section_hints
 from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_scope_policies import explicit_query_consolidation_scopes
+from src.agent.financial_source_scope import source_section_requirement_errors
 from src.agent.financial_runtime_trace import (
     report_cache_candidate_for_trace,
     resolve_runtime_calculation_trace,
@@ -457,6 +458,7 @@ class FinancialAgentPlanningMixin:
                 }
             )
 
+        requirement_errors.extend(source_section_requirement_errors(obligations, query))
         retrieval_queries = [query]
         retrieval_queries.extend(
             _normalise_spaces(str(item))
