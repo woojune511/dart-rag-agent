@@ -67,8 +67,8 @@ runtime bytes and a manual three-company/2025 pilot: 대한항공, KT&G and CJ�
 12 fixed questions. Codex source-reviewed answer drafts and an original-evidence view
 are ready. Offline checks verified 15 source values, six calculations, 27 exact quoted
 byte spans and both narrative themes. The user approved representative narrative sales
-channels with explicit business scope. Per-answer human source confirmation remains
-unclaimed (0 confirmed), and the drafts are not yet scored gold.
+channels with explicit business scope and accepted the 12 drafts after qualified HTML
+review. These are provisional pilot references, not individually human-verified gold.
 Model runs, Google/OpenAI calls, embeddings, indexing and store mutations are zero.
 Existing reports/datasets and predecessor question/pending-label bytes retain their hashes.
 Initial preparation did not change runtime; the subsequently approved source repairs
@@ -76,7 +76,8 @@ have a separate successor byte freeze and implementation commit, not a holdout s
 The [final pre-run review](../../benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
 binds the clean build to those exact runtime bytes. Source/period/scale checks,
 six calculations, 27 quotations and seven table-context lines pass; no draft change
-was needed. All 12 labels still await adoption and remain unscored/human-unconfirmed.
+was needed. [Label adoption](../../benchmarks/results/independent_holdout_preparation_2026-09-10/label_adoption_v1/README.md)
+binds the unchanged drafts for pilot use; individual human source verification remains 0.
 
 Subsequent offline whole-report parser/catalog projection preserved **15/15** reviewed
 numeric facts with scope/period/unit/physical provenance and all three asset operand
@@ -130,8 +131,8 @@ synchronized current-build full-agent release or unseen-question performance.
 - Keep committed source-preservation successor `7aa4adf2` fixed. Source-exposed cases are diagnostic
   regressions, not untouched parser/catalog generalization evidence; use additional
   uninspected sources for a broader claim. Prior stored text was not repaired.
-- Adopt/freeze final labels using the approved narrative criterion before any model
-  run. Do not optimize against previous failures or holdout outputs.
+- Prepare compiler-only inputs using the frozen, HTML-reviewed provisional pilot labels
+  only for evaluation, never as model input. Do not tune labels against model outputs.
 - Keep retrieval coverage, runtime correctness and semantic completeness separate.
   New reports are not indexed: compiler-only testing would not establish full-agent
   retrieval quality, and new store preparation needs separate approval.

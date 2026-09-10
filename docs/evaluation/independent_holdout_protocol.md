@@ -4,11 +4,11 @@ Last updated: 2026-09-10
 
 ## Current state
 
-**Runtime repairs committed; all 12 source-grounded drafts rechecked, adoption pending.**
-The user approved the narrative coverage criterion and bounded source repairs, not a
-provider evaluation or store build.
-Scope approval is not a claim of human verification of every answer or source value.
-No FinancialAgent/provider evaluation has run and no label is score-eligible yet.
+**Runtime repairs committed; 12 unchanged drafts adopted as provisional pilot references.**
+The user accepted the review HTML while explicitly noting that they had not read all
+original filings. This permits pilot-reference use, not a claim of full-report or
+per-answer human source verification. No provider evaluation or store build is approved.
+No FinancialAgent/provider evaluation has run; independent human gold is not claimed.
 This pilot checks the generic repairs in the
 [correctness audit](../architecture/general_correctness_audit.md), without selecting
 new fixes from repeated attempts on the previous failed questions.
@@ -19,6 +19,10 @@ contains 12 fixed questions and full-source previews. The
 adds Codex-reviewed answer drafts, actual table headers/rows, exact prose quotations,
 and source-scope notes. Original XML/ZIP, questions and pending labels remain unchanged;
 draft successor labels and hash receipts are ignored artifacts, not runtime data.
+The [adoption successor](../../benchmarks/results/independent_holdout_preparation_2026-09-10/label_adoption_v1/README.md)
+hash-binds the exact draft, HTML, narrative criterion and pre-run receipt without
+changing answer content. Earlier pending/score-ineligible receipts stay immutable;
+all 12 now permit provisional pilot comparison, with this review limitation reported.
 
 Offline verification checked 15 numeric source values, six calculated outputs, 27 exact
 raw-byte quotation spans, both themes for three narrative questions, and unchanged
@@ -133,11 +137,11 @@ The final offline review rechecked all 12 drafts against source bytes, row/colum
 period headers, consolidated scope, sign/scale and exact arithmetic. Fifteen values,
 six calculations, 27 quotations and seven table-context lines pass; Codex found no
 required answer correction under the approved representative-channel criterion.
-Original draft/criteria/selection bytes remain unchanged. This source review does not
-establish independent human agreement; adoption is pending and score eligibility is zero.
+Original draft/criteria/selection bytes remain unchanged. Qualified HTML acceptance
+adopts these references for the pilot, not independently source-verified human gold.
 The clean implementation recheck passed 1251 tests, 78 focused repairs, 24
 documentation/import/topology tests, domain audit, pycompile and diff hygiene.
-Next: adopt the reviewed labels before preparing compiler-only inputs/admission.
+Next: prepare compiler-only inputs/admission, excluding reference answers from prompts.
 Per-answer human source verification remains unclaimed. These source-exposed cases are now regressions for the
 repaired boundaries; do not call a repeated result an untouched generalization test.
 No new provider admission has been prepared.

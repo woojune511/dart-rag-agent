@@ -82,17 +82,19 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    Runtime code is fixed at `7aa4adf2`; the [pre-run check](benchmarks/results/independent_holdout_preparation_2026-09-10/pre_run_review_v1/README.md)
    binds the final clean checkout and unchanged runtime bytes. This is not provider
    admission: no new manifest or paid approval has been prepared.
-2. All 12 holdout questions now have source-grounded answer drafts: 15 numeric source
-   values, six calculations, and both themes for three narrative questions. Human label
-   confirmation and model runs are both zero. The user approved representative narrative
-   channels with explicit business scope; this is not per-answer source verification.
+2. All 12 source-grounded drafts are adopted as provisional pilot references after the
+   user's qualified HTML review, not full-report or per-answer human source verification.
+   [Adoption and limits](benchmarks/results/independent_holdout_preparation_2026-09-10/label_adoption_v1/README.md)
+   binds unchanged answers and the approved representative-channel criterion. Individual
+   human source verifications and model runs remain zero.
    This is a small company/period holdout, not an unseen-template or population claim.
    The diagnosed XML/row-reading gaps are repaired with anonymous regressions; full
    unittest recheck is 1251/1251. Frozen chunk-to-catalog replay preserves all 44,757 numeric
    records byte-for-byte in JSON content. These source-exposed cases are preservation
    regressions, not an untouched parser/catalog holdout. Final pre-run review found no
    required draft correction: 15 values, six calculations, 27 exact quotes and seven
-   table-context lines pass. Label adoption is still pending; no model/store work ran.
+   table-context lines pass. Next is compiler-only input/admission preparation, not
+   another label approval. No model/store work ran.
 3. Any provider run needs a new current-build manifest, transmission scope, cost estimate
    and separate approval. Prior admissions are exhausted; narrative routing changed, so
    prior request/count/cost receipts do not authorize the new path.
