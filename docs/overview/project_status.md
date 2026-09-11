@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Paid claim baseline: `5962d1f7`; rendering successor: `ee39cafc`. Current successor preserves located intermediate headings, with provider-free evidence only.
+Latest paid subject-context run: `4c786838`, implementation `9996cf97`; runtime 7/7 but fixed-criterion Codex source review 1/7. Located context is preserved; semantic attribution remains open.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -136,8 +136,8 @@ Those records do not establish current-build release readiness or unseen-questio
 ## Next work
 
 - [Located-heading successor](../../benchmarks/results/located_heading_context_2026-09-11/v2/README.md): intermediate titles become exact quotes. Six unchanged anonymous inputs/14 visible IDs and catalog fingerprints preserved; metadata-only issuer claims still fail.
-  [Next admission](../../benchmarks/results/narrative_subject_compiler_2026-09-11/README.md): six unchanged anonymous cases + known excerpt, Pro once / proposed USD 0.60; new SHA/scope approval after two identical no-call rehearsals. Old stores/results stay untouched.
-  This is source-exposed preparation, not a model result; do not add a subject classifier or relax quote authority.
+  [Subject-context result](../../benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md): Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60, billing unobserved; API/execution errors 0. Admission consumed; ten responses replay identically without API.
+  Next: characterize local subject/coreference and requested coverage through quote repair. Context delivery passed; semantics did not. No runtime change, store repair, paid rerun or generalization claim.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.

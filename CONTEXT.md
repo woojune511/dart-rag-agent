@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Paid claim baseline: `5962d1f7`; rendering successor: `ee39cafc`. Current successor preserves located intermediate headings, with provider-free evidence only.
+Latest paid subject-context run: `4c786838`, implementation `9996cf97`; runtime 7/7 but fixed-criterion Codex source review 1/7. Located context is preserved; semantic attribution remains open.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -118,8 +118,8 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    The [located-heading successor](benchmarks/results/located_heading_context_2026-09-11/v2/README.md)
    repairs the hint-only context gap in fresh parsing; six unchanged anonymous sources
    keep all 14 visible IDs/catalog fingerprints. Issuer-only claims still fail; full gate **1354/1354**.
-   [Next admission](benchmarks/results/narrative_subject_compiler_2026-09-11/README.md): unchanged six anonymous questions plus the known excerpt on repaired inputs; Pro once, proposed USD 0.60, new SHA/scope approval required.
-   This known-source replay is not new model, full-agent or generalization evidence.
+   [Subject-context run](benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md) consumed `7e2961f6...d5a47`: Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60; billing unobserved. Ten saved responses replay identically, no API.
+   Context reached the compiler; local/group identity, issuer/pronoun interpretation and retry coverage remain open. No full-agent/generalization claim, runtime change or paid rerun.
 3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
