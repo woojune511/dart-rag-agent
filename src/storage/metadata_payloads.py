@@ -11,6 +11,7 @@ CHROMA_METADATA_DROP_KEYS = frozenset(
         "table_object_json",
         "table_row_records_json",
         "table_value_records_json",
+        "source_contexts_json",
     }
 )
 TABLE_PAYLOAD_METADATA_KEYS = tuple(sorted(CHROMA_METADATA_DROP_KEYS))

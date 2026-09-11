@@ -476,7 +476,7 @@ def project_candidate_fact(candidate: Mapping[str, Any]) -> CandidateFactViewV1:
     text_metric_surfaces = _ordered_surfaces([
         row.get("row_context_text") if structured else row.get("source_text"),
         *[context.get("source_text") for context in row.get("source_contexts") or []
-          if context.get("relation") in {"ancestor_heading", "caption", "preceding_block"}],
+          if context.get("relation") in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}],
     ])
     normalized_unit = str(row.get("normalized_unit") or "UNKNOWN").upper()
     if normalized_unit not in _VALID_UNIT_FAMILIES:
@@ -613,7 +613,7 @@ def _narrative_metric_states(
     context = replace(fact, cell_metric_surfaces=(), row_metric_surfaces=(),
         text_metric_surfaces=_ordered_surfaces([
             item.get("source_text") for item in contexts
-            if item.get("relation") in {"ancestor_heading", "caption", "preceding_block"}
+            if item.get("relation") in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}
         ]))
     return _best_metric_state(reading, target)[0], _best_metric_state(context, target)[0]
 

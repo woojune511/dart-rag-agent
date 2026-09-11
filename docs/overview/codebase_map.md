@@ -43,9 +43,9 @@
 | Path | Responsibility |
 | --- | --- |
 | `src/ingestion/dart_fetcher.py` | DART report fetch |
-| `src/processing/financial_parser.py` | literal-preserving XML recovery, explicit data-table versus unit-context structure, and peer-heading classification |
-| `src/processing/block_collection.py`, `chunking.py` | local-heading scope, caption/enclosing-scope separation and heading-bounded paragraph-to-table context |
-| `src/processing/source_context.py` | bounded exact XML context fragments, hierarchy/adjacency links and source-file identity; no scope inference |
+| `src/processing/financial_parser.py` | literal-preserving XML recovery, data-table/unit-context structure, and located heading parts without changing heading recognition |
+| `src/processing/block_collection.py`, `chunking.py` | full located heading scope, caption/enclosing-scope separation and heading-bounded paragraph/table context; compact hints cannot merge foreign scopes |
+| `src/processing/source_context.py` | bounded exact formal/intermediate heading fragments, XML spans, hierarchy/adjacency links and file identity; no entity inference |
 | `src/processing/table_structure.py`, `table_records.py` | explicit THEAD/TH header scope before grid inference; v2 parser row/cell projection |
 | `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
 | `src/ingestion/ingest_service.py` | end-to-end ingest ownership |

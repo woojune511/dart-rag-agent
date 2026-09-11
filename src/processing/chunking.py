@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import re
+import json
 from typing import Any, Callable, Dict, List, Optional
+from src.processing.source_context import heading_scope_key
 
 
 WIDE_TABLE_COLUMN_THRESHOLD = 24
@@ -271,6 +273,11 @@ def table_bundle_from_block(
     return bundle
 
 
+def heading_context_bundle(block: Dict[str, Any]) -> Dict[str, str]:
+    contexts = block.get("source_contexts") or []
+    return {"source_contexts_json": json.dumps(contexts, ensure_ascii=False)} if contexts else {}
+
+
 def chunk_blocks(
     blocks: List[Dict[str, Any]],
     section_path: str,
@@ -285,6 +292,7 @@ def chunk_blocks(
     standalone_threshold = chunk_size // 2
     last_paragraph_context = section_path
     last_paragraph_heading = None
+    last_paragraph_scope: tuple = ()
 
     def flush_pending() -> None:
         if not pending_blocks:
@@ -315,6 +323,7 @@ def chunk_blocks(
                         "table_context": table_context if idx == 0 else None,
                         "local_heading": local_heading,
                         "table_view": "text_split",
+                        **heading_context_bundle(pending_blocks[0]),
                         **(
                             table_bundle_from_block(
                                 first_table,
@@ -333,6 +342,7 @@ def chunk_blocks(
                     "table_context": table_context,
                     "local_heading": local_heading,
                     "table_view": "full" if has_table else None,
+                    **heading_context_bundle(pending_blocks[0]),
                     **table_bundle,
                 }
             )
@@ -348,20 +358,26 @@ def chunk_blocks(
         )
         next_heading = block.get("local_heading")
 
-        if pending_blocks and (current_heading or next_heading) and current_heading != next_heading:
+        if pending_blocks and (
+            ((current_heading or next_heading) and current_heading != next_heading)
+            or heading_scope_key(pending_blocks[0]) != heading_scope_key(block)
+        ):
             flush_pending()
 
         if block_type == "paragraph":
             last_paragraph_context = summarize_for_context(text)
             last_paragraph_heading = block.get("local_heading_scope", next_heading)
+            last_paragraph_scope = heading_scope_key(block)
 
         if block_type == "table":
             table_heading = block.get("local_heading_scope", next_heading)
-            if table_heading != last_paragraph_heading:
+            table_scope = heading_scope_key(block)
+            if table_heading != last_paragraph_heading or table_scope != last_paragraph_scope:
                 # Adjacency context cannot cross a peer/child heading boundary.
                 # An explicit caption retains its enclosing heading scope.
                 last_paragraph_context = section_path
                 last_paragraph_heading = table_heading
+                last_paragraph_scope = table_scope
             block = {
                 **block,
                 "table_context": last_paragraph_context or section_path,
@@ -386,6 +402,7 @@ def chunk_blocks(
                             "table_context": block["table_context"] if idx == 0 else None,
                             "local_heading": block.get("local_heading"),
                             "table_view": table_chunk["table_view"],
+                            **heading_context_bundle(block),
                             **table_bundle_from_block(
                                 block,
                                 header_propagated=(propagate_headers and idx > 0),
@@ -400,6 +417,7 @@ def chunk_blocks(
                         "table_context": block["table_context"],
                         "local_heading": block.get("local_heading"),
                         "table_view": "full",
+                        **heading_context_bundle(block),
                         **table_bundle_from_block(block),
                     }
                 )

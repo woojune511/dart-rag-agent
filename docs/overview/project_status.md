@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Source-local boundaries: `3cbae398`; paid claim baseline: `5962d1f7`. Current successor fixes subject rendering, with provider-free evidence only.
+Paid claim baseline: `5962d1f7`; rendering successor: `ee39cafc`. Current successor preserves located intermediate headings, with provider-free evidence only.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -45,8 +45,8 @@ Implemented generic repairs:
   `row_description_quote` uses physical/document scope without scalar permission;
   description-only references stay out of numeric operands/raw-value evidence. No new IDs or calls.
 - Peer headings survive layout variation; table context cannot cross heading boundaries.
-  Captions retain enclosing scope. Balanced parser prefixes stay outside exact body
-  windows; prompt `local_heading` is separate, not a filing-company or subject assertion.
+  Exact located intermediate headings reach paragraph/table candidates via the sidecar;
+  full scope separates chunks/adjacency, captions stay local, and `local_heading` remains a hint.
 
 Existing public, source-bundle, unit, physical-row, typed-state, strict-readiness,
 manifest-last ingest and source-first display contracts remain.
@@ -55,10 +55,10 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1341/1341** in 34.477s.
-Seven new tests cover multilingual fragment display, raw/model/validator/executor/final
-projection, invalid fields/authority, independent island bytes and retry diagnostics.
-Focused narrative/compiler **94/94**, import/boundary/topology/docs **25/25**; audit **83 reviewed literals**, no new exception; pycompile/diff pass.
+Python 3.13.13; current full unittest: **1354/1354** in 40.800s.
+Thirteen new regressions cover exact heading spans, full-scope isolation, formal/soft
+layouts, captions/date notes, sidecar roundtrip, IDs, prompt ordering and execution authority.
+Focused parser/context/narrative **101/101**, import/boundary/topology/docs **25/25**; audit **83 reviewed literals**, no new exception; pycompile/diff pass.
 The [period/subject projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md) remains bound to `3d3f64cd`; [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md) to `cb6ebb3a...da7ba`. Neither is current-head model output.
 
 The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
@@ -135,9 +135,9 @@ Those records do not establish current-build release readiness or unseen-questio
 
 ## Next work
 
-- Next: review deictic/group attribution separately from literal grounding and rendering.
-  Any new compiler-response verification needs fresh admission; current replay is source-exposed.
-  A label cannot certify a statement about another entity; do not add a subject classifier.
+- [Located-heading successor](../../benchmarks/results/located_heading_context_2026-09-11/v2/README.md): intermediate titles become exact quotes. Six unchanged anonymous inputs/14 visible IDs and catalog fingerprints preserved; metadata-only issuer claims still fail.
+  Next: compiler pronoun/group interpretation on repaired inputs; old stores/results are not silently repaired.
+  This is source-exposed preparation, not a model result; do not add a subject classifier or relax quote authority.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.

@@ -788,7 +788,7 @@ def _semantic_source_candidate(
         # text above. Keep the exact input separately so prompt projections can
         # preserve source punctuation and spacing without changing candidate IDs.
         "source_text_exact": str(text or ""),
-        "metadata": dict(metadata or {}),
+        "metadata": _source_context_metadata(metadata),
         "candidate_kind": str(candidate_kind or "chunk"),
     }
     if str(evidence_id or "").strip():
@@ -822,6 +822,13 @@ def _json_mapping(raw_value: Any) -> Dict[str, Any]:
     except (TypeError, json.JSONDecodeError):
         return {}
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _source_context_metadata(metadata: Mapping[str, Any]) -> Dict[str, Any]:
+    projected = dict(metadata or {})
+    if not projected.get("source_contexts") and projected.get("source_contexts_json"):
+        projected["source_contexts"] = _json_list(projected["source_contexts_json"])
+    return projected
 
 
 def _normalized_string_list(raw_values: Any) -> List[str]:
@@ -2223,7 +2230,7 @@ def build_semantic_candidate_catalog(
     for candidate in candidates:
         current = dict(candidate or {})
         source_numeric_start = len(numeric_rows)
-        metadata = dict(current.get("metadata") or {})
+        metadata = _source_context_metadata(current.get("metadata") or {})
         source_candidate_id = str(current.get("candidate_id") or "").strip()
         if not source_candidate_id:
             continue

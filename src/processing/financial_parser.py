@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lxml import etree
 from src.processing.block_collection import collect_blocks
-from src.processing.source_context import bind_document_contexts
+from src.processing.source_context import bind_document_contexts, source_text_span
 from src.processing.chunking import (
     chunk_blocks,
     looks_like_table_header_row,
@@ -890,57 +890,73 @@ class FinancialParser:
         self,
         paragraph_elem,
         structured: bool,
-    ) -> Tuple[Optional[List[str]], List[Dict[str, Any]]]:
+    ) -> Tuple[Optional[List[Dict[str, Any]]], List[Dict[str, Any]]]:
+        raw_text = "".join(paragraph_elem.itertext())
+
+        def heading_parts(value: str, start: int, end: int) -> List[Dict[str, Any]]:
+            located = []
+            for heading in _split_compound_heading_text(value):
+                span = source_text_span(raw_text, heading, start, end)
+                located.append({"kind": "heading", "text": heading, "source_span": span})
+                if span is not None:
+                    start = span[1]
+            return located
+
         if not structured:
-            combined = _normalize("".join(paragraph_elem.itertext()))
+            combined = _normalize(raw_text)
             if not combined:
                 return None, []
             if _BRACKET_HEADING_RE.match(combined):
-                return [combined], []
-            return None, [{"kind": "text", "text": combined}]
+                return heading_parts(combined, 0, len(raw_text)), []
+            return None, [{"kind": "text", "text": combined, "source_span": [0, len(raw_text)]}]
 
         parts: List[Dict[str, Any]] = []
+        offset = 0
 
         def append_text(value: Optional[str]):
+            nonlocal offset
+            start = offset
+            offset += len(value or "")
             normalized = _normalize(value or "")
             if normalized:
-                parts.append({"kind": "text", "text": normalized})
-
-        def append_heading(value: Optional[str]):
-            normalized = _normalize(value or "")
-            if not normalized:
-                return
-            for heading in _split_compound_heading_text(normalized):
-                parts.append({"kind": "heading", "text": heading})
+                parts.append({"kind": "text", "text": normalized, "source_span": [start, offset]})
 
         append_text(paragraph_elem.text)
         for child in paragraph_elem:
-            candidate = _normalize("".join(child.itertext()))
+            child_text = "".join(child.itertext())
+            candidate = _normalize(child_text)
+            start, end = offset, offset + len(child_text)
             usermark = child.get("USERMARK", "") if hasattr(child, "get") else ""
             if child.tag == "SPAN" and "B" in usermark:
                 inline_split = _split_inline_heading_body(candidate)
                 if inline_split:
                     headings, body_text = inline_split
                     for heading in headings:
-                        parts.append({"kind": "heading", "text": heading})
-                    append_text(body_text)
+                        located = heading_parts(heading, start, end)
+                        parts.extend(located)
+                        if located[-1]["source_span"] is not None:
+                            start = located[-1]["source_span"][1]
+                    parts.append({"kind": "text", "text": body_text, "source_span": [start, end]})
+                    offset = end
                 elif _looks_like_local_heading(candidate):
-                    append_heading(candidate)
+                    parts.extend(heading_parts(candidate, start, end))
+                    offset = end
                 else:
-                    append_text("".join(child.itertext()))
+                    append_text(child_text)
             else:
-                append_text("".join(child.itertext()))
+                append_text(child_text)
             append_text(child.tail)
 
         if not parts:
             return None, []
 
         grouped: List[Dict[str, Any]] = []
-        pending_text: List[str] = []
+        pending_text: List[Dict[str, Any]] = []
 
         def flush_text():
             if pending_text:
-                grouped.append({"kind": "text", "text": _normalize(" ".join(pending_text))})
+                grouped.append({"kind": "text", "text": _normalize(" ".join(p["text"] for p in pending_text)),
+                                "source_span": [pending_text[0]["source_span"][0], pending_text[-1]["source_span"][1]]})
                 pending_text.clear()
 
         for part in parts:
@@ -948,16 +964,23 @@ class FinancialParser:
                 flush_text()
                 grouped.append(part)
             else:
-                pending_text.append(part["text"])
+                pending_text.append(part)
         flush_text()
 
         if len(grouped) == 1 and grouped[0]["kind"] == "text":
             inline_split = _split_inline_heading_body(grouped[0]["text"])
             if inline_split:
                 headings, body_text = inline_split
-                return headings, [{"kind": "text", "text": body_text}]
+                start, end = grouped[0]["source_span"]
+                located = []
+                for heading in headings:
+                    pieces = heading_parts(heading, start, end)
+                    located.extend(pieces)
+                    if pieces[-1]["source_span"] is not None:
+                        start = pieces[-1]["source_span"][1]
+                return located, [{"kind": "text", "text": body_text, "source_span": [start, end]}]
             if _looks_like_local_heading(grouped[0]["text"]):
-                return _split_compound_heading_text(grouped[0]["text"]), []
+                return heading_parts(grouped[0]["text"], *grouped[0]["source_span"]), []
 
         promoted: List[Dict[str, Any]] = []
         idx = 0
@@ -970,19 +993,18 @@ class FinancialParser:
                 and _looks_like_local_heading(grouped[idx + 1]["text"])
             ):
                 promoted.append(part)
-                for heading in _split_compound_heading_text(grouped[idx + 1]["text"]):
-                    promoted.append({"kind": "heading", "text": heading})
+                promoted.extend(heading_parts(grouped[idx + 1]["text"], *grouped[idx + 1]["source_span"]))
                 idx += 2
                 continue
             promoted.append(part)
             idx += 1
 
-        leading_headings: List[str] = []
+        leading_headings: List[Dict[str, Any]] = []
         body_segments: List[Dict[str, Any]] = []
         saw_body = False
         for part in promoted:
             if not saw_body and part["kind"] == "heading":
-                leading_headings.append(part["text"])
+                leading_headings.append(part)
                 continue
             if part["kind"] == "text":
                 saw_body = True
@@ -1207,6 +1229,8 @@ class FinancialParser:
                 }
                 if period_labels:
                     metadata["period_labels"] = period_labels
+                if chunk_block.get("source_contexts_json"):
+                    metadata["source_contexts_json"] = chunk_block["source_contexts_json"]
                 reference_paths = _extract_reference_section_paths(chunk_block["text"], reference_index)
                 if reference_paths:
                     metadata["reference_section_paths"] = reference_paths

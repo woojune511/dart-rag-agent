@@ -7,16 +7,14 @@ Superseded designs belong in [implementation history](../history/implementation_
 
 ## 1. Product and authority boundary
 
-The single-agent `FinancialAgent` uses an LLM to interpret intent and evidence.
-Code owns arithmetic, unit conversion, dependency binding, candidate authority,
+The single-agent `FinancialAgent` uses an LLM to interpret intent and evidence. Code owns arithmetic, unit conversion, dependency binding, candidate authority,
 dedupe, ordering, validation, and ledger integrity. Every intent uses required-output planning and the source-bundle compiler; intent or presentation cannot skip coverage. Narrative topics and requested source hierarchy remain explicit requirements.
 
 Company names, benchmark IDs, expected answers, report-specific phrases, and metric
 recipes may not control routing, retrieval, selection, compilation, execution, or
 rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data; fixed-year priorities and case-specific routing examples are not generic domain priors.
 
-Evidence is authoritative over generated text. Numeric answers require registered
-candidates and validated program bindings. Source and calculated displays may
+Evidence is authoritative over generated text. Numeric answers require registered candidates and validated program bindings. Source and calculated displays may
 coexist, but their provenance must remain distinct.
 
 Normalization and rendering share `UnitSpecV1`: source numbers multiply by its scale;
@@ -132,7 +130,7 @@ Period pairs/signs/neighboring operands are not split by a top-one cutoff; a sha
 bundle's source text appears once per compiler payload, even across owners.
 
 `semantic_program_candidate_payload_v6` stores source text once in `source_bundles_by_id` and located document fragments once in `source_contexts_by_id`. Compiler JSON framing is compact; source strings, fields, provenance and assertion spans remain exact.
-Table bundles reference context IDs/relations; parser payloads retain full ancestor titles, captions, adjacent blocks and textual table rows, file SHA, XML locator and exact decoded-XML-text span (not raw HTML byte offsets). Each fragment is bounded to 1200 characters, each table to 4800; adjacency is not applicability.
+Paragraph and table bundles reference context IDs/relations; parser payloads retain formal/intermediate headings, captions, adjacent blocks and textual table rows, file SHA, XML locator and exact decoded-XML-text span (not raw HTML byte offsets). Each fragment is bounded to 1200 characters, each context collection to 4800; adjacency is not applicability.
 Contexts attach before cohort matching without rewriting existing cells/IDs. Newly admitted row readings add IDs and change the full catalog fingerprint, not its hash algorithm or existing numeric records. Existing factor matching may read headings/captions/preceding context; no additive score or model call is added. Owner authority still applies.
 Direct/variable `context_bindings` and expression `source_display_context_bindings` cite attached context IDs and exact quotes for interpreted period/consolidation/segment/basis. Validator checks attachment, quote, known period consistency and explicit candidate conflicts; semantic applicability remains the compiler's responsibility. A binding-local `context_resolution` reaches execution/trace without changing raw catalog scope. Context errors repair the same cohort; accepted island bindings stay unchanged.
 
@@ -149,6 +147,8 @@ An optional binding-local `row_description_quote` must be exact text in a row ax
 Only that quote and document year ground numbers for description-only use; each ordinary numeric carrier needs its own period, not another reading's filing scope. Validated `description_readings` retain exact quote/local span/source field and physical/document provenance in execution/evidence; description-only IDs never become scalar operands or raw-value evidence. Mixed numeric use keeps independent scalar authority. Catalogs/IDs are unchanged; exact text/ID checks do not certify semantic entailment.
 Narrative bodies exclude complete recognized parser-prefix lines, including balanced brackets within metadata values. Mixed, unknown or malformed prefix-looking prose remains source text. Exact consecutive windows are at most 1200 characters, 4800 body characters per source; later windows are `source_continuation` context links serialized once. Offsets are source-candidate, not XML offsets; `source_body_coverage` exposes omitted tails. No extra IDs or changed ID/catalog hashing.
 Retained `local_heading` reaches prompt rows separately from body text as a parser hint, not subject or source-section authority. V2 binds it; legacy metadata is never silently corrected, and exact source checks do not establish narrative attribution.
+Fresh intermediate headings additionally carry exact paragraph-local spans, tracked with the existing heading stack. Full located scope (not the shortened hint) separates chunks and paragraph-to-table context; captions do not become enclosing scopes. Mixed/peer heading paragraphs are not wholesale adjacent evidence. Unlocatable normalized headings remain hints, never invented quotes.
+Optional `source_contexts_json` preserves chunk heading context losslessly in the existing payload sidecar, including prose-only chunks; catalog ingress decodes it without rekeying candidates. Structured rows retain their table contexts. Existing context-match factors can read intermediate headings, but no entity inference, extra call or relaxation of numeric row/section/quote authority is added. Historical stores and results stay unchanged.
 Retained body/context grounds matching; current narrative numbers require claim-local quotes as well as existing source/description checks. V2 binds source windows, contexts and claims. Meaning such as total, component, rate, or derived display is represented by obligation bindings/formula AST, not a role enum. No extra model call or keyword selection chooses body windows.
 
 Every expression supplies nullable `source_display_candidate_id` and a nonblank `source_display_reason`; omission is a compiler format error. A selected source display passes the same authority,

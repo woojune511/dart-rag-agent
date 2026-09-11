@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Source-local boundaries: `3cbae398`; paid claim baseline: `5962d1f7`. Current successor fixes subject rendering, with provider-free evidence only.
+Paid claim baseline: `5962d1f7`; rendering successor: `ee39cafc`. Current successor preserves located intermediate headings, with provider-free evidence only.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -40,7 +40,9 @@ defects, generic regressions, coverage limits, and remaining work.
   reading-only evidence without changing existing chunk numeric extraction or spans.
 - Standalone peer headings persist; paragraph-to-table context stops at heading changes,
   while captions retain enclosing scope. Nested metadata stays outside exact narrative
-  body windows; `local_heading` is a separate parser hint, never subject authority.
+  body windows; `local_heading` is a separate parser hint, never subject authority. Fresh
+  intermediate headings also retain exact XML spans; full scope separates chunks and
+  table context. Prose/table candidates receive located quotes through the existing sidecar.
 - Narrative selection reads local row/body context with format-neutral positive-match
   tiers and document/section/source/row diversity. Numeric metric isolation, explicit
   scope/subject/unit conflicts, owner quotas and global visibility caps remain intact.
@@ -112,8 +114,11 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    processes the unchanged first responses **6/7**, no retry/API, preserving the three old
    accepted programs and causal abstention byte-for-byte. Prior paid output stays **3/7**.
    Quote/subject/number authority remains; labels replace raw-text repetition, not entailment.
-   Actionable errors and per-attempt history survive export. Local full gate **1341/1341**.
-   Next: separate remaining deictic/group attribution review from any new provider validation.
+   Actionable errors and per-attempt history survive export. Rendering gate: **1341/1341**.
+   The [located-heading successor](benchmarks/results/located_heading_context_2026-09-11/v2/README.md)
+   repairs the hint-only context gap in fresh parsing; six unchanged anonymous sources
+   keep all 14 visible IDs/catalog fingerprints. Issuer-only claims still fail; full gate **1354/1354**.
+   Next: test compiler pronoun/group interpretation on the repaired inputs, not old stores.
    This known-source replay is not new model, full-agent or generalization evidence.
 3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
