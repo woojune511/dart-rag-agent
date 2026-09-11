@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Current repair carries failed narrative drafts into bounded retry and distinguishes located context from metadata. Latest paid run uses `a466b6b4` / implementation `960fd4ad`: runtime 6/7; narrow fixed-criterion Codex source review 1/7, with an unsupported qualifier even in that case. Semantic attribution remains unresolved.
+Current repair carries failed narrative drafts into bounded retry and distinguishes located context from metadata. Latest paid run stays `a466b6b4` / implementation `960fd4ad`: runtime 6/7; narrow source review 1/7, with an unsupported qualifier. The [provider-free reading review](docs/architecture/compiler_reading_boundary_review.md) confirms rank-vector leakage and an overloaded presentation; the proposed compiler-projection repair is not implemented.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
