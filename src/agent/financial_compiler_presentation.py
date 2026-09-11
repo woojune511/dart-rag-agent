@@ -8,6 +8,7 @@ import re
 from typing import Any, Mapping, Sequence
 
 from src.agent.financial_calculation_execution import _row_description_reading
+from src.utils.source_segments import project_source_surface
 
 
 PROMPT_MATCH_FIELDS = (
@@ -102,6 +103,11 @@ def project_reading_payload(
     for candidate_id, row in candidates.items():
         provenance[candidate_id] = {key: row.pop(key) for key in DOCUMENT_FIELDS if key in row}
         original = originals[candidate_id]
+        source_provenance = row.get('source_context_provenance') or {}
+        if source_provenance.get('source_segments'):
+            # The exact raw text stays in the catalog; do not reintroduce a
+            # concatenated quote through the provenance metadata index.
+            source_provenance.pop('source_text', None)
         # A shared bundle does not grant every member all other members' contexts.
         attached = {str(c["context_id"]) for c in original.get("source_contexts") or [] if c.get("context_id")}
         if attached != set(bundles[row["source_bundle_id"]].get("context_ids", [])):
@@ -159,7 +165,7 @@ def project_reading_payload(
     def fragment(key, relation):
         fragment = {"context_id": key, "relation": relation}
         if key not in emitted_contexts:
-            fragment["source_text"] = contexts[key]["source_text"]
+            fragment.update(project_source_surface(contexts[key]['source_text'], contexts[key].get('source_segments', [])))
             emitted_contexts.add(key)
         else:
             fragment["surface_ref"] = key
@@ -172,7 +178,8 @@ def project_reading_payload(
         # Different peer headings, adjacency or documents remain separate units.
         group_key = (source_identity(bundle), tuple(sorted(bundle.get("context_relations", {}).items())))
         body = {"source_bundle_id": bundle["source_bundle_id"],
-                "candidate_ids": list(bundle["candidate_ids"]), "source_text": bundle["source_text"]}
+                "candidate_ids": list(bundle["candidate_ids"]),
+                **project_source_surface(bundle['source_text'], bundle.get('source_segments', []))}
         if group_key in groups:
             groups[group_key]["bodies"].append(body)
             continue

@@ -149,5 +149,13 @@ This does not claim full XML order across arbitrary different-tag body siblings.
 Anonymous XML reproduces the failure before repair. Seven saved responses retain all
 program/validation/envelope/execution bytes; source surfaces, owner authority and 123
 protected files remain unchanged. Only two input layouts change; API calls zero.
-Semantic impact is unmeasured. Pre-existing row-cell text concatenation and requirement/
-planner specificity remain separate next work; no prior artifact or store is rewritten.
+Semantic impact is unmeasured. The subsequent [cell-boundary correction](../../benchmarks/results/compiler_cell_boundaries_2026-09-12/README.md)
+retains exact raw XML text but adds physical cell partitions to fresh contexts and matching
+row bundles. The compiler reads independent segments; narrative and scope quotes cannot
+join cells, while separate bindings may support one claim. No source whitespace, values,
+IDs or ranking rules are rewritten. Inline/nested/empty/spanned cells retain physical order.
+Nine new regressions pass; full unittest **1383/1383**. Six anonymous catalogs and 206
+known-section candidates differ only in segment metadata, with unchanged cohorts. Seven
+responses using frozen old catalogs retain their program/validation/envelope/execution bytes;
+145 protected files are unchanged. This does not repair old stores or measure model quality.
+Requirement/planner specificity is next, provider-free; no automatic paid rerun.

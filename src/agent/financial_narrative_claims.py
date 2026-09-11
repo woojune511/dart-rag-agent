@@ -4,6 +4,7 @@ from typing import Any, Callable, Mapping, Sequence
 
 from src.agent.financial_program_projection import render_narrative_claim
 from src.agent.financial_source_bundles import build_semantic_source_bundles
+from src.utils.source_segments import source_quote_is_contiguous
 
 
 def project_narrative_retry_drafts(
@@ -97,6 +98,7 @@ def validate_narrative_claims(
             quote = link.get("evidence_text")
             context_id = link.get("context_id", "")
             surface, source_field = bundle.source_text, "source_bundle"
+            segments = bundle.segment_projection()
             source_span = list(candidate.get("source_bundle_context_span") or [])
             if context_id:
                 contexts = [row for row in candidate.get("source_contexts") or []
@@ -106,11 +108,13 @@ def validate_narrative_claims(
                         detail="Use a context_id attached to this candidate, or leave it empty to quote its source bundle.")
                     continue
                 surface = str(contexts[0].get("source_text") or "")
+                segments = contexts[0].get('source_segments') or []
                 source_field = "source_context"
                 source_span = list(contexts[0].get("source_span") or [])
-            if not isinstance(quote, str) or not quote.strip() or quote not in surface:
+            if not isinstance(quote, str) or not quote.strip() or not source_quote_is_contiguous(surface, quote, segments):
                 fail("invalid_narrative_claim_quote", link,
-                    detail="Copy evidence_text verbatim as one continuous excerpt from this candidate's visible bundle or named attached context; do not paraphrase the quote.")
+                    detail="Copy evidence_text verbatim as one continuous excerpt from this candidate's visible bundle or named attached context; do not paraphrase the quote."
+                        + (" Quote each source segment separately; do not join adjacent cells in one evidence_text." if segments else ""))
                 continue
             # Repeated identical occurrences do not establish one exact location.
             start = surface.find(quote)

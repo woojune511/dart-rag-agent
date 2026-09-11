@@ -54,6 +54,7 @@ from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     CALCULATION_RENDER_POLICY,
 )
+from src.utils.source_segments import source_quote_is_contiguous
 
 
 _ALLOWED_FUNCTIONS = {"min", "max", "abs", "round", "log", "exp"}
@@ -992,7 +993,8 @@ def _resolve_source_context_bindings(
             raise ValueError("context_not_attached_to_candidate")
         quote = binding.get("evidence_text")
         text = str(context.get("source_text") or "")
-        if not isinstance(quote, str) or not quote.strip() or quote not in text:
+        if (not isinstance(quote, str) or not quote.strip()
+                or not source_quote_is_contiguous(text, quote, context.get('source_segments') or [])):
             raise ValueError("context_quote_not_exact")
         field = binding.get("field")
         value = binding.get("value")

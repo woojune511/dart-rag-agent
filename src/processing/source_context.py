@@ -8,6 +8,7 @@ import re
 from typing import Any
 
 from src.processing.table_records import cell_looks_numeric
+from src.utils.source_segments import slice_source_segments
 
 
 MAX_CONTEXT_TEXT = 1200
@@ -23,15 +24,56 @@ def source_text_span(text: str, normalized: str, start: int, end: int) -> list[i
     return [start + match.start(), start + match.end()] if match else None
 
 
+def _cell_text_segments(element: Any) -> list[dict[str, Any]]:
+    """Partition decoded XML text by physical cell, without expanding spans.
+
+    Inline descendants/tails inside a cell stay together; a nested cell starts
+    its own segment. Offsets index the container's itertext(), not XML bytes.
+    """
+    tree = element.getroottree()
+    segments: list[dict[str, Any]] = []
+    offset = 0
+    has_cells = False
+
+    def append(text: str | None, cell: Any, *, boundary: bool = False) -> None:
+        nonlocal offset
+        identity = ({'cell_locator': tree.getpath(cell),
+                     'row_locator': tree.getpath(cell.getparent())}
+                    if cell is not None else {})
+        end = offset + len(text or '')
+        if segments and not boundary and {k: v for k, v in segments[-1].items() if k != 'text_span'} == identity:
+            segments[-1]['text_span'][1] = end
+        elif text or boundary:
+            segments.append({**identity, 'text_span': [offset, end]})
+        offset = end
+
+    def visit(node: Any, cell: Any = None) -> None:
+        nonlocal has_cells
+        is_cell = node.tag in {'TD', 'TH', 'TU', 'TE'}
+        if is_cell:
+            has_cells = True
+            cell = node
+        append(node.text, cell, boundary=is_cell)
+        for child in node:
+            if isinstance(child.tag, str):
+                visit(child, cell)
+            append(child.tail, cell)
+
+    visit(element)
+    return segments if has_cells else []
+
+
 def source_fragment(element: Any, relation: str, span: list[int] | None = None) -> dict[str, Any]:
     tree = element.getroottree()
     text = "".join(element.itertext())
     start, end = span if span is not None else (0, len(text))
     end = min(end, start + MAX_CONTEXT_TEXT)
+    segments = slice_source_segments(_cell_text_segments(element), start, end)
     return {
         "source_locator": tree.getpath(element),
         "parent_locator": tree.getpath(element.getparent()) if element.getparent() is not None else "",
         "source_text": text[start:end], "source_span": [start, end], "relation": relation,
+        **({'source_segments': segments} if segments else {}),
     }
 
 
@@ -52,6 +94,8 @@ def bounded_source_contexts(contexts: list[dict[str, Any]]) -> list[dict[str, An
         context = dict(original)
         excerpt = context["source_text"][:min(MAX_CONTEXT_TEXT, remaining)]
         context.update(source_text=excerpt, source_span=[context["source_span"][0], context["source_span"][0] + len(excerpt)])
+        if context.get('source_segments'):
+            context['source_segments'] = slice_source_segments(context['source_segments'], 0, len(excerpt))
         remaining -= len(excerpt)
         result.append(context)
     return result
@@ -95,15 +139,9 @@ def collect_table_source_contexts(table: Any) -> list[dict[str, Any]]:
         if locator in seen or not text.strip() or remaining <= 0:
             continue
         seen.add(locator)
-        # Offsets refer to the exact decoded XML text at this locator, not HTML bytes.
-        excerpt = text[:min(MAX_CONTEXT_TEXT, remaining)]
-        remaining -= len(excerpt)
-        contexts.append({
-            "source_locator": locator,
-            "parent_locator": tree.getpath(element.getparent()) if element.getparent() is not None else "",
-            "source_text": excerpt, "source_span": [0, len(excerpt)],
-            "relation": relation,
-        })
+        context = source_fragment(element, relation, [0, min(len(text), remaining)])
+        remaining -= len(context['source_text'])
+        contexts.append(context)
     return contexts
 
 

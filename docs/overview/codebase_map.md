@@ -26,7 +26,7 @@
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent readings, balanced parser-prefix separation, exact bounded body windows and separate local-heading hints |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_scope.py` | query-copied section/path authority, whole-component descendant membership from located metadata/legacy anchors, parent/input intersection and shared retrieval union; no body/heading-context authority |
-| `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
+| `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references and exact row cell partitions |
 | `src/agent/financial_candidate_matching.py` | typed applicability and row/column subject identity; numeric metric isolation, owner-aware narrative reading and document/section/source/row budget diversity; no cell-precision or filing-company narrative bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, explicit active-output/bounded-evidence call scope, islands/targeted retry with read-only dependency inputs; merged explanation uses final validation, local rationale stays in island diagnostics; terminal admission errors propagate |
 | `src/agent/financial_compiler_presentation.py` | v7 source-local reading layout, exact quote containers and shared context, separated filing metadata, explicit match/cohort allowlists and narrative-only instruction projection; no selection or semantic authority |
@@ -46,7 +46,8 @@
 | `src/ingestion/dart_fetcher.py` | DART report fetch |
 | `src/processing/financial_parser.py` | literal-preserving XML recovery, data-table/unit-context structure, and located heading parts without changing heading recognition |
 | `src/processing/block_collection.py`, `chunking.py` | full located heading scope, caption/enclosing-scope separation and heading-bounded paragraph/table context; compact hints cannot merge foreign scopes |
-| `src/processing/source_context.py` | bounded exact formal/intermediate heading fragments, XML spans, hierarchy/adjacency links and file identity; no entity inference |
+| `src/processing/source_context.py` | bounded exact heading/table fragments, physical cell partitions, XML spans, hierarchy/adjacency links and file identity; no entity inference |
+| `src/utils/source_segments.py` | source-local partition clipping, independent prompt quote surfaces and contiguous-quote checks shared by narrative/scope validation |
 | `src/processing/table_structure.py`, `table_records.py` | explicit THEAD/TH header scope before grid inference; v2 parser row/cell projection |
 | `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
 | `src/ingestion/ingest_service.py` | end-to-end ingest ownership |

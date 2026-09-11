@@ -1,13 +1,19 @@
-"""Read actual v7 quote surfaces; references do not create a second surface."""
+"""Reconstruct retained text for equality checks, not cross-segment quote authority."""
+
+
+def surface_text(surface):
+    if 'source_segments' in surface:
+        return ''.join(segment['source_text'] for segment in surface['source_segments'])
+    return surface['source_text']
 
 
 def bundle_text(payload, bundle_id):
-    return next(body["source_text"] for row in payload["source_readings"] for body in row["bodies"]
+    return next(surface_text(body) for row in payload["source_readings"] for body in row["bodies"]
                 if body["source_bundle_id"] == bundle_id)
 
 
 def context_surfaces(payload):
-    return {fragment["context_id"]: fragment["source_text"]
+    return {fragment["context_id"]: surface_text(fragment)
             for row in payload["source_readings"]
             for key in ("enclosing_contexts", "preceding_contexts", "following_contexts")
-            for fragment in row[key] if "source_text" in fragment}
+            for fragment in row[key] if 'source_text' in fragment or 'source_segments' in fragment}
