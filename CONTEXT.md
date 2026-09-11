@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Current local repair carries failed narrative drafts into bounded retry and distinguishes located source context from metadata hints. Latest paid subject-context run remains `4c786838` / implementation `9996cf97`: runtime 7/7, fixed-criterion Codex source review 1/7; semantic attribution is not yet re-evaluated.
+Current repair carries failed narrative drafts into bounded retry and distinguishes located context from metadata. Latest paid run uses `a466b6b4` / implementation `960fd4ad`: runtime 6/7; narrow fixed-criterion Codex source review 1/7, with an unsupported qualifier even in that case. Semantic attribution remains unresolved.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -122,7 +122,7 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    keep all 14 visible IDs/catalog fingerprints. Issuer-only claims still fail; full gate **1354/1354**.
    [Subject-context run](benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md) consumed `7e2961f6...d5a47`: Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60; billing unobserved. Ten saved responses replay identically, no API.
    [Retry-context repair](benchmarks/results/narrative_retry_context_2026-09-11/README.md) restores the failed draft to stateless retries. Compiler policy reads located heading/body evidence together and preserves requested explanation, not invalid claim counts. Local full gate **1360/1360**.
-   Ten frozen responses retain identical candidate payload/program/validation/execution bytes; three retries now receive seven draft claims. [Successor admission](benchmarks/results/narrative_retry_compiler_2026-09-11/README.md) prepares the same seven inputs/criteria, Pro once with a proposed USD 0.60 cap, including this run's unvalidated drafts on retry. Fresh manifest/two identical SDK receipts and explicit approval remain required; no new semantic result.
+   [Paid retry-context result](benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md) consumed `4a1a66f8...8c500`: Pro 10 calls/3 retries, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Same narrow source criteria remain **1/7**, not full-answer faithfulness: the two-route case adds an unsupported qualifier. Three retries received seven draft claims; one repeats its title/body quote error, one repairs the quote without resolving the subject relation. All ten responses replay identically without API; 58 protected files unchanged. No automatic rerun. Next: provider-free review of source-local presentation, metadata separation and requested identity/relationship/uncertainty coverage; no case-specific rule or validator relaxation.
 3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)

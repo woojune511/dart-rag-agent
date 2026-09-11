@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Current local repair restores failed narrative drafts to retry and clarifies located context versus metadata hints. Latest paid subject-context result stays `4c786838` / implementation `9996cf97`: runtime 7/7, fixed-criterion Codex source review 1/7; no new semantic result.
+Current repair restores failed narrative drafts to retry and clarifies located context versus metadata. Latest paid result uses `a466b6b4` / implementation `960fd4ad`: runtime 6/7; narrow fixed-criterion Codex source review 1/7, with an unsupported qualifier even in that case. Semantic attribution remains unresolved.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -75,7 +75,6 @@ Current [rendering replay](../../benchmarks/results/narrative_claim_rendering_20
 The three old accepted programs and causal abstention keep identical program/execution bytes.
 Raw claim subject/text/quotes, candidates and frozen artifacts stay intact. Known-source
 "당사" coreference and semantic contradictions remain unresolved; this is not new model accuracy.
-Prior [reading comparison](../../benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md) stays runtime 2/3, reviewed 1/3 on `ff283a58`; no old result was repaired.
 
 ## Independent pilot: immutable compiler-only predecessor
 
@@ -137,7 +136,8 @@ Those records do not establish current-build release readiness or unseen-questio
 
 - [Located-heading successor](../../benchmarks/results/located_heading_context_2026-09-11/v2/README.md): intermediate titles become exact quotes. Six unchanged anonymous inputs/14 visible IDs and catalog fingerprints preserved; metadata-only issuer claims still fail.
   [Subject-context result](../../benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md): Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60, billing unobserved; API/execution errors 0. Admission consumed; ten responses replay identically without API.
-  [Retry-context repair](../../benchmarks/results/narrative_retry_context_2026-09-11/README.md), runtime `ef065b7b...f957a`, replays ten saved responses without changing payload/program/validation/execution bytes. [Successor admission](../../benchmarks/results/narrative_retry_compiler_2026-09-11/README.md) retains all seven inputs/criteria; preparation tests **24/24**, 58 protected files unchanged, API 0. Proposed Pro once/USD 0.60 includes this run's unvalidated drafts on retry; exact manifest and two SDK receipts are artifact authority, not paid approval or new semantics.
+  [Retry-context result](../../benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md), runtime `ef065b7b...f957a`, consumed `4a1a66f8...8c500`: Pro **10 calls/3 retries**, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Unchanged narrow source criteria remain **1/7**, not full-answer faithfulness. All three retries received their seven draft claims; one repeats a title/body quote error, one fixes the quote but not subject interpretation. Ten responses replay identically without API; usage reconciles and 58 protected files remain unchanged. No runtime repair or new paid call followed review.
+- Next bounded work is provider-free characterization of compiler source-local presentation, metadata separation and requested identity/relationship/uncertainty coverage. The draft transport works; another instruction-only paid trial is not justified by this result. Keep exact source/owner checks and use anonymous controls, not company/pronoun identity rules or claim-count locks.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.
