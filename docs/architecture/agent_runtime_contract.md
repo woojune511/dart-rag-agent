@@ -8,7 +8,7 @@ Superseded designs belong in [implementation history](../history/implementation_
 ## 1. Product and authority boundary
 
 The single-agent `FinancialAgent` uses an LLM to interpret intent and evidence. Code owns arithmetic, unit conversion, dependency binding, candidate authority,
-dedupe, ordering, validation, and ledger integrity. Every intent uses required-output planning and compilation; requested narrative themes/source hierarchy must remain explicit. Labels and required inputs carry meaning, rationale is diagnostic, and the original query remains visible. Planner `status=ok` denotes a nonempty plan, not complete question coverage; schema-valid model omissions are not mechanically inferred or repaired.
+dedupe, ordering, validation, and ledger integrity. Every intent uses required-output planning and compilation. Code losslessly partitions the original query at mechanical sentence/line boundaries into `RequestUnitV1` addresses with exact text and Python-string spans; no semantic clause classifier or truncation. Every obligation declares required `request_unit_ids`; every unit needs at least one owner, and shared units are allowed. Labels name outputs, linked original text carries detailed instructions, and rationale stays diagnostic. Unknown/missing/malformed refs or unassigned units remain requirement errors and block all compiler calls without candidate exclusion or a new planner retry. There is no production legacy-assignment fallback. Planner `status=ok` requires a nonempty, fully linked plan, not semantic completeness or correct assignment. The original query remains visible; code never infers omitted meaning.
 
 Company names, benchmark IDs, expected answers, report-specific phrases, and metric recipes may not control routing, retrieval, selection, compilation, execution, or rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data; fixed-year priorities and case-specific routing examples are not generic domain priors.
 
@@ -86,7 +86,7 @@ Before execution, the executor must verify:
 V2 additionally binds the complete catalog contents (sorted by candidate ID),
 ordered obligations, and query with `execution_content_fingerprint`. Changed
 normalized numbers, dimensions, scope, source bytes, spans, or physical
-provenance (including attached document contexts) fail before revalidation or arithmetic as `execution_content_mismatch`.
+provenance (including attached document contexts), request references or original query fail before revalidation or arithmetic as `execution_content_mismatch`.
 Production has no V1 fallback. Historical catalogs/programs are never silently remapped to new identities.
 
 Any mismatch fails closed as `visibility_mismatch` or `validation_drift`.
@@ -238,7 +238,7 @@ Every retry candidate replacement also checks the query-wide union, including
 already accepted and not-yet-compiled islands. An overflowing retry makes no
 provider call and preserves accepted program bytes; bundles are never truncated.
 
-Every initial/retry prompt declares `semantic_compilation_scope_v1`: active output IDs, original question as context only, bounded excerpts and no established document-wide absence. Context-only restricts emitted owners, not the question's detailed requirements for an active owner. Requested distinctions/relations/limitations belong in public claims, not only rationale. Complete candidate bodies do not establish complete document coverage; insufficient support requests missing/ambiguous, not full-report absence. This is a compiler instruction, not a semantic validator. Islands compile sequentially in obligation order, with at most one internal retry:
+Every initial/retry prompt declares `semantic_compilation_scope_v1`: active output IDs, their referenced `request_units_by_id` (exact text/spans in query order), original question as context only, bounded excerpts and no established document-wide absence. Request units are user instructions, never candidate/quote authority, ranking factors or coupling edges. Context-only restricts emitted owners, not linked detailed requirements; labels/rationale cannot substitute for them. Requested distinctions/relations/limitations belong in public claims. Complete candidate bodies do not establish document coverage; insufficient support requests missing/ambiguous, not full-report absence. This is a compiler instruction, not a semantic validator. Islands compile sequentially in obligation order, with at most one internal retry:
 
 - candidate validation failure excludes the rejected candidate's source bundle
   for that owner and promotes the next ranked bundle;

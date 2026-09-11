@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
+from tests.request_unit_fixture_support import bind_fixture_requests
 
 from src.agent.financial_runtime_normalization import _normalise_operand_value
 from src.ops.replay_reviewed_compiler_selection import (
@@ -48,7 +49,7 @@ class CompilerRuntimeCatalogInputTests(unittest.TestCase):
             with self.subTest(field=field), TemporaryDirectory() as directory:
                 case = deepcopy(base)
                 case["candidate_catalog"][0][field] = value
-                corpus = json.loads(FIXTURE.read_text(encoding="utf-8"))
+                corpus = bind_fixture_requests(json.loads(FIXTURE.read_text(encoding="utf-8")))
                 corpus["cases"] = [{**corpus["cases"][0], **case}]
                 path = Path(directory) / "corpus.json"
                 _write_new_json(path, corpus)
@@ -63,7 +64,7 @@ class CompilerRuntimeCatalogInputTests(unittest.TestCase):
                 _compiler_case_catalog({"catalog_input": spec, "candidate_catalog": []})
 
     def test_existing_fixture_and_runtime_projection_have_identical_prompts_and_outputs(self):
-        corpus = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        corpus = bind_fixture_requests(json.loads(FIXTURE.read_text(encoding="utf-8")))
         fixture_corpus = deepcopy(corpus)
         for case in corpus["cases"]:
             catalog, _ = _materialize_catalog(case["candidate_catalog"])

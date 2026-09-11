@@ -207,7 +207,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         return rows
 
     def _obligations(self, scope="unknown", coupling_key=""):
-        return [AnswerObligation.model_validate({
+        return [AnswerObligation.model_validate({"request_unit_ids": ["request_001"],
             "obligation_id": output["obligation_id"],
             "kind": "direct_value",
             "label": output["label"],

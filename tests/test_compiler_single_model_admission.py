@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from tests.request_unit_fixture_support import request_bound_fixture
 
 from src.ops.replay_reviewed_compiler_selection import (
     _ReviewedProgramQueue,
@@ -26,11 +27,12 @@ PRO = "gemini-2.5-pro"
 
 class CompilerSingleModelAdmissionTests(unittest.TestCase):
     def setUp(self):
+        self.fixture_path = request_bound_fixture(self, CORPUS)
         temp = TemporaryDirectory(dir=Path.cwd())
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name)
         self.args = {
-            "corpus_path": CORPUS,
+            "corpus_path": self.fixture_path,
             "manifest_path": self.root / "manifest.json",
             "result_path": self.root / "result.json",
             "cost_cap_usd": 1.0,
@@ -58,7 +60,7 @@ class CompilerSingleModelAdmissionTests(unittest.TestCase):
 
     def test_cli_model_reaches_only_one_provider_factory_with_unchanged_controls(self):
         seen = []
-        corpus = json.loads(CORPUS.read_text(encoding="utf-8"))
+        corpus = json.loads(self.fixture_path.read_text(encoding="utf-8"))
 
         def factory(spec, _callback):
             seen.append(dict(spec))
@@ -68,7 +70,7 @@ class CompilerSingleModelAdmissionTests(unittest.TestCase):
             "socket.socket.connect", side_effect=AssertionError("no network"),
         ), redirect_stdout(StringIO()):
             status = main([
-                "prepare", "--model", PRO, "--corpus", str(CORPUS),
+                "prepare", "--model", PRO, "--corpus", str(self.fixture_path),
                 "--manifest", str(self.args["manifest_path"]),
                 "--result", str(self.args["result_path"]), "--cost-cap-usd", "1.0",
             ])

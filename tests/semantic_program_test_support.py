@@ -110,6 +110,7 @@ def _obligation(obligation_id, kind, label, **overrides):
         "obligation_id": obligation_id,
         "kind": kind,
         "label": label,
+        "request_unit_ids": ["request_001"],  # Authored single-request fixtures.
         "required": True,
         "display_unit": "",
         "display_format": "",

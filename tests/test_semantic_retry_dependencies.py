@@ -6,6 +6,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from tests.request_unit_fixture_support import bind_fixture_request
 
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
@@ -18,7 +19,7 @@ from tests.semantic_program_test_support import (
 
 def _reviewed_case():
     path = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v2.json"
-    case = json.loads(path.read_text(encoding="utf-8"))["cases"][0]
+    case = bind_fixture_request(json.loads(path.read_text(encoding="utf-8"))["cases"][0])
     case["candidate_catalog"], _ = _materialize_catalog(case["candidate_catalog"])
     return case
 

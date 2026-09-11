@@ -218,7 +218,8 @@ class RequestedSourceSectionTests(unittest.TestCase):
             self.assertEqual(result["validation"]["errors"][0]["code"], "execution_content_mismatch")
 
     def test_compiler_keeps_independent_owner_spaces_and_accepted_retry_bytes(self):
-        other = _obligation("notes", "narrative", "Services", source_sections=["Notes"])
+        other = _obligation("notes", "narrative", "Services", source_sections=["Notes"],
+                            request_unit_ids=["request_002"])
         self.query += ' Also summarize "Notes".'
         accepted = claimed_model({"narrative_bindings": [binding("services", "right")]})
         bad = claimed_model({"narrative_bindings": [binding("notes", "right")]})
@@ -237,7 +238,7 @@ class RequestedSourceSectionTests(unittest.TestCase):
 
     def test_planner_preserves_source_sections_and_blocks_invented_constraints_only(self):
         planned_response = RequirementPlannerOutput.model_validate({"topic": "services", "obligations": [
-            {"obligation_id": "invented", "kind": "narrative", "label": "Services", "source_sections": ["Unmentioned section"]},
+            {"request_unit_ids": ["request_001"], "obligation_id": "invented", "kind": "narrative", "label": "Services", "source_sections": ["Unmentioned section"]},
             {**self.owner, "evidence_requirements": [_requirement("evidence", "Services")]},
         ]})
         llm = _StructuredQueueLLM(planned_response, claimed_model({

@@ -21,7 +21,8 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `src/agent/financial_graph_planning.py` | required-output planning for every intent; query-written subjects/themes and explicit source-section constraints, separately from retrieval hints |
+| `src/agent/financial_graph_planning.py` | required-output planning for every intent; original request references, query-written subjects/themes and explicit source-section constraints, separately from retrieval hints |
+| `src/agent/financial_request_units.py` | exact query partition/addresses and output ownership checks; active-owner text projection, not semantic classification or evidence |
 | `src/agent/financial_retrieval_pipeline.py` | one source scope across searches/supplements/seeds/selection; narrative ownership, filing-qualified dedupe, trace |
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent readings, balanced parser-prefix separation, exact bounded body windows and separate local-heading hints |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |

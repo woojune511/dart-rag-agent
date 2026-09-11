@@ -9,6 +9,7 @@ import socket
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from tests.request_unit_fixture_support import request_bound_fixture
 
 from google.genai import _api_client, errors, types
 from langchain_core.exceptions import OutputParserException
@@ -56,6 +57,7 @@ def _response(text: str, *, finish_reason=types.FinishReason.STOP, thoughts=Fals
 
 class CompilerResponseCaptureTests(unittest.TestCase):
     def setUp(self) -> None:
+        self.fixture_path = request_bound_fixture(self, FIXTURE_PATH)
         self.external_connections = []
         original_connect = socket.socket.connect
 
@@ -201,7 +203,7 @@ class CompilerResponseCaptureTests(unittest.TestCase):
         self.assertIsNone(response["parsing_error"])
 
     def test_failed_island_response_and_retry_both_survive_in_result(self) -> None:
-        reviewed = _reviewed_response_queue(_load_corpus(FIXTURE_PATH))
+        reviewed = _reviewed_response_queue(_load_corpus(self.fixture_path))
         self.generate.side_effect = [
             _response(reviewed[0].model_dump_json()),
             _response('{"status":"ready","expressions":[{"obligation_id":"',
@@ -210,7 +212,7 @@ class CompilerResponseCaptureTests(unittest.TestCase):
         ]
 
         result = evaluate_reviewed_compiler_selection(
-            FIXTURE_PATH, self.llm, run_mode="provider", usage_callback=self.callback,
+            self.fixture_path, self.llm, run_mode="provider", usage_callback=self.callback,
         )
 
         self.assertEqual(result["status"], "passed")
@@ -226,13 +228,13 @@ class CompilerResponseCaptureTests(unittest.TestCase):
         self.assertEqual(self.callback.snapshot_global()["api_calls"], 7)
 
     def test_manifest_runner_counts_sdk_worker_usage_and_preserves_prompt_hash(self) -> None:
-        reviewed = _reviewed_response_queue(_load_corpus(FIXTURE_PATH))
+        reviewed = _reviewed_response_queue(_load_corpus(self.fixture_path))
         self.generate.side_effect = [_response(program.model_dump_json()) for program in reviewed]
         runtime_build = {"git_commit": "test", "file_count": 1, "sha256": "test"}
         with TemporaryDirectory(dir=Path.cwd()) as temp_dir:
             manifest_path = Path(temp_dir) / "manifest.json"
             manifest = build_admission_manifest(
-                corpus_path=FIXTURE_PATH, manifest_path=manifest_path,
+                corpus_path=self.fixture_path, manifest_path=manifest_path,
                 result_path=Path(temp_dir) / "result.json", cost_cap_usd=0.20,
                 runtime_build=runtime_build,
             )

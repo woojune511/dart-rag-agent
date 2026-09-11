@@ -1005,7 +1005,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             with self.subTest(labels=labels):
                 with self.assertRaisesRegex(ValueError, "source-defined group"):
                     AnswerObligation.model_validate(
-                        {
+                        {"request_unit_ids": ["request_001"],
                             "kind": "narrative",
                             "label": "target unit activity summary",
                             "evidence_mode": "source_defined_group",
@@ -1022,6 +1022,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                     AnswerObligation.model_validate(
                         {
                             "kind": kind,
+                            "request_unit_ids": ["request_001"],
                             "label": "requested quantity",
                             "evidence_mode": "source_defined_group",
                         }
@@ -1029,7 +1030,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
 
     def test_declared_narrative_members_are_not_silently_reinterpreted(self) -> None:
         obligation = AnswerObligation.model_validate(
-            {
+            {"request_unit_ids": ["request_001"],
                 "kind": "narrative",
                 "label": "target unit activity summary",
                 "evidence_requirements": [
@@ -1112,7 +1113,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             segment="target unit", basis="gross",
         )
         summary = AnswerObligation.model_validate(
-            {
+            {"request_unit_ids": ["request_001"],
                 "obligation_id": "ob_summary", "kind": "narrative",
                 "label": "target unit activity summary", "scope": scope,
                 "evidence_mode": "source_defined_group",

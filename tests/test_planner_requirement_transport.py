@@ -9,6 +9,7 @@ from src.agent.financial_graph import (
     FinancialAgent, planning_phase_input, retrieval_phase_input, compilation_phase_input,
 )
 from src.agent.financial_graph_models import RequirementPlannerOutput, SemanticCalculationProgram
+from src.agent.financial_request_units import build_request_units
 from tests.semantic_program_test_support import _StructuredQueueLLM
 from tests.test_narrative_claim_grounding import source, claim
 from tests.test_narrative_retry_context import prompt_json
@@ -26,8 +27,9 @@ def request(query, *, intent='business_overview', form='paragraph'):
                         'topic': 'deliberately short routing summary'}}
 
 
-def owner(subject, label, *, key='raw-output', source_group=False):
+def owner(subject, label, *, key='raw-output', source_group=False, refs=None):
     row = {'obligation_id': key, 'kind': 'narrative', 'label': label,
+           'request_unit_ids': list(refs or ['request_001']),
            'source_sections': ['Operating description'], 'required': True,
            'semantic_target': {'local_subjects': [subject], 'metric_surfaces': ['routes']},
            'retrieval_hints': ['route overview']}
@@ -57,6 +59,10 @@ def program(index, subject, cid, *, bad_quote=False):
 
 class PlannerRequirementTransportTests(unittest.TestCase):
     def plan(self, query, rows, *, rationale='', state=None):
+        # Explicit authored transport fixture: each output receives this test's
+        # complete request. This is not an inferred model response or live result.
+        rows = [dict(row, request_unit_ids=[unit.request_unit_id for unit in build_request_units(query)])
+                for row in rows]
         model = RequirementPlannerOutput.model_validate({'topic': 'routes', 'obligations': rows, 'rationale': rationale})
         before = deepcopy(model.model_dump())
         llm = _StructuredQueueLLM(model)
@@ -119,7 +125,8 @@ class PlannerRequirementTransportTests(unittest.TestCase):
     def test_islands_and_retry_preserve_targeted_requirements_and_the_original_question(self):
         labels = [f'Describe {subject}; distinguish the wider group and retain uncertainty.' for subject in ('Aspen', 'Birch')]
         query = 'Operating description: ' + ' '.join(labels)
-        rows = [owner(subject, label, key=subject) for subject, label in zip(('Aspen', 'Birch'), labels)]
+        rows = [owner(subject, label, key=subject, refs=[f'request_{index + 1:03d}'])
+                for index, (subject, label) in enumerate(zip(('Aspen', 'Birch'), labels))]
         planner = RequirementPlannerOutput.model_validate({'obligations': rows})
         accepted = program(1, 'Aspen', 'note-a')
         llm = _StructuredQueueLLM(planner, accepted, program(2, 'Birch', 'note-b', bad_quote=True), program(2, 'Birch', 'note-b'))

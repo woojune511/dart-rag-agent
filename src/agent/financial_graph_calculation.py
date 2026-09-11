@@ -32,6 +32,7 @@ from src.agent.financial_graph_state import (
 )
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_narrative_claims import project_narrative_retry_drafts
+from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_compiler_presentation import (
     project_prompt_cohort, project_prompt_match, project_prompt_retry_feedback, project_reading_payload,
 )
@@ -1962,6 +1963,9 @@ class FinancialAgentCalculationMixin:
                         "schema": "semantic_compilation_scope_v1",
                         "active_obligation_ids": [str(item["obligation_id"]) for item in prompt_obligations],
                         "question_role": "context_only",
+                        "request_units_by_id": project_request_units(
+                            build_request_units(query), prompt_obligations,
+                        ),
                         "evidence_coverage": "bounded_excerpts",
                         "document_absence_established": False,
                     }
@@ -2550,8 +2554,11 @@ class FinancialAgentCalculationMixin:
             ),
         )
         islands = [dict(item) for item in island_plan.get("islands") or []]
+        request_errors = request_unit_errors(build_request_units(query), obligations)
         global_block_reason = ""
-        if len(islands) > MAX_SEMANTIC_COMPILATION_ISLANDS:
+        if request_errors:
+            global_block_reason = "invalid request unit ownership"
+        elif len(islands) > MAX_SEMANTIC_COMPILATION_ISLANDS:
             global_block_reason = "semantic compilation island limit exceeded"
         elif global_cohort_plan.get("status") == "capacity_exceeded":
             global_block_reason = "semantic candidate cohort capacity exceeded"
@@ -3050,6 +3057,7 @@ class FinancialAgentCalculationMixin:
             "island_count": len(islands),
             "compiler_call_count": total_call_count,
             "compiler_retry_count": total_retry_count,
+            "request_unit_errors": request_errors,
             "source_bundle_count": len(prompt_source_bundles),
             "source_bundle_member_count": sum(
                 len(bundle.candidate_ids) for bundle in prompt_source_bundles
@@ -3172,6 +3180,7 @@ class FinancialAgentCalculationMixin:
                 "program_compiler_invoked": bool(total_call_count),
                 "program_compiler_call_count": total_call_count,
                 "program_compiler_retry_count": total_retry_count,
+                "request_unit_errors": request_errors,
                 "candidate_count": len(catalog),
                 "prompt_candidate_count": len(prompt_visible_ids),
                 "candidate_cohort_status": str(

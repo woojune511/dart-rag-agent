@@ -34,7 +34,7 @@ class SemanticQuerySubjectTests(unittest.TestCase):
         )
 
     def test_planner_applies_same_projection_to_obligations_and_requirements(self):
-        response = RequirementPlannerOutput.model_validate({"obligations": [{
+        response = RequirementPlannerOutput.model_validate({"obligations": [{"request_unit_ids": ["request_001"],
             "obligation_id": "context", "kind": "narrative", "label": "reported effect",
             "semantic_target": {"local_subjects": ["오로라"]},
             "evidence_requirements": [{"requirement_id": "effect", "label": "effect",

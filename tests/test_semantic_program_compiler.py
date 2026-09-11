@@ -67,7 +67,7 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
             {
                 "topic": "opening and closing quantities",
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "growth",
                         "kind": "derived_value",
                         "label": "change rate",

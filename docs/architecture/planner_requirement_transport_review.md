@@ -1,12 +1,41 @@
 # Planner requirement transport review
 
-Status: transport characterization plus one approved planner-only measurement,
-2026-09-12. Runtime remains `222ffba9`.
+Status: request-original preservation implemented, 2026-09-12. The earlier
+planner-only measurement remains bound to runtime `222ffba9`; no new paid run.
 
-This review separates model interpretation from code transport. No planner fields,
-qualifier keywords, validators or prompts were changed; paid calls are scoped below.
+This review separates model interpretation from code transport. The new field and
+prompt contract below supersede label-only ownership, not evidence validation.
 
-## Findings
+## Current implementation
+
+- Code partitions the exact query at mechanical sentence/line boundaries. Stable
+  `request_001`-style IDs, text and string spans survive without normalization or truncation.
+  These are addresses, not semantic clauses; an abbreviation may cross several units.
+- The planner assigns required `request_unit_ids` to every output. Units can be
+  shared; unit count does not dictate output count. Labels remain short names and
+  referenced original text supplies details instead of relying on rationale.
+- Missing/unknown/malformed references and unassigned units are explicit requirements
+  errors. The full query is checked before any compiler call, with no automatic
+  assignment, planner retry or candidate exclusion. Old compiler-only inputs need
+  explicit new assignments; historical artifacts are not retroactively migrated.
+- Every initial/retry compiler scope projects only active owners' linked text, in
+  query order. The full original question remains context. Shared references do not
+  couple islands or affect rankings. Candidate IDs/payload identity, program schema,
+  scope/quote validation, call/retry caps and accepted-output bytes are unchanged.
+- Request text is an instruction surface, never source evidence. The existing V2
+  content fingerprint binds both original query and owner references through execution.
+
+This guarantees lossless transport and structural ownership, **not correct semantic
+assignment or fulfillment**. The route-only negative control below remains structural
+`ok` even with the full request linked. No keyword completeness gate or extra judge.
+
+Verification uses anonymous contract/pipeline tests plus the full local suite. Old
+planner-free fixtures receive explicitly authored whole-question assignments only in
+temporary test copies; sources/programs/expected outcomes and frozen bytes stay intact.
+These copies are not new planner output or evidence of improved answers. Current
+counts are recorded in [project status](../overview/project_status.md).
+
+## Pre-change findings
 
 No mechanical loss of the supplied subjects, group distinctions or uncertainty text
 was reproduced between a typed planner response and the compiler prompt:
@@ -51,10 +80,10 @@ calls are zero; all 156 runtime files and 157 protected predecessor files are un
 The recorded prompts establish transport only, not the model's ability to produce the
 authored requirements, retrieval quality, full-agent success or generalization.
 
-Focused tests **55/55** (including the six new tests); import/boundary/topology/docs/audit
+At the pre-change boundary, focused tests **55/55**; import/boundary/topology/docs/audit
 **30/30**; domain audit **83 reviewed literals**, no new exception. Pycompile and diff
-checks pass. Runtime/policy/schema did not change, so the previous full gate remains
-**1383/1383** on `222ffba9`; no new full-suite run or new full-suite count is claimed.
+checks passed. That transport review did not change runtime/policy/schema; its last
+full gate was **1383/1383** on `222ffba9`, not the current implementation gate.
 
 ## Actual planner output, separate from transport
 
@@ -72,14 +101,14 @@ condition; PLAN_04 retains limits in both labels. Labels/inputs are not required
 use exact words or a fixed decomposition. One sample cannot attribute differences
 to presentation or establish general failure rates.
 
-All six saved SDK responses parse identically; complete requirements phases and
+On the measured predecessor, all six saved SDK responses parse identically; complete requirements phases and
 prompts replay byte-identically without provider calls. No code-side qualifier loss
 was found. All 156 runtime and 161 predecessor files remain unchanged. The original
 question remains a compiler input; no downstream answer failure is proven.
 
-Next: review the generic semantic-compression contract so arbitrary requested
-conditions remain required meaning rather than rationale-only text. Do not infer
-a keyword gate, new role taxonomy or case-specific rule from these results.
+Next: measure whether a planner actually assigns these references correctly and
+whether the compiler fulfills the linked conditions, using a new bounded anonymous
+probe and separate approval. Local ownership checks are not an answer-quality score.
 
 A later compiler comparison must separately identify changed source layouts, supplied
 requirements and model outputs. Neither new cell metadata nor this transport review

@@ -698,7 +698,7 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
 
     def test_source_defined_group_materializes_one_owned_requirement(self) -> None:
         obligation = AnswerObligation.model_validate(
-            {
+            {"request_unit_ids": ["request_001"],
                 "obligation_id": "summary",
                 "kind": "narrative",
                 "label": "target unit activity summary",

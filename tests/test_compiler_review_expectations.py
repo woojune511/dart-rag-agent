@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from tests.request_unit_fixture_support import bind_fixture_requests
 
 from src.ops.replay_reviewed_compiler_selection import (
     _ReviewedProgramQueue, _reviewed_response_queue, _write_new_json,
@@ -17,7 +18,7 @@ FIXTURE = Path(__file__).parent / "fixtures/reviewed_runtime_replay_corpus_v3.js
 
 class CompilerReviewExpectationTests(unittest.TestCase):
     def narrative_corpus(self):
-        corpus = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        corpus = bind_fixture_requests(json.loads(FIXTURE.read_text(encoding="utf-8")))
         case = deepcopy(corpus["cases"][1])
         case["obligations"] = [case["obligations"][1]]
         case["obligations"][0]["coupling_key"] = ""

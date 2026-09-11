@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from tests.request_unit_fixture_support import request_bound_fixture
 
 from src.ops.replay_reviewed_compiler_selection import (
     _canonical_bytes,
@@ -29,9 +30,12 @@ FIXTURE_PATH = (
 
 
 class ReviewedCompilerSelectionTests(unittest.TestCase):
+    def setUp(self):
+        self.fixture_path = request_bound_fixture(self, FIXTURE_PATH)
+
     def test_rehearsal_runs_actual_compiler_contract_without_provider(self) -> None:
-        first = rehearse_reviewed_compiler_selection(FIXTURE_PATH)
-        second = rehearse_reviewed_compiler_selection(FIXTURE_PATH)
+        first = rehearse_reviewed_compiler_selection(self.fixture_path)
+        second = rehearse_reviewed_compiler_selection(self.fixture_path)
 
         self.assertEqual(first, second)
         self.assertEqual(first["status"], "passed")
@@ -62,7 +66,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
             manifest_path = root / "manifest.json"
             result_path = root / "provider-result.json"
             manifest = build_admission_manifest(
-                corpus_path=FIXTURE_PATH,
+                corpus_path=self.fixture_path,
                 manifest_path=manifest_path,
                 result_path=result_path,
                 cost_cap_usd=0.20,
@@ -114,7 +118,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
             manifest_path = root / "manifest.json"
             result_path = root / "provider-result.json"
             manifest = build_admission_manifest(
-                corpus_path=FIXTURE_PATH,
+                corpus_path=self.fixture_path,
                 manifest_path=manifest_path,
                 result_path=result_path,
                 cost_cap_usd=0.20,
@@ -137,7 +141,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
             self.assertNotEqual(_sha256_file(manifest_path), "0" * 64)
 
     def test_rehearsal_response_unavailable_and_prompt_hash_excludes_responses(self) -> None:
-        result = rehearse_reviewed_compiler_selection(FIXTURE_PATH)
+        result = rehearse_reviewed_compiler_selection(self.fixture_path)
         records = [record for case in result["cases"] for record in case["prompt_records"]]
         for record in records:
             self.assertFalse(record["response"]["raw_response_available"])
@@ -154,7 +158,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
     def test_configurable_budgets_change_estimate_and_cannot_reuse_old_cap(self) -> None:
         with TemporaryDirectory(dir=Path.cwd()) as temp_dir:
             args = {
-                "corpus_path": FIXTURE_PATH,
+                "corpus_path": self.fixture_path,
                 "manifest_path": Path(temp_dir) / "manifest.json",
                 "result_path": Path(temp_dir) / "result.json",
                 "runtime_build": {"algorithm": "test"},
@@ -196,7 +200,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
                 with patch("src.ops.replay_reviewed_compiler_selection.rehearse_reviewed_compiler_selection") as rehearsal:
                     with self.assertRaisesRegex(ValueError, "token|budget"):
                         build_admission_manifest(
-                            corpus_path=FIXTURE_PATH, manifest_path=Path("unused.json"),
+                            corpus_path=self.fixture_path, manifest_path=Path("unused.json"),
                             result_path=Path("unused-result.json"), cost_cap_usd=0.20,
                             max_output_tokens=output, thinking_budget=thinking,
                         )
@@ -208,7 +212,7 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
             with patch("src.ops.replay_reviewed_compiler_selection._tracked_runtime_build",
                        return_value={"algorithm": "test"}), redirect_stdout(StringIO()):
                 status = main([
-                    "prepare", "--corpus", str(FIXTURE_PATH),
+                    "prepare", "--corpus", str(self.fixture_path),
                     "--manifest", str(manifest_path),
                     "--result", str(Path(temp_dir) / "result.json"),
                     "--cost-cap-usd", "0.12", "--max-output-tokens", "2048",

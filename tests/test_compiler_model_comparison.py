@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from tests.request_unit_fixture_support import bind_fixture_requests
 
 from src.ops.replay_reviewed_compiler_selection import (
     SemanticCalculationProgram,
@@ -35,6 +36,7 @@ class CompilerModelComparisonTests(unittest.TestCase):
             "cases": [synthetic["cases"][i] for i in (8, 3, 5)] + [reviewed["cases"][1]],
         }
         self.corpus_path = self.root / "corpus.json"
+        self.corpus = bind_fixture_requests(self.corpus)
         self.manifest_path = self.root / "manifest.json"
         _write_new_json(self.corpus_path, self.corpus)
 

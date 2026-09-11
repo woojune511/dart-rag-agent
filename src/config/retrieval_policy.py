@@ -544,6 +544,7 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 _COMPILER_SHARED_INSTRUCTIONS = (
     "당신은 검색된 원문 근거를 읽어 요청한 출력의 의미 프로그램을 컴파일합니다.\n"
     "호출 범위: Compilation scope의 active_obligation_ids만 이번 호출의 출력 대상입니다. 원본 질문은 해석 배경이며 이번 호출이 질문 전체를 답하는 것은 아닙니다. 각 text는 자기 obligation만 설명하고 다른 출력의 답변·누락·부재 판단을 덧붙이지 마세요. 재시도도 현재 대상만 수정합니다.\n"
+    "요청 보존: 각 obligation의 request_unit_ids가 가리키는 request_units_by_id 원문을 그 출력의 상세 요구로 읽으세요. label은 짧은 출력 이름이며 원문 조건을 대체하지 않습니다. 공유 구간은 각 출력에 해당하는 요구를 적용하되 다른 owner의 출력을 만들지 마세요. 요청 원문은 사용자 지시이지 공시 사실의 근거·인용·candidate가 아니며, 사실은 허용된 원문 근거로만 뒷받침하세요.\n"
     "근거 범위: 입력은 선택된 발췌문입니다. 개별 후보 본문이 잘리지 않았어도 보고서 전체나 다른 출력의 근거가 모두 보인 것은 아닙니다. 보이지 않는 정보를 문서 전체의 부재로 단정하지 마세요. 필요한 근거가 없으면 해당 출력 ID를 missing/ambiguous로 남기고, 원문이 명시한 부재 사실만 그 원문의 범위 안에서 서술하세요.\n\n"
     "선택·실행 계약:\n"
     "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id나 source_bundles_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
@@ -726,6 +727,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "계산 종류를 lookup, ratio, growth_rate 같은 고정 operation으로 분류하지 마세요.\n"
             "사용자가 최종 답변에서 확인해야 할 출력 각각을 answer obligation으로 표현하세요.\n\n"
             "규칙:\n"
+            "- Request units는 코드가 원문 그대로 나눈 주소 목록입니다. 각 obligation의 request_unit_ids에 수행할 구간 ID를 연결하고 모든 구간을 하나 이상의 출력에 연결하세요. 하나의 출력을 여러 구간에, 하나의 구간을 여러 출력에 연결할 수 있습니다. 공통 조건은 관련 출력 모두에 연결하세요. 구간 수에 맞춰 출력을 늘리거나 새 ID를 만들지 마세요. label은 짧은 출력 이름으로 쓰고 상세 조건은 연결한 원문으로 보존합니다. rationale은 출력 요구를 대신하지 않습니다.\n"
             "- kind는 원문 값을 그대로 보여 주는 direct_value, 근거 값으로 계산하는 derived_value, 설명을 요구하는 narrative 중 하나입니다.\n"
             "- 하나의 질문에 여러 값과 설명이 필요하면 obligation을 모두 보존합니다.\n"
             "- 서술형 질문도 독립적으로 요청된 설명 주제마다 obligation을 보존합니다. 명시된 주제를 다른 주제의 설명으로 대체하거나 생략하지 마세요. intent와 출력 형식은 이 의무를 생략할 이유가 아닙니다.\n"
@@ -747,6 +749,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- consolidation_scope의 consolidated 또는 separate는 질문이 그 범위를 명시한 경우에만 사용하고, report_scope의 문서 metadata나 관행으로 사용자 의도를 추정하지 마세요. 명시가 없으면 unknown으로 두세요.\n"
             "- scope 필드에는 실제 값만 쓰고 report_scope, unknown 같은 placeholder를 값으로 복사하지 마세요.\n\n"
             "질문:\n{query}\n\n"
+            "Request units:\n{request_units}\n\n"
             "topic:\n{topic}\n\n"
             "intent:\n{intent}\n\n"
             "report_scope:\n{report_scope}\n\n"

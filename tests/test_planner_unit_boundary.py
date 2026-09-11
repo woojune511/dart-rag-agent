@@ -48,8 +48,8 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
     def test_unsupported_planner_unit_is_retained_and_only_affected_island_is_blocked(self):
         llm, planned, compiled = self._plan_and_compile(
             [
-                {"obligation_id": "bad", "kind": "direct_value", "label": "quantity", "display_unit": "unsupported-unit"},
-                {"obligation_id": "good", "kind": "direct_value", "label": "quantity", "display_unit": "COUNT"},
+                {"request_unit_ids": ["request_001"], "obligation_id": "bad", "kind": "direct_value", "label": "quantity", "display_unit": "unsupported-unit"},
+                {"request_unit_ids": ["request_001"], "obligation_id": "good", "kind": "direct_value", "label": "quantity", "display_unit": "COUNT"},
             ],
             self._direct_response("ob_002"),
         )
@@ -77,14 +77,14 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         planner = RequirementPlannerOutput.model_validate({
             "topic": "requested result and context",
             "obligations": [
-                {
+                {"request_unit_ids": ["request_001"],
                     "kind": "derived_value",
                     "label": "requested rate",
                     "display_unit": "%",
                     "display_format": "null",
                     "coupling_key": "rate-basis",
                 },
-                {
+                {"request_unit_ids": ["request_001"],
                     "kind": "narrative",
                     "label": "requested context",
                     "display_unit": "null",
@@ -138,7 +138,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
             })
 
         llm, planned, compiled = self._plan_and_compile(
-            [{
+            [{"request_unit_ids": ["request_001"],
                 "obligation_id": "double", "kind": "derived_value", "label": "double quantity",
                 "display_unit": "COUNT", "evidence_requirements": [{
                     "requirement_id": "input", "label": "quantity", "required": True,
@@ -175,9 +175,9 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
     def test_planner_preserves_unknown_and_self_dependencies_for_preflight(self):
         llm, planned, compiled = self._plan_and_compile(
             [
-                {"obligation_id": "unknown_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["absent-owner"]},
-                {"obligation_id": "self_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["self_owner"]},
-                {"obligation_id": "good", "kind": "direct_value", "label": "quantity"},
+                {"request_unit_ids": ["request_001"], "obligation_id": "unknown_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["absent-owner"]},
+                {"request_unit_ids": ["request_001"], "obligation_id": "self_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["self_owner"]},
+                {"request_unit_ids": ["request_001"], "obligation_id": "good", "kind": "direct_value", "label": "quantity"},
             ],
             self._direct_response("ob_003"),
         )
@@ -199,12 +199,12 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         planner = RequirementPlannerOutput.model_validate({
             "topic": "requested outputs",
             "obligations": [
-                {
+                {"request_unit_ids": ["request_001"],
                     "obligation_id": "reported_output",
                     "kind": "direct_value",
                     "label": "reported output",
                 },
-                {
+                {"request_unit_ids": ["request_001"],
                     "obligation_id": "derived_output",
                     "kind": "derived_value",
                     "label": "derived output",

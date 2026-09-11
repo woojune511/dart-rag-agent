@@ -66,6 +66,8 @@ class SemanticCompilationScopeTests(unittest.TestCase):
             "schema": "semantic_compilation_scope_v1",
             "active_obligation_ids": active_ids,
             "question_role": "context_only",
+            "request_units_by_id": {'request_001': {
+                'text': 'Summarize operations and distribution for Filing Group.', 'span': [0, 55]}},
             "evidence_coverage": "bounded_excerpts",
             "document_absence_established": False,
         })

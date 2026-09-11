@@ -19,7 +19,7 @@ def _plan():
     return RequirementPlannerOutput.model_validate({
         "topic": "shared operations and service provision",
         "obligations": [
-            {"kind": "narrative", "label": label,
+            {"request_unit_ids": ["request_001"], "kind": "narrative", "label": label,
              "evidence_requirements": [{"label": label, "retrieval_hints": [label]}]}
             for label in ("shared operations", "service provision")
         ],

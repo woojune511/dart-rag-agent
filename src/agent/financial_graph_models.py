@@ -142,6 +142,12 @@ class AnswerObligation(_DeferredBaseModel):
     obligation_id: str = ""
     kind: Literal["direct_value", "derived_value", "narrative"]
     label: str
+    request_unit_ids: List[str] = Field(description=(
+        "IDs of original request units this output addresses. Use provided IDs "
+        "only; every output needs a reference and every unit needs an output. "
+        "Units may be shared. The label is a short name, not a replacement for "
+        "the referenced request text. These are instructions, not source evidence."
+    ))
     required: bool = True
     display_unit: str = ""
     display_format: str = ""

@@ -6,6 +6,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from tests.request_unit_fixture_support import bind_fixture_request, request_bound_fixture
 
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.ops.replay_reviewed_compiler_selection import (
@@ -34,7 +35,8 @@ class _PromptQueue(_ReviewedProgramQueue):
 class SemanticComparisonContrastTests(unittest.TestCase):
     def setUp(self):
         self.original_bytes = FIXTURE.read_bytes()
-        self.corpus = json.loads(self.original_bytes)
+        self.fixture_path = request_bound_fixture(self, FIXTURE)
+        self.corpus = json.loads(self.fixture_path.read_text(encoding="utf-8"))
 
     def tearDown(self):
         self.assertEqual(FIXTURE.read_bytes(), self.original_bytes)
@@ -56,8 +58,8 @@ class SemanticComparisonContrastTests(unittest.TestCase):
             "src.ops.replay_reviewed_compiler_selection._create_google_compiler",
             side_effect=AssertionError("no provider"),
         ):
-            first = rehearse_reviewed_compiler_selection(FIXTURE)
-            second = rehearse_reviewed_compiler_selection(FIXTURE)
+            first = rehearse_reviewed_compiler_selection(self.fixture_path)
+            second = rehearse_reviewed_compiler_selection(self.fixture_path)
         self.assertEqual(first, second)
         self.assertEqual(first["status"], "passed")
         self.assertEqual(first["provider_network_calls"], 0)
@@ -72,11 +74,16 @@ class SemanticComparisonContrastTests(unittest.TestCase):
 
     def test_contrast_pairs_keep_inputs_identical_and_change_only_intent(self):
         cases = self.corpus["cases"]
+        def without_request_addresses(rows):
+            # The question changes, so its unit addresses may change too. All
+            # actual output/evidence declarations must remain identical.
+            return [{key: value for key, value in row.items() if key != "request_unit_ids"} for row in rows]
         for indices in ((0, 1), (3, 4, 5, 8)):
             base = cases[indices[0]]
             for index in indices[1:]:
                 self.assertEqual(base["candidate_catalog"], cases[index]["candidate_catalog"])
-                self.assertEqual(base["obligations"], cases[index]["obligations"])
+                self.assertEqual(without_request_addresses(base["obligations"]),
+                                 without_request_addresses(cases[index]["obligations"]))
                 self.assertNotEqual(base["question"], cases[index]["question"])
         self.assertEqual(
             [cases[index]["expected"]["outputs"][0]["normalized_value"] for index in (3, 4, 5)],
@@ -86,7 +93,7 @@ class SemanticComparisonContrastTests(unittest.TestCase):
 
     def test_prompts_exclude_oracles_and_keep_shared_source_once(self):
         queue = _PromptQueue(_reviewed_response_queue(self.corpus))
-        result = evaluate_reviewed_compiler_selection(FIXTURE, queue, run_mode="rehearsal")
+        result = evaluate_reviewed_compiler_selection(self.fixture_path, queue, run_mode="rehearsal")
         self.assertEqual(result["status"], "passed")
         for prompt in queue.prompts:
             self.assertNotIn("ORACLE_ONLY_", prompt)
@@ -137,7 +144,7 @@ class SemanticComparisonContrastTests(unittest.TestCase):
     def test_admission_counts_islands_separately_from_rehearsal_retries(self):
         with TemporaryDirectory(dir=Path.cwd()) as directory:
             manifest = build_admission_manifest(
-                corpus_path=FIXTURE,
+                corpus_path=self.fixture_path,
                 manifest_path=Path(directory) / "manifest.json",
                 result_path=Path(directory) / "result.json",
                 cost_cap_usd=1.0,
@@ -164,6 +171,7 @@ class SemanticComparisonContrastTests(unittest.TestCase):
             binding["source_requirement_id"] = binding["source_requirement_id"].replace("change:", "difference:")
         case["obligations"].append(obligation)
         case["question"] += " " + answered["question"]
+        case = bind_fixture_request(case)
         case["program"]["expressions"] = [expression]
         case["expected"].update({
             "validation_status": "partial", "execution_status": "partial",

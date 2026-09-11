@@ -21,15 +21,15 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             {
                 "topic": "target unit profile",
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "kind": "direct_value", "label": "target unit capacity",
                         "scope": {"segment": "target unit"},
                     },
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "kind": "direct_value", "label": "target unit allocation share",
                         "scope": {"segment": "target unit"},
                     },
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "kind": "narrative", "label": "target unit activity summary",
                         "scope": {"segment": "target unit"},
                         "evidence_mode": "source_defined_group",
@@ -180,14 +180,14 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 "years": [2024],
                 "topic": "quantity movement and context",
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "closing",
                         "kind": "direct_value",
                         "label": "closing quantity",
                         "scope": {"period": "2024"},
                         "retrieval_hints": ["closing quantity"],
                     },
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "change",
                         "kind": "derived_value",
                         "label": "change rate",
@@ -209,7 +209,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                             }
                         ],
                     },
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "context",
                         "kind": "narrative",
                         "label": "context",
@@ -292,12 +292,12 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         response = RequirementPlannerOutput.model_validate(
             {
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "value",
                         "kind": "direct_value",
                         "label": "reported value",
                     },
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "context",
                         "kind": "narrative",
                         "label": "reported context",
@@ -333,7 +333,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         response = RequirementPlannerOutput.model_validate(
             {
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "value",
                         "kind": "direct_value",
                         "label": "reported value",
@@ -350,7 +350,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         response = RequirementPlannerOutput.model_validate(
             {
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "value",
                         "kind": "direct_value",
                         "label": "reported value",
@@ -381,7 +381,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         response = RequirementPlannerOutput.model_validate(
             {
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "amount",
                         "kind": "direct_value",
                         "label": "Motional investment carrying amount",
@@ -417,7 +417,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         response = RequirementPlannerOutput.model_validate(
             {
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "value",
                         "kind": "direct_value",
                         "label": "reported value",
@@ -450,7 +450,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             "implicit_query"
         ]
         response = RequirementPlannerOutput.model_validate(
-            {"obligations": fixture["planner_obligations"]}
+            {"obligations": [dict(row, request_unit_ids=["request_001"])
+                             for row in fixture["planner_obligations"]]}
         )
         agent = self._agent(_StructuredQueueLLM(response))
 
@@ -489,7 +490,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         single_response = RequirementPlannerOutput.model_validate(
             {
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "share",
                         "kind": "direct_value",
                         "label": "target venture ownership share",
@@ -538,7 +539,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         multiple_response = RequirementPlannerOutput.model_validate(
             {
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": f"share-{index}",
                         "kind": "direct_value",
                         "label": f"target venture ownership share {index}",

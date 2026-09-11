@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 from src.agent.financial_graph_model_loaders import requirement_planner_output_model
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_retrieval_hints import infer_statement_and_section_hints
+from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_scope_policies import explicit_query_consolidation_scopes
 from src.agent.financial_source_scope import source_section_requirement_errors
@@ -183,6 +184,7 @@ class FinancialAgentPlanningMixin:
     ) -> Dict[str, Any]:
         """Create answer obligations and retrieval hints, never a formula type."""
 
+        request_units = build_request_units(query)
         ontology = get_financial_ontology()
         concept_specs = list(ontology.concept_specs(query, topic, intent) or [])
         if not concept_specs:
@@ -211,6 +213,7 @@ class FinancialAgentPlanningMixin:
             prompt_value = prompt.invoke(
                 {
                     "query": query,
+                    "request_units": json.dumps(project_request_units(request_units), ensure_ascii=False),
                     "topic": topic,
                     "intent": intent,
                     "report_scope": json.dumps(report_scope, ensure_ascii=False),
@@ -458,6 +461,8 @@ class FinancialAgentPlanningMixin:
                 }
             )
 
+        request_errors = request_unit_errors(request_units, obligations)
+        requirement_errors.extend(request_errors)
         requirement_errors.extend(source_section_requirement_errors(obligations, query))
         retrieval_queries = [query]
         retrieval_queries.extend(
@@ -572,7 +577,7 @@ class FinancialAgentPlanningMixin:
             report_scope=report_scope,
         )
         return {
-            "status": "ok" if obligations else "incomplete",
+            "status": "ok" if obligations and not request_errors else "incomplete",
             "companies": companies,
             "years": years,
             "topic": _normalise_spaces(str(planned.topic or topic or query)),

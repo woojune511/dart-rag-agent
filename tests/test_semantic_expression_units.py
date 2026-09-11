@@ -116,8 +116,9 @@ class SemanticExpressionUnitTests(unittest.TestCase):
                 self.assertEqual(execution["outputs_by_obligation"], {})
 
     def test_reviewed_percentage_point_program_compiles_once_and_executes(self):
+        from tests.request_unit_fixture_support import bind_fixture_request
         fixture = Path(__file__).parent / "fixtures" / "reviewed_runtime_replay_corpus_v2.json"
-        case = json.loads(fixture.read_text(encoding="utf-8"))["cases"][0]
+        case = bind_fixture_request(json.loads(fixture.read_text(encoding="utf-8"))["cases"][0])
         program = deepcopy(case["program"])
         program["expressions"][0].update(result_unit="PERCENT_POINT", display_unit="%p")
         queue = _ReviewedProgramQueue([SemanticCalculationProgram.model_validate(program)])
