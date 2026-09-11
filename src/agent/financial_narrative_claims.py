@@ -6,6 +6,53 @@ from src.agent.financial_program_projection import render_narrative_claim
 from src.agent.financial_source_bundles import build_semantic_source_bundles
 
 
+def project_narrative_retry_drafts(
+    program: Mapping[str, Any], *, obligations: Sequence[Mapping[str, Any]],
+    target_obligation_ids: Sequence[str], candidate_ids_by_owner: Mapping[str, Sequence[str]],
+) -> list[dict[str, Any]]:
+    """Carry failed model statements for repair, without granting source authority.
+
+    Claims keep their original error locations, including claims with no remaining
+    links. Only currently selectable owner/requirement links survive; their quotes
+    are still unvalidated drafts, not evidence. Accepted outputs are not replayed.
+    """
+    targets = set(target_obligation_ids)
+    owners = {
+        obligation["obligation_id"]: {
+            row["requirement_id"] for row in obligation.get("evidence_requirements") or []
+        }
+        for obligation in obligations
+        if obligation.get("kind") == "narrative" and obligation["obligation_id"] in targets
+    }
+    selectable = {owner: set(ids) for owner, ids in candidate_ids_by_owner.items()}
+    drafts = []
+    for owner_id, requirement_ids in owners.items():
+        for binding in program.get("narrative_bindings") or []:
+            if binding["obligation_id"] != owner_id or not binding.get("claims"):
+                continue
+            claims = []
+            for index, claim in enumerate(binding["claims"]):
+                links = []
+                for link in claim.get("evidence_bindings") or []:
+                    candidate_id = link["candidate_id"]
+                    requirement_id = link.get("source_requirement_id") or ""
+                    if candidate_id not in selectable.get(owner_id, set()):
+                        continue
+                    if requirement_id and (requirement_id not in requirement_ids
+                            or candidate_id not in selectable.get(requirement_id, set())):
+                        continue
+                    links.append({key: link[key] for key in (
+                        "candidate_id", "source_requirement_id", "row_description_quote",
+                        "evidence_text", "context_id",
+                    ) if key in link})
+                claims.append({"location": f"narrative_claims[{index}]",
+                    "subject": claim["subject"], "text": claim["text"], "evidence_bindings": links,
+                    "omitted_evidence_binding_count": len(claim.get("evidence_bindings") or []) - len(links)})
+            drafts.append({"obligation_id": owner_id, "claims": claims,
+                "scope_applicability_fields": list(binding.get("scope_applicability_fields") or [])})
+    return drafts
+
+
 def validate_narrative_claims(
     binding: Mapping[str, Any], candidate_by_id: Mapping[str, Mapping[str, Any]], *,
     number_check: Callable[[str, Sequence[Mapping[str, Any]]], list[str]],

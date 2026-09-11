@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Latest paid subject-context run: `4c786838`, implementation `9996cf97`; runtime 7/7 but fixed-criterion Codex source review 1/7. Located context is preserved; semantic attribution remains open.
+Current local repair restores failed narrative drafts to retry and clarifies located context versus metadata hints. Latest paid subject-context result stays `4c786838` / implementation `9996cf97`: runtime 7/7, fixed-criterion Codex source review 1/7; no new semantic result.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -31,7 +31,7 @@ Implemented generic repairs:
 - Initial/retry prompts explicitly limit active outputs and mark evidence as bounded
   excerpts. Source-copied claim subjects need not repeat in text; one renderer labels
   fragments while preserving full statements. Quote/subject/number errors retain same-cohort
-  repair, explicit detail and per-attempt export. Labeling is not semantic entailment; no new call.
+  repair, explicit detail and per-attempt export. Retry carries targeted unvalidated drafts/error locations, filtering foreign/excluded links; requested coverage is instructed, not mechanically claim-count locked. No new call or entailment validator.
 - Canonical routing validates full finite vector batches before success caching;
   incomplete embedding identity disables cross-instance reuse. Cosine is scale-stable.
 - Search-cache Documents/provenance are copied, committed writes invalidate caches,
@@ -55,10 +55,10 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1354/1354** in 40.800s.
-Thirteen new regressions cover exact heading spans, full-scope isolation, formal/soft
-layouts, captions/date notes, sidecar roundtrip, IDs, prompt ordering and execution authority.
-Focused parser/context/narrative **101/101**, import/boundary/topology/docs **25/25**; audit **83 reviewed literals**, no new exception; pycompile/diff pass.
+Python 3.13.13; current full unittest: **1360/1360** in 50.824s.
+Six new regressions cover failed-draft/error alignment, owner/requirement isolation,
+ordered copied projection, unchanged accepted claims, numeric-only retries and legitimate removal/abstention.
+Focused compiler/cohort/validator/context/narrative **152/152**, import/boundary/topology/docs/audit **30/30**; domain audit **83 reviewed literals**, no new exception; pycompile/diff pass.
 The [period/subject projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md) remains bound to `3d3f64cd`; [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md) to `cb6ebb3a...da7ba`. Neither is current-head model output.
 
 The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
@@ -137,7 +137,7 @@ Those records do not establish current-build release readiness or unseen-questio
 
 - [Located-heading successor](../../benchmarks/results/located_heading_context_2026-09-11/v2/README.md): intermediate titles become exact quotes. Six unchanged anonymous inputs/14 visible IDs and catalog fingerprints preserved; metadata-only issuer claims still fail.
   [Subject-context result](../../benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md): Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60, billing unobserved; API/execution errors 0. Admission consumed; ten responses replay identically without API.
-  Next: characterize local subject/coreference and requested coverage through quote repair. Context delivery passed; semantics did not. No runtime change, store repair, paid rerun or generalization claim.
+  [Retry-context repair](../../benchmarks/results/narrative_retry_context_2026-09-11/README.md), runtime `ef065b7b...f957a`: ten saved responses preserve candidate payload/program/validation/envelope/execution bytes; three retries now receive seven failed-draft claims. All 57 protected files unchanged, API 0. Next: separately admitted model interpretation check; this replay does not improve or re-score the old answers.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.

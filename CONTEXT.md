@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Latest paid subject-context run: `4c786838`, implementation `9996cf97`; runtime 7/7 but fixed-criterion Codex source review 1/7. Located context is preserved; semantic attribution remains open.
+Current local repair carries failed narrative drafts into bounded retry and distinguishes located source context from metadata hints. Latest paid subject-context run remains `4c786838` / implementation `9996cf97`: runtime 7/7, fixed-criterion Codex source review 1/7; semantic attribution is not yet re-evaluated.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -32,6 +32,8 @@ defects, generic regressions, coverage limits, and remaining work.
 - `CompilationEnvelopeV2` binds full catalog content, ordered obligations and query.
   Only declared `depends_on` outputs may become formula inputs. Retry assertion
   projection cannot modify unrelated accepted outputs or introduce foreign evidence.
+  Narrative retry carries only targeted unvalidated claims with original error locations;
+  excluded/foreign evidence links are omitted. Unsupported claims may be corrected/dropped or withheld.
 - Source bundles preserve adjacent values and document context. Actual unique selectable
   unions are bounded by numeric 96 / narrative 32; at most eight islands and one internal
   retry per island. Budget/admission stops propagate without fallback or extra calls.
@@ -119,7 +121,8 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    repairs the hint-only context gap in fresh parsing; six unchanged anonymous sources
    keep all 14 visible IDs/catalog fingerprints. Issuer-only claims still fail; full gate **1354/1354**.
    [Subject-context run](benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md) consumed `7e2961f6...d5a47`: Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60; billing unobserved. Ten saved responses replay identically, no API.
-   Context reached the compiler; local/group identity, issuer/pronoun interpretation and retry coverage remain open. No full-agent/generalization claim, runtime change or paid rerun.
+   [Retry-context repair](benchmarks/results/narrative_retry_context_2026-09-11/README.md) restores the failed draft to stateless retries. Compiler policy reads located heading/body evidence together and preserves requested explanation, not invalid claim counts. Local full gate **1360/1360**.
+   Ten frozen responses retain identical candidate payload/program/validation/execution bytes; three retries now receive seven draft claims. No provider call or new semantic result. Next: separately admitted interpretation check; local/group identity and requested coverage still need model review.
 3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)

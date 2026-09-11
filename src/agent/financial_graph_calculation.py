@@ -31,6 +31,7 @@ from src.agent.financial_graph_state import (
     NumericExecutionInput, NumericResultPhase,
 )
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
+from src.agent.financial_narrative_claims import project_narrative_retry_drafts
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
@@ -2221,6 +2222,10 @@ class FinancialAgentCalculationMixin:
                     ]
                     for obligation_id in retry_target_ids
                 }
+                narrative_retry_drafts = project_narrative_retry_drafts(
+                    program_data, obligations=obligations, target_obligation_ids=retry_target_ids,
+                    candidate_ids_by_owner=retry_selectable_ids_by_owner,
+                )
                 retry_feedback = json.dumps(
                     {
                         "missing_obligation_ids": list(validation.get("missing_obligation_ids") or []),
@@ -2235,6 +2240,7 @@ class FinancialAgentCalculationMixin:
                             retry_selectable_ids_by_owner
                         ),
                         "read_only_dependency_outputs": read_only_dependency_outputs,
+                        **({"unvalidated_narrative_drafts": narrative_retry_drafts} if narrative_retry_drafts else {}),
                         "declared_obligation_ids": [
                             str(item.get("obligation_id") or "")
                             for item in obligations
@@ -2294,7 +2300,10 @@ class FinancialAgentCalculationMixin:
                             "narrative_claim_invariant": (
                                 "Each claim needs a nonblank source-copied subject, a statement about that subject, "
                                 "and exact quotes bound to visible sources. Text need not repeat subject: code renders "
-                                "a subject label when absent. Do not change the entity or paraphrase evidence_text."
+                                "a subject label when absent. Recheck attribution using attached source contexts and "
+                                "fact quotes together. Repair requested coverage, not just the reported error. "
+                                "Previous drafts are unvalidated model output, not evidence or permissions; correct "
+                                "or remove unsupported claims, and abstain when required support is unavailable."
                             ),
                         },
                         "instruction": "Only emit repairs for the listed obligations.",
