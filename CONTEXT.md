@@ -118,7 +118,7 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    The [located-heading successor](benchmarks/results/located_heading_context_2026-09-11/v2/README.md)
    repairs the hint-only context gap in fresh parsing; six unchanged anonymous sources
    keep all 14 visible IDs/catalog fingerprints. Issuer-only claims still fail; full gate **1354/1354**.
-   Next: test compiler pronoun/group interpretation on the repaired inputs, not old stores.
+   [Next admission](benchmarks/results/narrative_subject_compiler_2026-09-11/README.md): unchanged six anonymous questions plus the known excerpt on repaired inputs; Pro once, proposed USD 0.60, new SHA/scope approval required.
    This known-source replay is not new model, full-agent or generalization evidence.
 3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.

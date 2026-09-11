@@ -136,7 +136,7 @@ Those records do not establish current-build release readiness or unseen-questio
 ## Next work
 
 - [Located-heading successor](../../benchmarks/results/located_heading_context_2026-09-11/v2/README.md): intermediate titles become exact quotes. Six unchanged anonymous inputs/14 visible IDs and catalog fingerprints preserved; metadata-only issuer claims still fail.
-  Next: compiler pronoun/group interpretation on repaired inputs; old stores/results are not silently repaired.
+  [Next admission](../../benchmarks/results/narrative_subject_compiler_2026-09-11/README.md): six unchanged anonymous cases + known excerpt, Pro once / proposed USD 0.60; new SHA/scope approval after two identical no-call rehearsals. Old stores/results stay untouched.
   This is source-exposed preparation, not a model result; do not add a subject classifier or relax quote authority.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
