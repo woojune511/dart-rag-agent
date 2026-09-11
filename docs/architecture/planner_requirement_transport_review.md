@@ -1,7 +1,10 @@
 # Planner requirement transport review
 
 Status: request-original preservation implemented, 2026-09-12. The earlier
-planner-only measurement remains bound to runtime `222ffba9`; no new paid run.
+planner-only measurement remains bound to runtime `222ffba9`. The separate
+[three-case pipeline](../../benchmarks/results/request_unit_pipeline_2026-09-12/RESULTS.md)
+met its fixed source criteria on runtime `27fd6819`; semantic overlap remains characterized
+in the [output partition review](narrative_output_partition_review.md), without a runtime change.
 
 This review separates model interpretation from code transport. The new field and
 prompt contract below supersede label-only ownership, not evidence validation.
@@ -62,7 +65,7 @@ answer. The real graph reaches public `structured_result.status=ok` for the decl
 output. This demonstrates that structural readiness is not complete question coverage;
 it does **not** establish that a real planner generated this omission.
 
-The latest seven-question compiler comparison declared **planner_calls=0** and used fixed
+The earlier seven-question compiler comparison declared **planner_calls=0** and used fixed
 agent-authored obligations. Its observed subject/scope/uncertainty failures cannot be
 attributed to planner execution. Complete questions were nevertheless compiler input.
 
@@ -106,9 +109,11 @@ prompts replay byte-identically without provider calls. No code-side qualifier l
 was found. All 156 runtime and 161 predecessor files remain unchanged. The original
 question remains a compiler input; no downstream answer failure is proven.
 
-Next: measure whether a planner actually assigns these references correctly and
-whether the compiler fulfills the linked conditions, using a new bounded anonymous
-probe and separate approval. Local ownership checks are not an answer-quality score.
+The later three-case synthetic pipeline retained actual assignments and fulfilled its
+fixed conditions, with separate Codex source review and unchanged raw-response replay.
+Its third answer repeats conditions across outputs. Next: the bounded decomposition
+policy described in the output partition review, not a source-ID dedupe or another paid run.
+Local ownership checks remain distinct from an answer-quality score.
 
 A later compiler comparison must separately identify changed source layouts, supplied
 requirements and model outputs. Neither new cell metadata nor this transport review
