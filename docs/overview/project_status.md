@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Current repair implements v7 compiler presentation. Latest paid comparison `73391c0e` / implementation `361d449d`: runtime 7/7, Pro 7 calls/0 retries, estimated USD 0.18855625/0.60; billing unobserved. Separate narrow source review: 2 clearly met, 1 partial/uncertain, 4 not met. This is not full-answer accuracy, generalization or release acceptance.
+Current repair fixes same-parent formal/intermediate heading order in v7 presentation, provider-free. Latest paid comparison remains `73391c0e` / implementation `361d449d`: runtime 7/7, Pro 7 calls/0 retries, estimated USD 0.18855625/0.60; billing unobserved. Narrow source review: 2 clearly met, 1 partial/uncertain, 4 not met. Not full-answer accuracy, generalization or release acceptance.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -55,10 +55,10 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1371/1371** in 41.460s.
-Eleven new presentation regressions cover recursive allowlists, exact source layout,
-shared-context/peer/filing isolation, metadata separation, unknowns, scalar capabilities and retry preservation.
-Focused presentation/compiler/cohort/context/narrative **143/143**, integration/table/docs **42/42**, import/boundary/topology/docs/audit **30/30**; domain audit **83 reviewed literals**, no new exception; pycompile/diff pass.
+Python 3.13.13; current full unittest: **1374/1374** in 46.440s.
+Three new heading regressions cover anonymous parsed XML, hierarchy/parent isolation and natural sibling ordering.
+Existing presentation tests retain allowlists, exact sources, metadata/unknowns, scalar capabilities and retry preservation.
+Focused presentation/parser/context/compiler/cohort **86/86**, import/boundary/topology/docs/audit **30/30**; domain audit **83 reviewed literals**, no new exception; pycompile/diff pass.
 The [period/subject projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md) remains bound to `3d3f64cd`; [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md) to `cb6ebb3a...da7ba`. Neither is current-head model output.
 
 The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
@@ -137,7 +137,7 @@ Those records do not establish current-build release readiness or unseen-questio
 - [Located-heading successor](../../benchmarks/results/located_heading_context_2026-09-11/v2/README.md): intermediate titles become exact quotes. Six unchanged anonymous inputs/14 visible IDs and catalog fingerprints preserved; metadata-only issuer claims still fail.
   [Subject-context result](../../benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md): Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60, billing unobserved; API/execution errors 0. Admission consumed; ten responses replay identically without API.
   [Retry-context predecessor](../../benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md), runtime `ef065b7b...f957a`, consumed `4a1a66f8...8c500`: Pro **10 calls/3 retries**, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Narrow source criteria **1/7**, not full-answer faithfulness. All three retries received their seven draft claims; one repeats a title/body quote error, one fixes the quote but not subject interpretation. Ten responses replay identically without API; usage reconciles and 58 protected files remain unchanged. This frozen outcome is not rewritten by the v7 comparison below.
-- [V7 reading comparison](../../benchmarks/results/compiler_reading_compiler_2026-09-11/RESULTS.md) consumed `dde1d811...60546`: same seven inputs/criteria/model, runtime 7/7, 7 calls/0 retries, estimated USD 0.18855625/0.60; source review 2 clearly met/1 partial-uncertain/4 not met. Two-peer and DART explanations improved; group scope, uncertainty and local-subject interpretation remain incomplete. Seven responses replay identically without API; 93 protected files unchanged. Before another paid run, characterize XML heading-order/cell-text projection seams and separately exercise requirement/planner copying provider-free. No runtime fix was made during review.
+- [V7 comparison](../../benchmarks/results/compiler_reading_compiler_2026-09-11/RESULTS.md) remains runtime 7/7, source review 2 met/1 uncertain/4 not met; admission consumed. Subsequent [heading-order correction](../../benchmarks/results/compiler_heading_order_2026-09-11/README.md) uses observed parent/heading relations, not locator tag spelling, to place same-parent formal titles before intermediate headings. Three new anonymous regressions cover hierarchy, parent isolation and numeric sibling order. Seven saved responses preserve all authority/program/validation/execution bytes; 123 protected files unchanged, API 0, only two layouts differ. Next: row-cell text projection and separately requirement/planner copying; semantic improvement is unmeasured.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.

@@ -64,16 +64,23 @@ def project_prompt_retry_feedback(feedback: str, *, narrative_only: bool) -> str
     return json.dumps(result, ensure_ascii=False, separators=(",", ":"))
 
 
-def _located_order(context: Mapping[str, Any]) -> tuple:
+def _locator_parts(locator: str) -> tuple:
     # Numeric XML sibling indices sort naturally (P[2] before P[10]). No title text.
-    locator = str(context.get("source_locator") or "")
-    parts = tuple((0, int(part)) if part.isdigit() else (1, part)
-                  for part in re.split(r"(\d+)", locator))
-    return (parts, tuple(context.get("source_span") or ()), str(context.get("context_id") or ""))
+    return tuple((0, int(part)) if part.isdigit() else (1, part)
+                 for part in re.split(r"(\d+)", locator))
 
 
-def _heading_order(context: Mapping[str, Any]) -> tuple:
-    return (str(context.get("parent_locator") or "").count("/"), _located_order(context))
+def _located_order(context: Mapping[str, Any]) -> tuple:
+    return (_locator_parts(str(context.get("source_locator") or "")),
+            tuple(context.get("source_span") or ()), str(context.get("context_id") or ""))
+
+
+def _heading_order(context: Mapping[str, Any], relation: str) -> tuple:
+    parent = str(context.get("parent_locator") or "")
+    # Within the same located scope, its formal title encloses local headings.
+    # Relation cannot reorder different parents or override outer/inner hierarchy.
+    return (parent.count("/"), _locator_parts(parent), relation != "ancestor_heading",
+            _located_order(context))
 
 
 def project_reading_payload(
@@ -124,7 +131,7 @@ def project_reading_payload(
         relations = bundle.get("context_relations", {})
         return sorted((contexts[key] for key in bundle.get("context_ids", [])
                        if relations[key] in {"ancestor_heading", "intermediate_heading"}),
-                      key=_heading_order)
+                      key=lambda context: _heading_order(context, relations[context["context_id"]]))
 
     def source_identity(bundle):
         members = [originals[key] for key in bundle["candidate_ids"]]
@@ -143,7 +150,8 @@ def project_reading_payload(
             "source_locator": row.get("source_table_locator", ""),
             "source_span": row.get("source_bundle_context_span") or row.get("source_span") or [],
         }) for row in members), default=())
-        return (source_identity(bundle), tuple(_heading_order(c) for c in headings(bundle)),
+        return (source_identity(bundle),
+                tuple(_heading_order(c, bundle["context_relations"][c["context_id"]]) for c in headings(bundle)),
                 location, bundle["source_bundle_id"])
 
     emitted_contexts: set[str] = set()

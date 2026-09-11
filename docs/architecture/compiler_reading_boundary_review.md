@@ -139,7 +139,15 @@ with an unsupported qualifier. The [subsequent v7 comparison](../../benchmarks/r
 admission `73391c0e`, ran seven calls with no retry: runtime **7/7**, source review
 **2 clearly met / 1 partial-uncertain / 4 not met**, estimated USD 0.18855625/0.60.
 Seven responses replay identically, API 0; 93 protected files unchanged. Group scope,
-uncertainty and subject interpretation remain open. Observed XML TITLE/P ordering and
-pre-existing concatenated row-cell text need separate provider-free characterization;
-their causal effects are unmeasured. No post-run runtime fix, full-agent/ledger gate or
-generalization claim. The implemented repair's local gate is **1371/1371** in 41.460s.
+uncertainty and subject interpretation remain open. No full-agent/ledger or generalization claim.
+
+The subsequent [heading-order correction](../../benchmarks/results/compiler_heading_order_2026-09-11/README.md)
+fixes the observed TITLE/P reversal using existing parent depth/path and heading relation:
+within one parent, its formal title precedes intermediate headings. Outer/inner and
+different-parent ordering remain prior to relation, with natural sibling indices/spans.
+This does not claim full XML order across arbitrary different-tag body siblings.
+Anonymous XML reproduces the failure before repair. Seven saved responses retain all
+program/validation/envelope/execution bytes; source surfaces, owner authority and 123
+protected files remain unchanged. Only two input layouts change; API calls zero.
+Semantic impact is unmeasured. Pre-existing row-cell text concatenation and requirement/
+planner specificity remain separate next work; no prior artifact or store is rewritten.
