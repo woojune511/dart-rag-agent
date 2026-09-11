@@ -1,7 +1,7 @@
-"""Characterize output overlap, not desired duplication or semantic acceptance.
+"""Check planner policy delivery and characterize output overlap.
 
-All plans/claims are authored. These tests expose the current boundary so a later
-intentional contract change can replace it without deleting distinct source facts.
+All plans/claims are authored, not model inference or semantic acceptance. These
+tests preserve distinct source facts and expose remaining assembly limitations.
 No benchmark artifacts, provider clients, or semantic-dedup heuristic are used.
 """
 from copy import deepcopy
@@ -12,6 +12,7 @@ import unittest
 from src.agent.financial_graph import planning_phase_input, compilation_phase_input
 from src.agent.financial_graph_models import RequirementPlannerOutput, SemanticCalculationProgram
 from src.agent.financial_program_projection import render_narrative_claim
+from src.agent.financial_request_units import build_request_units, project_request_units
 from tests.semantic_program_test_support import _StructuredQueueLLM
 from tests.test_narrative_claim_grounding import claim
 from tests.test_narrative_retry_context import prompt_json
@@ -74,6 +75,52 @@ class NarrativeOutputPartitionTests(unittest.TestCase):
         self.assertEqual(aggregate['payload']['final_answer'], answer['answer'])
         self.assertEqual(aggregate['payload']['structured_result'], answer['structured_result'])
         return answer['answer']
+
+    def test_planner_policy_attaches_qualifiers_without_merging_independent_same_subject_topics(self):
+        intake = 'Aspen accepts requests only after consent.'
+        schedule = 'Aspen schedules visits on weekdays.'
+        query = 'Describe Aspen intake.\nInclude its consent condition.\nExplain Aspen visit scheduling.'
+        state, llm, _ = authored_pipeline(query, [intake, schedule],
+            [('Aspen', 'Intake', ['request_001', 'request_002']),
+             ('Aspen', 'Scheduling', ['request_003'])],
+            [[(1, 0, 'Aspen', intake, intake)], [(2, 1, 'Aspen', schedule, schedule)]])
+        self.assertEqual(self.assert_ready(state), intake + ' ' + schedule)
+        self.assertEqual(llm.models, ['RequirementPlannerOutput', 'SemanticCalculationProgram',
+                                     'SemanticCalculationProgram'])
+        prompt = llm.prompts[0].to_messages()[0].content
+        # This checks delivery of the policy, not that a model follows it.
+        self.assertIn('같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고', prompt)
+        self.assertIn('관련 request_unit_ids를 모두 연결하세요', prompt)
+        self.assertIn('독립적으로 요청된 설명 주제마다 obligation을 보존합니다', prompt)
+        self.assertIn('같은 주어·문장·request unit을 공유한다는 이유로 독립적인 설명을 합치지 마세요', prompt)
+        self.assertIn('출력 개수를 미리 정하지 마세요', prompt)
+        units = build_request_units(query)
+        self.assertEqual(prompt_json(llm.prompts[0], 'Request units:'), project_request_units(units))
+        obligations = state['requirements']['answer_obligations']
+        self.assertEqual([row['request_unit_ids'] for row in obligations],
+                         [['request_001', 'request_002'], ['request_003']])
+        for index, compiled_prompt in enumerate(llm.prompts[1:]):
+            scope = prompt_json(compiled_prompt, 'Compilation scope:')
+            self.assertEqual(scope['active_obligation_ids'], [f'ob_{index + 1:03d}'])
+            self.assertEqual(scope['request_units_by_id'], project_request_units(units, [obligations[index]]))
+
+    def test_shared_qualifier_reaches_each_independent_output_without_creating_an_extra_output(self):
+        bodies = ['Aspen receives requests only after consent.', 'Birch schedules visits only after consent.']
+        query = 'Describe Aspen intake.\nExplain Birch scheduling.\nInclude the consent condition for both.'
+        refs = [['request_001', 'request_003'], ['request_002', 'request_003']]
+        state, llm, _ = authored_pipeline(query, bodies,
+            [('Aspen', 'Intake', refs[0]), ('Birch', 'Scheduling', refs[1])],
+            [[(1, 0, 'Aspen', bodies[0], bodies[0])], [(2, 1, 'Birch', bodies[1], bodies[1])]])
+        self.assertEqual(self.assert_ready(state), ' '.join(bodies))
+        self.assertEqual(len(llm.prompts), 3)  # Authored plan: one planner and two independent islands.
+        self.assertIn('공통 조건은 관련 출력 모두에 연결하세요', llm.prompts[0].to_messages()[0].content)
+        obligations = state['requirements']['answer_obligations']
+        self.assertEqual([row['request_unit_ids'] for row in obligations], refs)
+        units = project_request_units(build_request_units(query))
+        for index, compiled_prompt in enumerate(llm.prompts[1:]):
+            scope = prompt_json(compiled_prompt, 'Compilation scope:')
+            self.assertEqual(scope['active_obligation_ids'], [f'ob_{index + 1:03d}'])
+            self.assertEqual(scope['request_units_by_id'], {ref: units[ref] for ref in refs[index]})
 
     def test_coarse_and_split_plans_share_sources_but_split_claims_may_overlap(self):
         for subject, year in (('Aspen', 2051), ('Morrow', 2063), ('나래', 2074)):

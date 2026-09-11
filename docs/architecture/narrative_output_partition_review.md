@@ -1,7 +1,7 @@
 # Narrative output partition review
 
-Status: provider-free characterization, 2026-09-12. **No runtime/prompt/schema change.**
-The current source/config remains runtime `27fd6819`; starting checkout `82a2c75e`.
+Status: bounded planner-policy clarification implemented, 2026-09-12; baseline `3542bc6b`.
+Only two planner instructions change; schema, runtime control flow and compiler stay intact.
 Normative authority remains [runtime contract](agent_runtime_contract.md).
 
 ## Finding
@@ -9,8 +9,8 @@ Normative authority remains [runtime contract](agent_runtime_contract.md).
 The measured repetition is **semantic overlap between accepted outputs**, not lost
 request text, a repeated API attempt, candidate duplication or a new factual error.
 Four obligations are not inherently invalid: the frozen review permits equivalent
-decomposition. The missing design decision is how to keep independently generated
-output content nonredundant while preserving every requested condition.
+decomposition. The planner now receives an explicit decomposition preference; its effect
+on independently generated output overlap is not yet measured.
 
 | Boundary | Observed behavior | Consequence |
 | --- | --- | --- |
@@ -22,8 +22,8 @@ output content nonredundant while preserving every requested condition.
 Source pointers:
 
 - `PLANNING_POLICY.requirement_planner_prompt_template` in `src/config/retrieval_policy.py`
-  already says not to create outputs merely to match request-unit count, but does not
-  establish an explicit preference for keeping an explanation and its modifiers together.
+  now explicitly keeps an explanation and its qualifiers together, links their original
+  request units, and retains independent topics without setting a fixed output count.
 - `_build_llm_requirement_plan` in `src/agent/financial_graph_planning.py` preserves the
   model's obligations; code did not split the measured plan after generation.
 - `semantic_compilation_scope_v1` in `src/agent/financial_graph_calculation.py` projects
@@ -43,7 +43,7 @@ All three measured answers have **zero exact rendered-claim duplicate pairs**. T
 answer repeats two facts using compound/shorter or rephrased statements, so exact-string
 dedupe would not repair it. The original paid result remains 3/3 under its narrow criteria.
 
-Seven new tests in `tests/test_narrative_output_partition.py` characterize:
+Seven baseline tests in `tests/test_narrative_output_partition.py` characterize:
 
 1. Same question/source, one authored output versus two: both preserve requirements;
    the split plan can repeat a condition and uses two compiler calls rather than one.
@@ -64,9 +64,9 @@ These authored-response assertions describe current mechanics. They may change w
 reviewed replacement contract; do not preserve the defect just to keep a characterization
 assertion green. None measures whether an LLM will generate the authored better plan.
 
-## Recommended smallest next implementation
+## Implemented planner policy
 
-Start with the **planner's semantic decomposition policy**, using existing fields/calls:
+The **planner's semantic decomposition policy** uses only existing fields/calls:
 
 - Keep an explanation and conditions that qualify that same explanation in one narrative
   output, with all relevant original `request_unit_ids` linked to it.
@@ -76,6 +76,12 @@ Start with the **planner's semantic decomposition policy**, using existing field
   request unit. Equally, do not discard explicitly requested independent explanations.
 - Retain code ownership/coverage/visibility/quote checks and the current retry boundary.
   No new role enum, domain keyword score, semantic validator or additional model call.
+
+Two additional authored-response tests check that the real planner prompt carries this
+policy and that both a qualified explanation plus an independent same-subject topic,
+and two subjects sharing a condition preserve every linked request through the real
+compiler/executor/final/ledger path. The missing prompt clause was first reproduced
+as a failing test. Authored output counts do not predict a model's decomposition.
 
 Only if overlap persists between legitimately independent outputs should a later bounded
 change consider a **read-only sibling responsibility projection** for the compiler. That
@@ -90,11 +96,12 @@ distinctions even when text is displayed once.
 
 ## Validation and limits
 
-New characterization tests 7/7; related request/claim/retry suites 49/49; docs/import/
-topology 24/24, domain audit 83 reviewed literals, pycompile and diff checks pass. No provider,
-retrieval, embedding, store mutation, new admission or runtime/policy change. Actual
-saved-result bytes and all 25 top-level predecessor files remain unchanged, along with
-157 runtime/config files and 188 older protected evidence files.
-The previous full unittest gate was 1402/1402; it is not rerun or relabelled as a new full
-gate for this tests/docs-only change. Local tests/replay do not establish fluency,
-unseen-source generalization, real retrieval performance or release readiness.
+Output-partition tests 9/9 and related request/claim/retry suites 51/51 pass. Current
+broader gates are recorded in [project status](../overview/project_status.md). No provider,
+retrieval, embedding, store mutation or new admission. The prior saved-response replay
+and hash inventory describe the unchanged measured predecessor, not the updated prompt.
+The old admission remains consumed; do not reuse it or call a saved response a new model
+choice. A separately approved bounded measurement must check retained independent topics,
+all requested conditions, call counts and overlap, without requiring a fixed decomposition.
+Local tests do not establish reduced repetition, fluency, unseen-source generalization,
+real retrieval performance or release readiness. No paid comparison is prepared here.

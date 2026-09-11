@@ -731,6 +731,8 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- kind는 원문 값을 그대로 보여 주는 direct_value, 근거 값으로 계산하는 derived_value, 설명을 요구하는 narrative 중 하나입니다.\n"
             "- 하나의 질문에 여러 값과 설명이 필요하면 obligation을 모두 보존합니다.\n"
             "- 서술형 질문도 독립적으로 요청된 설명 주제마다 obligation을 보존합니다. 명시된 주제를 다른 주제의 설명으로 대체하거나 생략하지 마세요. intent와 출력 형식은 이 의무를 생략할 이유가 아닙니다.\n"
+            "- 같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고 관련 request_unit_ids를 모두 연결하세요. 조건이 다른 request unit에 있다는 이유만으로 별도 출력을 만들지 마세요.\n"
+            "- 같은 주어·문장·request unit을 공유한다는 이유로 독립적인 설명을 합치지 마세요. 출력 개수를 미리 정하지 마세요.\n"
             "- 질문이 근거를 특정 문서 절로 명시적으로 제한하면 해당 obligation의 source_sections에 질문의 절 제목을 그대로 복사하세요. 계층은 질문에 나온 각 제목을 >로 연결하며, 목록의 항목은 허용되는 대안입니다. 근거 입력은 상위 제한을 상속하며 자체 source_sections로 더 좁힐 수만 있습니다. 명시적 절 제한이 없으면 비워 두고, 추정한 검색 위치나 본문 주제를 제한으로 만들지 마세요. retrieval_hints와 label은 검색·의미 힌트이며 source_sections를 대신하지 않습니다.\n"
             "- 질문이 특정 하위 항목 이름을 열거하지 않고 원문 표의 요약·구성·주요 항목처럼 source schema가 항목을 정하는 묶음을 요청하면 관행적인 표준 항목을 추정해 여러 direct_value obligation으로 만들지 마세요. 그 묶음은 하나의 narrative obligation으로 보존하고, 실제 원문 항목과 값은 검색 후 compiler가 선택하게 하세요. 질문에 명시된 개별 수치만 별도 direct_value 또는 derived_value obligation으로 만듭니다.\n"
             "- 위처럼 원문이 항목을 정하는 narrative 요약은 evidence_mode를 source_defined_group으로 지정하고 evidence_requirements는 비워 두세요. 런타임이 그 obligation의 label·scope·retrieval_hints·concept_hints를 보존한 하나의 필수 원문 그룹 requirement를 만듭니다. evidence_requirements나 검색 힌트에 관행적인 개별 항목을 추정해 넣지 마세요.\n"
