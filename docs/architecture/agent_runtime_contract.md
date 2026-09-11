@@ -8,7 +8,7 @@ Superseded designs belong in [implementation history](../history/implementation_
 ## 1. Product and authority boundary
 
 The single-agent `FinancialAgent` uses an LLM to interpret intent and evidence. Code owns arithmetic, unit conversion, dependency binding, candidate authority,
-dedupe, ordering, validation, and ledger integrity. Every intent uses required-output planning and the source-bundle compiler; intent or presentation cannot skip coverage. Narrative topics and requested source hierarchy remain explicit requirements.
+dedupe, ordering, validation, and ledger integrity. Every intent uses required-output planning and compilation; requested narrative themes/source hierarchy must remain explicit. Labels and required inputs carry meaning, rationale is diagnostic, and the original query remains visible. Planner `status=ok` denotes a nonempty plan, not complete question coverage; schema-valid model omissions are not mechanically inferred or repaired.
 
 Company names, benchmark IDs, expected answers, report-specific phrases, and metric recipes may not control routing, retrieval, selection, compilation, execution, or rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data; fixed-year priorities and case-specific routing examples are not generic domain priors.
 
