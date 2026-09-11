@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Source-local boundaries: `3cbae398`. Current successor adds claim-local narrative grounding; Git records preceding preservation/selection/section repairs.
+Source-local boundaries: `3cbae398`; claim-local narrative grounding: `5962d1f7`. The latest paid diagnosis used that unchanged runtime.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -55,7 +55,7 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1334/1334** in 34.584s.
+Python 3.13.13; latest full implementation gate: **1334/1334** in 34.584s (not rerun for this experiment).
 Seventeen new tests cover claim projection/quotes, subject and numeric grounding, shared
 visible rows, hidden/foreign evidence, V2 drift, retry byte preservation and fixture provenance.
 Focused source/claim/compiler **42/42**, import/topology/docs **24/24**; audit **83 reviewed literals**, no new exception; pycompile/diff pass.
@@ -67,13 +67,15 @@ The [source-local probe](../../benchmarks/results/local_heading_scope_2026-09-11
 The [claim counterfactual](../../benchmarks/results/narrative_claim_grounding_2026-09-11/README.md), runtime `cfb9dff5...28be6`, rejects metadata-only subject attribution but still accepts a deliberately retagged broadened paragraph. This is a semantic negative control, not solved faithfulness; all predecessor bytes remain.
 Current compiler/protected execution require claims. Historical flat replay explicitly marks enforcement off; fixture v3 adds agent-authored witnesses without changing v2 sources, questions, numeric programs, expected outcomes or selected IDs. Neither is new human/model review.
 
-Latest [reading/selection provider comparison](../../benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md):
-clean `ff283a58`, admission `8eae0a6b...65c61`, Pro **7 calls**, one internal retry,
-provider/execution errors **0**, estimated **USD 0.221395 / 0.90**; billing unobserved.
-Runtime complete **2/3**, Codex source-reviewed semantic complete **1/3**. Both overview
-omissions improve; KT&G still broadens subsidiary scope. CJ uses an unrequested section,
-omits logistics, and loses channel output after scalar-period rejection. Saved-response
-replay matches all three prompt hashes/final program bytes; inputs/criteria remain frozen.
+Latest [claim interpretation run](../../benchmarks/results/narrative_claim_compiler_2026-09-11/RESULTS.md): clean `5962d1f7`, admission `966a0fa7...759a5` consumed.
+Pro **10 calls**, three internal retries, runtime **3/7**, provider/execution exceptions **0**;
+estimated **USD 0.212920 / 0.60**, billing unobserved. Three otherwise source-supported
+structured readings fail `narrative_claim_subject_omitted`; subject exists separately but
+text does not repeat it. One causal abstention is faithful, not complete. Known-source
+output names the local company/routes but leaves "당사" unresolved. Ten saved responses
+replay byte-identically through prompts/program/validation/V2 execution, external sockets blocked.
+Fixed-criteria Codex review is not human verification, full-agent or unseen generalization.
+Prior [reading comparison](../../benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md) stays runtime 2/3, reviewed 1/3 on `ff283a58`; no old result was repaired.
 
 ## Independent pilot: immutable compiler-only predecessor
 
@@ -84,9 +86,7 @@ The source-preservation successor retains 15 numeric facts, 12 prose quotes and 
 descriptive row associations; original files and all 44,757 frozen numeric records stay
 unchanged. [Repair receipt](../../benchmarks/results/independent_holdout_preparation_2026-09-10/preservation_repair_v1/README.md).
 
-The user then delegated one paid pilot without another confirmation. Admission
-`98956685...fd916` ran once on clean `7c7f079a`, unchanged runtime `7aa4adf2` /
-`5a74ff8d...9d7b`. [Result and source review](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md).
+User-delegated admission `98956685...fd916` ran once on clean `7c7f079a`, unchanged runtime `7aa4adf2` / `5a74ff8d...9d7b`. [Result and source review](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md).
 Whole-filing catalogs (51,388 candidates) and question-authored requirements feed current
 bounded cohorts. Gold reads are blocked in the runner. Two separate abstention-only SDK
 rehearsals are byte-identical; provider budget/usage tests pass 16/16.
@@ -135,9 +135,9 @@ Those records do not establish current-build release readiness or unseen-questio
 
 ## Next work
 
-- Next: bounded current-compiler interpretation comparison, with anonymous negative
-  controls and source-reviewed meaning/coverage separate from runtime readiness.
-  Literal claim grounding does not certify attribution, negation, causality or group scope.
+- Next: align separate subject representation with final sentence rendering, then test
+  explicit format-repair feedback and per-attempt export using provider-free controls.
+  Do not merely remove grounding checks; quote matching is not semantic entailment.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.

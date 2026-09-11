@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Source-local boundaries: `3cbae398`. Current successor adds claim-local narrative grounding; Git records prior preservation/selection/section repairs.
+Source-local boundaries: `3cbae398`; claim-local narrative grounding: `5962d1f7`. The latest paid diagnosis used that unchanged runtime.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -101,11 +101,16 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    rejects a metadata-only issuer subject and accepts an authored source-local quote.
    Retagging the old broadened paragraph with its mentioned subsidiary still passes:
    this negative control remains open. No new model answer or semantic score is claimed.
-2. Next is a bounded current-compiler interpretation comparison, with anonymous negative
-   controls and source-reviewed meaning/coverage criteria separate from runtime readiness.
-   Do not add company rules, a subject classifier, or declare exact-quote matching a judge.
-   Old flat replay is explicitly historical; annotated fixture v3 preserves v2 questions,
-   sources, numeric programs, expected answers and IDs, and is not new human/model review.
+2. The [claim interpretation run](benchmarks/results/narrative_claim_compiler_2026-09-11/RESULTS.md)
+   consumed `966a0fa7...759a5`: Pro 10 calls, three internal retries, runtime **3/7**,
+   estimated USD **0.212920 / 0.60**, provider/execution exceptions zero; billing unobserved.
+   Three source-supported structured readings fail only because text does not repeat
+   the separate subject field; one causal abstention is faithful, not runtime complete.
+   The known excerpt names the local company/routes but leaves "당사" coreference unresolved.
+   Ten saved responses replay with identical prompts/programs/validation/execution, no API.
+   Next: align subject representation with final rendering and explicit repair feedback;
+   preserve quote/owner/number authority, not a company rule or validator relaxation.
+   This authored contrast/known-source diagnosis is not full-agent or generalization evidence.
 3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
