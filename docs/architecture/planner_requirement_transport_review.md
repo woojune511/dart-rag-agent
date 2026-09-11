@@ -4,8 +4,8 @@ Status: request-original preservation implemented, 2026-09-12. The earlier
 planner-only measurement remains bound to runtime `222ffba9`. The separate
 [three-case pipeline](../../benchmarks/results/request_unit_pipeline_2026-09-12/RESULTS.md)
 met its fixed source criteria on runtime `27fd6819`; semantic overlap remains characterized
-in the [output partition review](narrative_output_partition_review.md). Its later planner-only
-policy clarification is locally tested, not a new model result.
+in the [output partition review](narrative_output_partition_review.md). The later policy
+clarification's five-case run retains information but does not achieve repetition reduction.
 
 This review separates model interpretation from code transport. The new field and
 prompt contract below supersede label-only ownership, not evidence validation.

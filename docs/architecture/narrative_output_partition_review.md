@@ -1,6 +1,6 @@
 # Narrative output partition review
 
-Status: bounded planner-policy clarification implemented, 2026-09-12; baseline `3542bc6b`.
+Status: planner-policy clarification measured once, 2026-09-12; repetition goal not met.
 Only two planner instructions change; schema, runtime control flow and compiler stay intact.
 Normative authority remains [runtime contract](agent_runtime_contract.md).
 
@@ -9,8 +9,8 @@ Normative authority remains [runtime contract](agent_runtime_contract.md).
 The measured repetition is **semantic overlap between accepted outputs**, not lost
 request text, a repeated API attempt, candidate duplication or a new factual error.
 Four obligations are not inherently invalid: the frozen review permits equivalent
-decomposition. The planner now receives an explicit decomposition preference; its effect
-on independently generated output overlap is not yet measured.
+decomposition. On runtime `47fafc12`, the five-case successor preserves requested information
+but retains the prior repeated conditions and exhibits overlap between independent topics.
 
 | Boundary | Observed behavior | Consequence |
 | --- | --- | --- |
@@ -83,11 +83,12 @@ and two subjects sharing a condition preserve every linked request through the r
 compiler/executor/final/ledger path. The missing prompt clause was first reproduced
 as a failing test. Authored output counts do not predict a model's decomposition.
 
-Only if overlap persists between legitimately independent outputs should a later bounded
-change consider a **read-only sibling responsibility projection** for the compiler. That
+The measured independent-topic control now shows overlapping compiler claims even though
+both topics survive. A next bounded review can consider a **read-only sibling responsibility projection**. It
 would describe output ownership, not expose sibling candidate IDs or accepted answers,
 authorize bindings, create coupling edges, or weaken retry isolation. It is not implemented.
-Do not add this projection or a final LLM synthesis pass preemptively for one small probe.
+First characterize authority/isolation and required shared-context counterexamples without
+provider calls; this one sample does not prove that the projection will improve model output.
 
 Post-hoc deletion by candidate/source/span/request-ID or substring is rejected by the
 counterexamples above. An exact presentation-only dedupe is a separate possible contract,
@@ -96,18 +97,23 @@ distinctions even when text is displayed once.
 
 ## Validation and limits
 
-Output-partition tests 9/9 and related request/claim/retry suites 51/51 pass. Current
-broader gates are recorded in [project status](../overview/project_status.md). No provider,
-retrieval, embedding, store mutation or new admission. The prior saved-response replay
-and hash inventory describe the unchanged measured predecessor, not the updated prompt.
-The old admission remains consumed; do not reuse it or call a saved response a new model
-choice. A separately approved bounded measurement must check retained independent topics,
-all requested conditions, call counts and overlap, without requiring a fixed decomposition.
-Local tests do not establish reduced repetition, fluency, unseen-source generalization,
-real retrieval performance or release readiness.
+Output-partition tests 9/9 and related request/claim/retry suites 51/51 pass; full gate
+1411/1411 is the pre-run result on `47fafc12`, not rerun for this experiment. Broader
+preparation gates are recorded in [project status](../overview/project_status.md).
 
-The [five-case successor preparation](../../benchmarks/results/narrative_partition_pipeline_2026-09-12/README.md)
-now fixes the original three inputs/criteria/catalogs plus two controls on `47fafc12`.
-Two independent no-call processes match; model improvement remains unmeasured. New
-manifest `9b0d85fb...34776f` proposes one bounded Flash → Pro run under USD 0.80,
-pending explicit approval. No further runtime/prompt/schema change or provider call.
+The [five-case result](../../benchmarks/results/narrative_partition_pipeline_2026-09-12/RESULTS.md)
+consumes `9b0d85fb...34776f` on clean `c0aeccec`, unchanged runtime `47fafc12`:
+Flash 5 + Pro 12 calls, retries/API/execution/validation errors 0; estimated USD
+0.2687509/0.80, billing unobserved. Runtime/ledger 5/5 and separate fixed-criterion
+Codex source review 5/5 do **not** establish repetition reduction, which was not achieved.
+REQUEST_03 still has two repeated qualifier groups and four Pro calls. CONTROL_01's
+intake output also describes scheduling, identically repeated by the schedule output;
+intake consent repeats too. These claims precede final assembly. Shared conditions for
+distinct subjects remain legitimate, and separate condition outputs are not rejected
+merely for their count. Original-three Pro calls stay 7 → 7; this is not a causal trial.
+
+All 17 saved raw SDK responses reproduce identical request/phase bytes with API 0.
+Fourteen quotes match visible source; runtime/config 157 and protected evidence 216
+hashes stay unchanged. Neither replay nor source review proves generalization, semantic
+exclusivity or full-agent/release quality. No runtime/prompt/schema change was made during
+execution, and no further provider, retrieval, embedding, store mutation or admission.
