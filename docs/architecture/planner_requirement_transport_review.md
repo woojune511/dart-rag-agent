@@ -1,9 +1,10 @@
 # Planner requirement transport review
 
-Status: provider-free characterization, 2026-09-12. Runtime baseline `222ffba9`.
+Status: transport characterization plus one approved planner-only measurement,
+2026-09-12. Runtime remains `222ffba9`.
 
-This review separates model interpretation from code transport. It does not introduce
-new planner fields, qualifier keywords, semantic validators, prompt changes or calls.
+This review separates model interpretation from code transport. No planner fields,
+qualifier keywords, validators or prompts were changed; paid calls are scoped below.
 
 ## Findings
 
@@ -32,7 +33,7 @@ answer. The real graph reaches public `structured_result.status=ok` for the decl
 output. This demonstrates that structural readiness is not complete question coverage;
 it does **not** establish that a real planner generated this omission.
 
-The latest seven-question paid comparison declared **planner_calls=0** and used fixed
+The latest seven-question compiler comparison declared **planner_calls=0** and used fixed
 agent-authored obligations. Its observed subject/scope/uncertainty failures cannot be
 attributed to planner execution. Complete questions were nevertheless compiler input.
 
@@ -55,18 +56,32 @@ Focused tests **55/55** (including the six new tests); import/boundary/topology/
 checks pass. Runtime/policy/schema did not change, so the previous full gate remains
 **1383/1383** on `222ffba9`; no new full-suite run or new full-suite count is claimed.
 
-## Next decision
+## Actual planner output, separate from transport
 
-[Six-question planner-only admission](../../benchmarks/results/planner_semantics_2026-09-12/README.md)
-is prepared from `72951f1b`, not executed: current default Flash, three paired
-anonymous contrasts, fixed semantic criteria kept outside model input, six calls at
-most, USD 0.20 cap. Manifest `f78ee9d1...bf20d` awaits explicit approval. Two independent
-network-blocked SDK receipts are byte-identical; admission checks 8/8 and existing
-planning/provider tests 26/26 pass. No runtime change, source transmission or semantic
-measurement occurred. Inspect actual returned fields separately from faithful
-transport; do not add a qualifier enum or keyword coverage rule from authored stubs.
+[Six-question result](../../benchmarks/results/planner_semantics_2026-09-12/RESULTS.md)
+consumed `f78ee9d1...bf20d` once on clean `ad1031a5`: default Flash, six calls, no
+retry/error, USD 0.0290838 estimated / 0.20 cap; billing unobserved. No compiler,
+retrieval, embeddings, source transmission or store mutation. Controls/criteria
+were fixed before calls and withheld from the planner.
+
+All six plans are structurally `ok`, but fixed-criterion Codex field review finds
+two retained, one missing qualifier and three partial/ambiguous outputs. PLAN_02
+mentions uncertain whole-group applicability in rationale, not its required label.
+PLAN_03/05/06 retain general applicability but weaken the explicit uncertainty
+condition; PLAN_04 retains limits in both labels. Labels/inputs are not required to
+use exact words or a fixed decomposition. One sample cannot attribute differences
+to presentation or establish general failure rates.
+
+All six saved SDK responses parse identically; complete requirements phases and
+prompts replay byte-identically without provider calls. No code-side qualifier loss
+was found. All 156 runtime and 161 predecessor files remain unchanged. The original
+question remains a compiler input; no downstream answer failure is proven.
+
+Next: review the generic semantic-compression contract so arbitrary requested
+conditions remain required meaning rather than rationale-only text. Do not infer
+a keyword gate, new role taxonomy or case-specific rule from these results.
 
 A later compiler comparison must separately identify changed source layouts, supplied
 requirements and model outputs. Neither new cell metadata nor this transport review
-repairs historical stores or improves an already recorded answer. No paid admission,
-automatic rerun, store mutation or source reingest is authorized by this review.
+repairs historical stores or improves an already recorded answer. The admission is
+consumed; no automatic rerun, store mutation or source reingest is authorized.
