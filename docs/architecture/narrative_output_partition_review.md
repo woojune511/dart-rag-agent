@@ -104,4 +104,10 @@ The old admission remains consumed; do not reuse it or call a saved response a n
 choice. A separately approved bounded measurement must check retained independent topics,
 all requested conditions, call counts and overlap, without requiring a fixed decomposition.
 Local tests do not establish reduced repetition, fluency, unseen-source generalization,
-real retrieval performance or release readiness. No paid comparison is prepared here.
+real retrieval performance or release readiness.
+
+The [five-case successor preparation](../../benchmarks/results/narrative_partition_pipeline_2026-09-12/README.md)
+now fixes the original three inputs/criteria/catalogs plus two controls on `47fafc12`.
+Two independent no-call processes match; model improvement remains unmeasured. New
+manifest `9b0d85fb...34776f` proposes one bounded Flash → Pro run under USD 0.80,
+pending explicit approval. No further runtime/prompt/schema change or provider call.
