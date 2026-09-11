@@ -57,10 +57,14 @@ checks pass. Runtime/policy/schema did not change, so the previous full gate rem
 
 ## Next decision
 
-If planner quality is to be measured, use a small separately admitted planner-only
-comparison with anonymous questions and predeclared requested distinctions. Inspect
-the actual returned fields, separately from faithful transport. Do not add a qualifier
-enum or keyword coverage rule based on these authored responses.
+[Six-question planner-only admission](../../benchmarks/results/planner_semantics_2026-09-12/README.md)
+is prepared from `72951f1b`, not executed: current default Flash, three paired
+anonymous contrasts, fixed semantic criteria kept outside model input, six calls at
+most, USD 0.20 cap. Manifest `f78ee9d1...bf20d` awaits explicit approval. Two independent
+network-blocked SDK receipts are byte-identical; admission checks 8/8 and existing
+planning/provider tests 26/26 pass. No runtime change, source transmission or semantic
+measurement occurred. Inspect actual returned fields separately from faithful
+transport; do not add a qualifier enum or keyword coverage rule from authored stubs.
 
 A later compiler comparison must separately identify changed source layouts, supplied
 requirements and model outputs. Neither new cell metadata nor this transport review
