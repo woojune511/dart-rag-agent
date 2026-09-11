@@ -10,6 +10,7 @@ from src.agent.financial_graph_calculation import _semantic_candidate_cohorts
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
 from tests.semantic_program_test_support import _StructuredQueueLLM, _obligation, _scope
+from tests.compiler_presentation_test_support import bundle_text
 
 
 def paragraph(candidate_id, subject, text, *, segment=""):
@@ -112,9 +113,9 @@ class SemanticCompilationScopeTests(unittest.TestCase):
         payload = FinancialAgent._semantic_program_prompt_payload(self.catalog, plan)
         for candidate in self.catalog:
             row = payload["candidates_by_id"][candidate["candidate_id"]]
-            self.assertEqual(row["document_company"], "Filing Group")
+            self.assertEqual(payload["document_provenance"]["candidates_by_id"][candidate["candidate_id"]]["document_company"], "Filing Group")
             self.assertEqual(row["local_entity_surfaces"], candidate["local_entity_surfaces"])
-            self.assertEqual(payload["source_bundles_by_id"][row["source_bundle_id"]]["source_text"], candidate["source_text"])
+            self.assertEqual(bundle_text(payload, row["source_bundle_id"]), candidate["source_text"])
         self.assertEqual(self.catalog, before)
 
     def test_prompt_defines_owner_absence_local_subject_and_theme_boundaries(self):

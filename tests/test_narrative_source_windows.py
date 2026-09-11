@@ -19,6 +19,7 @@ from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
 )
 from src.agent.financial_source_bundles import build_semantic_source_bundles
+from tests.compiler_presentation_test_support import bundle_text, context_surfaces
 
 
 def source(text: str, source_id: str = "source-body") -> dict:
@@ -64,10 +65,11 @@ class NarrativeSourceWindowTests(unittest.TestCase):
         plan = _semantic_candidate_cohorts(catalog, [owner, other])
         payload = FinancialAgentCalculationMixin._semantic_program_prompt_payload(catalog, plan)
         bundle = payload["source_bundles_by_id"][payload["candidates_by_id"][narrative["candidate_id"]]["source_bundle_id"]]
-        continuations = [payload["source_contexts_by_id"][key] for key in bundle["context_ids"]
+        surfaces = context_surfaces(payload)
+        continuations = [{**payload["source_contexts_by_id"][key], "source_text": surfaces[key]} for key in bundle["context_ids"]
                          if bundle["context_relations"][key] == "source_continuation"]
         continuations.sort(key=lambda row: row["source_span"])
-        windows = [(narrative["source_bundle_context_span"], bundle["source_text"])] + [
+        windows = [(narrative["source_bundle_context_span"], bundle_text(payload, bundle["source_bundle_id"]))] + [
             (row["source_span"], row["source_text"]) for row in continuations
         ]
         self.assertEqual("".join(text for _, text in windows), body)
@@ -91,9 +93,7 @@ class NarrativeSourceWindowTests(unittest.TestCase):
         plan = _semantic_candidate_cohorts(catalog, [narrative_owner()])
         payload = FinancialAgentCalculationMixin._semantic_program_prompt_payload(catalog, plan)
         self.assertEqual(payload["candidates_by_id"][narrative["candidate_id"]]["source_body_coverage"], coverage)
-        windows = [b["source_text"] for b in payload["source_bundles_by_id"].values()] + [
-            c["source_text"] for c in payload["source_contexts_by_id"].values()
-        ]
+        windows = [b["source_text"] for r in payload["source_readings"] for b in r["bodies"]] + list(context_surfaces(payload).values())
         self.assertLessEqual(sum(map(len, windows)), 4800)
         self.assertNotIn("Unseen ending.", "".join(windows))
 

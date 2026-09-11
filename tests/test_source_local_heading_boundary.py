@@ -120,10 +120,11 @@ class SourceLocalHeadingBoundaryTests(unittest.TestCase):
             {'visible_candidate_ids': [row['candidate_id']]})
         visible = payload['candidates_by_id'][row['candidate_id']]
         self.assertEqual(visible['local_heading'], '[Birch] > 가. Routes')
-        self.assertEqual(visible['document_company'], 'Parent group')
+        self.assertEqual(payload['document_provenance']['candidates_by_id'][row['candidate_id']]['document_company'], 'Parent group')
         self.assertEqual(visible['local_entity_surfaces'], [])  # No guessed entity classifier.
         bundle = payload['source_bundles_by_id'][visible['source_bundle_id']]
-        self.assertEqual(bundle['source_text'], body)
+        from tests.compiler_presentation_test_support import bundle_text
+        self.assertEqual(bundle_text(payload, bundle['source_bundle_id']), body)
         self.assertEqual(catalog, before)
         self.assertEqual(semantic_candidate_catalog_fingerprint(catalog), fingerprint)
 

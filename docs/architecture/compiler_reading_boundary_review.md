@@ -1,6 +1,6 @@
 # Compiler reading boundary review
 
-Status: diagnosis and proposed next change; **not implemented**.
+Status: compiler presentation repair implemented; semantic improvement **unverified**.
 2026-09-11; reviewed clean `08ee8a35`, unchanged runtime `ef065b7b...f957a`.
 Authority: [runtime contract](agent_runtime_contract.md).
 
@@ -13,10 +13,10 @@ ranking factors, numeric instructions and underspecified authored requirements.
 Some defects are directly reproducible; their effect on model interpretation is
 not causally measured. Another instruction-only paid rerun is not the next step.
 
-This review changed no runtime, model, schema, candidate ID, source store, dataset,
-frozen response or evaluation criterion. No provider call was made.
+The initial review changed no runtime. Its subsequent presentation repair is recorded
+below; models/program schema, IDs, stores, datasets, frozen responses and review criteria remain unchanged. No provider call was made.
 
-## Findings
+## Findings at the reviewed baseline
 
 | Finding | Evidence | Classification |
 | --- | --- | --- |
@@ -61,23 +61,23 @@ account for 16,186 bytes, excluding their containing key names/framing.
 These examples are diagnostic observations, never runtime selection conditions.
 The stored SDK request hashes match the original admission/rehearsal boundary.
 
-## Next implementation, one owner seam first
+## Implemented seam and remaining boundary
 
-First change only the **compiler presentation projection**, keeping the catalog,
+The repair changes only the **compiler presentation projection**, keeping the catalog,
 selection/visibility, program schema, validator, executor and provider-call count:
 
-1. Use an explicit allowlist for prompt match fields. Keep necessary applicability
+1. Explicit allowlists cover prompt match/cohort fields. Keep necessary applicability
    states, but remove rank vectors/diagnostic scores from model input; keep them in
    trace. A recursive prompt check must catch leaks through either cohorts or rows.
-2. Present a source-local reading unit: exact located enclosing headings, local
+2. v7 presents a source-local reading unit: exact located enclosing headings, local
    paragraph/table body and their existing quote targets next to each other.
    Use actual document identity/location/attachment, never company-name equality or
    title wording, to arrange them. Keep document metadata in a clearly separate
    provenance area. Do not infer a pronoun's identity or overwrite an explicit body subject.
-3. Keep empty scalar-only fields and numeric-only explanatory clauses out of a
+3. Empty fields and numeric-only template/retry explanatory clauses stay out of a
    narrative-only reading view. Mixed/numeric obligations retain their needed
    fields and rules. This is a prompt projection, not a second answering route.
-4. Distinguish ordinary narrative row quotes from the special permission to read
+4. Ordinary narrative row quotes are distinct from the special permission to read
    a numeric cell's row description without using its scalar. Show the latter
    only with its actual axis/provenance prerequisites; do not weaken checks or
    introduce a semantic candidate-role classifier.
@@ -110,6 +110,21 @@ detail must not be repaired by matching question-specific runtime keywords.
   change and these gates should a fresh manifest, rehearsals and separate paid approval
   be considered. No automatic rerun under a consumed admission.
 
+### Current provider-free verification
+
+The [projection receipt](../../benchmarks/results/compiler_reading_projection_2026-09-11_v2/README.md)
+reprojects all seven frozen inputs and ten saved responses, socket-blocked. Candidate
+catalogs, selectable cohorts, bundle/context fingerprints and exact quote surfaces are
+unchanged; saved programs/validation/envelopes/execution remain byte-identical. All 88
+protected files survive. This is a changed-prompt counterfactual, not exact old-prompt
+replay, new model answers, SDK rehearsal or paid admission.
+
+Initial serialized prompt bytes total **189,859**, previously **239,551** (20.74% less).
+Candidate payloads alone total **91,540**, previously **93,265** (1.85% less). Shared
+context layout adds explicit reading boundaries; most reduction is numeric instruction
+removal, not lost source text. Per-input full prompt reduction is 13.5–24.8%; bytes are
+not measured tokens/cost/latency. Local tests and remaining gates are in project status.
+
 ## Evidence and limits
 
 [Read-only probe](../../benchmarks/results/compiler_reading_audit_2026-09-11/probe.py)
@@ -122,4 +137,5 @@ Existing focused tests: **53/53** in 6.030s, Python 3.13.
 The paid outcome remains runtime **6/7**, narrow fixed source criteria **1/7**, with
 an unsupported qualifier even in that one route-separation case. Nothing here is
 a new model answer, semantic improvement, full-agent/ledger gate or generalization
-claim. The runtime's earlier 1360-test full gate was not rerun for this diagnosis.
+claim. The initial diagnosis did not rerun the prior 1360-test gate; the implemented
+presentation repair now passes **1371/1371** in 41.460s on Python 3.13.

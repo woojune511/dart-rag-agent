@@ -258,8 +258,9 @@ class LocatedHeadingContextTests(unittest.TestCase):
             return FinancialAgentCalculationMixin._semantic_program_prompt_payload(items, _semantic_candidate_cohorts(items, owners))
         payload = prompt(rows)
         self.assertEqual(payload, prompt(list(reversed(rows))))
-        self.assertTrue(any('[Aspen]' == c['source_text'] for c in payload['source_contexts_by_id'].values()))
-        self.assertEqual(sum(c['source_text'] == '[Aspen]' for c in payload['source_contexts_by_id'].values()), 1)
+        from tests.compiler_presentation_test_support import context_surfaces
+        self.assertTrue(any('[Aspen]' == text for text in context_surfaces(payload).values()))
+        self.assertEqual(sum(text == '[Aspen]' for text in context_surfaces(payload).values()), 1)
 
 
 if __name__ == '__main__':

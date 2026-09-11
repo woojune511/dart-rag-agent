@@ -847,7 +847,7 @@ def build_admission_manifest(
                 "origin": corpus.get("fixture_origin", "source_derived_reviewed"),
             },
             "runtime_build": dict(runtime_build or _tracked_runtime_build()),
-            "prompt_contract": "semantic_program_candidate_payload_v6",
+            "prompt_contract": "semantic_program_candidate_payload_v7",
             "diagnostics_contract": "semantic_candidate_stage_diagnostics_v9",
             "rehearsal": {
                 "compiler_island_count": rehearsal["summary"][

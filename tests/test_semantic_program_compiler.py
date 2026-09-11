@@ -181,8 +181,10 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         row = payload["candidates_by_id"]["late-context"]
         bundle = payload["source_bundles_by_id"][row["source_bundle_id"]]
         self.assertNotIn("source_text", row)
-        self.assertNotIn("requested semantic context", bundle["source_text"])
-        self.assertEqual(bundle["source_text"], "quantity 10 items")
+        from tests.compiler_presentation_test_support import bundle_text
+        self.assertNotIn("source_text", bundle)
+        self.assertNotIn("requested semantic context", bundle_text(payload, row["source_bundle_id"]))
+        self.assertEqual(bundle_text(payload, row["source_bundle_id"]), "quantity 10 items")
 
     def test_targeted_retry_merge_preserves_valid_output_bytes(self) -> None:
         preserved = {

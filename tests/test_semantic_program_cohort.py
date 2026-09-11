@@ -194,7 +194,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         )
         self.assertNotIn("other", payload["candidates_by_id"])
         target_row = payload["candidates_by_id"]["target"]
-        self.assertEqual(target_row["document_company"], "document company")
+        self.assertEqual(payload["document_provenance"]["candidates_by_id"]["target"]["document_company"], "document company")
         self.assertEqual(target_row["row_headers"], ["region", "target entity"])
         self.assertEqual(target_row["physical_row_id"], "row-target")
         self.assertEqual(

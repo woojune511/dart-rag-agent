@@ -141,7 +141,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
         payload = FinancialAgentCalculationMixin._semantic_program_prompt_payload(catalog,
             {"visible_candidate_ids": ["a", "b"]})
         self.assertEqual(len(payload["source_bundles_by_id"]), 1)
-        visible_text = next(iter(payload["source_bundles_by_id"].values()))["source_text"]
+        visible_text = payload["source_readings"][0]["bodies"][0]["source_text"]
         self.assertIn("Birch also uses direct delivery.", visible_text)
         self.assertNotIn("Birch owns all channels.", visible_text)
         self.assertEqual(self.validate(program, catalog)["status"], "ready")

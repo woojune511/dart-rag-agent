@@ -415,11 +415,12 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         row = payload["candidates_by_id"]["amount-target"]
         self.assertNotIn("source_text", row)
         bundle = payload["source_bundles_by_id"][row["source_bundle_id"]]
-        self.assertIn("700,691", bundle["source_text"])
-        self.assertIn("investment carrying amount", bundle["source_text"])
+        from tests.compiler_presentation_test_support import bundle_text
+        self.assertIn("700,691", bundle_text(payload, bundle["source_bundle_id"]))
+        self.assertIn("investment carrying amount", bundle_text(payload, bundle["source_bundle_id"]))
         self.assertNotIn("ranking_diagnostics", payload["cohorts"][0])
-        self.assertIn("26%", bundle["source_text"])
-        self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v6")
+        self.assertIn("26%", bundle_text(payload, bundle["source_bundle_id"]))
+        self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v7")
 
     def test_validator_rejects_visible_but_conflicting_row(self) -> None:
         obligation = _obligation()

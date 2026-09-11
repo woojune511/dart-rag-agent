@@ -171,7 +171,7 @@ class SemanticTableIdentityTests(unittest.TestCase):
             self.assertEqual(len({by_id[cid]["source_document_id"] for cid in bundle.candidate_ids}), 1)
         payload = FinancialAgent._semantic_program_prompt_payload(catalog, plan)
         for cid, row in payload["candidates_by_id"].items():
-            self.assertEqual(row["source_document_id"], by_id[cid]["source_document_id"])
+            self.assertEqual(payload["document_provenance"]["candidates_by_id"][cid]["source_document_id"], by_id[cid]["source_document_id"])
             self.assertEqual(row["table_source_id"], "sample section::table:1")
         reversed_catalog = project([table_document("report-b", values=("30", "40")), table_document()])
         reversed_plan = _semantic_candidate_cohorts(reversed_catalog, obligations)

@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Current repair restores failed narrative drafts to retry and clarifies located context versus metadata. Latest paid result uses `a466b6b4` / implementation `960fd4ad`: runtime 6/7; narrow fixed-criterion Codex source review 1/7, with an unsupported qualifier even in that case. Semantic attribution remains unresolved.
+Current repair implements v7 compiler presentation: source-local reading units, filing metadata separation, explicit match/cohort allowlists and narrative-only template/retry instructions. Latest paid result remains `a466b6b4` / implementation `960fd4ad`: runtime 6/7; narrow source review 1/7 with an unsupported qualifier. No new semantic improvement is claimed.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -55,10 +55,10 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; current full unittest: **1360/1360** in 50.824s.
-Six new regressions cover failed-draft/error alignment, owner/requirement isolation,
-ordered copied projection, unchanged accepted claims, numeric-only retries and legitimate removal/abstention.
-Focused compiler/cohort/validator/context/narrative **152/152**, import/boundary/topology/docs/audit **30/30**; domain audit **83 reviewed literals**, no new exception; pycompile/diff pass.
+Python 3.13.13; current full unittest: **1371/1371** in 41.460s.
+Eleven new presentation regressions cover recursive allowlists, exact source layout,
+shared-context/peer/filing isolation, metadata separation, unknowns, scalar capabilities and retry preservation.
+Focused presentation/compiler/cohort/context/narrative **143/143**, integration/table/docs **42/42**, import/boundary/topology/docs/audit **30/30**; domain audit **83 reviewed literals**, no new exception; pycompile/diff pass.
 The [period/subject projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md) remains bound to `3d3f64cd`; [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md) to `cb6ebb3a...da7ba`. Neither is current-head model output.
 
 The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
@@ -136,8 +136,8 @@ Those records do not establish current-build release readiness or unseen-questio
 
 - [Located-heading successor](../../benchmarks/results/located_heading_context_2026-09-11/v2/README.md): intermediate titles become exact quotes. Six unchanged anonymous inputs/14 visible IDs and catalog fingerprints preserved; metadata-only issuer claims still fail.
   [Subject-context result](../../benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md): Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60, billing unobserved; API/execution errors 0. Admission consumed; ten responses replay identically without API.
-  [Retry-context result](../../benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md), runtime `ef065b7b...f957a`, consumed `4a1a66f8...8c500`: Pro **10 calls/3 retries**, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Unchanged narrow source criteria remain **1/7**, not full-answer faithfulness. All three retries received their seven draft claims; one repeats a title/body quote error, one fixes the quote but not subject interpretation. Ten responses replay identically without API; usage reconciles and 58 protected files remain unchanged. No runtime repair or new paid call followed review.
-- [Provider-free reading review](../architecture/compiler_reading_boundary_review.md) on `08ee8a35`: 40 rank vectors leak into seven initial payloads; narrative rows carry 43–44 fields, 21–23 empty. Seven anonymous controls and **53/53** focused tests characterize exact-quote versus semantic limits; 88 frozen files unchanged, API 0. No runtime fix. Next seam: source-local compiler presentation, separated metadata and explicit prompt-field allowlists; preserve authority and keep requirement-specificity work separate from the frozen seven inputs.
+  [Retry-context result](../../benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md), runtime `ef065b7b...f957a`, consumed `4a1a66f8...8c500`: Pro **10 calls/3 retries**, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Unchanged narrow source criteria remain **1/7**, not full-answer faithfulness. All three retries received their seven draft claims; one repeats a title/body quote error, one fixes the quote but not subject interpretation. Ten responses replay identically without API; usage reconciles and 58 protected files remain unchanged. The frozen paid result is unchanged; the subsequent v7 presentation repair below has no new paid call.
+- [Compiler reading repair](../architecture/compiler_reading_boundary_review.md): v7 removes rank leakage and groups source-local quote containers with identical observed attachments; metadata stays separate. [Seven-input/ten-saved-response counterfactual](../../benchmarks/results/compiler_reading_projection_2026-09-11_v2/README.md) preserves candidate/owner/bundle/context identity and all program/validation/execution bytes; 88 protected files unchanged, API 0. Initial prompt bytes drop 20.74%; semantic interpretation remains unverified. Next: independent requirement-specificity/planner copying checks or separately admitted model comparison, without rewriting the frozen seven inputs.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.

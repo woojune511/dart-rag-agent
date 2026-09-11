@@ -32,6 +32,9 @@ from src.agent.financial_graph_state import (
 )
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_narrative_claims import project_narrative_retry_drafts
+from src.agent.financial_compiler_presentation import (
+    project_prompt_cohort, project_prompt_match, project_prompt_retry_feedback, project_reading_payload,
+)
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
@@ -535,14 +538,7 @@ def _semantic_program_prompt_cohort(
 ) -> Dict[str, Any]:
     """Keep observability-only ranking fields out of compiler input."""
 
-    cohort = dict(raw_cohort)
-    cohort.pop("ranking_diagnostics", None)
-    source_group = cohort.get("source_defined_group_selection")
-    if isinstance(source_group, Mapping):
-        prompt_source_group = dict(source_group)
-        prompt_source_group.pop("complete_option_count", None)
-        cohort["source_defined_group_selection"] = prompt_source_group
-    return cohort
+    return project_prompt_cohort(raw_cohort)
 
 
 def _rank_applicable_owner_candidates(
@@ -1622,7 +1618,7 @@ class FinancialAgentCalculationMixin:
                 "aggregation_stage": str(item.get("aggregation_stage") or ""),
                 "aggregate_label": str(item.get("aggregate_label") or ""),
                 "match_by_owner": {
-                    str(owner_id): dict(match)
+                    str(owner_id): project_prompt_match(match)
                     for owner_id, match in dict(
                         (candidate_match_by_id or {}).get(
                             str(item.get("candidate_id") or ""),
@@ -1693,8 +1689,7 @@ class FinancialAgentCalculationMixin:
                     raise ValueError(f"conflicting source context: {context_id}")
                 source_contexts[context_id] = projection
         source_contexts = dict(sorted(source_contexts.items()))
-        return {
-            "schema": "semantic_program_candidate_payload_v6",
+        return project_reading_payload({
             "source_contexts_by_id": source_contexts,
             "source_context_fingerprint": hashlib.sha256(json.dumps(
                 source_contexts, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest(),
@@ -1737,7 +1732,7 @@ class FinancialAgentCalculationMixin:
                 for candidate_id in visible_ids
                 if candidate_id in row_by_id
             },
-        }
+        }, visible_catalog)
 
     @staticmethod
     def _semantic_program_evidence_items(
@@ -1933,9 +1928,6 @@ class FinancialAgentCalculationMixin:
             structured_llm = self._llm_for_phase("program_compilation").with_structured_output(
                 semantic_calculation_program_model()
             )
-            prompt = chat_prompt_template_from_template(
-                str(CALCULATION_PROMPT_POLICY.get("semantic_program_prompt_template") or "")
-            )
             retry_feedback = "-"
             retry_target_ids: List[str] = []
             read_only_dependency_outputs: Dict[str, Dict[str, Any]] = {}
@@ -1973,13 +1965,26 @@ class FinancialAgentCalculationMixin:
                         "evidence_coverage": "bounded_excerpts",
                         "document_absence_established": False,
                     }
+                    template_key = (
+                        "semantic_program_narrative_prompt_template"
+                        if active_prompt_payload["reading_mode"] == "narrative_only"
+                        else "semantic_program_prompt_template"
+                    )
+                    prompt = chat_prompt_template_from_template(CALCULATION_PROMPT_POLICY[template_key])
+                    row_description_instructions = (
+                        CALCULATION_PROMPT_POLICY["semantic_program_row_description_instructions"]
+                        if any(row.get("row_description_quote_options") for row in
+                               active_prompt_payload["candidates_by_id"].values()) else ""
+                    )
                     prompt_value = prompt.invoke(
                         {
                             "query": query,
                             "compilation_scope": _compiler_json(compilation_scope),
                             "obligations": _compiler_json(prompt_obligations),
                             "candidate_catalog": active_prompt_catalog_json,
-                            "retry_feedback": retry_feedback,
+                            "retry_feedback": project_prompt_retry_feedback(retry_feedback,
+                                narrative_only=active_prompt_payload["reading_mode"] == "narrative_only"),
+                            "row_description_instructions": row_description_instructions,
                         }
                     )
                     compiled: Any = structured_llm.invoke(prompt_value)

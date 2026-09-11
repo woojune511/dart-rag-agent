@@ -724,8 +724,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         visible_payload = self._prompt_json(
             llm.prompts[0], "Source bundles, candidate cohorts, and candidates_by_id:"
         )
-        self.assertEqual(visible_payload["candidates_by_id"][opening_id]["year"], 2024)
-        self.assertEqual(visible_payload["candidates_by_id"][closing_id]["year"], 2024)
+        self.assertEqual(visible_payload["document_provenance"]["candidates_by_id"][opening_id]["year"], 2024)
+        self.assertEqual(visible_payload["document_provenance"]["candidates_by_id"][closing_id]["year"], 2024)
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
         self.assertEqual(len(llm.prompts), 2)
         retry_prompt = str(llm.prompts[1])
