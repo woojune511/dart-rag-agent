@@ -29,8 +29,8 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references |
 | `src/agent/financial_candidate_matching.py` | typed applicability and row/column subject identity; numeric metric isolation, owner-aware narrative reading and document/section/source/row budget diversity; no cell-precision or filing-company narrative bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, compact lossless JSON, explicit active-output/bounded-evidence call scope, islands/targeted retry with read-only dependency inputs; merged explanation uses final validation, local rationale stays in island diagnostics; terminal admission errors propagate |
-| `src/agent/financial_program_projection.py` | claim-to-text/evidence/ID projection, no second model-written paragraph; validated description-only separation, no historical ID widening |
-| `src/agent/financial_narrative_claims.py` | exact claim-local quote/subject/number attachment to visible bundles or candidate-linked contexts and located trace; not semantic entailment |
+| `src/agent/financial_program_projection.py` | one claim renderer: subject label for fragments, unchanged full statements; parent text/evidence/ID projection and description-only separation, no historical ID widening |
+| `src/agent/financial_narrative_claims.py` | exact claim-local quote/subject/number authority, actionable repair detail and raw/rendered trace; not grammatical attribution or semantic entailment |
 | `src/agent/financial_calculation_execution.py` | dimensions/scope, numeric cell-subject and explicit source-section authority (including dependencies); exact row descriptions without scalar authority; provenance, validation/execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |

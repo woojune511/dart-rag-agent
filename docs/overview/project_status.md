@@ -6,7 +6,7 @@ Last updated: 2026-09-11
 
 The product is `FinancialAgent`, on `codex/reviewed-compiler-selection-gate`.
 General correctness review baseline: clean `327002c0`.
-Source-local boundaries: `3cbae398`; claim-local narrative grounding: `5962d1f7`. The latest paid diagnosis used that unchanged runtime.
+Source-local boundaries: `3cbae398`; paid claim baseline: `5962d1f7`. Current successor fixes subject rendering, with provider-free evidence only.
 [Audit findings and residual boundaries](../architecture/general_correctness_audit.md)
 replace case-by-case trial-and-error as the current work map.
 
@@ -29,9 +29,9 @@ Implemented generic repairs:
 - Whole calendar/relative/fiscal labels cannot become inferred subjects, including
   abbreviated years. Explicit subjects and names containing temporal text stay intact.
 - Initial/retry prompts explicitly limit active outputs and mark evidence as bounded
-  excerpts. Nonempty narrative `claims` attach source-copied subjects/text to exact
-  visible quotes; code derives the paragraph/evidence list. Quote/subject/number errors
-  repair the same cohort. No new model call; literal grounding is not semantic entailment.
+  excerpts. Source-copied claim subjects need not repeat in text; one renderer labels
+  fragments while preserving full statements. Quote/subject/number errors retain same-cohort
+  repair, explicit detail and per-attempt export. Labeling is not semantic entailment; no new call.
 - Canonical routing validates full finite vector batches before success caching;
   incomplete embedding identity disables cross-instance reuse. Cosine is scale-stable.
 - Search-cache Documents/provenance are copied, committed writes invalidate caches,
@@ -55,10 +55,10 @@ and historical result bytes are not changed by this audit.
 
 ## Local verification
 
-Python 3.13.13; latest full implementation gate: **1334/1334** in 34.584s (not rerun for this experiment).
-Seventeen new tests cover claim projection/quotes, subject and numeric grounding, shared
-visible rows, hidden/foreign evidence, V2 drift, retry byte preservation and fixture provenance.
-Focused source/claim/compiler **42/42**, import/topology/docs **24/24**; audit **83 reviewed literals**, no new exception; pycompile/diff pass.
+Python 3.13.13; current full unittest: **1341/1341** in 34.477s.
+Seven new tests cover multilingual fragment display, raw/model/validator/executor/final
+projection, invalid fields/authority, independent island bytes and retry diagnostics.
+Focused narrative/compiler **94/94**, import/boundary/topology/docs **25/25**; audit **83 reviewed literals**, no new exception; pycompile/diff pass.
 The [period/subject projection](../../benchmarks/results/period_subject_boundary_2026-09-10/v2/README.md) remains bound to `3d3f64cd`; [reading/selection replay](../../benchmarks/results/narrative_reading_selection_2026-09-11/README.md) to `cb6ebb3a...da7ba`. Neither is current-head model output.
 
 The [counterfactual](../../benchmarks/results/narrative_row_description_2026-09-11/README.md) removes the carrier-period error with three authored quotes; two other responses remain unchanged. This is not new compiler output or semantic success.
@@ -67,14 +67,14 @@ The [source-local probe](../../benchmarks/results/local_heading_scope_2026-09-11
 The [claim counterfactual](../../benchmarks/results/narrative_claim_grounding_2026-09-11/README.md), runtime `cfb9dff5...28be6`, rejects metadata-only subject attribution but still accepts a deliberately retagged broadened paragraph. This is a semantic negative control, not solved faithfulness; all predecessor bytes remain.
 Current compiler/protected execution require claims. Historical flat replay explicitly marks enforcement off; fixture v3 adds agent-authored witnesses without changing v2 sources, questions, numeric programs, expected outcomes or selected IDs. Neither is new human/model review.
 
-Latest [claim interpretation run](../../benchmarks/results/narrative_claim_compiler_2026-09-11/RESULTS.md): clean `5962d1f7`, admission `966a0fa7...759a5` consumed.
-Pro **10 calls**, three internal retries, runtime **3/7**, provider/execution exceptions **0**;
-estimated **USD 0.212920 / 0.60**, billing unobserved. Three otherwise source-supported
-structured readings fail `narrative_claim_subject_omitted`; subject exists separately but
-text does not repeat it. One causal abstention is faithful, not complete. Known-source
-output names the local company/routes but leaves "당사" unresolved. Ten saved responses
-replay byte-identically through prompts/program/validation/V2 execution, external sockets blocked.
-Fixed-criteria Codex review is not human verification, full-agent or unseen generalization.
+Latest paid [claim run](../../benchmarks/results/narrative_claim_compiler_2026-09-11/RESULTS.md): clean `5962d1f7`, admission `966a0fa7...759a5` consumed.
+Pro **10 calls**, retry **3**, runtime **3/7**, provider/execution exceptions **0**;
+estimated **USD 0.212920 / 0.60**, billing unobserved. Three structured readings were
+rejected for not repeating subject in text; one causal abstention was faithful, not complete.
+Current [rendering replay](../../benchmarks/results/narrative_claim_rendering_2026-09-11/README.md), runtime `b9d31c60...70b0b`, uses unchanged first responses: **6/7**, retry/API **0**.
+The three old accepted programs and causal abstention keep identical program/execution bytes.
+Raw claim subject/text/quotes, candidates and frozen artifacts stay intact. Known-source
+"당사" coreference and semantic contradictions remain unresolved; this is not new model accuracy.
 Prior [reading comparison](../../benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md) stays runtime 2/3, reviewed 1/3 on `ff283a58`; no old result was repaired.
 
 ## Independent pilot: immutable compiler-only predecessor
@@ -135,9 +135,9 @@ Those records do not establish current-build release readiness or unseen-questio
 
 ## Next work
 
-- Next: align separate subject representation with final sentence rendering, then test
-  explicit format-repair feedback and per-attempt export using provider-free controls.
-  Do not merely remove grounding checks; quote matching is not semantic entailment.
+- Next: review deictic/group attribution separately from literal grounding and rendering.
+  Any new compiler-response verification needs fresh admission; current replay is source-exposed.
+  A label cannot certify a statement about another entity; do not add a subject classifier.
 - Source-exposed regression, full-agent retrieval and semantic completeness stay distinct; ID/scope/number validation is not entailment. New reports are not indexed.
 - Paid admissions are consumed. New paid work/store preparation needs scoped authority and
   a current manifest; no automatic rerun, fresh ingest, gold-ID oracle or validator relaxation.

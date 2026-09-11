@@ -3,6 +3,24 @@
 from typing import Any, Mapping
 
 
+def render_narrative_claim(claim: Mapping[str, Any]) -> str:
+    """Display a declared subject without inferring grammar or changing meaning.
+
+    Source authority and nonblank fields are validated separately. A label scopes a
+    subjectless fragment; an already attributed statement keeps its display.
+    """
+    subject, text = claim.get("subject"), claim.get("text")
+    if not isinstance(text, str):
+        raise ValueError("invalid_narrative_claims")
+    text = " ".join(text.split())
+    subject = " ".join(subject.split()) if isinstance(subject, str) else ""
+    # Never turn an empty statement into a nonempty answer just by labeling it.
+    # Keep malformed claims available to the validator's owned error feedback.
+    if not subject or not text:
+        return text
+    return text if subject in text else f"{subject}: {text}"
+
+
 def project_narrative_claims(binding: Mapping[str, Any]) -> dict[str, Any]:
     """Claims are the only writer of current narrative text and evidence links.
 
@@ -16,9 +34,7 @@ def project_narrative_claims(binding: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("invalid_narrative_claims")
     texts, evidence = [], []
     for claim in claims:
-        if not isinstance(claim.get("text"), str):
-            raise ValueError("invalid_narrative_claims")
-        texts.append(" ".join(claim["text"].split()))
+        texts.append(render_narrative_claim(claim))
         links = claim.get("evidence_bindings")
         if not isinstance(links, list) or any(not isinstance(row, Mapping) for row in links):
             raise ValueError("invalid_narrative_claims")

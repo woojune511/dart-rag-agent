@@ -75,10 +75,16 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
                 row.update(subject=entity, text=f"{entity} sells through partners.")
                 self.assertIn("ungrounded_narrative_subject", self.codes(program))
 
-    def test_subject_must_remain_in_its_claim_text(self):
+    def test_renderer_retains_subject_but_cannot_certify_text_attribution(self):
         program = deepcopy(self.program)
         program["narrative_bindings"][0]["claims"][0]["text"] = "Parent sells through partners."
-        self.assertIn("narrative_claim_subject_omitted", self.codes(program))
+        validation = self.validate(program)
+        self.assertEqual(validation["status"], "ready")
+        self.assertIn("Birch: Parent sells through partners.", validation["valid_narrative_bindings"][0]["text"])
+        # Negative control, not a faithful answer: labeling cannot judge the
+        # grammatical subject or entailment. The old repetition check also let
+        # "Birch reports that Parent sells through partners" through. Semantic
+        # attribution remains the compiler's responsibility, not a new classifier.
 
     def test_exact_quote_and_claim_local_numbers_cannot_borrow_other_evidence(self):
         for quote, text, code in (

@@ -7,7 +7,7 @@ Last updated: 2026-09-11
 The product is the single-agent `FinancialAgent`.
 Working branch: `codex/reviewed-compiler-selection-gate`.
 The general correctness audit starts at clean `327002c0`; Git records the implementation history.
-Source-local boundaries: `3cbae398`; claim-local narrative grounding: `5962d1f7`. The latest paid diagnosis used that unchanged runtime.
+Source-local boundaries: `3cbae398`; paid claim baseline: `5962d1f7`. Current successor fixes subject rendering, with provider-free evidence only.
 
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -26,8 +26,8 @@ defects, generic regressions, coverage limits, and remaining work.
   owns units, arithmetic, scope/ID authority, exact source assertions and execution.
   No seven-role classifier, cross-encoder, extra judge or benchmark-ID branch was added.
 - Each compiler attempt declares active outputs and bounded-excerpt coverage. Narrative
-  `claims` connect source-copied subjects/text to exact visible quotes; code derives the
-  final paragraph/evidence IDs and checks claim-local numbers. Current compiler/executor
+  `claims` connect source-copied subjects/text to exact visible quotes; one renderer labels
+  subjectless fragments and derives the paragraph/IDs. Code checks claim-local numbers; compiler/executor
   reject flat unattributed text. These checks do not prove semantic entailment/completeness.
 - `CompilationEnvelopeV2` binds full catalog content, ordered obligations and query.
   Only declared `depends_on` outputs may become formula inputs. Retry assertion
@@ -108,9 +108,13 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    the separate subject field; one causal abstention is faithful, not runtime complete.
    The known excerpt names the local company/routes but leaves "당사" coreference unresolved.
    Ten saved responses replay with identical prompts/programs/validation/execution, no API.
-   Next: align subject representation with final rendering and explicit repair feedback;
-   preserve quote/owner/number authority, not a company rule or validator relaxation.
-   This authored contrast/known-source diagnosis is not full-agent or generalization evidence.
+   The [rendering successor](benchmarks/results/narrative_claim_rendering_2026-09-11/README.md)
+   processes the unchanged first responses **6/7**, no retry/API, preserving the three old
+   accepted programs and causal abstention byte-for-byte. Prior paid output stays **3/7**.
+   Quote/subject/number authority remains; labels replace raw-text repetition, not entailment.
+   Actionable errors and per-attempt history survive export. Local full gate **1341/1341**.
+   Next: separate remaining deictic/group attribution review from any new provider validation.
+   This known-source replay is not new model, full-agent or generalization evidence.
 3. Paid admissions are consumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)

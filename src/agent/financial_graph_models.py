@@ -373,8 +373,8 @@ class SemanticProgramNarrativeClaimEvidence(SemanticProgramNarrativeEvidenceBind
 class SemanticProgramNarrativeClaim(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
-    subject: str = Field(description="Source-local subject surface copied from a cited quote, also preserved in text; never inferred from filing metadata.")
-    text: str = Field(description="One source-supported statement about that subject; do not broaden its scope.")
+    subject: str = Field(description="Source-local subject surface copied from a cited quote; never inferred from filing metadata. Code preserves it in the rendered output.")
+    text: str = Field(description="One source-supported statement about the declared subject; do not broaden its scope. Repeating subject is optional: code adds a subject label when absent. Do not replace it with another entity.")
     evidence_bindings: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
 
 

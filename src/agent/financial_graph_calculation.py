@@ -2291,6 +2291,11 @@ class FinancialAgentCalculationMixin:
                                 "continuous evidence substring covering every referenced "
                                 "value span."
                             ),
+                            "narrative_claim_invariant": (
+                                "Each claim needs a nonblank source-copied subject, a statement about that subject, "
+                                "and exact quotes bound to visible sources. Text need not repeat subject: code renders "
+                                "a subject label when absent. Do not change the entity or paraphrase evidence_text."
+                            ),
                         },
                         "instruction": "Only emit repairs for the listed obligations.",
                     },
@@ -3171,6 +3176,7 @@ class FinancialAgentCalculationMixin:
                 "program_validation_errors": list(
                     validation.get("errors") or []
                 ),
+                "program_validation_history": calculation_plan["program_validation_history"],
                 "program_invocation_errors": invocation_errors,
                 "compilation_islands": island_diagnostics,
             },
