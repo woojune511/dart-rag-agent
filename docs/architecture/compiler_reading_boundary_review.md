@@ -1,6 +1,6 @@
 # Compiler reading boundary review
 
-Status: compiler presentation repair implemented; semantic improvement **unverified**.
+Status: compiler presentation repair implemented; one paid comparison shows partial improvement, not semantic completeness.
 2026-09-11; reviewed clean `08ee8a35`, unchanged runtime `ef065b7b...f957a`.
 Authority: [runtime contract](agent_runtime_contract.md).
 
@@ -14,7 +14,7 @@ Some defects are directly reproducible; their effect on model interpretation is
 not causally measured. Another instruction-only paid rerun is not the next step.
 
 The initial review changed no runtime. Its subsequent presentation repair is recorded
-below; models/program schema, IDs, stores, datasets, frozen responses and review criteria remain unchanged. No provider call was made.
+below; models/program schema, IDs, stores, datasets, frozen responses and review criteria remain unchanged. The initial review/repair made no provider call; the separately approved comparison is recorded at the end.
 
 ## Findings at the reviewed baseline
 
@@ -134,8 +134,12 @@ and [receipt](../../benchmarks/results/compiler_reading_audit_2026-09-11/receipt
 Receipt SHA `ddf56e9034b876e7354b10fc5c8502dc1f18b349998ab1e0fc702fdbf916a7f1`.
 Existing focused tests: **53/53** in 6.030s, Python 3.13.
 
-The paid outcome remains runtime **6/7**, narrow fixed source criteria **1/7**, with
-an unsupported qualifier even in that one route-separation case. Nothing here is
-a new model answer, semantic improvement, full-agent/ledger gate or generalization
-claim. The initial diagnosis did not rerun the prior 1360-test gate; the implemented
-presentation repair now passes **1371/1371** in 41.460s on Python 3.13.
+The diagnosis's predecessor remains runtime **6/7**, narrow source review **1/7**
+with an unsupported qualifier. The [subsequent v7 comparison](../../benchmarks/results/compiler_reading_compiler_2026-09-11/RESULTS.md),
+admission `73391c0e`, ran seven calls with no retry: runtime **7/7**, source review
+**2 clearly met / 1 partial-uncertain / 4 not met**, estimated USD 0.18855625/0.60.
+Seven responses replay identically, API 0; 93 protected files unchanged. Group scope,
+uncertainty and subject interpretation remain open. Observed XML TITLE/P ordering and
+pre-existing concatenated row-cell text need separate provider-free characterization;
+their causal effects are unmeasured. No post-run runtime fix, full-agent/ledger gate or
+generalization claim. The implemented repair's local gate is **1371/1371** in 41.460s.
