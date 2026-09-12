@@ -1,6 +1,6 @@
 # Compiler output responsibility context review
 
-Status: implemented in production compiler presentation, provider-free gate, 2026-09-12.
+Status: implemented; fixed-plan paid sample records partial repetition reduction, 2026-09-12.
 Implementation starts at clean `ead37a80`; prior measured runtime was `47fafc12`.
 Normative authority remains [runtime contract](agent_runtime_contract.md).
 
@@ -79,7 +79,7 @@ execution authority. Validated claim locations remain trace, not accepted progra
 An authored duplicate deliberately survives; no semantic deletion or model improvement
 is claimed. Related focused suites pass **101/101**; domain audit passes 83 reviewed literals.
 Python 3.13.13 full unittest **1424/1424** in 36.892s, docs/import/topology **24/24**,
-pycompile and diff gates pass. No provider calls, paid admission or store mutation.
+pycompile and diff gates pass. These implementation gates used no provider calls or store mutation.
 
 [Saved-plan projection receipt](../../benchmarks/results/compiler_responsibility_context_review_2026-09-12/receipt.json)
 is a historical **test-only prototype on `97232a56`**. It adds a proposed suffix to copies of 12 saved compiler requests, without dispatch or recompiling
@@ -101,12 +101,18 @@ foreign documents pass real scoped retrieval, which is not exercised here. No co
 matching rule is changed as part of this compiler-context review; identity/alias handling
 would need its own bounded review before claiming stricter protection.
 
-## Next measurement boundary
+## Observed comparison and remaining boundary
 
-The [fixed-plan successor](../../benchmarks/results/compiler_responsibility_compiler_2026-09-12/README.md)
-now freezes runtime `f5a2241a`, the same five inputs/catalogs and prior model plans. Pro
-initial calls remain 12; no planner is rerun. All initial SDK differences are exactly
-this context block, +21,850 bytes; two no-call receipts match. Admission `436771c0...6c7b0`
-proposes USD 0.60 and still needs fresh approval. No paid call or model improvement exists.
-Keep independent topics, shared qualifiers and unsupported omissions beside repetition;
-do not optimize only for shorter output or a fixed count. Prior provider artifacts stay intact.
+The [fixed-plan result](../../benchmarks/results/compiler_responsibility_compiler_2026-09-12/RESULTS.md)
+consumed `436771c0...6c7b0` on runtime `f5a2241a`, run HEAD `bc764c50`: same five inputs,
+catalogs and prior plans, Pro 12 calls, retries/errors 0, runtime/ledger 5/5, estimated
+USD 0.2563675/0.60. Billing is unobserved. All initial SDK differences are exactly this
+context block, +21,850 bytes; actual requests match prepared hashes. Twelve saved responses
+replay with identical requests/compilation/execution/final/ledger bytes and no API.
+Separate Codex review retains all 15 source criteria; repeated groups decrease 4 to 1.
+Intake consent still occurs in both a broad explanation and its dedicated qualifier.
+Distinct scheduling is no longer repeated; different subjects' common conditions remain.
+This is a single source-exposed partial improvement, not causal/generalization proof or
+guaranteed semantic deduplication. Further work, if requested, should first review the
+general explanation/qualifier responsibility relation provider-free. Do not delete by
+source/ID equality, alter the frozen plan, or repeat paid calls to fit the remaining case.
