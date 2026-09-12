@@ -122,6 +122,12 @@ not a hard answer-quality oracle.
   test failed on the predecessor and passes with the fix. Related initial suite
   **132/132**; current full unittest **1,492/1,492** (Python 3.13.13, 46.854s).
   Structural/local search success is not provider or semantic acceptance.
+- [Frozen-source component comparison](../../benchmarks/results/early_source_scope_2026-09-13/README.md)
+  at runtime `cb3bd5eb`: 19 saved queries, 12 unrestricted searches unchanged;
+  the requested note has 364 addressable sources. The omitted passage occurs in
+  **2/7 → 4/7** BM25 windows with early filtering. All three catalog fingerprints
+  and **83** protected files stay intact. Original dense ranks remain unavailable;
+  no compiler/provider call or new full-agent completeness claim.
 - The [section-binding tests](../../tests/test_source_section_bindings.py),
   [planner projection tests](../../tests/test_planner_subject_projection.py) and
   opt-in draft/export contracts retain their existing meaning: transport and
