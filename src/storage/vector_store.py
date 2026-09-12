@@ -36,6 +36,7 @@ from src.storage.metadata_payloads import (
 )
 from src.storage import parent_store
 from src.storage import search_merge
+from src.storage.search_scope import filter_selects_nothing
 from src.storage.structure_graph import (
     empty_structure_graph,
     get_described_by_doc as structure_graph_described_by_doc,
@@ -950,6 +951,14 @@ class VectorStoreManager:
             self.last_embedding_usage = dict(telemetry["embedding_usage"])
             self.last_search_telemetry = telemetry
             return cached
+
+        if filter_selects_nothing(where_filter):
+            telemetry.update(retrieval_mode="empty_scope", vector_skipped_reason="empty_source_scope",
+                             total_sec=_elapsed_sec(started_at))
+            self.last_embedding_usage = dict(telemetry["embedding_usage"])
+            self.last_search_telemetry = telemetry
+            self._store_cached_search(cache_key, [], telemetry=telemetry)
+            return []
 
         vector_results = []
         if self.force_bm25_only:

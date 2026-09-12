@@ -63,6 +63,7 @@ from src.config.retrieval_policy import (
 )
 from src.routing import default_format_preference
 from src.storage.bm25_index import metadata_matches_filter
+from src.storage.search_scope import restrict_search_filter
 if TYPE_CHECKING:
     from langchain_core.documents import Document
 
@@ -1911,6 +1912,13 @@ class FinancialRetrievalPipelineMixin:
         hint_budget = int(plan["hint_budget"])
         section_budget = int(plan["section_budget"])
         where_filter = plan["where_filter"]
+        obligations = state.get("answer_obligations") or []
+        source_scope_search = {"applied": False, "reason": "unrestricted_output"}
+        if not source_section_allowed_for_query({}, obligations):
+            where_filter, source_scope_search = restrict_search_filter(
+                getattr(self.vsm, "bm25_metadatas", []) or [], where_filter=where_filter,
+                allowed=lambda metadata: source_section_allowed_for_query(metadata, obligations),
+            )
         effective_k = int(plan["effective_k"])
         retry_queries = list(plan["retry_queries"])
         reflection_count = int(plan["reflection_count"])
@@ -2160,6 +2168,7 @@ class FinancialRetrievalPipelineMixin:
             "retry_queries": retry_queries,
             "retrieval_hint": retrieval_hint,
             "preferred_sections": preferred_sections,
+            "source_scope_search": source_scope_search,
         }
 
     def _select_evidence(
@@ -2414,6 +2423,7 @@ class FinancialRetrievalPipelineMixin:
             },
             "candidate_count": len(reranked),
             "scope_filter": dict(selection.get("scope_filter") or {}),
+            "source_scope_search": dict(searches.get("source_scope_search") or {}),
             "seed_count": len(seed_docs),
             "selected_count": len(docs),
             "selected_chunks": selected_chunks,

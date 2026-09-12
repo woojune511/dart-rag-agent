@@ -23,7 +23,7 @@
 | --- | --- |
 | `src/agent/financial_graph_planning.py` | required-output planning for every intent; complete named subjects separate from descriptive request conditions, original request references/themes; same-call scoped observed-section selection, distinct from soft retrieval hints |
 | `src/agent/financial_request_units.py` | exact query partition/addresses and output ownership checks; active-owner text projection, not semantic classification or evidence |
-| `src/agent/financial_retrieval_pipeline.py` | one source scope across searches/supplements/seeds/selection; narrative ownership, filing-qualified dedupe, trace |
+| `src/agent/financial_retrieval_pipeline.py` | one source scope across searches/supplements/seeds/selection; section eligibility before bounded search, narrative ownership, filing-qualified dedupe, trace |
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent readings, balanced parser-prefix separation, exact bounded body windows and separate local-heading hints |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
 | `src/agent/financial_source_scope.py` | bounded filing-qualified section inventory, exact request-to-location projection and descendant membership; literal-title compatibility, parent/input intersection and shared retrieval union; no body/heading-context authority |
@@ -54,6 +54,7 @@
 | `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
 | `src/ingestion/ingest_service.py` | end-to-end ingest ownership |
 | `src/storage/vector_store.py` | scoped dense/BM25 search, private cache copies/commit invalidation, source coverage and no-embedding sidecar repair |
+| `src/storage/search_scope.py`, `bm25_index.py` | observed source-ID/document filters before dense/lexical top-K, matching union semantics, explicit empty-scope no-call; no agent/domain dependency |
 | `src/storage/atomic_json.py` | atomic JSON replace used by graph, payload, and parent persistence |
 | `src/storage/store_manifest.py` | versioned store identity and readiness |
 

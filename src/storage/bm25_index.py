@@ -34,6 +34,9 @@ def metadata_matches_filter(metadata: Dict[str, Any], where_filter: Optional[dic
     if "$and" in where_filter:
         return all(metadata_matches_filter(metadata, clause) for clause in where_filter["$and"])
 
+    if "$or" in where_filter:
+        return any(metadata_matches_filter(metadata, clause) for clause in where_filter["$or"])
+
     for key, expected in where_filter.items():
         actual = metadata.get(key)
         if isinstance(expected, dict):

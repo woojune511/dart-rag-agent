@@ -1,7 +1,8 @@
 # Request-to-source boundary review
 
-Status: provider-free isolation completed at diagnostic baseline `845704bd`,
-runtime implementation `83755b1e`. No production code changed in this diagnosis.
+Status: provider-free isolation at diagnostic baseline `845704bd`/runtime `83755b1e`
+is complete. Its first bounded successor applies section eligibility before search
+top-K; source identity, narrative admission and claim construction remain separate.
 The [paid successor](../../benchmarks/results/request_source_full_agent_2026-09-13/RESULTS.md)
 remains **0/3 complete**, **1/5 outputs accepted**, ledger **3/3 ok**,
 API/execution exceptions **0**, estimated **USD 0.38085963/0.80**, billing unobserved.
@@ -79,14 +80,17 @@ not proof that this one change makes the full question complete.
 These contracts do not resolve all the failures above. Their implementation
 history and earlier source controls remain in Git and the linked artifacts.
 
-## Next bounded changes
+## Early-scope implementation and remaining changes
 
-1. Apply resolved, filing-qualified source eligibility **before bounded search
-   and ranking**, in the retrieval/storage seam. Carry the same scope into both
-   vector and BM25 selection and cache identity. Preserve report restrictions,
-   parent/input intersections, unrestricted siblings, seeds and owner validation.
-   Start with anonymous foreign-filing/branch, union and top-K controls.
-   Do not use unfiltered fallback or unlimited overfetch.
+1. **Implemented:** report-filtered committed metadata is tested with the existing
+   section-membership predicate before bounded search. Observed source IDs are
+   qualified by their document identity and projected to the same native dense/
+   lexical filter, including primary/retry searches and both cache keys. Empty
+   eligibility makes no embedding/backend call; unaddressable rows are counted,
+   not assigned fabricated IDs. Shared unrestricted outputs retain their original
+   filter. Final source checks and input intersections stay strict. No query,
+   score, corpus IDF, keyword, ranking quota, parser, catalog identity or store
+   mutation. This is not a full-answer fix or a new paid result.
 2. Separately design source-grounded request-name/cell-name binding. Preserve the
    original request and distinguish identity modifiers/groups from descriptions.
    Changing a frozen planner target in a diagnostic copy is not an authorized
@@ -111,8 +115,13 @@ not a hard answer-quality oracle.
   unrestricted sibling. Current failures are expected contrasts, not fixes.
 - New plus related subject, narrative, planner and retrieval tests: **89/89**,
   Python 3.13.13. Import/DAG/topology tests: **22/22**; domain audit: **83**.
-- Runtime implementation full gate remains **1,474/1,474** at `83755b1e`; it was
-  not rerun for this test/document-only diagnosis and is not provider acceptance.
+- [Early-scope regressions](../../tests/test_source_scoped_search.py): **10/10**,
+  including actual ephemeral Chroma with supplied synthetic vectors, lexical
+  ranking, foreign filings/branches, unions, report/input boundaries, both caches,
+  retry, BM25 fallback, empty scope and unaddressable metadata. The first top-K
+  test failed on the predecessor and passes with the fix. Related initial suite
+  **132/132**; current full unittest **1,492/1,492** (Python 3.13.13, 46.854s).
+  Structural/local search success is not provider or semantic acceptance.
 - The [section-binding tests](../../tests/test_source_section_bindings.py),
   [planner projection tests](../../tests/test_planner_subject_projection.py) and
   opt-in draft/export contracts retain their existing meaning: transport and
