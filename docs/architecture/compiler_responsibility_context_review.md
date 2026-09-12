@@ -103,9 +103,10 @@ would need its own bounded review before claiming stricter protection.
 
 ## Next measurement boundary
 
-Implementation does not prepare a new paid admission or demonstrate fewer model-selected
-duplicates. Any later measurement needs new frozen inputs/runtime, final SDK request/cost
-preflight and separately scoped approval; no old admission may be reused. Keep criteria
-for independent topics, shared qualifiers and unsupported omissions alongside repetition;
-do not optimize only for shorter output or an expected count. Source/store/dataset bytes
-and historical provider artifacts remain untouched.
+The [fixed-plan successor](../../benchmarks/results/compiler_responsibility_compiler_2026-09-12/README.md)
+now freezes runtime `f5a2241a`, the same five inputs/catalogs and prior model plans. Pro
+initial calls remain 12; no planner is rerun. All initial SDK differences are exactly
+this context block, +21,850 bytes; two no-call receipts match. Admission `436771c0...6c7b0`
+proposes USD 0.60 and still needs fresh approval. No paid call or model improvement exists.
+Keep independent topics, shared qualifiers and unsupported omissions beside repetition;
+do not optimize only for shorter output or a fixed count. Prior provider artifacts stay intact.
