@@ -1,4 +1,4 @@
-"""Source-local compiler presentation; no candidate selection or semantic authority."""
+"""Compiler presentation; no candidate selection or semantic authority."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import re
 from typing import Any, Mapping, Sequence
 
 from src.agent.financial_calculation_execution import _row_description_reading
+from src.agent.financial_request_units import build_request_units, project_request_units
 from src.utils.source_segments import project_source_surface
 
 
@@ -25,11 +26,35 @@ PROMPT_GROUP_FIELDS = (
     "required_candidate_ids", "policy_group_names",
 )
 DOCUMENT_FIELDS = ("company", "document_company", "year", "source_document_id", "source_anchor")
+RESPONSIBILITY_SCOPE_FIELDS = ("company", "period", "consolidation_scope", "segment", "basis")
 EMPTY_SCALAR_FIELDS = frozenset((
     "raw_value", "raw_unit", "value_year", "source_value_span", "period",
     "source_period_surface", "period_role", "period_label_surfaces", "period_source",
     "period_label_scope", "aggregation_stage", "aggregate_label", "value_role",
 ))
+
+
+def project_output_responsibility_context(
+    query: str, obligations: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Copy an accepted plan's output responsibilities, never execution/evidence state.
+
+    Request and output order are preserved. This describes planned work, not
+    whether a sibling output succeeded, and grants no binding or quote authority.
+    """
+    return {
+        "schema": "output_responsibility_context_v1",
+        "role": "planning_context_only",
+        "outputs": [{
+            "obligation_id": row["obligation_id"], "kind": row["kind"], "label": row["label"],
+            "request_unit_ids": deepcopy(row["request_unit_ids"]),
+            "local_subjects": deepcopy((row.get("semantic_target") or {}).get("local_subjects") or []),
+            "scope": {key: deepcopy(value) for key, value in (row.get("scope") or {}).items()
+                      if key in RESPONSIBILITY_SCOPE_FIELDS},
+            "source_sections": deepcopy(row.get("source_sections") or []),
+        } for row in obligations],
+        "request_units_by_id": project_request_units(build_request_units(query), obligations),
+    }
 
 
 def project_prompt_match(match: Mapping[str, Any]) -> dict[str, Any]:

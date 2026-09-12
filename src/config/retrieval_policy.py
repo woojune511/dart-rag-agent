@@ -614,11 +614,20 @@ _COMPILER_INPUT_FIELDS = (
     "원본 질문:\n{query}\n\n"
     "Compilation scope:\n{compilation_scope}\n\n"
     "Answer obligations:\n{obligations}\n\n"
+    "{output_responsibility_context}"
     "Source bundles, candidate cohorts, and candidates_by_id:\n{candidate_catalog}\n\n"
     "재시도 피드백(없으면 -):\n{retry_feedback}\n"
 )
 
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
+    'semantic_program_output_responsibility_context_template': (
+        "Output responsibility context:\n{context}\n"
+        "This is planned output responsibility, not source evidence or proof that another output succeeded. "
+        "Use it to distinguish the active explanation from separately requested topics. "
+        "Retain conditions and relationships needed to make an active answer accurate, even when shared. "
+        "Emit only active obligation IDs; select evidence only from their existing visible cohorts. "
+        "Do not merge or delete outputs because they share a subject, request, source or wording.\n\n"
+    ),
     'semantic_program_prompt_template': (
         _COMPILER_SHARED_INSTRUCTIONS + _COMPILER_NUMERIC_INSTRUCTIONS
         + _COMPILER_NARRATIVE_INSTRUCTIONS + _COMPILER_INPUT_FIELDS

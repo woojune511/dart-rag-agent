@@ -140,7 +140,7 @@ class NarrativeOutputPartitionTests(unittest.TestCase):
                 self.assertEqual(len(coarse_llm.prompts), 2)
                 self.assertEqual(len(split_llm.prompts), 3)
                 self.assertEqual(len(split['requirements']['answer_obligations']), 2)
-                # Current policy deliberately carries only active owner metadata.
+                # Active obligations stay local; sibling planning context grants no authority.
                 first_scope = prompt_json(split_llm.prompts[1], 'Compilation scope:')
                 self.assertEqual(first_scope['active_obligation_ids'], ['ob_001'])
                 self.assertEqual(list(first_scope['request_units_by_id']), ['request_001'])

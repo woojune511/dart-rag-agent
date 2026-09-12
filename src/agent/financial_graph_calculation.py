@@ -34,6 +34,7 @@ from src.agent.financial_langchain_loaders import chat_prompt_template_from_temp
 from src.agent.financial_narrative_claims import project_narrative_retry_drafts
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_compiler_presentation import (
+    project_output_responsibility_context,
     project_prompt_cohort, project_prompt_match, project_prompt_retry_feedback, project_reading_payload,
 )
 from src.agent.financial_reconciliation_candidates import (
@@ -1805,6 +1806,7 @@ class FinancialAgentCalculationMixin:
         state: CompilationInput,
         *,
         other_selectable_ids: Sequence[str] = (),
+        output_responsibility_context_json: str = "",
     ) -> Dict[str, Any]:
         """Compile one preflighted dependency/coupling island."""
 
@@ -1948,6 +1950,8 @@ class FinancialAgentCalculationMixin:
                     if str(item or "").strip()
                 ]
                 active_prompt_catalog_json = _compiler_json(active_prompt_payload)
+                active_responsibility_context_json = ""
+                responsibility_prompt = ""
                 try:
                     prompt_obligations = (
                         [
@@ -1959,6 +1963,12 @@ class FinancialAgentCalculationMixin:
                         if attempt and retry_target_ids
                         else obligations
                     )
+                    if any(item.get("kind") == "narrative" for item in prompt_obligations):
+                        active_responsibility_context_json = output_responsibility_context_json
+                    if active_responsibility_context_json:
+                        responsibility_prompt = CALCULATION_PROMPT_POLICY[
+                            "semantic_program_output_responsibility_context_template"
+                        ].format(context=active_responsibility_context_json)
                     compilation_scope = {
                         "schema": "semantic_compilation_scope_v1",
                         "active_obligation_ids": [str(item["obligation_id"]) for item in prompt_obligations],
@@ -1985,6 +1995,7 @@ class FinancialAgentCalculationMixin:
                             "query": query,
                             "compilation_scope": _compiler_json(compilation_scope),
                             "obligations": _compiler_json(prompt_obligations),
+                            "output_responsibility_context": responsibility_prompt,
                             "candidate_catalog": active_prompt_catalog_json,
                             "retry_feedback": project_prompt_retry_feedback(retry_feedback,
                                 narrative_only=active_prompt_payload["reading_mode"] == "narrative_only"),
@@ -2088,6 +2099,13 @@ class FinancialAgentCalculationMixin:
                         "attempt": attempt + 1,
                         "target_obligation_ids": list(retry_target_ids),
                         "compilation_scope": compilation_scope,
+                        "output_responsibility_context_fingerprint": hashlib.sha256(
+                            active_responsibility_context_json.encode("utf-8")
+                        ).hexdigest() if active_responsibility_context_json else "",
+                        "serialized_output_responsibility_context_bytes": len(
+                            active_responsibility_context_json.encode("utf-8")
+                        ),
+                        "output_responsibility_prompt_bytes": len(responsibility_prompt.encode("utf-8")),
                         "read_only_dependency_ids": list(read_only_dependency_outputs),
                         "serialized_dependency_bytes": len(json.dumps(
                             read_only_dependency_outputs, ensure_ascii=False, indent=2,
@@ -2562,6 +2580,14 @@ class FinancialAgentCalculationMixin:
             global_block_reason = "semantic compilation island limit exceeded"
         elif global_cohort_plan.get("status") == "capacity_exceeded":
             global_block_reason = "semantic candidate cohort capacity exceeded"
+        # An immutable presentation of the full plan, shared by narrative calls
+        # and retries. It is neither island input state nor execution authority.
+        output_responsibility_context_json = (
+            _compiler_json(project_output_responsibility_context(query, obligations))
+            if not global_block_reason and len(obligations) > 1
+            and any(item.get("kind") == "narrative" for item in obligations)
+            else ""
+        )
         obligation_by_id = {
             str(item.get("obligation_id") or ""): item
             for item in obligations
@@ -2663,6 +2689,7 @@ class FinancialAgentCalculationMixin:
                     candidate_id for owner_id, ids in query_selectable_by_owner.items()
                     if owner_id not in island_owner_ids for candidate_id in ids
                 ],
+                output_responsibility_context_json=output_responsibility_context_json,
             )
             island_envelope = compiled.get("semantic_compilation_envelope")
             if isinstance(island_envelope, CompilationEnvelopeV2):
