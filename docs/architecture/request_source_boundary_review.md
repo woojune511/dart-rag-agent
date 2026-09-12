@@ -1,7 +1,7 @@
 # Request-to-source boundary review
 
-Status: section separation implemented; planner name/description contract clarified
-and locally verified. Failed-draft export remains deferred. Latest seam baseline: `910372d3`, 2026-09-12.
+Status: section separation, planner name/description instructions and opt-in failed-draft
+export are implemented and locally verified. Latest seam baseline: `623e0c80`, 2026-09-13.
 
 ## Findings
 
@@ -90,12 +90,26 @@ need a separate source-grounded contract, not a new bypass or model rationale.
 
 ### 3. Preserve failed narrative drafts before changing their semantics
 
-Deferred. Use the existing opt-in debug/export seam to retain each attempted program and
-its validation locations for the next separately approved run. Keep accepted and
-unvalidated output distinguishable; do not add another model call or a default
-HTTP payload. Test that targeted retries expose exactly the draft sent and leave
-other accepted outputs unchanged. Only then decide whether a concrete prompt,
-transport or quote-construction repair is needed.
+Implemented in the existing `include_debug_bundle=True` path. Request-local
+`compiler_attempt_debug_v1` records retain the schema-parsed model program before
+merge and the complete validation input before rejected bindings are pruned.
+These are local JSON serializations with UTF-8 SHA-256, not raw provider responses.
+Validation locations refer to the merged input; compile-valid owner IDs are listed
+separately. Exact projected retry-feedback text shows the filtered draft actually
+sent, not a reconstruction from the final accepted program.
+
+Records follow island/attempt order and own their data. Debug-off requests do not
+collect them; default HTTP, answer/review/ledger and scoring do not include them.
+The evaluator/benchmark and compiler-only exporters retain the separate diagnostic
+field for future runs. No prompt, schema, validator, visibility or call-count change.
+Unavailable parsed responses have null program snapshots and an error class, not
+fabricated model output or a captured exception body. Terminal admission stops
+still raise; a call that never returned parsed output cannot supply a lost draft.
+
+The nine authored-response tests cover failed drafts after pruning, exact errors,
+same-island merge vs raw retry, separate accepted islands, debug-on/off prompt and
+validation equality, per-request graph capture, owned copies and export isolation.
+Only a new separately approved model run can show the model's actual quote repair.
 
 ## Verification and limits
 
@@ -104,8 +118,9 @@ They cover inventory order/bounds, exact owned requests, unknown IDs, same-title
 foreign filings/branches, descendants, parent/input intersections, runtime-field
 injection, overwide visibility, same-cohort retry, unaffected islands and V2 drift.
 Related source-scope, retry/dependency, authority, presentation and planner tests:
-**75/75** on the section seam. Current full unittest: **1,465/1,465**, Python 3.13.13,
-44.810s; domain audit **83**. Documentation/import/topology, syntax and diff checks pass.
+**75/75** on the section seam. Current full unittest: **1,474/1,474**, Python 3.13.13,
+47.962s; draft/export contracts **9/9**, related compiler/retry/export tests **156/156**;
+domain audit **83**. Documentation/import/topology, syntax and diff checks pass.
 
 [Planner name-projection tests](../../tests/test_planner_subject_projection.py): **9/9**;
 combined source/subject/request tests **63/63**. Authored projections cover role
@@ -132,5 +147,6 @@ replay of a newly generated model plan or correction of the paid output.
 
 Source-exposed controls are not new inference, answer acceptance or unseen-question
 generalization. Paid **0/3** is unchanged; provider/ingest/store writes are zero.
-New planner behavior still needs model validation; rejected narrative drafts have
-not been recovered. A new model test requires a new manifest and authority.
+New planner behavior still needs model validation. Earlier unexported narrative drafts
+cannot be recovered; the new capture applies to future opt-in runs. A new model test
+requires a new manifest, two identical no-call rehearsals and authority.

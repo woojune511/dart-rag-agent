@@ -27,11 +27,12 @@ from src.agent.financial_calculation_execution import (
 from src.agent.financial_graph_model_loaders import semantic_calculation_program_model
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids
 from src.agent.financial_graph_state import (
-    FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase,
+    FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase, CompilerAttemptDebugV1,
     NumericExecutionInput, NumericResultPhase,
 )
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_narrative_claims import project_narrative_retry_drafts
+from src.agent.financial_compiler_debug import project_compiler_attempt
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
@@ -1920,6 +1921,8 @@ class FinancialAgentCalculationMixin:
         invocation_errors: List[str] = []
         validation_history: List[Dict[str, Any]] = []
         attempt_candidate_diagnostics: List[Dict[str, Any]] = []
+        capture_attempts = bool(state.get("include_debug_bundle"))
+        compiler_attempts: List[CompilerAttemptDebugV1] = []
         catalog_candidate_ids = set(candidate_by_id)
         if cohort_plan.get("status") == "capacity_exceeded":
             invocation_errors.append("semantic candidate cohort capacity exceeded")
@@ -1942,6 +1945,10 @@ class FinancialAgentCalculationMixin:
             )
             for attempt in range(2):
                 invocation_failed = False
+                model_program_json = None
+                validation_input_program_json = None
+                response_error_type = ""
+                prompt_retry_feedback = "-"
                 active_prompt_candidate_ids = [
                     str(item)
                     for item in (
@@ -1990,6 +1997,8 @@ class FinancialAgentCalculationMixin:
                         if any(row.get("row_description_quote_options") for row in
                                active_prompt_payload["candidates_by_id"].values()) else ""
                     )
+                    prompt_retry_feedback = project_prompt_retry_feedback(retry_feedback,
+                        narrative_only=active_prompt_payload["reading_mode"] == "narrative_only")
                     prompt_value = prompt.invoke(
                         {
                             "query": query,
@@ -1997,13 +2006,14 @@ class FinancialAgentCalculationMixin:
                             "obligations": _compiler_json(prompt_obligations),
                             "output_responsibility_context": responsibility_prompt,
                             "candidate_catalog": active_prompt_catalog_json,
-                            "retry_feedback": project_prompt_retry_feedback(retry_feedback,
-                                narrative_only=active_prompt_payload["reading_mode"] == "narrative_only"),
+                            "retry_feedback": prompt_retry_feedback,
                             "row_description_instructions": row_description_instructions,
                         }
                     )
                     compiled: Any = structured_llm.invoke(prompt_value)
                     compiled_program = compiled.model_dump()
+                    if capture_attempts:
+                        model_program_json = _compiler_json(compiled_program)
                     program_data = (
                         _merge_targeted_program_retry(
                             previous_validation=previous_validation,
@@ -2019,6 +2029,7 @@ class FinancialAgentCalculationMixin:
                     raise
                 except Exception as exc:
                     invocation_failed = True
+                    response_error_type = type(exc).__name__
                     invocation_errors.append(str(exc))
                     failed_program = {
                         "status": "incomplete",
@@ -2041,6 +2052,8 @@ class FinancialAgentCalculationMixin:
                         if attempt and retry_target_ids
                         else failed_program
                     )
+                if capture_attempts and not invocation_failed:
+                    validation_input_program_json = _compiler_json(program_data)
                 validation = validate_semantic_calculation_program(
                     program=program_data,
                     require_narrative_claims=True,
@@ -2066,6 +2079,18 @@ class FinancialAgentCalculationMixin:
                         )
                     ),
                 )
+                if capture_attempts:
+                    compiler_attempts.append(project_compiler_attempt(
+                        attempt=attempt + 1,
+                        active_obligation_ids=compilation_scope["active_obligation_ids"],
+                        island_obligation_ids=[str(item["obligation_id"]) for item in obligations],
+                        visible_candidate_ids=active_prompt_candidate_ids,
+                        model_program_json=model_program_json,
+                        validation_input_program_json=validation_input_program_json,
+                        validation=validation,
+                        retry_feedback_text=prompt_retry_feedback,
+                        response_error_type=response_error_type,
+                    ))
                 proposed_ids = [
                     item
                     for item in _semantic_program_candidate_ids(program_data)
@@ -2486,6 +2511,7 @@ class FinancialAgentCalculationMixin:
         return {
             "resolved_calculation_trace": trace_update["resolved_calculation_trace"],
             "semantic_program": program_data,
+            **({"compiler_attempts": compiler_attempts} if capture_attempts else {}),
             "semantic_program_validation": validation,
             "semantic_compilation_envelope": compilation_envelope,
             "semantic_program_retry_count": retry_count,
@@ -2593,6 +2619,7 @@ class FinancialAgentCalculationMixin:
             for item in obligations
         }
         island_results: List[Dict[str, Any]] = []
+        compiler_attempts: List[CompilerAttemptDebugV1] = []
         total_retry_count = 0
         total_call_count = 0
         invocation_errors: List[str] = []
@@ -2690,6 +2717,10 @@ class FinancialAgentCalculationMixin:
                     if owner_id not in island_owner_ids for candidate_id in ids
                 ],
                 output_responsibility_context_json=output_responsibility_context_json,
+            )
+            compiler_attempts.extend(
+                {**row, "island_id": str(island["island_id"])}
+                for row in compiled.get("compiler_attempts", [])
             )
             island_envelope = compiled.get("semantic_compilation_envelope")
             if isinstance(island_envelope, CompilationEnvelopeV2):
@@ -3196,6 +3227,7 @@ class FinancialAgentCalculationMixin:
         return {
             "resolved_calculation_trace": trace_update["resolved_calculation_trace"],
             "semantic_program": merged_program,
+            **({"compiler_attempts": compiler_attempts} if state.get("include_debug_bundle") else {}),
             "semantic_program_validation": validation,
             "semantic_compilation_envelope": compilation_envelope,
             "semantic_program_retry_count": total_retry_count,

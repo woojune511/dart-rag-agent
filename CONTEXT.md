@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-12
+Last updated: 2026-09-13
 
 ## Product and authority
 
@@ -35,6 +35,7 @@ defects, generic regressions, coverage limits, and remaining work.
   projection cannot modify unrelated accepted outputs or introduce foreign evidence.
   Narrative retry carries only targeted unvalidated claims with original error locations;
   excluded/foreign evidence links are omitted. Unsupported claims may be corrected/dropped or withheld.
+  Opt-in `compiler_attempts` retain schema-parsed model/merged-input JSON, hashes, validation locations and exact retry feedback before pruning; request-local capture does not enter answer/review/ledger/scoring or change prompts/calls. Unavailable parsed output is explicit, not fabricated.
 - Source bundles preserve adjacent values and document context. Actual unique selectable
   unions are bounded by numeric 96 / narrative 32; at most eight islands and one internal
   retry per island. Budget/admission stops propagate without fallback or extra calls.
@@ -125,7 +126,7 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    [Subject-context run](benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md) consumed `7e2961f6...d5a47`: Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60; billing unobserved. Ten saved responses replay identically, no API.
    [Retry-context repair](benchmarks/results/narrative_retry_context_2026-09-11/README.md) restores the failed draft to stateless retries. Compiler policy reads located heading/body evidence together and preserves requested explanation, not invalid claim counts. Local full gate **1360/1360**.
    [Paid retry-context predecessor](benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md) consumed `4a1a66f8...8c500`: Pro 10 calls/3 retries, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Narrow source criteria **1/7**, with an unsupported qualifier. Three retries received seven draft claims; one repeats its title/body quote error, one repairs the quote without resolving the subject relation. All ten responses replay identically without API; 58 protected files unchanged. This frozen outcome is not rewritten by the subsequent v7 comparison below. No case-specific rule or validator relaxation.
-3. [Request/source repairs](docs/architecture/request_source_boundary_review.md): section separation is implemented; name/description planner instructions are clarified. Current **1,465/1,465** full unittest, **63/63** focused, audit **83**. [Subject transport control](benchmarks/results/planner_subject_projection_2026-09-12/README.md) uses an authored named target, preserving request/scopes/accepted narrative bytes while removing two subject errors; 482 catalog members/52 protected files unchanged. The prior [section control](benchmarks/results/source_section_bindings_2026-09-12/README.md) stays immutable. No new model choice or paid retry; **0/3** remains. Next bounded work: retain exact failed narrative drafts, then prepare model validation without relaxing identity/quote guards. Repetition reduction stays deferred. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
+3. [Request/source repairs](docs/architecture/request_source_boundary_review.md): section separation, name/description planner instructions and opt-in failed-draft export are implemented. Current **1,474/1,474** full unittest, new draft/export contracts **9/9**, audit **83**. [Subject transport control](benchmarks/results/planner_subject_projection_2026-09-12/README.md) and [section control](benchmarks/results/source_section_bindings_2026-09-12/README.md) remain predecessor-bound authored checks, not new model choices. No paid retry; **0/3** remains. Next: prepare fresh-plan model validation with draft capture, new manifest and two identical no-call rehearsals; do not relax identity/quote guards. Earlier unexported drafts cannot be recovered. Repetition reduction stays deferred. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
    remains runtime 2/3, Codex source-review 1/3 on `ff283a58`, not current-head output.

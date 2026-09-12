@@ -5,6 +5,7 @@ RAG evaluation pipeline for DART analysis.
 from __future__ import annotations
 
 import concurrent.futures
+from copy import deepcopy
 import json
 import logging
 import math
@@ -358,6 +359,7 @@ class EvalResult:
     task_artifact_trace: Dict[str, Any] = field(default_factory=dict)
     calculation_operands: List[Dict[str, Any]] = field(default_factory=list)
     calculation_plan: Dict[str, Any] = field(default_factory=dict)
+    compiler_attempts: List[Dict[str, Any]] = field(default_factory=list)
     calculation_result: Dict[str, Any] = field(default_factory=dict)
     agent_llm_usage: Dict[str, Any] = field(default_factory=dict)
     agent_llm_usage_by_phase: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -4889,6 +4891,7 @@ class RAGEvaluator:
         calculation_operands: List[Dict[str, Any]] = []
         calculation_variant_operands: List[Dict[str, Any]] = []
         calculation_plan: Dict[str, Any] = {}
+        compiler_attempts: List[Dict[str, Any]] = []
         calculation_result: Dict[str, Any] = {}
         resolved_calculation_trace: Dict[str, Any] = {}
         runtime_projection: Dict[str, Any] = {}
@@ -4917,6 +4920,7 @@ class RAGEvaluator:
             agent_answer = result.agent_answer
             review_trace = result.review_trace or {}
             debug_bundle = result.debug_bundle or {}
+            compiler_attempts = deepcopy(debug_bundle.get("compiler_attempts", []))
             agent_llm_usage = dict(debug_bundle.get("llm_usage", {}) or {})
             agent_llm_usage_by_phase = {
                 str(phase): dict(usage)
@@ -5390,6 +5394,7 @@ class RAGEvaluator:
             task_artifact_trace=task_artifact_trace,
             calculation_operands=calculation_operands,
             calculation_plan=calculation_plan,
+            compiler_attempts=compiler_attempts,
             calculation_result=calculation_result,
             agent_llm_usage=agent_llm_usage,
             agent_llm_usage_by_phase=agent_llm_usage_by_phase,

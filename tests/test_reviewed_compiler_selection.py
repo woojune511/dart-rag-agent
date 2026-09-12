@@ -52,6 +52,11 @@ class ReviewedCompilerSelectionTests(unittest.TestCase):
         self.assertEqual(first["summary"]["compiler_retry_count"], 0)
         self.assertEqual(first["unused_reviewed_response_count"], 0)
         self.assertGreater(first["summary"]["prompt_bytes"], 0)
+        for case in first["cases"]:
+            attempts = case["compiler_attempts"]
+            self.assertEqual(len(attempts), len(case["prompt_records"]))
+            self.assertTrue(all(row["response_status"] == "parsed" for row in attempts))
+            self.assertTrue(all(row["model_program_json"] for row in attempts))
 
     def test_manifest_rehearsal_binds_runtime_corpus_and_prompt(self) -> None:
         runtime_build = {

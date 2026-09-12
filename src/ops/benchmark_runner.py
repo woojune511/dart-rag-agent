@@ -1155,6 +1155,8 @@ def _estimate_embedding_cost_usd(embedding_metrics: Dict[str, Any], pricing: Dic
 
 
 def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
+    from copy import deepcopy
+
     serialised: List[Dict[str, Any]] = []
     for result in results:
         runtime_projection = {
@@ -1252,6 +1254,7 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "dropped_claim_ids": result.dropped_claim_ids,
                 "unsupported_sentences": result.unsupported_sentences,
                 "sentence_checks": result.sentence_checks,
+                "compiler_attempts": deepcopy(getattr(result, "compiler_attempts", []) or []),
                 "resolved_calculation_trace": resolved_trace,
                 "runtime_projection_source": projection_metadata.get("source") or "",
                 "runtime_projection_legacy_fallback": bool(

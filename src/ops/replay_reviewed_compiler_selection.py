@@ -424,6 +424,7 @@ def evaluate_reviewed_compiler_selection(
         started = perf_counter() if run_mode == "provider" else None
         catalog, catalog_checks = _compiler_case_catalog(case)
         state = _case_state(case, catalog)
+        state["include_debug_bundle"] = True
         prompt_start = len(recording_llm.records)
         try:
             compiled = agent._compile_semantic_calculation_program(state)
@@ -553,6 +554,7 @@ def evaluate_reviewed_compiler_selection(
                 },
                 "output_checks": output_checks,
                 "compiled_program": program,
+                "compiler_attempts": deepcopy(compiled.get("compiler_attempts", [])),
                 "islands": diagnostics,
             }
         )

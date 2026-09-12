@@ -132,6 +132,7 @@ def compilation_phase_input(state: FinancialAgentStateV2) -> CompilationInput:
     return {
         "query": request["query"],
         "report_scope": dict(request["report_scope"]),
+        **({"include_debug_bundle": True} if request.get("include_debug_bundle") else {}),
         "answer_obligations": list(requirements.get("answer_obligations", [])),
         "semantic_plan": dict(requirements.get("semantic_plan", {})),
         "active_subtask": dict(requirements.get("active_subtask", {})),
@@ -792,7 +793,10 @@ class FinancialAgent(
         if callable(reset_embedding_usage):
             reset_embedding_usage()
 
-        graph_final = self.graph.invoke(self._initial_state(query, report_scope))
+        initial = self._initial_state(query, report_scope)
+        if include_debug_bundle:
+            initial["request"]["include_debug_bundle"] = True
+        graph_final = self.graph.invoke(initial)
         final = graph_final["final_result"]
         llm_usage = usage_callback.snapshot_current_thread() if usage_callback is not None else {}
         llm_usage_by_phase = (
@@ -816,6 +820,7 @@ class FinancialAgent(
                 llm_usage=llm_usage,
                 llm_usage_by_phase=llm_usage_by_phase,
                 embedding_usage=embedding_usage,
+                compiler_attempts=graph_final.get("compilation", {}).get("compiler_attempts", []),
             )
             if include_debug_bundle
             else None

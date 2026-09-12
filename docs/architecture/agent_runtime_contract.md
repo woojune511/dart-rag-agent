@@ -52,7 +52,7 @@ consumers must read typed attributes. Explicit serialization uses
 `AgentAnswer` contains the user answer, citations, routing summary,
 `structured_result`, and `resolved_calculation_trace`. Review-only retrieval,
 candidate, validation, retry, and ledger material belongs in `review_trace`.
-Usage and calculation debug telemetry belongs in `debug_bundle`.
+Usage/calculation telemetry and opt-in `compiler_attempts` belong only in `debug_bundle`. `compiler_attempt_debug_v1` retains each schema-parsed model JSON before merge, the merged validation-input JSON before pruning, their UTF-8 SHA-256, ordered island/attempt/active-owner/visible IDs, validation errors/locations and compile-valid owners, and exact retry-feedback text. JSON is a local `model_dump()` serialization, not provider wire bytes. Both programs remain diagnostic, not execution authority. Missing parsed responses are `unavailable` with null programs and an error class, never reconstructed from exception bodies. Capture is request-local, off by default; exports copy it separately from answer/review/ledger/scoring. Existing call/retry limits and prompts do not change; terminal admission stops still propagate.
 
 The HTTP response keeps its existing answer/citation/structured-result fields.
 Review and debug fields appear only when requested. The internal result schema

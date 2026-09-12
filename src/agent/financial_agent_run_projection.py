@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import re
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 from src.agent.financial_graph_state import (
     AgentAnswer,
+    CompilerAttemptDebugV1,
     DebugBundle,
     DebugTraceBundle,
     ReviewTrace,
@@ -286,12 +288,14 @@ def project_debug_bundle(
     llm_usage: Dict[str, Any],
     llm_usage_by_phase: Dict[str, Any],
     embedding_usage: Dict[str, Any],
+    compiler_attempts: Optional[list[CompilerAttemptDebugV1]] = None,
 ) -> DebugBundle:
     return {
         "debug_traces": debug_traces,
         "llm_usage": llm_usage,
         "llm_usage_by_phase": llm_usage_by_phase,
         "embedding_usage": embedding_usage,
+        **({"compiler_attempts": deepcopy(compiler_attempts)} if compiler_attempts is not None else {}),
     }
 
 

@@ -48,8 +48,29 @@ class AgentAnswer(TypedDict, total=False):
     resolved_calculation_trace: RuntimeCalculationTrace
 
 
+class CompilerAttemptDebugV1(TypedDict):
+    schema_version: Literal["compiler_attempt_debug_v1"]
+    island_id: str
+    attempt: int
+    active_obligation_ids: List[str]
+    visible_candidate_ids: List[str]
+    response_status: Literal["parsed", "unavailable"]
+    response_error_type: str
+    model_program_json: Optional[str]
+    model_program_sha256: Optional[str]
+    validation_input_program_json: Optional[str]
+    validation_input_program_sha256: Optional[str]
+    validation_status: str
+    validation_errors: List[Dict[str, Any]]
+    compile_valid_obligation_ids: List[str]
+    missing_obligation_ids: List[str]
+    ambiguous_obligation_ids: List[str]
+    retry_feedback_text: str
+
+
 class DebugBundle(TypedDict, total=False):
     debug_traces: DebugTraceBundle
+    compiler_attempts: List[CompilerAttemptDebugV1]
     llm_usage: Dict[str, Any]
     llm_usage_by_phase: Dict[str, Any]
     embedding_usage: Dict[str, Any]
@@ -248,6 +269,7 @@ class LedgerState(TypedDict):
 class RequestPhase(TypedDict):
     query: str
     report_scope: Dict[str, Any]
+    include_debug_bundle: NotRequired[bool]
 
 
 class LedgerSnapshot(TypedDict, total=False):
@@ -307,6 +329,7 @@ class CandidatesPhase(TypedDict):
 
 
 class CompilationPhase(TypedDict, total=False):
+    compiler_attempts: List[CompilerAttemptDebugV1]
     semantic_program: Dict[str, Any]
     semantic_program_validation: Dict[str, Any]
     semantic_compilation_envelope: CompilationEnvelopeV2
