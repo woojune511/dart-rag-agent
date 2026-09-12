@@ -1,11 +1,12 @@
 # Request-to-source boundary review
 
 Status: section separation, planner name/description instructions and opt-in failed-draft
-export are implemented and locally verified. Latest seam baseline: `623e0c80`, 2026-09-13.
+export are implemented. The 2026-09-13 paid successor at runtime `83755b1e` remains
+**0/3 complete**; section binding and 8/8 draft capture worked, other boundaries remain.
 
 ## Findings
 
-The latest full-agent run remains **0/3 complete**. Two failures expose a mismatch
+The predecessor full-agent run at `f8a59a62` was **0/3 complete**. Two failures exposed a mismatch
 between the representation of a request and the representation of its evidence;
 the narrative failure does not yet establish the same defect.
 
@@ -145,8 +146,27 @@ subject errors, with the request/scopes/labels and accepted narrative bytes inta
 The 482-member catalog and 52 protected files retain their hashes. This is not a
 replay of a newly generated model plan or correction of the paid output.
 
-Source-exposed controls are not new inference, answer acceptance or unseen-question
-generalization. Paid **0/3** is unchanged; provider/ingest/store writes are zero.
-New planner behavior still needs model validation. Earlier unexported narrative drafts
-cannot be recovered; the new capture applies to future opt-in runs. A new model test
-requires a new manifest, two identical no-call rehearsals and authority.
+These source-exposed local controls used zero provider calls/ingest/store writes and
+are not inference, answer acceptance or unseen-question generalization. Earlier
+unexported narrative drafts cannot be recovered.
+
+## Current paid observation and next boundary
+
+The [authorized successor](../../benchmarks/results/request_source_full_agent_2026-09-13/RESULTS.md)
+consumed `673329a6...f3cb0`: **0/3 complete**, **1/5 outputs accepted**, ledger **3/3 ok**,
+API/execution exceptions **0**, estimated **USD 0.38085963/0.80**, billing unobserved.
+The requested note location now binds correctly and all **8/8** parsed attempts,
+validation locations and feedback are retained. The fresh planner still used the
+full descriptive subject phrase, so instruction-only clarification did not resolve
+that failure. A narrative retry repaired one subject quote but left another invalid.
+
+An impact explanation's source IDs were visible in its island, but not selectable
+for the requirement to which the compiler assigned them. This is owner-specific
+evidence allocation, not globally hidden-ID invention. A credit-management passage
+also exists in the unchanged requested-section store but is absent from this run's
+retrieved/seed windows. Located-section correctness alone does not prove coverage.
+
+Next work is provider-free isolation of request-name/source-name binding,
+owner-evidence assignment and source-to-seed coverage with anonymous controls.
+No automatic paid retry, suffix stripping, global permission expansion, validator
+relaxation or company/question-specific runtime rule is justified by this result.
