@@ -52,6 +52,8 @@ def project_output_responsibility_context(
             "scope": {key: deepcopy(value) for key, value in (row.get("scope") or {}).items()
                       if key in RESPONSIBILITY_SCOPE_FIELDS},
             "source_sections": deepcopy(row.get("source_sections") or []),
+            **({"source_section_bindings": deepcopy(row["source_section_bindings"])}
+               if row.get("source_section_bindings") else {}),
         } for row in obligations],
         "request_units_by_id": project_request_units(build_request_units(query), obligations),
     }

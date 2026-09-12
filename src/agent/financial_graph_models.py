@@ -115,6 +115,22 @@ class SemanticTargetV1(_DeferredBaseModel):
     )
 
 
+class SourceSectionBindingV1(_DeferredBaseModel):
+    """Requested wording and observed location are distinct planner decisions."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    request_unit_id: str
+    requested_text: str = Field(min_length=1, description=(
+        "One unique verbatim excerpt in an owned request unit that restricts the source section. "
+        "Preserve its qualifiers; do not replace the request with a formal document title."
+    ))
+    section_ids: List[str] = Field(description=(
+        "Alternative observed section IDs selected from source_section_inventory for this restriction. "
+        "Include every requested alternative; empty means unresolved, never unrestricted. "
+        "Do not invent IDs or infer document-wide absence from a bounded inventory."
+    ))
+
+
 class EvidenceRequirement(_DeferredBaseModel):
     """One non-rendered evidence input required to produce an answer obligation."""
 
@@ -128,6 +144,10 @@ class EvidenceRequirement(_DeferredBaseModel):
         "Explicit query-requested section titles or paths, copied from the query. "
         "Alternatives within this list; intersects the parent output's restriction. "
         "Use > between path components. Empty means no additional restriction."
+    ))
+    source_section_bindings: List[SourceSectionBindingV1] = Field(default_factory=list, description=(
+        "Source restrictions linked to observed inventory IDs. Each binding intersects the parent "
+        "and the other bindings; leave empty when there is no additional source restriction."
     ))
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
@@ -156,6 +176,11 @@ class AnswerObligation(_DeferredBaseModel):
         "Explicit query-requested section titles or paths, not inferred search hints. "
         "Copy title components from the query, using > for hierarchy. Entries are "
         "alternatives; empty means unrestricted. Applies to all supporting inputs."
+    ))
+    source_section_bindings: List[SourceSectionBindingV1] = Field(default_factory=list, description=(
+        "Link explicit requested source restrictions to observed section IDs. "
+        "Use these bindings rather than source_sections for informal or differently worded titles. "
+        "An empty list means no such restriction; a binding with no selected IDs remains unresolved."
     ))
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
@@ -210,6 +235,7 @@ class AnswerObligation(_DeferredBaseModel):
             label=self.label,
             scope=self.scope.model_copy(deep=True),
             source_sections=list(self.source_sections),
+            source_section_bindings=[binding.model_copy(deep=True) for binding in self.source_section_bindings],
             retrieval_hints=list(self.retrieval_hints),
             concept_hints=list(self.concept_hints),
             semantic_target=self.semantic_target.model_copy(deep=True),

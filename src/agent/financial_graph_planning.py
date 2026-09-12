@@ -13,7 +13,10 @@ from src.agent.financial_retrieval_hints import infer_statement_and_section_hint
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_scope_policies import explicit_query_consolidation_scopes
-from src.agent.financial_source_scope import source_section_requirement_errors
+from src.agent.financial_source_scope import (
+    build_source_section_inventory, resolve_source_section_bindings, source_section_requirement_errors,
+)
+from src.storage.bm25_index import metadata_matches_filter
 from src.agent.financial_runtime_trace import (
     report_cache_candidate_for_trace,
     resolve_runtime_calculation_trace,
@@ -181,10 +184,12 @@ class FinancialAgentPlanningMixin:
         topic: str,
         intent: str,
         report_scope: Dict[str, Any],
+        source_section_inventory: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Create answer obligations and retrieval hints, never a formula type."""
 
         request_units = build_request_units(query)
+        section_inventory = source_section_inventory if source_section_inventory is not None else build_source_section_inventory([])
         ontology = get_financial_ontology()
         concept_specs = list(ontology.concept_specs(query, topic, intent) or [])
         if not concept_specs:
@@ -218,6 +223,7 @@ class FinancialAgentPlanningMixin:
                     "intent": intent,
                     "report_scope": json.dumps(report_scope, ensure_ascii=False),
                     "ontology_hints": json.dumps(ontology_hints, ensure_ascii=False),
+                    "source_section_inventory": json.dumps(section_inventory, ensure_ascii=False),
                 }
             )
             planned: Any = structured_llm.invoke(prompt_value)
@@ -239,6 +245,7 @@ class FinancialAgentPlanningMixin:
                 "retrieval_queries": [query],
                 "tasks": [],
                 "planner_notes": ["requirement_planner_failed", error["error_type"]],
+                "source_section_inventory": section_inventory,
             }
 
         raw_obligations = [item.model_dump() for item in list(planned.obligations or [])]
@@ -461,6 +468,7 @@ class FinancialAgentPlanningMixin:
                 }
             )
 
+        obligations = resolve_source_section_bindings(obligations, query=query, inventory=section_inventory)
         request_errors = request_unit_errors(request_units, obligations)
         requirement_errors.extend(request_errors)
         requirement_errors.extend(source_section_requirement_errors(obligations, query))
@@ -585,6 +593,7 @@ class FinancialAgentPlanningMixin:
             "answer_obligations": obligations,
             "retrieval_queries": retrieval_queries,
             "requirement_errors": requirement_errors,
+            "source_section_inventory": section_inventory,
             "tasks": [task],
             "planner_notes": [
                 item
@@ -606,6 +615,16 @@ class FinancialAgentPlanningMixin:
         topic = str(state.get("topic") or query)
         report_scope = dict(state.get("report_scope") or {})
         plan_loop_count = int(state.get("plan_loop_count") or 0)
+        # Reuse the retrieval owner's source boundary, before any semantic
+        # selection. BM25 metadata is already-loaded committed source metadata;
+        # this reads no source bodies, embeddings, database or provider.
+        where_filter = self._build_scope_plan(state)["where_filter"]
+        metadata = getattr(getattr(self, "vsm", None), "bm25_metadatas", []) or []
+        section_inventory = build_source_section_inventory(
+            [row for row in metadata if metadata_matches_filter(row, where_filter)],
+            max_sections=int(PLANNING_POLICY["source_section_inventory_max_sections"]),
+            max_bytes=int(PLANNING_POLICY["source_section_inventory_max_bytes"]),
+        )
         # Intent and presentation are routing hints, not permission to skip
         # requested-output coverage. Narrative uses the same existing compiler.
         plan = self._build_llm_requirement_plan(
@@ -613,6 +632,7 @@ class FinancialAgentPlanningMixin:
             topic=topic,
             intent=str(intent),
             report_scope=report_scope,
+            source_section_inventory=section_inventory,
         )
         obligations = [dict(item) for item in (plan.get("answer_obligations") or [])]
         retrieval_queries = list(plan.get("retrieval_queries") or [query])
@@ -637,6 +657,7 @@ class FinancialAgentPlanningMixin:
             "tasks": tasks,
             "planner_notes": list(plan.get("planner_notes") or []),
             "requirement_errors": list(plan.get("requirement_errors") or []),
+            "source_section_inventory": dict(plan.get("source_section_inventory") or section_inventory),
         }
         companies, years = align_scope_hints(
             companies=list(plan.get("companies") or state.get("companies") or []),

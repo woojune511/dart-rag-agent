@@ -1,7 +1,7 @@
 # Request-to-source boundary review
 
-Status: provider-free characterization and proposed next change, **not implemented**.
-Baseline: `fe6448b4`, unchanged runtime `f5a2241a`; reviewed 2026-09-12.
+Status: request/observed-section separation **implemented and locally verified**;
+numeric subject projection and failed-draft export remain deferred. Baseline: `636c1101`, 2026-09-12.
 
 ## Findings
 
@@ -11,7 +11,7 @@ the narrative failure does not yet establish the same defect.
 
 | Boundary | Observed evidence | What it establishes |
 | --- | --- | --- |
-| Requested section | Query says `연결 주석`; plan says `연결재무제표 주석`. The latter fails query-copy validation. Copying the former in a diagnostic plan passes that check but conflicts with all 86 reconstructed candidate paths. | `source_sections` currently has two jobs: preserve query wording and identify a literal document path. An informal request and a formal title cannot necessarily satisfy both. |
+| Requested section | Query says `연결 주석`; the paid plan says `연결재무제표 주석`. The latter fails query-copy validation. Copying the former in a diagnostic plan passes that check but conflicts with all 86 reconstructed candidate paths. | The literal-only predecessor gives `source_sections` two jobs: preserve query wording and identify a document path. An informal request and a formal title cannot necessarily satisfy both. |
 | Numeric subject | Query/planner uses `커머스 부문`; both selected cells retain `영업부문 > 커머스` in their column axes. They are visible but `candidate_subject_unresolved`. | The full request phrase is being used as a cell identity. Repeating the same selection cannot repair a fixed planner target. This is not missing table extraction. |
 | Narrative quotes | The two visible sources contain the named company and the relevant surrounding passages. Authored exact multi-quote claims pass current validation. Rejected complete drafts were not exported. | The current claim contract can express these source readings. It is not yet justified to relax quote/subject checks or blame source loss; the exact rejected quote construction cannot be replayed. |
 
@@ -40,32 +40,36 @@ embedding or store writes were used.
   not an accepted answer-quality fixture.
 - Do not pay for another unchanged retry to diagnose an unexported draft.
 
-## Smallest useful implementation order
+## Implementation and remaining seams
 
 ### 1. Separate requested section text from selected source location
 
-Change the planning/source-scope seam first. Preserve the exact request reference
-(request-unit ID plus exact text/span); separately select observed section IDs or
-paths from a report-scoped inventory supplied to the **existing planner call**.
-Build that inventory read-only from retained located section metadata, not body
-mentions, inferred headings, arbitrary aliases or a new provider call.
+Implemented in the planning/source-scope owner. The **existing planner call** gets
+`source_section_inventory_v1` from already-loaded committed BM25 metadata using the
+retrieval owner's report filter. IDs bind explicit filing identity and located
+paths, including observed ancestors. Body mentions and attached headings do not
+enter this inventory. Its 256-section/64-KiB section-list limits report omissions;
+an empty/truncated inventory is not document-wide absence evidence.
 
-The planner interprets informal wording against the inventory. Code verifies the
-query span, inventory membership/report identity and parent/input intersections;
-retrieval and validation use the resolved paths. Preserve the original request in
-compiler input/V2 content so resolution cannot erase its qualifiers. Explicitly
-named exact paths keep their current authority. Unknown/ambiguous resolution must
-not silently remove restrictions or fall back to foreign sections.
+The model's `SourceSectionBindingV1` supplies an owned `request_unit_id`, unique
+exact `requested_text` and observed `section_ids`. Code copies the selected records,
+computes request spans and attaches the inventory fingerprint. Unknown IDs, empty
+resolution and foreign request units become requirement errors; the affected
+island makes no compiler call. Exact named-title controls stay strict. The old
+`source_sections` format remains literal-only; the planner does not dual-write a
+restriction into both formats.
 
-This requires a deliberate internal contract/schema transition, not changing
-`_title_matches` to containment. Exact ID/path checks prove location, not semantic
-equivalence between informal wording and a title; that interpretation remains an
-LLM responsibility and needs positive/negative source-reviewed controls. Bound the
-inventory visibly; do not claim that a truncated inventory covers the whole report.
+Parent/input bindings intersect. Retrieval, seeds, cohorts, dependency validation
+and execution use the resolved filing/path, not query-title spelling. Original
+wording and resolved provenance stay in compiler input and V2 execution content;
+targeted retries preserve them and other accepted program bytes. No extra model
+call, alias list, substring bypass, catalog identity or public response change.
+Exact ID/path checks prove location, **not semantic equivalence**; interpreting the
+request and preserving its qualifiers remain planner responsibilities.
 
 ### 2. Clarify the planner's local-subject projection, without a new alias system
 
-First use the existing `semantic_target.local_subjects` for the **complete named
+Deferred. First use the existing `semantic_target.local_subjects` for the **complete named
 entity**, not the entire descriptive request phrase. Keep all modifiers and group
 qualifications in exact request units and applicable scope/requirements; no code
 strips words or substitutes observed names into a frozen plan. Evaluate anonymous
@@ -80,7 +84,7 @@ guarantees stated up front. A model-authored rationale alone is not identity pro
 
 ### 3. Preserve failed narrative drafts before changing their semantics
 
-Use the existing opt-in debug/export seam to retain each attempted program and
+Deferred. Use the existing opt-in debug/export seam to retain each attempted program and
 its validation locations for the next separately approved run. Keep accepted and
 unvalidated output distinguishable; do not add another model call or a default
 HTTP payload. Test that targeted retries expose exactly the draft sent and leave
@@ -89,19 +93,24 @@ transport or quote-construction repair is needed.
 
 ## Verification and limits
 
-[Anonymous characterization tests](../../tests/test_request_source_boundary_characterization.py):
-**12/12**, including literal section dead ends, fixed-target retry, whole-cell
-identity controls, multi-quote subject grounding and an explicitly false semantic
-control. Together with existing source-scope, subject, claim, query-subject and
-planner transport tests: **76/76**. These green tests expose current limitations;
-they do not certify a repaired system. Replace characterization expectations
-deliberately when the corresponding contract changes.
+[New anonymous contract tests](../../tests/test_source_section_bindings.py): **20/20**.
+They cover inventory order/bounds, exact owned requests, unknown IDs, same-title
+foreign filings/branches, descendants, parent/input intersections, runtime-field
+injection, overwide visibility, same-cohort retry, unaffected islands and V2 drift.
+Related source-scope, retry/dependency, authority, presentation and planner tests:
+**75/75**. Full unittest: **1,456/1,456**, Python 3.13.13, 42.220s; domain audit **83**.
+Documentation/import/topology, syntax and diff checks also pass.
 
-Documentation/import/topology checks: **24/24**, domain-term audit: **83** reviewed
-literals, plus syntax and diff checks. No full-suite rerun for tests/docs-only work;
-the runtime's prior 1,424-test gate is historical, not new answer acceptance.
+[Saved-source transport control](../../benchmarks/results/source_section_bindings_2026-09-12/README.md)
+reconstructs all three original catalogs with unchanged IDs/fingerprints. An
+**authored** binding preserves `연결 주석` and selects the observed filing-qualified
+`III. 재무에 관한 사항 > 3. 연결재무제표 주석`: four requirement errors become zero,
+and the same 86 candidates match both owners. The two NAVER saved validations and
+accepted acquisition IDs are unchanged. Fifty protected files (including the
+[prior characterization](../../benchmarks/results/request_source_contract_review_2026-09-12/README.md))
+retain their SHA-256. No original plan, store, dataset or result was rewritten.
 
-[Local reproduction packet](../../benchmarks/results/request_source_contract_review_2026-09-12/README.md)
-contains source projections, authored controls, hashes and reproduction commands.
-It is ignored experimental evidence, not a fixture to fit runtime behavior to.
-Runtime, candidate IDs, source stores and paid-run artifacts remain unchanged.
+The source-exposed control is not new planner inference, answer acceptance or
+unseen-question generalization. Paid **0/3** is unchanged; provider/ingest/store
+writes are zero. Numeric target spelling and unexported narrative drafts are not
+repaired by this change. A new model test requires a new manifest and authority.

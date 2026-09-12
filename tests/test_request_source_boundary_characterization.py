@@ -1,8 +1,9 @@
 """Characterize request/source seams, not a permanent synonym/entailment policy.
 
-Anonymous controls expose the current literal-contract limits. A future explicit
-request-to-source binding contract must replace these expectations deliberately;
-passing this file does not establish semantic correctness or model accuracy.
+Anonymous controls expose literal-only input limits. Resolved section bindings
+have separate positive/negative tests in test_source_section_bindings; the old
+literal form remains strict. Subject projection is a separate unresolved seam.
+Passing this file does not establish semantic correctness or model accuracy.
 """
 
 from copy import deepcopy

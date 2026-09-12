@@ -554,7 +554,7 @@ _COMPILER_SHARED_INSTRUCTIONS = (
     "- source_continuation은 같은 서술 후보 본문의 이어지는 정확한 구간입니다. source_span 순서로 함께 읽고 기존 candidate_id로 근거를 선택하세요. source_body_coverage.truncated가 true면 뒤 내용은 보이지 않으므로 전체 원문에 내용이 없다고 단정하지 마세요.\n"
     "- year는 공시 연도이며 값의 기간은 period/value_year와 그 근거인 period_source로 확인합니다. source_period_surface는 원래 열/기간 표기이고, period_label_scope=unbound_table인 period_label_surfaces는 본문 날짜가 섞인 힌트일 뿐 값의 기간 근거가 아닙니다. 불명확한 기간을 공시 연도로 채우지 마세요.\n"
     "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
-    "- source_sections는 질문이 명시한 근거 절의 선택 권한입니다. 해당 owner와 상위 obligation의 제한을 모두 만족하는 source_section_path에서만 근거를 고르세요. 본문에 절 이름이 등장하거나 인접 문맥에 제목이 있다는 이유로 다른 절의 후보를 선택할 수 없습니다. 허용된 근거가 없으면 missing/ambiguous로 남기세요.\n"
+    "- source_sections와 source_section_bindings는 질문이 명시한 근거 절의 선택 권한입니다. binding의 requested_text는 원래 요청이고 resolved_sections는 관측된 문서 위치입니다. 해당 owner와 상위 obligation의 모든 제한을 만족하는 보고서·절에서만 근거를 고르세요. 해석된 위치로 요청의 한정 조건을 지우지 마세요. 본문 언급이나 인접 제목은 다른 절의 선택 권한이 아닙니다. 허용된 근거가 없으면 missing/ambiguous로 남기세요.\n"
     "- 같은 coupling_key를 가진 출력은 공통 의미 기준을 만족해야 합니다. 서로 다른 source context를 결합할 때는 그 호환성을 명시하는 narrative candidate ID를 compatibility_candidate_ids에 연결하고, 근거가 없으면 missing 또는 ambiguous로 남기세요. coupling_key가 빈 독립 출력은 서로 다른 표에서 선택할 수 있지만 각 출력의 scope와 단위 검증은 그대로 적용됩니다.\n"
     "- 근거가 부족하거나 의미가 모호하면 억지로 선택하지 말고 status와 missing/ambiguous obligation IDs를 표시합니다.\n"
     "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
@@ -732,6 +732,8 @@ INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
 
 
 PLANNING_POLICY: Dict[str, Any] = {
+    'source_section_inventory_max_sections': 256,
+    'source_section_inventory_max_bytes': 65536,
     'requirement_planner_prompt_template': "당신은 DART 재무 질문의 검색 전 의미 요구사항을 정리합니다.\n"
             "계산 종류를 lookup, ratio, growth_rate 같은 고정 operation으로 분류하지 마세요.\n"
             "사용자가 최종 답변에서 확인해야 할 출력 각각을 answer obligation으로 표현하세요.\n\n"
@@ -742,7 +744,8 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- 서술형 질문도 독립적으로 요청된 설명 주제마다 obligation을 보존합니다. 명시된 주제를 다른 주제의 설명으로 대체하거나 생략하지 마세요. intent와 출력 형식은 이 의무를 생략할 이유가 아닙니다.\n"
             "- 같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고 관련 request_unit_ids를 모두 연결하세요. 조건이 다른 request unit에 있다는 이유만으로 별도 출력을 만들지 마세요.\n"
             "- 같은 주어·문장·request unit을 공유한다는 이유로 독립적인 설명을 합치지 마세요. 출력 개수를 미리 정하지 마세요.\n"
-            "- 질문이 근거를 특정 문서 절로 명시적으로 제한하면 해당 obligation의 source_sections에 질문의 절 제목을 그대로 복사하세요. 계층은 질문에 나온 각 제목을 >로 연결하며, 목록의 항목은 허용되는 대안입니다. 근거 입력은 상위 제한을 상속하며 자체 source_sections로 더 좁힐 수만 있습니다. 명시적 절 제한이 없으면 비워 두고, 추정한 검색 위치나 본문 주제를 제한으로 만들지 마세요. retrieval_hints와 label은 검색·의미 힌트이며 source_sections를 대신하지 않습니다.\n"
+            "- 질문이 근거를 특정 문서 절로 명시적으로 제한하면 source_section_bindings로 요청과 실제 위치를 연결하세요. request_unit_id는 해당 출력이 소유한 요청 구간 ID, requested_text는 그 구간의 절 제한과 한정 조건을 담은 유일한 연속 원문, section_ids는 source_section_inventory에서 의미에 맞는 관측된 절 ID 목록입니다. 요청 표현을 문서의 정식 제목으로 바꿔 쓰지 마세요. 목록 안 ID는 대안이며 각 binding과 상위 obligation·근거 입력의 제한은 교집합입니다. 명시적으로 지정된 제목·경로는 다른 절로 바꿀 수 없습니다. 같은 제한을 source_sections에도 중복 작성하지 마세요.\n"
+            "- 관측된 위치를 결정할 수 없거나 목록에서 찾지 못하면 requested_text를 유지하고 section_ids를 비워 unresolved로 남기세요. 제한을 삭제하거나 다른 절로 대체하지 마세요. inventory는 저장된 위치 목록일 뿐 본문이나 보고서 전체의 완전성 증명이 아니며 omitted_section_count가 있으면 일부 위치가 생략됐습니다. 명시적 절 제한이 없으면 source_section_bindings와 source_sections를 비우세요. 추정 검색 위치·본문 주제·ontology hint를 제한으로 만들지 마세요. source_sections는 질문이 정확히 명명한 제목·경로를 그대로 지정하는 기존 형식에만 쓰며, retrieval_hints와 label은 선택 권한이 아닙니다.\n"
             "- 질문이 특정 하위 항목 이름을 열거하지 않고 원문 표의 요약·구성·주요 항목처럼 source schema가 항목을 정하는 묶음을 요청하면 관행적인 표준 항목을 추정해 여러 direct_value obligation으로 만들지 마세요. 그 묶음은 하나의 narrative obligation으로 보존하고, 실제 원문 항목과 값은 검색 후 compiler가 선택하게 하세요. 질문에 명시된 개별 수치만 별도 direct_value 또는 derived_value obligation으로 만듭니다.\n"
             "- 위처럼 원문이 항목을 정하는 narrative 요약은 evidence_mode를 source_defined_group으로 지정하고 evidence_requirements는 비워 두세요. 런타임이 그 obligation의 label·scope·retrieval_hints·concept_hints를 보존한 하나의 필수 원문 그룹 requirement를 만듭니다. evidence_requirements나 검색 힌트에 관행적인 개별 항목을 추정해 넣지 마세요.\n"
             "- obligation_id는 짧고 고유하게 작성합니다. 런타임이 이후 안정 ID로 정규화합니다.\n"
@@ -764,6 +767,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "topic:\n{topic}\n\n"
             "intent:\n{intent}\n\n"
             "report_scope:\n{report_scope}\n\n"
+            "관측된 source_section_inventory (위치 선택용, 인용 본문 아님):\n{source_section_inventory}\n\n"
             "선택 가능한 ontology retrieval hints:\n{ontology_hints}\n"
 ,
     'money_surface_pattern': r"(?P<raw>\(?\d[\d,]*(?:\.\d+)?\)?)(?:\s*)"

@@ -21,12 +21,12 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `src/agent/financial_graph_planning.py` | required-output planning for every intent; original request references, query-written subjects/themes and explicit source-section constraints, separately from retrieval hints |
+| `src/agent/financial_graph_planning.py` | required-output planning for every intent; original request references, query-written subjects/themes; same-call selection from a scoped observed-section inventory, distinct from soft retrieval hints |
 | `src/agent/financial_request_units.py` | exact query partition/addresses and output ownership checks; active-owner text projection, not semantic classification or evidence |
 | `src/agent/financial_retrieval_pipeline.py` | one source scope across searches/supplements/seeds/selection; narrative ownership, filing-qualified dedupe, trace |
 | `src/agent/financial_reconciliation_candidates.py` | filing-qualified identity, source/catalog construction and fiscal periods; scalar-independent readings, balanced parser-prefix separation, exact bounded body windows and separate local-heading hints |
 | `src/agent/financial_scope_policies.py` | shared report/consolidation scope; located annual period resolution separate from filing year/unbound parser hints |
-| `src/agent/financial_source_scope.py` | query-copied section/path authority, whole-component descendant membership from located metadata/legacy anchors, parent/input intersection and shared retrieval union; no body/heading-context authority |
+| `src/agent/financial_source_scope.py` | bounded filing-qualified section inventory, exact request-to-location projection and descendant membership; literal-title compatibility, parent/input intersection and shared retrieval union; no body/heading-context authority |
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references and exact row cell partitions |
 | `src/agent/financial_candidate_matching.py` | typed applicability and row/column subject identity; numeric metric isolation, owner-aware narrative reading and document/section/source/row budget diversity; no cell-precision or filing-company narrative bonus |
 | `src/agent/financial_graph_calculation.py` | bundle-first cohorts, active-output/bounded-evidence call scope, one full-plan responsibility context for narrative calls, islands/targeted retry with separate verified dependency inputs; per-attempt context bytes, final-validation rationale and terminal admission propagation |

@@ -1183,6 +1183,7 @@ def validate_semantic_calculation_program(
                         ("label", ""),
                         ("scope", {}),
                         ("source_sections", []),
+                        ("source_section_bindings", []),
                         ("retrieval_hints", []),
                         ("concept_hints", []),
                         ("semantic_target", {}),

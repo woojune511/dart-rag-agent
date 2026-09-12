@@ -7,6 +7,7 @@ construction and answer validation remain in financial_graph_evidence.py.
 
 from __future__ import annotations
 
+from copy import deepcopy
 import logging
 import json
 import re
@@ -2212,6 +2213,11 @@ class FinancialRetrievalPipelineMixin:
         if any(owner.get("source_sections") for owner in obligations):
             scope_filter_trace["source_sections_by_owner"] = {
                 str(owner.get("obligation_id") or ""): list(owner.get("source_sections") or [])
+                for owner in obligations
+            }
+        if any(owner.get("source_section_bindings") for owner in obligations):
+            scope_filter_trace["source_section_bindings_by_owner"] = {
+                str(owner.get("obligation_id") or ""): deepcopy(owner.get("source_section_bindings") or [])
                 for owner in obligations
             }
 
