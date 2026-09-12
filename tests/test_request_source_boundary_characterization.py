@@ -2,7 +2,8 @@
 
 Anonymous controls expose literal-only input limits. Resolved section bindings
 have separate positive/negative tests in test_source_section_bindings; the old
-literal form remains strict. Subject projection is a separate unresolved seam.
+literal form remains strict. Authored name projection has separate transport
+controls in test_planner_subject_projection; these fixed-target failures remain.
 Passing this file does not establish semantic correctness or model accuracy.
 """
 

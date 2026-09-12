@@ -1,7 +1,7 @@
 # Request-to-source boundary review
 
-Status: request/observed-section separation **implemented and locally verified**;
-numeric subject projection and failed-draft export remain deferred. Baseline: `636c1101`, 2026-09-12.
+Status: section separation implemented; planner name/description contract clarified
+and locally verified. Failed-draft export remains deferred. Latest seam baseline: `910372d3`, 2026-09-12.
 
 ## Findings
 
@@ -12,7 +12,7 @@ the narrative failure does not yet establish the same defect.
 | Boundary | Observed evidence | What it establishes |
 | --- | --- | --- |
 | Requested section | Query says `연결 주석`; the paid plan says `연결재무제표 주석`. The latter fails query-copy validation. Copying the former in a diagnostic plan passes that check but conflicts with all 86 reconstructed candidate paths. | The literal-only predecessor gives `source_sections` two jobs: preserve query wording and identify a document path. An informal request and a formal title cannot necessarily satisfy both. |
-| Numeric subject | Query/planner uses `커머스 부문`; both selected cells retain `영업부문 > 커머스` in their column axes. They are visible but `candidate_subject_unresolved`. | The full request phrase is being used as a cell identity. Repeating the same selection cannot repair a fixed planner target. This is not missing table extraction. |
+| Numeric subject | Query/paid planner uses `커머스 부문`; both selected cells retain `영업부문 > 커머스` in their column axes. They are visible but `candidate_subject_unresolved`. | The full request phrase is being used as a cell identity. Repeating the same selection cannot repair a fixed planner target. This is not missing table extraction. |
 | Narrative quotes | The two visible sources contain the named company and the relevant surrounding passages. Authored exact multi-quote claims pass current validation. Rejected complete drafts were not exported. | The current claim contract can express these source readings. It is not yet justified to relax quote/subject checks or blame source loss; the exact rejected quote construction cannot be replayed. |
 
 The numeric control uses an **authored** formula and exact attached `당기`/`전기`
@@ -69,18 +69,24 @@ request and preserving its qualifiers remain planner responsibilities.
 
 ### 2. Clarify the planner's local-subject projection, without a new alias system
 
-Deferred. First use the existing `semantic_target.local_subjects` for the **complete named
-entity**, not the entire descriptive request phrase. Keep all modifiers and group
-qualifications in exact request units and applicable scope/requirements; no code
-strips words or substitutes observed names into a frozen plan. Evaluate anonymous
-name-plus-descriptor, member/group, similarly named entities, bilingual names and
-wrong-scope controls together.
+Implemented as a bounded **planner instruction/schema-description change**. The old
+description said to preserve names "including qualifiers", without distinguishing
+identity-bearing qualifiers from surrounding descriptions. `local_subjects` now
+asks for the complete named subject, not its whole descriptive request phrase.
+Anonymous policy contrasts distinguish a role wrapper from a full multiword name
+and from a named group; the same rule applies to each required input's own subject.
 
-Retain whole-axis validation and fail-closed member/group controls. The current
-case does not justify a universal semantic-alias bypass, new role taxonomy or an
-extra judge. If genuine aliases absent from the query still require support,
-design an explicit source-grounded binding as a separate seam, with its changed
-guarantees stated up front. A model-authored rationale alone is not identity proof.
+Full-name modifiers and group membership remain identity. Other period, region,
+exclusion and whole/part conditions stay in owned exact request units and applicable
+scope/requirements. Existing transport already preserves these, so no new field,
+runtime suffix deletion, alias mechanism, extra call or frozen-plan rewrite was
+needed. Whole-axis, period, scope, visibility and V2 checks are unchanged.
+
+This clarifies what the **existing planner** should decide; it is not proof that a
+new model response will comply. A deliberately wrong shortened authored target can
+still pass structural validation against a matching short source name. That known
+semantic negative control remains explicit. Genuine aliases absent from the query
+need a separate source-grounded contract, not a new bypass or model rationale.
 
 ### 3. Preserve failed narrative drafts before changing their semantics
 
@@ -98,8 +104,15 @@ They cover inventory order/bounds, exact owned requests, unknown IDs, same-title
 foreign filings/branches, descendants, parent/input intersections, runtime-field
 injection, overwide visibility, same-cohort retry, unaffected islands and V2 drift.
 Related source-scope, retry/dependency, authority, presentation and planner tests:
-**75/75**. Full unittest: **1,456/1,456**, Python 3.13.13, 42.220s; domain audit **83**.
-Documentation/import/topology, syntax and diff checks also pass.
+**75/75** on the section seam. Current full unittest: **1,465/1,465**, Python 3.13.13,
+44.810s; domain audit **83**. Documentation/import/topology, syntax and diff checks pass.
+
+[Planner name-projection tests](../../tests/test_planner_subject_projection.py): **9/9**;
+combined source/subject/request tests **63/63**. Authored projections cover role
+wrappers, complete names, named groups versus members, bilingual spellings,
+required-input identity, period/region/basis conflicts, exact request retention,
+same-cohort retry, unchanged accepted output bytes and execution-content drift.
+They check instructions and transport, not model inference or semantic accuracy.
 
 [Saved-source transport control](../../benchmarks/results/source_section_bindings_2026-09-12/README.md)
 reconstructs all three original catalogs with unchanged IDs/fingerprints. An
@@ -110,7 +123,14 @@ accepted acquisition IDs are unchanged. Fifty protected files (including the
 [prior characterization](../../benchmarks/results/request_source_contract_review_2026-09-12/README.md))
 retain their SHA-256. No original plan, store, dataset or result was rewritten.
 
-The source-exposed control is not new planner inference, answer acceptance or
-unseen-question generalization. Paid **0/3** is unchanged; provider/ingest/store
-writes are zero. Numeric target spelling and unexported narrative drafts are not
-repaired by this change. A new model test requires a new manifest and authority.
+[Subject transport control](../../benchmarks/results/planner_subject_projection_2026-09-12/README.md)
+uses the same reviewed numeric source and earlier authored formula/period witnesses.
+An authored complete name passed through the current planner owner removes two
+subject errors, with the request/scopes/labels and accepted narrative bytes intact.
+The 482-member catalog and 52 protected files retain their hashes. This is not a
+replay of a newly generated model plan or correction of the paid output.
+
+Source-exposed controls are not new inference, answer acceptance or unseen-question
+generalization. Paid **0/3** is unchanged; provider/ingest/store writes are zero.
+New planner behavior still needs model validation; rejected narrative drafts have
+not been recovered. A new model test requires a new manifest and authority.

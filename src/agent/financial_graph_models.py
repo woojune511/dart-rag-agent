@@ -100,9 +100,13 @@ class SemanticTargetV1(_DeferredBaseModel):
     local_subjects: List[str] = Field(
         default_factory=list,
         description=(
-            "Entities whose local row, column or sentence is requested. Preserve complete "
-            "query-written names and aliases, including qualifiers. These are distinct "
-            "from the filing company in scope.company."
+            "Complete query-written identities of the requested row, column or sentence subjects, "
+            "not the whole request phrase or descriptive wrappers. Do not shorten complete names "
+            "or identity-bearing modifiers/group membership. Preserve other request conditions "
+            "through request_unit_ids and applicable scope fields, not by appending them to names. "
+            "Keep query-written aliases only; do not invent translations or source-name equivalents. "
+            "Each required input identifies its own subject. The filing company in scope.company "
+            "does not establish a value's local subject."
         ),
     )
     concept_keys: List[str] = Field(

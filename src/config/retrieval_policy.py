@@ -752,6 +752,8 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- company, period, consolidation_scope, segment, basis처럼 의미가 다른 범위를 scope에 명시합니다.\n"
             "- scope.company는 공시 문서의 회사 범위입니다. 표 행이나 문장 안에서 실제 값의 주체가 되는 회사·사업·대상은 semantic_target.local_subjects에 적고 scope.company로 대체하지 마세요.\n"
             "- 각 obligation과 evidence requirement의 semantic_target을 작성하세요. local_subjects에는 질문이 직접 지목한 local entity만, concept_keys에는 아래 목록에 실제로 있는 ontology concept key만, metric_surfaces에는 질문에 보이는 지표 표현을 보존하세요. 정확한 concept가 없으면 concept_keys를 비운 채 metric_surfaces를 사용하세요.\n"
+            "- local_subjects는 요청 구절 전체가 아니라 실제 값이 속할 완전한 주체 이름입니다. 이름을 둘러싼 종류·역할의 설명 표현과 이름 자체를 구별하세요. 예를 들어 Aster가 이름인 'Aster 부문의 수량'은 local_subjects=[Aster]로 표현하되 부문이라는 요청 조건은 원문에 남깁니다. 반면 'Aster Services', 'Aster 및 기타 참여자'처럼 이름·집단의 정체성을 구별하는 말은 모두 유지하세요. 'Maple Unit'이 완전한 이름이면 Unit도 유지합니다. 특정 접미사를 일괄 제거하거나 짧은 공통 이름으로 바꾸지 마세요.\n"
+            "- 설명 표현을 주체 이름에 붙이지 않는 것은 요청 조건을 버리는 것이 아닙니다. 기간·지역·연결 범위·제외 조건·전체와 일부의 구별은 해당 request_unit_ids 원문과 적용 가능한 scope/requirements에 보존하세요. 같은 원칙을 각 evidence requirement의 실제 입력 주체에도 적용하며, 다른 입력의 주체나 최종 출력의 주체를 무조건 복사하지 마세요. 명확히 지목된 주체를 비우거나 질문에 없는 별칭을 만들어 불일치를 우회하지 마세요.\n"
             "- 질문이 같은 entity를 여러 언어·이름으로 병기하면 local_subjects에 질문에 나온 각 표기를 모두 보존하세요. 질문에 없는 번역이나 다른 entity 이름은 추가하지 마세요.\n"
             "- derived_value는 사용자에게 표시할 결과 scope와 별도로, 계산에 필요한 각 원시 입력을 evidence_requirements에 선언합니다. 입력마다 고유 requirement_id, label, period 및 다른 scope, retrieval_hints를 적고 이 입력들은 사용자 출력 obligation으로 만들지 않습니다.\n"
             "- depends_on에는 이 obligation의 계산에 앞서 결과가 필요한 다른 answer obligation의 obligation_id만 적으세요. 같은 obligation의 원시 입력이나 evidence requirement ID는 적지 않습니다. 원시 입력 관계는 evidence_requirements만으로 선언합니다.\n"

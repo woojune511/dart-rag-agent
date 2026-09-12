@@ -98,9 +98,9 @@ IDs follow declared obligation order with first-occurrence dedupe.
 Candidate applicability has exactly three states: `compatible`, `unknown_only`,
 and `explicit_conflict`.
 
-Each obligation/requirement may declare `SemanticTargetV1`: `local_subjects`, ontology-backed `concept_keys`,
-and query-visible `metric_surfaces`. Keep query-written bilingual parenthetical spellings of a selected subject;
-do not invent translations/entities. `scope.company` is a filing boundary, not a local subject; unknown concept keys get a planner note.
+Each obligation/requirement may declare `SemanticTargetV1`: `local_subjects` are complete query-written subject identities, not whole request phrases/descriptive wrappers; `concept_keys` are ontology-backed and `metric_surfaces` query-visible.
+The existing planner distinguishes names from descriptions. Full-name modifiers and group membership remain part of identity; other period/region/exclusion/whole-part conditions remain in exact request units and applicable scope/requirements. Each input identifies its own subject. Code does not strip suffixes, shorten names, clear explicit targets or substitute observed aliases; structural validation does not certify this semantic projection.
+Keep query-written bilingual spellings of a selected subject; do not invent translations/entities. `scope.company` is a filing boundary, not a local subject; unknown concept keys get a planner note. No extra model call or identity/visibility relaxation.
 
 Located calendar labels resolve first, then fiscal columns using the existing row-ordinal/report-year mapping, then relative labels and generic roles. Fiscal columns precede row-derived `period_text`; repeated equivalent labels resolve once. Raw period surfaces remain identity/provenance, not an override.
 Ambiguous/unanchored fiscal columns stay `unknown_only`; retained row-relative text cannot resolve them again in validation. Other ambiguous/unanchored numeric periods cannot borrow filing year. Relative-only comparisons need no invented year; parser-wide `period_labels`/`period_focus` remain unlocated hints.
