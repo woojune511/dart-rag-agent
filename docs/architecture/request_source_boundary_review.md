@@ -1,172 +1,127 @@
 # Request-to-source boundary review
 
-Status: section separation, planner name/description instructions and opt-in failed-draft
-export are implemented. The 2026-09-13 paid successor at runtime `83755b1e` remains
-**0/3 complete**; section binding and 8/8 draft capture worked, other boundaries remain.
+Status: provider-free isolation completed at diagnostic baseline `845704bd`,
+runtime implementation `83755b1e`. No production code changed in this diagnosis.
+The [paid successor](../../benchmarks/results/request_source_full_agent_2026-09-13/RESULTS.md)
+remains **0/3 complete**, **1/5 outputs accepted**, ledger **3/3 ok**,
+API/execution exceptions **0**, estimated **USD 0.38085963/0.80**, billing unobserved.
+Admission `673329a6...f3cb0` is consumed; no new paid run is authorized here.
 
-## Findings
+## Current evidence
 
-The predecessor full-agent run at `f8a59a62` was **0/3 complete**. Two failures exposed a mismatch
-between the representation of a request and the representation of its evidence;
-the narrative failure does not yet establish the same defect.
+The [source replay and single-seam controls](../../benchmarks/results/request_source_boundary_isolation_2026-09-13/README.md)
+reconstruct all three saved catalogs (**484 / 228 / 83** members) with unchanged
+source counts, candidate IDs and catalog fingerprints. All **8/8** parsed attempts
+reproduce visible IDs, model and merged program JSON, validation errors/status,
+retry feedback and final merged programs. **76** protected input/result/store
+files and the **155-file** runtime build fingerprint remain unchanged.
+This is exact replay of saved programs through current compiler orchestration,
+not model inference, a repaired answer or unseen-question generalization.
 
-| Boundary | Observed evidence | What it establishes |
+| Boundary | Observed mechanism | What the contrast establishes |
 | --- | --- | --- |
-| Requested section | Query says `연결 주석`; the paid plan says `연결재무제표 주석`. The latter fails query-copy validation. Copying the former in a diagnostic plan passes that check but conflicts with all 86 reconstructed candidate paths. | The literal-only predecessor gives `source_sections` two jobs: preserve query wording and identify a document path. An informal request and a formal title cannot necessarily satisfy both. |
-| Numeric subject | Query/paid planner uses `커머스 부문`; both selected cells retain `영업부문 > 커머스` in their column axes. They are visible but `candidate_subject_unresolved`. | The full request phrase is being used as a cell identity. Repeating the same selection cannot repair a fixed planner target. This is not missing table extraction. |
-| Narrative quotes | The two visible sources contain the named company and the relevant surrounding passages. Authored exact multi-quote claims pass current validation. Rejected complete drafts were not exported. | The current claim contract can express these source readings. It is not yet justified to relax quote/subject checks or blame source loss; the exact rejected quote construction cannot be replayed. |
+| Request name → numeric cell | Planner still declares the descriptive phrase `커머스 부문`; both selected cells retain `영업부문 > 커머스` in their own axes. Extra context cannot replace that identity. | Copied `local_subjects` changed to the observed cell name remove only subject errors. Attempt 1 retains scope errors; attempt 2 exposes a later `context_quote_not_exact` for a source-display quote containing literal `...`. Instruction-only clarification has not resolved the whole failure. |
+| Narrative claim → subject quote | A retry quotes a subjectless later paragraph although an earlier paragraph in the same visible source names the subject. Another claim's quote does not ground this claim. | Attaching the exact earlier subject quote to the same claim makes authored validation ready. The existing multi-quote contract can express this reading; no blanket quote/subject relaxation is justified. |
+| Required input → selectable evidence | Relevant prose IDs are island-visible but admitted only for one input. Another input's six slots are all numeric rows; the compiler assigns prose to that input anyway. | Rebinding to the existing allowed input removes the wrong-owner error but still leaves the other input missing. This is allocation plus binding failure, not globally hidden-ID invention. |
+| Located section → retrieval coverage | The requested note location resolves correctly and contains the omitted passage. Search truncates vector/BM25/RRF candidates before section filtering, which retains **15/65**. The passage is absent from retrieved and seed windows. | Real lexical replay and anonymous top-K contrasts expose a late-filter coverage defect. No original query vectors/per-search IDs were retained, so the exact historical hybrid omission remains unproven. |
 
-The numeric control uses an **authored** formula and exact attached `당기`/`전기`
-witnesses. Changing only the copied owner/requirement local subject to the observed
-`커머스` removes the two subject errors. This is diagnostic isolation, not permission
-to rewrite the production plan or a replay of the model's missing draft. An earlier
-control without period witnesses also fails period checks, as it should.
+### Why prose loses the requirement shortlist
 
-Reconstruction matched saved source/catalog counts, candidate-ID fingerprints and
-catalog fingerprints for all three queries (482 / 246 / 86 catalog members).
-The ID/catalog checks alone are not a saved complete-content hash; original store
-files were also checked against the admitted SHA-256 values. Forty-eight protected
-input/result/store files are unchanged. No gold labels, provider calls, ingest,
-embedding or store writes were used.
+Current [fact matching](../../src/agent/financial_candidate_matching.py) has a
+length-dependent containment rule. A short name inside longer prose can remain
+`unknown`, while that exact name on a table axis is a subject `match`.
+Anonymous `Elm`, `Oak` and `별빛팀` controls reproduce this; longer `Aster`
+and `Birch` prose names match. This is a literal threshold, not semantic evidence.
 
-## What not to do
+In the saved explanatory input, selected rows rank `[1,3,2,1,0,0]` and the
+two prose sources rank `[1,1,2,1,0,0]`. The difference is subject authority,
+not a numeric-format quota, repeated-keyword bonus or rank tie. Six rows exhaust
+the input cohort despite not establishing the requested explanation.
+Fixing this requires source-grounded identity/admission, not widening every
+input to every island-visible ID or treating arbitrary substrings as identity.
 
-- Do not delete `부문`, `division`, or other qualifiers using a runtime suffix list.
-- Do not enable global substring matching. Anonymous member/group and modified-name
-  controls demonstrate why containment is not equivalence.
-- Do not drop an unresolvable source restriction, use the filing company as the
-  value subject, or widen visibility to repair a compiler format error.
-- Do not infer semantic attribution from exact quote occurrence. A deliberately
-  false anonymous claim still passes structural checks; that is a known limit,
-  not an accepted answer-quality fixture.
-- Do not pay for another unchanged retry to diagnose an unexported draft.
+### What retrieval replay can and cannot show
 
-## Implementation and remaining seams
+The original missing passage is present in the committed requested-section store.
+For seven saved executed queries, report-filtered versus requested-section BM25
+ranks are **11→3, 31→7, 399→223, 49→3, 128→3, 318→40, 841→261**.
+Each search had `k=32`, lexical cap 96 and vector cap 64. The passage enters
+the report-filtered lexical pool for three queries, so it is not unindexed or
+universally absent from lexical retrieval. All 15 retained documents fit seeds;
+the final eight-document window is not the sole explanation.
 
-### 1. Separate requested section text from selected source location
+The section-restricted ranks are diagnostic contrasts, not production outcomes.
+The original dense results and RRF membership cannot be reconstructed from those
+scores. Early eligibility is a general correction to bounded selection order,
+not proof that this one change makes the full question complete.
 
-Implemented in the planning/source-scope owner. The **existing planner call** gets
-`source_section_inventory_v1` from already-loaded committed BM25 metadata using the
-retrieval owner's report filter. IDs bind explicit filing identity and located
-paths, including observed ancestors. Body mentions and attached headings do not
-enter this inventory. Its 256-section/64-KiB section-list limits report omissions;
-an empty/truncated inventory is not document-wide absence evidence.
+## Already implemented contracts
 
-The model's `SourceSectionBindingV1` supplies an owned `request_unit_id`, unique
-exact `requested_text` and observed `section_ids`. Code copies the selected records,
-computes request spans and attaches the inventory fingerprint. Unknown IDs, empty
-resolution and foreign request units become requirement errors; the affected
-island makes no compiler call. Exact named-title controls stay strict. The old
-`source_sections` format remains literal-only; the planner does not dual-write a
-restriction into both formats.
+- **Request/location separation:** the existing planner receives a read-only,
+  report-filtered `source_section_inventory_v1`, bounded at 256 sections/64 KiB.
+  Owned exact request wording is separate from observed filing-qualified section
+  IDs. Code supplies spans, paths and inventory fingerprint. Unknown/foreign
+  bindings fail the affected island before compilation. Parent/input restrictions
+  intersect, while unrestricted sibling outputs keep shared retrieval open.
+  Literal `source_sections` compatibility remains strict, without dual-writing.
+  Location checks prove provenance, not request/title semantic equivalence.
+- **Planner subject description:** instructions distinguish complete names and
+  identity-bearing qualifiers/groups from surrounding role descriptions.
+  This is not runtime suffix stripping, an alias list, a source-grounded alias
+  contract or proof a newly generated plan follows the instruction.
+  Other exact request/scope conditions and complete cell-axis checks remain.
+- **Opt-in failed-draft capture:** `compiler_attempt_debug_v1` preserves parsed
+  model JSON before merge and complete validation-input JSON before pruning,
+  with UTF-8 hashes, locations and exact projected retry feedback.
+  Debug-off/default HTTP/answer/review/ledger/scoring are unchanged.
+  It records parsed model programs, not raw API responses or absent drafts.
 
-Parent/input bindings intersect. Retrieval, seeds, cohorts, dependency validation
-and execution use the resolved filing/path, not query-title spelling. Original
-wording and resolved provenance stay in compiler input and V2 execution content;
-targeted retries preserve them and other accepted program bytes. No extra model
-call, alias list, substring bypass, catalog identity or public response change.
-Exact ID/path checks prove location, **not semantic equivalence**; interpreting the
-request and preserving its qualifiers remain planner responsibilities.
+These contracts do not resolve all the failures above. Their implementation
+history and earlier source controls remain in Git and the linked artifacts.
 
-### 2. Clarify the planner's local-subject projection, without a new alias system
+## Next bounded changes
 
-Implemented as a bounded **planner instruction/schema-description change**. The old
-description said to preserve names "including qualifiers", without distinguishing
-identity-bearing qualifiers from surrounding descriptions. `local_subjects` now
-asks for the complete named subject, not its whole descriptive request phrase.
-Anonymous policy contrasts distinguish a role wrapper from a full multiword name
-and from a named group; the same rule applies to each required input's own subject.
+1. Apply resolved, filing-qualified source eligibility **before bounded search
+   and ranking**, in the retrieval/storage seam. Carry the same scope into both
+   vector and BM25 selection and cache identity. Preserve report restrictions,
+   parent/input intersections, unrestricted siblings, seeds and owner validation.
+   Start with anonymous foreign-filing/branch, union and top-K controls.
+   Do not use unfiltered fallback or unlimited overfetch.
+2. Separately design source-grounded request-name/cell-name binding. Preserve the
+   original request and distinguish identity modifiers/groups from descriptions.
+   Changing a frozen planner target in a diagnostic copy is not an authorized
+   execution repair; no suffix list or global containment bypass is acceptable.
+3. Separately repair narrative admission so short names and exact numeric axes
+   do not mechanically hide relevant explanatory sources from an input. Retain
+   per-input permission and capacity; no new repeated-keyword scoring or
+   company/question-specific rule. Reassess claim construction using the existing
+   exact multi-quote contract before inventing another schema or model call.
 
-Full-name modifiers and group membership remain identity. Other period, region,
-exclusion and whole/part conditions stay in owned exact request units and applicable
-scope/requirements. Existing transport already preserves these, so no new field,
-runtime suffix deletion, alias mechanism, extra call or frozen-plan rewrite was
-needed. Whole-axis, period, scope, visibility and V2 checks are unchanged.
-
-This clarifies what the **existing planner** should decide; it is not proof that a
-new model response will comply. A deliberately wrong shortened authored target can
-still pass structural validation against a matching short source name. That known
-semantic negative control remains explicit. Genuine aliases absent from the query
-need a separate source-grounded contract, not a new bypass or model rationale.
-
-### 3. Preserve failed narrative drafts before changing their semantics
-
-Implemented in the existing `include_debug_bundle=True` path. Request-local
-`compiler_attempt_debug_v1` records retain the schema-parsed model program before
-merge and the complete validation input before rejected bindings are pruned.
-These are local JSON serializations with UTF-8 SHA-256, not raw provider responses.
-Validation locations refer to the merged input; compile-valid owner IDs are listed
-separately. Exact projected retry-feedback text shows the filtered draft actually
-sent, not a reconstruction from the final accepted program.
-
-Records follow island/attempt order and own their data. Debug-off requests do not
-collect them; default HTTP, answer/review/ledger and scoring do not include them.
-The evaluator/benchmark and compiler-only exporters retain the separate diagnostic
-field for future runs. No prompt, schema, validator, visibility or call-count change.
-Unavailable parsed responses have null program snapshots and an error class, not
-fabricated model output or a captured exception body. Terminal admission stops
-still raise; a call that never returned parsed output cannot supply a lost draft.
-
-The nine authored-response tests cover failed drafts after pruning, exact errors,
-same-island merge vs raw retry, separate accepted islands, debug-on/off prompt and
-validation equality, per-request graph capture, owned copies and export isolation.
-Only a new separately approved model run can show the model's actual quote repair.
+Do not rerun unchanged paid work, relax validation or claim that a structural
+check proves semantic attribution. An intentionally false anonymous attribution
+can still pass exact-occurrence checks; it remains a documented negative limit,
+not a hard answer-quality oracle.
 
 ## Verification and limits
 
-[New anonymous contract tests](../../tests/test_source_section_bindings.py): **20/20**.
-They cover inventory order/bounds, exact owned requests, unknown IDs, same-title
-foreign filings/branches, descendants, parent/input intersections, runtime-field
-injection, overwide visibility, same-cohort retry, unaffected islands and V2 drift.
-Related source-scope, retry/dependency, authority, presentation and planner tests:
-**75/75** on the section seam. Current full unittest: **1,474/1,474**, Python 3.13.13,
-47.962s; draft/export contracts **9/9**, related compiler/retry/export tests **156/156**;
-domain audit **83**. Documentation/import/topology, syntax and diff checks pass.
+- [New anonymous failure isolation](../../tests/test_request_source_failure_isolation.py):
+  **8/8**, with all earlier characterization tests preserved. They cover unchanged
+  bad planner projections, complete cell identity, same-claim subject quotation,
+  per-input visibility, short/long-name ranking, late top-K filtering and an
+  unrestricted sibling. Current failures are expected contrasts, not fixes.
+- New plus related subject, narrative, planner and retrieval tests: **89/89**,
+  Python 3.13.13. Import/DAG/topology tests: **22/22**; domain audit: **83**.
+- Runtime implementation full gate remains **1,474/1,474** at `83755b1e`; it was
+  not rerun for this test/document-only diagnosis and is not provider acceptance.
+- The [section-binding tests](../../tests/test_source_section_bindings.py),
+  [planner projection tests](../../tests/test_planner_subject_projection.py) and
+  opt-in draft/export contracts retain their existing meaning: transport and
+  authority, not semantic model accuracy.
+- Authored controls invoke validation only, without V2-authorized execution.
+  No provider, ingest, embedding, source/store/dataset change or artifact commit.
 
-[Planner name-projection tests](../../tests/test_planner_subject_projection.py): **9/9**;
-combined source/subject/request tests **63/63**. Authored projections cover role
-wrappers, complete names, named groups versus members, bilingual spellings,
-required-input identity, period/region/basis conflicts, exact request retention,
-same-cohort retry, unchanged accepted output bytes and execution-content drift.
-They check instructions and transport, not model inference or semantic accuracy.
-
-[Saved-source transport control](../../benchmarks/results/source_section_bindings_2026-09-12/README.md)
-reconstructs all three original catalogs with unchanged IDs/fingerprints. An
-**authored** binding preserves `연결 주석` and selects the observed filing-qualified
-`III. 재무에 관한 사항 > 3. 연결재무제표 주석`: four requirement errors become zero,
-and the same 86 candidates match both owners. The two NAVER saved validations and
-accepted acquisition IDs are unchanged. Fifty protected files (including the
-[prior characterization](../../benchmarks/results/request_source_contract_review_2026-09-12/README.md))
-retain their SHA-256. No original plan, store, dataset or result was rewritten.
-
-[Subject transport control](../../benchmarks/results/planner_subject_projection_2026-09-12/README.md)
-uses the same reviewed numeric source and earlier authored formula/period witnesses.
-An authored complete name passed through the current planner owner removes two
-subject errors, with the request/scopes/labels and accepted narrative bytes intact.
-The 482-member catalog and 52 protected files retain their hashes. This is not a
-replay of a newly generated model plan or correction of the paid output.
-
-These source-exposed local controls used zero provider calls/ingest/store writes and
-are not inference, answer acceptance or unseen-question generalization. Earlier
-unexported narrative drafts cannot be recovered.
-
-## Current paid observation and next boundary
-
-The [authorized successor](../../benchmarks/results/request_source_full_agent_2026-09-13/RESULTS.md)
-consumed `673329a6...f3cb0`: **0/3 complete**, **1/5 outputs accepted**, ledger **3/3 ok**,
-API/execution exceptions **0**, estimated **USD 0.38085963/0.80**, billing unobserved.
-The requested note location now binds correctly and all **8/8** parsed attempts,
-validation locations and feedback are retained. The fresh planner still used the
-full descriptive subject phrase, so instruction-only clarification did not resolve
-that failure. A narrative retry repaired one subject quote but left another invalid.
-
-An impact explanation's source IDs were visible in its island, but not selectable
-for the requirement to which the compiler assigned them. This is owner-specific
-evidence allocation, not globally hidden-ID invention. A credit-management passage
-also exists in the unchanged requested-section store but is absent from this run's
-retrieved/seed windows. Located-section correctness alone does not prove coverage.
-
-Next work is provider-free isolation of request-name/source-name binding,
-owner-evidence assignment and source-to-seed coverage with anonymous controls.
-No automatic paid retry, suffix stripping, global permission expansion, validator
-relaxation or company/question-specific runtime rule is justified by this result.
+Earlier evidence: [literal-boundary characterization](../../benchmarks/results/request_source_contract_review_2026-09-12/README.md),
+[section transport](../../benchmarks/results/source_section_bindings_2026-09-12/README.md),
+[subject transport](../../benchmarks/results/planner_subject_projection_2026-09-12/README.md).
+Prior unexported complete drafts remain unavailable; current captured drafts do not
+retroactively recover them. Chronology lives in Git and immutable result bundles.
