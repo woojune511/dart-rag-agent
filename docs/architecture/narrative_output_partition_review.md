@@ -83,12 +83,13 @@ and two subjects sharing a condition preserve every linked request through the r
 compiler/executor/final/ledger path. The missing prompt clause was first reproduced
 as a failing test. Authored output counts do not predict a model's decomposition.
 
-The measured independent-topic control now shows overlapping compiler claims even though
-both topics survive. A next bounded review can consider a **read-only sibling responsibility projection**. It
-would describe output ownership, not expose sibling candidate IDs or accepted answers,
-authorize bindings, create coupling edges, or weaken retry isolation. It is not implemented.
-First characterize authority/isolation and required shared-context counterexamples without
-provider calls; this one sample does not prove that the projection will improve model output.
+The measured independent-topic control shows overlapping compiler claims even though
+both topics survive. The [responsibility-context review](compiler_responsibility_context_review.md)
+now defines a copied plan/query map and tests it with authored-response decoration, not
+production prompt wiring. It excludes sibling candidate IDs, accepted answers and status;
+does not authorize bindings, create coupling or weaken retry isolation. Related tests
+43/43 pass; 12 saved request copies gain 6.2534% bytes with API 0. Model improvement remains
+unmeasured. Next is bounded production presentation/policy integration, not paid repetition.
 
 Post-hoc deletion by candidate/source/span/request-ID or substring is rejected by the
 counterexamples above. An exact presentation-only dedupe is a separate possible contract,
