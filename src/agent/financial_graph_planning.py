@@ -16,6 +16,7 @@ from src.agent.financial_scope_policies import explicit_query_consolidation_scop
 from src.agent.financial_source_scope import (
     build_source_section_inventory, resolve_source_section_bindings, source_section_requirement_errors,
 )
+from src.agent.financial_source_axis_inventory import build_source_axis_inventory
 from src.storage.bm25_index import metadata_matches_filter
 from src.agent.financial_runtime_trace import (
     report_cache_candidate_for_trace,
@@ -185,11 +186,13 @@ class FinancialAgentPlanningMixin:
         intent: str,
         report_scope: Dict[str, Any],
         source_section_inventory: Optional[Dict[str, Any]] = None,
+        source_axis_inventory: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Create answer obligations and retrieval hints, never a formula type."""
 
         request_units = build_request_units(query)
         section_inventory = source_section_inventory if source_section_inventory is not None else build_source_section_inventory([])
+        axis_inventory = source_axis_inventory if source_axis_inventory is not None else build_source_axis_inventory([], query=query)
         ontology = get_financial_ontology()
         concept_specs = list(ontology.concept_specs(query, topic, intent) or [])
         if not concept_specs:
@@ -224,6 +227,7 @@ class FinancialAgentPlanningMixin:
                     "report_scope": json.dumps(report_scope, ensure_ascii=False),
                     "ontology_hints": json.dumps(ontology_hints, ensure_ascii=False),
                     "source_section_inventory": json.dumps(section_inventory, ensure_ascii=False),
+                    "source_axis_inventory": json.dumps(axis_inventory, ensure_ascii=False),
                 }
             )
             planned: Any = structured_llm.invoke(prompt_value)
@@ -246,6 +250,7 @@ class FinancialAgentPlanningMixin:
                 "tasks": [],
                 "planner_notes": ["requirement_planner_failed", error["error_type"]],
                 "source_section_inventory": section_inventory,
+                "source_axis_inventory": axis_inventory,
             }
 
         raw_obligations = [item.model_dump() for item in list(planned.obligations or [])]
@@ -594,6 +599,7 @@ class FinancialAgentPlanningMixin:
             "retrieval_queries": retrieval_queries,
             "requirement_errors": requirement_errors,
             "source_section_inventory": section_inventory,
+            "source_axis_inventory": axis_inventory,
             "tasks": [task],
             "planner_notes": [
                 item
@@ -617,14 +623,18 @@ class FinancialAgentPlanningMixin:
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         # Reuse the retrieval owner's source boundary, before any semantic
         # selection. BM25 metadata is already-loaded committed source metadata;
-        # this reads no source bodies, embeddings, database or provider.
+        # section/axis projections read no source bodies, embeddings, database or provider.
         where_filter = self._build_scope_plan(state)["where_filter"]
         metadata = getattr(getattr(self, "vsm", None), "bm25_metadatas", []) or []
+        scoped_metadata = [row for row in metadata if metadata_matches_filter(row, where_filter)]
         section_inventory = build_source_section_inventory(
-            [row for row in metadata if metadata_matches_filter(row, where_filter)],
+            scoped_metadata,
             max_sections=int(PLANNING_POLICY["source_section_inventory_max_sections"]),
             max_bytes=int(PLANNING_POLICY["source_section_inventory_max_bytes"]),
         )
+        axis_inventory = build_source_axis_inventory(scoped_metadata, query=query,
+            max_axes=int(PLANNING_POLICY["source_axis_inventory_max_axes"]),
+            max_bytes=int(PLANNING_POLICY["source_axis_inventory_max_bytes"]))
         # Intent and presentation are routing hints, not permission to skip
         # requested-output coverage. Narrative uses the same existing compiler.
         plan = self._build_llm_requirement_plan(
@@ -633,6 +643,7 @@ class FinancialAgentPlanningMixin:
             intent=str(intent),
             report_scope=report_scope,
             source_section_inventory=section_inventory,
+            source_axis_inventory=axis_inventory,
         )
         obligations = [dict(item) for item in (plan.get("answer_obligations") or [])]
         retrieval_queries = list(plan.get("retrieval_queries") or [query])
@@ -658,6 +669,7 @@ class FinancialAgentPlanningMixin:
             "planner_notes": list(plan.get("planner_notes") or []),
             "requirement_errors": list(plan.get("requirement_errors") or []),
             "source_section_inventory": dict(plan.get("source_section_inventory") or section_inventory),
+            "source_axis_inventory": dict(plan.get("source_axis_inventory") or axis_inventory),
         }
         companies, years = align_scope_hints(
             companies=list(plan.get("companies") or state.get("companies") or []),

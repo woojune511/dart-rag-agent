@@ -91,10 +91,14 @@ history and earlier source controls remain in Git and the linked artifacts.
    filter. Final source checks and input intersections stay strict. No query,
    score, corpus IDF, keyword, ranking quota, parser, catalog identity or store
    mutation. This is not a full-answer fix or a new paid result.
-2. Separately design source-grounded request-name/cell-name binding. Preserve the
-   original request and distinguish identity modifiers/groups from descriptions.
-   Changing a frozen planner target in a diagnostic copy is not an authorized
-   execution repair; no suffix list or global containment bypass is acceptable.
+2. **Planner information seam implemented:** the existing call now reads bounded
+   whole row/column axes from report-scoped hydrated records before fixing its
+   targets. Literal query overlap only budgets context; complete hierarchies and
+   deterministic observed references stay visible. Repeated axes share one example
+   per filing/section. No name classifier, source-only alias, new output schema or
+   candidate permission is added. Original request conditions and strict cell
+   identity remain; bad authored targets are not silently rewritten. Correct
+   model interpretation remains unverified, not a repaired paid answer.
 3. Separately repair narrative admission so short names and exact numeric axes
    do not mechanically hide relevant explanatory sources from an input. Retain
    per-input permission and capacity; no new repeated-keyword scoring or
@@ -120,7 +124,7 @@ not a hard answer-quality oracle.
   ranking, foreign filings/branches, unions, report/input boundaries, both caches,
   retry, BM25 fallback, empty scope and unaddressable metadata. The first top-K
   test failed on the predecessor and passes with the fix. Related initial suite
-  **132/132**; current full unittest **1,492/1,492** (Python 3.13.13, 46.854s).
+  **132/132**; that implementation's full unittest **1,492/1,492** (Python 3.13.13, 46.854s).
   Structural/local search success is not provider or semantic acceptance.
 - [Frozen-source component comparison](../../benchmarks/results/early_source_scope_2026-09-13/README.md)
   at runtime `cb3bd5eb`: 19 saved queries, 12 unrestricted searches unchanged;
@@ -134,6 +138,19 @@ not a hard answer-quality oracle.
   authority, not semantic model accuracy.
 - Authored controls invoke validation only, without V2-authorized execution.
   No provider, ingest, embedding, source/store/dataset change or artifact commit.
+- [Planner source-axis tests](../../tests/test_planner_source_axes.py): **12/12**,
+  including same-call report-scoped transport, whole names/groups, exact Unicode
+  offsets, row/value formats, deterministic dedupe/limits, no alias/scalar/body
+  authority and unchanged bad-target rejection. The missing-input reproduction
+  failed on the predecessor. Existing semantic-negative controls are unchanged.
+  Provider-free success is information transport, not model accuracy.
+- Current full unittest **1,504/1,504** (Python 3.13.13, 35.991s), import/DAG/topology
+  **22/22**, domain audit **83**; pycompile and patch whitespace pass.
+  [Saved-source axis transport](../../benchmarks/results/planner_source_axes_2026-09-13/README.md)
+  retains **13/29/44** axes for the three questions, with **0/0/8** matching axes
+  omitted by budget. The numeric subject axis is visible with its hierarchy.
+  All three catalogs and **87** protected files are unchanged. No model call or
+  frozen-plan rewrite; malformed source-display quotes remain a separate blocker.
 
 Earlier evidence: [literal-boundary characterization](../../benchmarks/results/request_source_contract_review_2026-09-12/README.md),
 [section transport](../../benchmarks/results/source_section_bindings_2026-09-12/README.md),
