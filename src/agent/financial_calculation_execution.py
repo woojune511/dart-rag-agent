@@ -2095,12 +2095,25 @@ def validate_semantic_calculation_program(
             description_readings.append({"candidate_id": candidate_id,
                 "source_requirement_id": requirement_id, **reading})
         description_only_ids = set(description_quotes) - scalar_evidence_ids
-        number_sources = [
-            {"source_text": " ".join(description_quotes[str(candidate["candidate_id"])]),
-             "year": candidate.get("year")}
-            if str(candidate.get("candidate_id") or "") in description_only_ids else candidate
-            for candidate in selected
-        ]
+        if binding.get("claims"):
+            # The claim validator has already resolved exact visible bundle/context
+            # quotes. Raw candidate bodies are neither the same surface nor extra
+            # number authority. Keep the independent description-only restriction;
+            # claim-local checks above still prevent borrowing another claim's numbers.
+            number_sources = [
+                {"source_text": " ".join(description_quotes[evidence["candidate_id"]])
+                    if evidence["candidate_id"] in description_only_ids else evidence["evidence_text"],
+                 "year": candidate_by_id[evidence["candidate_id"]].get("year")}
+                for reading in claim_readings for evidence in reading["evidence"]
+            ]
+        else:
+            # Explicit historical flat inspection retains its original contract.
+            number_sources = [
+                {"source_text": " ".join(description_quotes[str(candidate["candidate_id"])]),
+                 "year": candidate.get("year")}
+                if str(candidate.get("candidate_id") or "") in description_only_ids else candidate
+                for candidate in selected
+            ]
         text = _normalise_spaces(str(binding.get("text") or ""))
         if not text:
             error("empty_narrative_output", obligation_id)
