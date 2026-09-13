@@ -35,6 +35,7 @@
 | `src/agent/financial_compiler_debug.py` | opt-in immutable JSON snapshots of attempted/merged programs, validation locations and exact retry feedback; observational only, exported separately from accepted answers/scoring |
 | `src/agent/financial_program_projection.py` | one claim renderer: subject label for fragments, unchanged full statements; parent text/evidence/ID projection and description-only separation, no historical ID widening |
 | `src/agent/financial_narrative_claims.py` | exact claim-local quote/subject/number authority, actionable detail/raw-rendered trace; targeted unvalidated retry-draft projection with current owner/requirement link filtering, not semantic entailment |
+| `src/config/retrieval_policy.py` | declarative retrieval priors and planner/compiler instructions; separate exact subject/fact quote example and retry guidance, never candidate or attribution authority |
 | `src/agent/financial_calculation_execution.py` | dimensions/scope, numeric cell-subject and section authority; aggregate narrative numbers consume validated claim quotes with independent descriptor limits; provenance, protected execution and pure final assembly |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |

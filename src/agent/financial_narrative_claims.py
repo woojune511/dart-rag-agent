@@ -113,7 +113,8 @@ def validate_narrative_claims(
                 source_span = list(contexts[0].get("source_span") or [])
             if not isinstance(quote, str) or not quote.strip() or not source_quote_is_contiguous(surface, quote, segments):
                 fail("invalid_narrative_claim_quote", link,
-                    detail="Copy evidence_text verbatim as one continuous excerpt from this candidate's visible bundle or named attached context; do not paraphrase the quote."
+                    detail="Copy evidence_text verbatim as one continuous excerpt from this candidate's visible bundle or named attached context. "
+                        "Do not insert a subject or replace a pronoun; keep subject context and fact text in separate evidence_bindings, not a joined quote."
                         + (" Quote each source segment separately; do not join adjacent cells in one evidence_text." if segments else ""))
                 continue
             # Repeated identical occurrences do not establish one exact location.
@@ -134,7 +135,8 @@ def validate_narrative_claims(
                 "physical_row_id": str(candidate.get("physical_row_id") or "")})
         if not any(subject in quote for quote in quotes):
             fail("ungrounded_narrative_subject",
-                detail="Copy subject verbatim from at least one valid quote attached to this claim; filing metadata alone is not evidence.")
+                detail="Keep the fact quote unchanged. Add a separate exact subject-bearing quote to this claim from an allowed body or attached context only if it supports this attribution. "
+                    "Do not insert the subject into evidence_text. If the relation is unsupported, revise the claim or abstain; filing metadata alone is not evidence.")
         if number_check(rendered_text, number_sources):
             fail("ungrounded_narrative_claim_number",
                 detail="Use only numbers grounded by this claim's exact quotes or their report year, not another claim or an unquoted source tail.")

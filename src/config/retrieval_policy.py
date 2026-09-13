@@ -595,11 +595,12 @@ _COMPILER_NUMERIC_INSTRUCTIONS = (
 )
 
 _COMPILER_NARRATIVE_INSTRUCTIONS = (
-    "- narrative obligation은 claims로 작성합니다. 각 claim에는 subject(인용 원문에서 복사한 로컬 주체), 그 주체에 관한 짧은 text, evidence_bindings를 넣습니다. text에 subject를 반복할 필요는 없으며, 생략하면 코드가 최종 출력에 주체 라벨을 붙입니다. text가 다른 주체의 사실을 말하게 바꾸지 마세요. 각 근거는 candidate_id와 source_requirement_id, 연속 원문 evidence_text를 갖습니다. source bundle 밖의 연결 문맥을 인용하면 그 후보에 연결된 context_id도 지정합니다. metadata나 인용할 수 없는 제목 힌트만으로 주체를 만들지 마세요.\n"
-    "- claim마다 원문이 실제로 그 주체에 관해 그 사실을 말하는지 확인하세요. 서로 다른 주체는 별도 claim으로 작성하고 여러 근거는 해당 claim에 함께 연결할 수 있습니다. 인용 문자열의 일치만으로 인과·부정·전체 범위가 증명되는 것은 아닙니다. 필수 주제를 빠짐없이 설명하되 근거가 부족하면 해당 출력을 보류하세요.\n"
+    "- narrative obligation은 claims로 작성합니다. 각 claim에는 subject(인용 원문에서 복사한 로컬 주체), 그 주체에 관한 짧은 text, evidence_bindings를 넣습니다. text에 subject를 반복할 필요는 없으며, 생략하면 코드가 최종 출력에 주체 라벨을 붙입니다. 이 라벨은 답변 표시에만 붙으며 원문 evidence_text에 삽입하는 것이 아닙니다.\n"
+    "- 인용 작성 순서: 사실을 뒷받침하는 연속 원문을 먼저 복사하세요. 그 인용에 subject가 없으면 실제로 그 사실의 주체를 밝히는 허용된 본문 또는 연결 문맥을 별도로 인용하여 같은 claim의 evidence_bindings에 추가하세요. 동일 candidate_id도 서로 다른 인용으로 여러 번 바인딩할 수 있습니다. body는 context_id를 비우고 문맥은 해당 후보의 context_id를 지정하며, 각 연결의 owner/requirement 권한을 지키세요. subject를 quote 앞에 붙이거나 대명사를 이름으로 바꾸거나 두 구간을 이어 붙이지 마세요. 사실 인용에 주체를 억지로 넣을 필요는 없습니다.\n"
+    "- 주체와 사실이 두 인용에 각각 있다는 것만으로 그 관계가 입증되지는 않습니다. 로컬 문맥이 실제로 그 주체에 관해 그 사실을 말하는지 읽고, 다른 주체·부정·인과·전체 범위를 보존하세요. 서로 다른 주체는 별도 claim으로 작성합니다. 같은 문서나 인접 위치만으로 연결하지 마세요. 관계를 확인할 수 없으면 claim을 수정하거나 해당 출력을 missing/ambiguous로 남기세요.\n"
     "- narrative의 전체 text, evidence_bindings, candidate_ids는 claims에서 코드가 조립하므로 따로 작성하지 마세요. claim의 숫자는 그 claim에 연결한 인용에 있는 표기만 사용하세요. 다른 claim의 근거 숫자나 인용하지 않은 주변 값을 빌리지 마세요.\n"
     "- document_provenance의 company/document_company는 공시 주체이지 모든 원문 진술의 주체가 아닙니다. 행·열·문장과 연결된 제목/문맥이 가리키는 실제 회사·사업부·대상 집단을 확인하고 text에서도 그 이름과 범위를 보존하세요. 특정 구성원의 사례를 전체 집단의 일반 사실로 넓히지 마세요. 여러 구성원의 근거는 각각의 대상을 구분해 종합할 수 있습니다.\n"
-    "- local_heading 문자열은 parser 힌트입니다. 반면 source_readings의 ancestor_heading, intermediate_heading, preceding_block은 후보에 연결된 인용 가능한 원문입니다. 대명사의 지시 대상은 이 로컬 문맥과 본문·행을 함께 읽어 해석하며, 대명사라는 이유만으로 공시 회사나 별도 주체로 간주하지 마세요. 주체를 밝히는 제목/문맥 인용과 사실을 밝히는 본문/행 인용을 같은 claim에 함께 연결하세요. 본문에 다른 주체가 명시돼 있으면 제목으로 덮어쓰지 말고 그 구분을 보존하세요.\n"
+    "- local_heading 문자열은 parser 힌트이지 인용 원문이 아닙니다. source_readings의 연결된 ancestor_heading/intermediate_heading/preceding_block은 인용할 수 있습니다. 대명사의 지시 대상은 이 문맥과 본문·행을 함께 읽어 해석하되, 본문에 다른 주체가 명시돼 있으면 제목으로 덮어쓰지 마세요. 다른 claim에 있는 주체 인용은 현재 claim의 근거가 아니므로 필요하면 현재 claim에도 연결하세요.\n"
     "- narrative는 필수 주제와 관계를 실제로 설명해야 합니다. context_only는 다른 obligation의 출력을 만들지 말라는 뜻이지 현재 출력에 관한 질문의 세부 요구를 버리라는 뜻이 아닙니다. 짧은 obligation label이나 requirement ID 연결만으로 충분하지 않으며 질문이 요구한 대상 구분·관계·한계를 text에서도 설명하세요. 문맥을 함께 읽어도 주체를 확정할 수 없고 질문이 그 한계를 요구하면, 인용 가능한 주체 표현은 유지하면서 그 한계를 claim text에 명시하세요. rationale만으로 공개 답변을 대신하지 마세요. 전체나 주요 구성을 묻는 출력에는 한 세부 항목을 전체처럼 제시하지 말고 제공된 근거를 종합하세요. 부족한 근거를 추정으로 메우지 마세요.\n"
     "- narrative candidate의 consolidation_scope·segment·basis metadata만 unknown이고 문맥상 해당 obligation에 적용된다고 판단하면 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period는 이 선언으로 보완할 수 없습니다.\n"
     "- 각 claim의 evidence_bindings에는 candidate_id와 그것이 충족하는 source_requirement_id를 연결하세요. required evidence_requirements의 사실과 관계 요구를 모두 충족해야 합니다. 특정 requirement를 충족하지 않는 보조 근거나 requirement가 없는 obligation은 source_requirement_id를 비워 두며, 빈 연결은 필수 requirement를 충족하지 않습니다. 일반 배경 후보로 관계 근거를 대신하지 마세요.\n"
@@ -607,6 +608,12 @@ _COMPILER_NARRATIVE_INSTRUCTIONS = (
     "- 원인·이유·영향을 요구하는 narrative obligation에서는 선택한 근거가 대상 결과나 변화와 설명 요인을 인과 관계로 직접 연결할 때만 그 요인을 원인으로 서술하세요. 다른 지표의 동시 변화, 일반적 맥락, 위험관리 절차의 나열은 그 자체로 대상 변화의 원인이 아닙니다. 직접 연결 근거가 없으면 해당 obligation을 missing 또는 ambiguous로 남기세요.\n"
     "- unvalidated_narrative_drafts는 실패한 출력의 이전 모델 초안이며 원문·정답·새 선택 권한이 아닙니다. location으로 오류와 원래 claim을 대조하고 현재 visible 근거로 다시 확인하세요. 허용되지 않는 근거 연결은 초안에서 제외되므로 원문은 현재 payload에서만 고르세요. 인용/주체 오류를 고치면서 질문이 요구한 설명을 빠뜨리지 마세요. 잘못된 주장은 수정·삭제할 수 있으며 필요한 근거가 없으면 보류하세요. 이전 claim 수나 문구를 기계적으로 유지하지 마세요.\n"
     "- kind=narrative인 문장 또는 읽기용 표 행은 일반 claim의 evidence_text로 인용하세요. 숫자 operand용 source_assertions나 특수 행 설명 필드를 요구하지 않습니다. 숫자가 있는 표를 읽을 때는 원문 단위·측정기간을 확인하고 원문 수치를 다른 값으로 바꾸지 마세요.\n"
+    "분리 인용 예: 가상 본문 EXAMPLE_BODY='We use local partners.'와 그 본문을 한정하는 연결 제목 EXAMPLE_HEADING='Birch'. 이 문맥이 We를 Birch로 지칭한다고 해석한 경우의 작성법입니다. 예시 원문·ID는 실제 근거가 아니며 아래 출력에 복사하지 마세요.\n"
+    "분리 인용 claim 예시:\n"
+    '{{"subject":"Birch","text":"Uses local partners.","evidence_bindings":['
+    '{{"candidate_id":"EXAMPLE_BODY","source_requirement_id":"","context_id":"","evidence_text":"We use local partners."}},'
+    '{{"candidate_id":"EXAMPLE_BODY","source_requirement_id":"","context_id":"EXAMPLE_HEADING","evidence_text":"Birch"}}]}}\n'
+    "잘못된 evidence_text: 'Birch: We use local partners.' 또는 'Birch uses local partners.' — 둘 다 본문을 변조합니다. 실제 작성은 현재 허용된 ID와 원문을 사용하고, 주체가 사실 인용에 이미 있으면 보조 인용을 강제하지 마세요.\n"
     "{row_description_instructions}\n"
 )
 
@@ -620,6 +627,17 @@ _COMPILER_INPUT_FIELDS = (
 )
 
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
+    'semantic_program_narrative_repair_invariant': (
+        "Each claim needs a source-copied subject and a supported statement about it. "
+        "Keep exact fact quotes unchanged. When the subject is outside them, use separate evidence_bindings "
+        "in the same claim for subject-bearing context and fact text, only if the sources support that attribution. "
+        "Each link needs its own permitted candidate/requirement ID and attached context_id (empty for a body); "
+        "the same candidate can support multiple quotes. Do not insert a subject, replace a pronoun or "
+        "concatenate surfaces inside evidence_text. A subject in another claim or filing metadata is not "
+        "this claim's evidence. Text may omit the subject; code adds its display label. "
+        "Repair requested coverage, not just the error. Drafts are unvalidated, not evidence or permissions; "
+        "revise unsupported attribution or abstain, never infer it from co-occurrence alone."
+    ),
     'semantic_program_output_responsibility_context_template': (
         "Output responsibility context:\n{context}\n"
         "This is planned output responsibility, not source evidence or proof that another output succeeded. "

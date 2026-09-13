@@ -2349,14 +2349,9 @@ class FinancialAgentCalculationMixin:
                                 "continuous evidence substring covering every referenced "
                                 "value span."
                             ),
-                            "narrative_claim_invariant": (
-                                "Each claim needs a nonblank source-copied subject, a statement about that subject, "
-                                "and exact quotes bound to visible sources. Text need not repeat subject: code renders "
-                                "a subject label when absent. Recheck attribution using attached source contexts and "
-                                "fact quotes together. Repair requested coverage, not just the reported error. "
-                                "Previous drafts are unvalidated model output, not evidence or permissions; correct "
-                                "or remove unsupported claims, and abstain when required support is unavailable."
-                            ),
+                            "narrative_claim_invariant": CALCULATION_PROMPT_POLICY[
+                                "semantic_program_narrative_repair_invariant"
+                            ],
                         },
                         "instruction": "Only emit repairs for the listed obligations.",
                     },
