@@ -1,5 +1,6 @@
 """Real compiler prompt contracts with authored responses, not model quality tests."""
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 import hashlib
 import json
 import unittest
@@ -203,9 +204,9 @@ class CompilerResponsibilityContextTests(unittest.TestCase):
                                   document_company='Elsewhere', source_document_id='another-filing',
                                   source_anchor=hidden['source_anchor'].replace('Issuer', 'Elsewhere'))
                     attempt_state['candidates']['semantic_candidate_catalog'].append(hidden)
-                    binding['claims'][0]['evidence_bindings'][0]['candidate_id'] = hidden['candidate_id']
+                    binding['claims'][0]['fact_evidence_selections'][0]['candidate_id'] = hidden['candidate_id']
                 else:
-                    binding['claims'][0]['evidence_bindings'][0]['evidence_text'] = original['request']['query'].splitlines()[0]
+                    binding['claims'][0]['fact_evidence_selections'][0]['surface_id'] = 'request-is-not-source'
                 # Re-project only legacy mirrors; the intentionally bad claim stays unchanged.
                 for projected in ('candidate_ids', 'evidence_bindings', 'text'):
                     binding.pop(projected, None)
@@ -289,7 +290,7 @@ class CompilerResponsibilityContextTests(unittest.TestCase):
                 else:
                     bad['direct_bindings'][0]['candidate_id'] = 'invented'
                     retry.pop('narrative_bindings')
-                queue = _StructuredQueueLLM(*[SemanticCalculationProgram.model_validate(row) for row in (bad, retry)])
+                queue = _StructuredQueueLLM(*[model_program(row, state['semantic_candidate_catalog']) for row in (bad, retry)])
                 with patch('src.agent.financial_graph_calculation.project_output_responsibility_context',
                            wraps=project_output_responsibility_context) as projector, patch(
                                'src.agent.financial_graph_calculation._merge_targeted_program_retry',

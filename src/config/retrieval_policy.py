@@ -558,7 +558,7 @@ _COMPILER_SHARED_INSTRUCTIONS = (
     "- 같은 coupling_key를 가진 출력은 공통 의미 기준을 만족해야 합니다. 서로 다른 source context를 결합할 때는 그 호환성을 명시하는 narrative candidate ID를 compatibility_candidate_ids에 연결하고, 근거가 없으면 missing 또는 ambiguous로 남기세요. coupling_key가 빈 독립 출력은 서로 다른 표에서 선택할 수 있지만 각 출력의 scope와 단위 검증은 그대로 적용됩니다.\n"
     "- 근거가 부족하거나 의미가 모호하면 억지로 선택하지 말고 status와 missing/ambiguous obligation IDs를 표시합니다.\n"
     "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
-    "- source_readings를 묶음별로 읽으세요: enclosing_contexts와 preceding_contexts, bodies, following_contexts 순서입니다. 같은 문서의 문맥 연결이 모두 같은 행/문장만 한 읽기 묶음에 배치합니다. 각 body의 source_bundle_id와 source_text는 독립된 정확한 인용 표면이며 서로 이어 붙여 한 인용으로 만들 수 없습니다. surface_ref는 앞에서 한 번 제시된 context_id의 동일 원문을 참조합니다. body 인용은 context_id를 비우고, 제목/문맥 인용은 그 context_id를 지정하세요. source_bundles_by_id의 context_ids만 인용할 수 있고 후보에 attached_context_ids가 있으면 그 제한을 우선합니다. owner cohort 권한도 함께 지키세요. 배열 순서는 읽기 편의이지 의미·대상 일치의 증거가 아닙니다.\n"
+    "- source_readings를 enclosing_contexts, preceding_contexts, bodies, following_contexts 순서로 함께 읽으세요. 각 body/context는 독립된 원문 표면입니다. surface_ref는 앞에서 한 번 제시된 context_id의 동일 원문입니다. surface_id와 pieces가 있으면 piece.text를 순서대로 읽되 라벨은 원문이 아닙니다. 같은 partition의 연속 piece만 한 구간이며 서로 다른 표면/셀은 이어 붙이지 마세요. 숫자 source_assertions/context_bindings는 기존처럼 정확한 원문을 인용하고 narrative는 아래 구간 선택 계약을 따릅니다. source_bundles_by_id의 context_ids와 candidate의 attached_context_ids, owner cohort 권한을 지키세요. 배열 순서는 읽기 편의이지 의미·대상 일치의 증거가 아닙니다.\n"
     "- document_provenance는 공시 회사·연도·출처 metadata입니다. 인용 원문이 아니며 문장 주체를 확정하지 않습니다. 생략된 빈 scalar 필드는 적용 확인이 아니고, unknown 상태도 compatible의 증거가 아닙니다.\n"
 )
 
@@ -595,25 +595,25 @@ _COMPILER_NUMERIC_INSTRUCTIONS = (
 )
 
 _COMPILER_NARRATIVE_INSTRUCTIONS = (
-    "- narrative obligation은 claims로 작성합니다. 각 claim에는 subject(인용 원문에서 복사한 로컬 주체), 그 주체에 관한 짧은 text, evidence_bindings를 넣습니다. text에 subject를 반복할 필요는 없으며, 생략하면 코드가 최종 출력에 주체 라벨을 붙입니다. 이 라벨은 답변 표시에만 붙으며 원문 evidence_text에 삽입하는 것이 아닙니다.\n"
-    "- 인용 작성 순서: 사실을 뒷받침하는 연속 원문을 먼저 복사하세요. 그 인용에 subject가 없으면 실제로 그 사실의 주체를 밝히는 허용된 본문 또는 연결 문맥을 별도로 인용하여 같은 claim의 evidence_bindings에 추가하세요. 동일 candidate_id도 서로 다른 인용으로 여러 번 바인딩할 수 있습니다. body는 context_id를 비우고 문맥은 해당 후보의 context_id를 지정하며, 각 연결의 owner/requirement 권한을 지키세요. subject를 quote 앞에 붙이거나 대명사를 이름으로 바꾸거나 두 구간을 이어 붙이지 마세요. 사실 인용에 주체를 억지로 넣을 필요는 없습니다.\n"
+    "- narrative obligation은 subject_bindings와 claims로 작성합니다. subject_bindings는 이 출력 안에서 공유하는 명시적 주체 근거입니다. 각 항목에는 고유 subject_binding_id, 선택한 원문에 있는 subject, evidence_selections를 넣고 실제 참조하는 주체만 선언하세요. 각 claim은 subject_binding_id를 명시적으로 참조하고 짧은 text와 fact_evidence_selections를 넣습니다. text에 subject가 없으면 코드가 표시 라벨을 붙입니다. 앞 claim의 주체를 자동 상속하지 않습니다.\n"
+    "- 원문을 다시 쓰지 말고 구간을 선택하세요. 각 selection은 candidate_id, source_requirement_id, surface_id, first_piece_id, last_piece_id입니다. 시작과 끝을 포함한 연속 구간이며 같은 partition 안에서만 선택할 수 있습니다. piece ID는 그 표면의 목록에서 고르고 글자 위치를 계산하거나 evidence_text/context_id를 새로 쓰지 마세요. 코드가 원문의 공백·줄바꿈까지 그대로 추출합니다. 다른 셀/표면은 별도 selection으로 연결하세요. 필요한 사실 구간만 선택하고 오류를 피하려고 전체 문단을 무조건 선택하지 마세요.\n"
     "- 주체와 사실이 두 인용에 각각 있다는 것만으로 그 관계가 입증되지는 않습니다. 로컬 문맥이 실제로 그 주체에 관해 그 사실을 말하는지 읽고, 다른 주체·부정·인과·전체 범위를 보존하세요. 서로 다른 주체는 별도 claim으로 작성합니다. 같은 문서나 인접 위치만으로 연결하지 마세요. 관계를 확인할 수 없으면 claim을 수정하거나 해당 출력을 missing/ambiguous로 남기세요.\n"
-    "- narrative의 전체 text, evidence_bindings, candidate_ids는 claims에서 코드가 조립하므로 따로 작성하지 마세요. claim의 숫자는 그 claim에 연결한 인용에 있는 표기만 사용하세요. 다른 claim의 근거 숫자나 인용하지 않은 주변 값을 빌리지 마세요.\n"
+    "- narrative의 전체 text, evidence_bindings, candidate_ids는 코드가 조립하므로 따로 작성하지 마세요. claim의 숫자는 그 claim의 fact_evidence_selections에 있는 표기만 사용하세요. 공유 subject_bindings는 주체 근거일 뿐 숫자나 사실의 대체 근거가 아닙니다. 필요한 경우 같은 구간을 사실 근거로도 명시적으로 선택하세요. 다른 claim이나 선택하지 않은 주변 값을 빌리지 마세요.\n"
     "- document_provenance의 company/document_company는 공시 주체이지 모든 원문 진술의 주체가 아닙니다. 행·열·문장과 연결된 제목/문맥이 가리키는 실제 회사·사업부·대상 집단을 확인하고 text에서도 그 이름과 범위를 보존하세요. 특정 구성원의 사례를 전체 집단의 일반 사실로 넓히지 마세요. 여러 구성원의 근거는 각각의 대상을 구분해 종합할 수 있습니다.\n"
-    "- local_heading 문자열은 parser 힌트이지 인용 원문이 아닙니다. source_readings의 연결된 ancestor_heading/intermediate_heading/preceding_block은 인용할 수 있습니다. 대명사의 지시 대상은 이 문맥과 본문·행을 함께 읽어 해석하되, 본문에 다른 주체가 명시돼 있으면 제목으로 덮어쓰지 마세요. 다른 claim에 있는 주체 인용은 현재 claim의 근거가 아니므로 필요하면 현재 claim에도 연결하세요.\n"
+    "- local_heading은 parser 힌트이지 인용 원문이 아닙니다. source_readings의 연결된 제목/문맥 구간은 선택할 수 있습니다. 대명사의 대상은 이 문맥과 본문·행을 함께 읽어 해석하되, 본문에 다른 주체가 명시되면 제목으로 덮어쓰지 마세요. 여러 claim이 같은 주체 근거를 사용하려면 동일 subject_binding_id를 각각 명시하세요. 다른 obligation의 주체 선언은 가져올 수 없습니다.\n"
     "- narrative는 필수 주제와 관계를 실제로 설명해야 합니다. context_only는 다른 obligation의 출력을 만들지 말라는 뜻이지 현재 출력에 관한 질문의 세부 요구를 버리라는 뜻이 아닙니다. 짧은 obligation label이나 requirement ID 연결만으로 충분하지 않으며 질문이 요구한 대상 구분·관계·한계를 text에서도 설명하세요. 문맥을 함께 읽어도 주체를 확정할 수 없고 질문이 그 한계를 요구하면, 인용 가능한 주체 표현은 유지하면서 그 한계를 claim text에 명시하세요. rationale만으로 공개 답변을 대신하지 마세요. 전체나 주요 구성을 묻는 출력에는 한 세부 항목을 전체처럼 제시하지 말고 제공된 근거를 종합하세요. 부족한 근거를 추정으로 메우지 마세요.\n"
     "- narrative candidate의 consolidation_scope·segment·basis metadata만 unknown이고 문맥상 해당 obligation에 적용된다고 판단하면 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period는 이 선언으로 보완할 수 없습니다.\n"
-    "- 각 claim의 evidence_bindings에는 candidate_id와 그것이 충족하는 source_requirement_id를 연결하세요. required evidence_requirements의 사실과 관계 요구를 모두 충족해야 합니다. 특정 requirement를 충족하지 않는 보조 근거나 requirement가 없는 obligation은 source_requirement_id를 비워 두며, 빈 연결은 필수 requirement를 충족하지 않습니다. 일반 배경 후보로 관계 근거를 대신하지 마세요.\n"
+    "- 각 selection에는 candidate_id와 그것이 충족하는 source_requirement_id를 연결하세요. required evidence_requirements의 사실과 관계 요구를 모두 충족해야 합니다. 특정 requirement를 충족하지 않는 주체/보조 근거나 requirement가 없는 obligation은 source_requirement_id를 비워 두며, 빈 연결은 필수 requirement를 충족하지 않습니다. 일반 배경 후보로 관계 근거를 대신하지 마세요.\n"
     "- evidence_mode가 source_defined_group이면 런타임이 만든 하나의 원문 그룹 requirement를 사용합니다. 이 cohort에는 원문 문장뿐 아니라 구조화된 표의 숫자 셀도 함께 보일 수 있습니다. source_defined_group_selection의 selection_mode가 complete_physical_row이면 required_candidate_ids를 모두 선택하고 같은 source_requirement_id에 각각 바인딩하며, 각 셀의 원문에 기재된 항목 이름과 값을 보존해 text에 모두 포함하세요. 관행적인 예상 항목으로 원문 항목을 대체하거나 새로운 필수 항목을 만들지 마세요.\n"
     "- 원인·이유·영향을 요구하는 narrative obligation에서는 선택한 근거가 대상 결과나 변화와 설명 요인을 인과 관계로 직접 연결할 때만 그 요인을 원인으로 서술하세요. 다른 지표의 동시 변화, 일반적 맥락, 위험관리 절차의 나열은 그 자체로 대상 변화의 원인이 아닙니다. 직접 연결 근거가 없으면 해당 obligation을 missing 또는 ambiguous로 남기세요.\n"
     "- unvalidated_narrative_drafts는 실패한 출력의 이전 모델 초안이며 원문·정답·새 선택 권한이 아닙니다. location으로 오류와 원래 claim을 대조하고 현재 visible 근거로 다시 확인하세요. 허용되지 않는 근거 연결은 초안에서 제외되므로 원문은 현재 payload에서만 고르세요. 인용/주체 오류를 고치면서 질문이 요구한 설명을 빠뜨리지 마세요. 잘못된 주장은 수정·삭제할 수 있으며 필요한 근거가 없으면 보류하세요. 이전 claim 수나 문구를 기계적으로 유지하지 마세요.\n"
-    "- kind=narrative인 문장 또는 읽기용 표 행은 일반 claim의 evidence_text로 인용하세요. 숫자 operand용 source_assertions나 특수 행 설명 필드를 요구하지 않습니다. 숫자가 있는 표를 읽을 때는 원문 단위·측정기간을 확인하고 원문 수치를 다른 값으로 바꾸지 마세요.\n"
-    "분리 인용 예: 가상 본문 EXAMPLE_BODY='We use local partners.'와 그 본문을 한정하는 연결 제목 EXAMPLE_HEADING='Birch'. 이 문맥이 We를 Birch로 지칭한다고 해석한 경우의 작성법입니다. 예시 원문·ID는 실제 근거가 아니며 아래 출력에 복사하지 마세요.\n"
-    "분리 인용 claim 예시:\n"
-    '{{"subject":"Birch","text":"Uses local partners.","evidence_bindings":['
-    '{{"candidate_id":"EXAMPLE_BODY","source_requirement_id":"","context_id":"","evidence_text":"We use local partners."}},'
-    '{{"candidate_id":"EXAMPLE_BODY","source_requirement_id":"","context_id":"EXAMPLE_HEADING","evidence_text":"Birch"}}]}}\n'
-    "잘못된 evidence_text: 'Birch: We use local partners.' 또는 'Birch uses local partners.' — 둘 다 본문을 변조합니다. 실제 작성은 현재 허용된 ID와 원문을 사용하고, 주체가 사실 인용에 이미 있으면 보조 인용을 강제하지 마세요.\n"
+    "- kind=narrative 문장/읽기용 표 행은 일반 fact_evidence_selections로 읽으세요. 숫자 operand용 source_assertions나 특수 행 설명 필드를 요구하지 않습니다. 숫자 표는 단위·측정기간을 확인하고 원문 수치를 바꾸지 마세요.\n"
+    "구간 선택 예: 가상 EXAMPLE_BODY의 body 표면 EXAMPLE_SURFACE에는 p1='We use local partners.', 연결 제목 표면 EXAMPLE_HEADING에는 p1='Birch'가 있습니다. 문맥상 We가 Birch라고 해석했을 때의 작성법이며 이 예시 원문·ID는 실제 근거가 아닙니다.\n"
+    "구간 선택 narrative 예시:\n"
+    '{{"subject_bindings":[{{"subject_binding_id":"s1","subject":"Birch","evidence_selections":['
+    '{{"candidate_id":"EXAMPLE_BODY","source_requirement_id":"","surface_id":"EXAMPLE_HEADING","first_piece_id":"p1","last_piece_id":"p1"}}]}}],'
+    '"claims":[{{"subject_binding_id":"s1","text":"Uses local partners.","fact_evidence_selections":['
+    '{{"candidate_id":"EXAMPLE_BODY","source_requirement_id":"","surface_id":"EXAMPLE_SURFACE","first_piece_id":"p1","last_piece_id":"p1"}}]}}]}}\n'
     "{row_description_instructions}\n"
 )
 
@@ -628,13 +628,12 @@ _COMPILER_INPUT_FIELDS = (
 
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
     'semantic_program_narrative_repair_invariant': (
-        "Each claim needs a source-copied subject and a supported statement about it. "
-        "Keep exact fact quotes unchanged. When the subject is outside them, use separate evidence_bindings "
-        "in the same claim for subject-bearing context and fact text, only if the sources support that attribution. "
-        "Each link needs its own permitted candidate/requirement ID and attached context_id (empty for a body); "
-        "the same candidate can support multiple quotes. Do not insert a subject, replace a pronoun or "
-        "concatenate surfaces inside evidence_text. A subject in another claim or filing metadata is not "
-        "this claim's evidence. Text may omit the subject; code adds its display label. "
+        "Each claim explicitly references an obligation-local subject_binding_id and supported fact_evidence_selections. "
+        "Keep valid fact ranges; repair the failed surface/piece references using currently permitted addresses. "
+        "Share subject support only through subject_bindings, never previous-claim inheritance or filing metadata. "
+        "Each selection needs its own permitted candidate/requirement ID, surface_id, first_piece_id and last_piece_id "
+        "within one partition. Code extracts exact bytes; do not recopy evidence_text or join cells. "
+        "Shared subject support does not authorize a claim's numbers. Text may omit the subject; code labels it. "
         "Repair requested coverage, not just the error. Drafts are unvalidated, not evidence or permissions; "
         "revise unsupported attribution or abstain, never infer it from co-occurrence alone."
     ),

@@ -9,6 +9,7 @@ from typing import Any, Mapping, Sequence
 
 from src.agent.financial_calculation_execution import _row_description_reading
 from src.agent.financial_request_units import build_request_units, project_request_units
+from src.agent.financial_evidence_addresses import build_evidence_surface
 from src.utils.source_segments import project_source_surface
 
 
@@ -126,6 +127,13 @@ def project_reading_payload(
     candidates = result["candidates_by_id"]
     originals = {str(row["candidate_id"]): row for row in catalog}
     narrative_only = narrative_only_cohorts(result["cohorts"])
+    addressed = any(row.get("owner_type") == "obligation" and row.get("candidate_kind") == "evidence"
+                    for row in result["cohorts"])
+
+    def reading_surface(source, *, context=False):
+        if addressed:
+            return build_evidence_surface(source, context=context).to_projection()
+        return project_source_surface(source['source_text'], source.get('source_segments', []))
     provenance = {}
     for candidate_id, row in candidates.items():
         provenance[candidate_id] = {key: row.pop(key) for key in DOCUMENT_FIELDS if key in row}
@@ -192,7 +200,7 @@ def project_reading_payload(
     def fragment(key, relation):
         fragment = {"context_id": key, "relation": relation}
         if key not in emitted_contexts:
-            fragment.update(project_source_surface(contexts[key]['source_text'], contexts[key].get('source_segments', [])))
+            fragment.update(reading_surface(contexts[key], context=True))
             emitted_contexts.add(key)
         else:
             fragment["surface_ref"] = key
@@ -206,7 +214,7 @@ def project_reading_payload(
         group_key = (source_identity(bundle), tuple(sorted(bundle.get("context_relations", {}).items())))
         body = {"source_bundle_id": bundle["source_bundle_id"],
                 "candidate_ids": list(bundle["candidate_ids"]),
-                **project_source_surface(bundle['source_text'], bundle.get('source_segments', []))}
+                **reading_surface(bundle)}
         if group_key in groups:
             groups[group_key]["bodies"].append(body)
             continue
@@ -232,7 +240,7 @@ def project_reading_payload(
         bundle.pop("source_text")
         bundle_provenance[key] = {"source_anchor": bundle.pop("source_anchor")}
     return {
-        "schema": "semantic_program_candidate_payload_v7",
+        "schema": "semantic_program_candidate_payload_v8" if addressed else "semantic_program_candidate_payload_v7",
         "reading_mode": "narrative_only" if narrative_only else "numeric_or_mixed",
         "source_readings": readings,
         **{key: value for key, value in result.items() if key != "schema"},

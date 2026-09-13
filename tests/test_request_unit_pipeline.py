@@ -113,7 +113,7 @@ class RequestUnitPipelineTests(unittest.TestCase):
     def test_user_request_is_not_a_new_quote_surface(self):
         query = 'Operating description: Aspen has a wider group. Describe it.'
         bad = program(1, 'Aspen', 'a').model_dump()
-        bad['narrative_bindings'][0]['claims'][0]['evidence_bindings'][0]['evidence_text'] = 'Aspen has a wider group.'
+        bad['narrative_bindings'][0]['claims'][0]['fact_evidence_selections'][0]['surface_id'] = 'request-is-not-source'
         from src.agent.financial_graph_models import SemanticCalculationProgram
         rejected = SemanticCalculationProgram.model_validate(bad)
         compiled, _, llm = self.compile(query,

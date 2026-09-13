@@ -1,6 +1,7 @@
 """Subject display is deterministic; evidence authority is checked separately."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program, model_program
 import json
 import unittest
 
@@ -27,7 +28,7 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
             visible_candidate_ids=["note"], candidate_ids_by_owner={"activity": ["note"]})
 
     def validate(self, program=None):
-        return validate_semantic_calculation_program(program=program or self.program,
+        return validate_semantic_calculation_program(program=address_program(program or self.program, self.catalog),
             obligations=self.owners, candidate_catalog=self.catalog, query="Describe activity.",
             candidate_visibility=self.visibility, require_narrative_claims=True)
 
@@ -51,7 +52,7 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
 
     def test_raw_model_validator_executor_and_final_assembler_share_display(self):
         before = deepcopy(self.program)
-        modeled = SemanticCalculationProgram.model_validate(self.program).model_dump()
+        modeled = model_program(self.program, self.catalog).model_dump()
         raw, validation = self.validate(), self.validate(modeled)
         self.assertEqual(raw["status"], "ready")
         self.assertEqual(validation["status"], "ready")
@@ -80,7 +81,7 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
         for field, value, code in (
             ("subject", "Issuer", "ungrounded_narrative_subject"),
             ("text", "Serves 918 clients.", "ungrounded_narrative_claim_number"),
-            ("evidence_text", "Aspen distributes through partners!", "invalid_narrative_claim_quote"),
+            ("evidence_text", "Aspen distributes through partners!", "unknown_narrative_surface"),
             ("candidate_id", "foreign", "unknown_narrative_candidate"),
         ):
             with self.subTest(field=field):
@@ -109,7 +110,7 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
     def test_fragment_compiles_once_and_preserves_an_independent_program(self):
         accepted = SemanticCalculationProgram(direct_bindings=[{
             "obligation_id": "size", "candidate_id": "size-cell"}])
-        llm = _StructuredQueueLLM(accepted, SemanticCalculationProgram.model_validate(self.program))
+        llm = _StructuredQueueLLM(accepted, model_program(self.program, self.catalog))
         owners = [_obligation("size", "direct_value", "Size"), *self.owners]
         catalog = [_candidate("size-cell", 12), *self.catalog]
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(
@@ -123,7 +124,7 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
     def test_failed_claim_attempts_retain_actionable_diagnostics_after_merge(self):
         bad = deepcopy(self.program)
         bad["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["evidence_text"] = "Wrong quote."
-        modeled = SemanticCalculationProgram.model_validate(bad)
+        modeled = model_program(bad, self.catalog)
         llm = _StructuredQueueLLM(modeled, modeled)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(
             _case_state({"question": "Describe activity.", "obligations": self.owners}, self.catalog))
@@ -131,7 +132,7 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
         history = compiled["planner_debug_trace"]["program_validation_history"]
         self.assertEqual([row["attempt"] for row in history], [1, 2])
         for observation in history:
-            error = next(row for row in observation["errors"] if row["code"] == "invalid_narrative_claim_quote")
+            error = next(row for row in observation["errors"] if row["code"] == "unknown_narrative_surface")
             self.assertEqual(error["candidate_id"], "note")
             self.assertTrue(error["detail"])
             self.assertEqual(error["repair_action"], "repair_program")

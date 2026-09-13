@@ -5,6 +5,7 @@ tests preserve distinct source facts and expose remaining assembly limitations.
 No benchmark artifacts, provider clients, or semantic-dedup heuristic are used.
 """
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 from types import SimpleNamespace
 import json
 import unittest
@@ -47,7 +48,7 @@ def authored_pipeline(query, bodies, owners, response_specs, *, year=2051, coupl
             oid = f'ob_{index:03d}'
             bindings.setdefault(oid, {'obligation_id': oid, 'claims': []})['claims'].append(
                 claim(subject, text, ids[source_index], quote, source_requirement_id=f'{oid}:req_001'))
-        programs.append(SemanticCalculationProgram.model_validate({'narrative_bindings': list(bindings.values())}))
+        programs.append(model_program({'narrative_bindings': list(bindings.values())}, candidates['semantic_candidate_catalog']))
     llm = _StructuredQueueLLM(plan, *programs)
     agent, state = agent_for(llm), request(query)
     state['request']['report_scope']['year'] = year
@@ -173,7 +174,7 @@ class NarrativeOutputPartitionTests(unittest.TestCase):
         self.assertEqual(len(llm.prompts), 3)
         bindings = state['compilation']['semantic_program']['narrative_bindings']
         self.assertEqual(bindings[0]['claims'][0]['text'], bindings[1]['claims'][0]['text'])
-        self.assertNotEqual(render_narrative_claim(bindings[0]['claims'][0]), render_narrative_claim(bindings[1]['claims'][0]))
+        self.assertNotEqual(bindings[0]['text'], bindings[1]['text'])
 
     def test_exact_duplicate_claims_are_preserved_within_and_across_outputs(self):
         fact = 'Aspen receives requests.'

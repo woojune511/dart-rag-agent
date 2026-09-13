@@ -35,7 +35,9 @@ def _program(index):
                                "source_requirement_id": owner + ":req_001"}],
         "text": ("The teams combine shared operations." if index == 1
                  else "The teams provide hosted services."),
-    }]}, subject="The teams", quotes={f"note-{index}": text}))
+    }]}, subject="The teams", quotes={f"note-{index}": text}, catalog=[{
+        **_candidate(f"note-{index}", 0), "kind": "narrative", "normalized_value": None,
+        "normalized_unit": "UNKNOWN", "raw_value": "", "raw_unit": "", "source_text": text}]))
 
 
 class UniformRequirementContractTests(unittest.TestCase):

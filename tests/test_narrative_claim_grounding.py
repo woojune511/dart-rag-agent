@@ -1,6 +1,7 @@
 """Claim-local source authority, not a natural-language entailment oracle."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program, model_program
 import hashlib
 import json
 from pathlib import Path
@@ -42,7 +43,8 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
             visible_candidate_ids=["a", "b"], candidate_ids_by_owner={"routes": ["a", "b"]})
 
     def validate(self, program=None, catalog=None):
-        return validate_semantic_calculation_program(program=program or self.program,
+        visible = [c for c in (catalog or self.catalog) if c["candidate_id"] in self.visibility.visible_candidate_ids]
+        return validate_semantic_calculation_program(program=address_program(program or self.program, visible),
             candidate_catalog=catalog or self.catalog, obligations=self.owners,
             query="Describe routes.", candidate_visibility=self.visibility,
             require_narrative_claims=True)
@@ -59,7 +61,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
         self.assertNotIn("text", properties)
         self.assertNotIn("evidence_bindings", properties)
         original = deepcopy(self.program)
-        modeled = SemanticCalculationProgram.model_validate(self.program).model_dump()
+        modeled = model_program(self.program, self.catalog).model_dump()
         row = modeled["narrative_bindings"][0]
         self.assertEqual(row["candidate_ids"], ["a", "b"])
         self.assertEqual(row["text"], "Birch sells through partners. Cedar uses direct delivery.")
@@ -88,7 +90,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
 
     def test_exact_quote_and_claim_local_numbers_cannot_borrow_other_evidence(self):
         for quote, text, code in (
-            ("Birch sells through partners!", "Birch sells through partners.", "invalid_narrative_claim_quote"),
+            ("Birch sells through partners!", "Birch sells through partners.", "unknown_narrative_surface"),
             ("Birch sells through partners.", "Birch serves 17 regions.", "ungrounded_narrative_claim_number"),
             ("Birch sells through partners.", "Birch serves 23 regions.", "ungrounded_narrative_claim_number"),
         ):
@@ -102,7 +104,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
         for candidate_id, quote, expected in (
             ("hidden", "Parent uses every route.", "candidate_not_exposed_to_compiler"),
             ("invented", "Birch sells through partners.", "unknown_narrative_candidate"),
-            ("a", "Cedar uses direct delivery.", "invalid_narrative_claim_quote"),
+            ("a", "Cedar uses direct delivery.", "unknown_narrative_surface"),
         ):
             program = deepcopy(self.program)
             program["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0].update(
@@ -118,7 +120,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
             "Birch", "Birch delivers internationally.", "a", "Birch delivers internationally.", context_id="ctx-a")
         self.assertEqual(self.validate(program, catalog)["status"], "ready")
         program["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["candidate_id"] = "b"
-        self.assertIn("invalid_narrative_claim_context", self.codes(program, catalog))
+        self.assertIn("unknown_narrative_surface", self.codes(program, catalog))
 
     def test_unreferenced_body_tail_or_metadata_cannot_supply_quote(self):
         catalog = deepcopy(self.catalog)
@@ -127,7 +129,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
         for quote in ("Birch serves 17 regions.", "Parent uses every route."):
             program = deepcopy(self.program)
             program["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["evidence_text"] = quote
-            self.assertIn("invalid_narrative_claim_quote", self.codes(program, catalog))
+            self.assertIn("unknown_narrative_surface", self.codes(program, catalog))
 
     def test_quote_uses_visible_shared_row_bundle_not_only_selected_member(self):
         from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
@@ -146,7 +148,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
         self.assertNotIn("Birch owns all channels.", visible_text)
         self.assertEqual(self.validate(program, catalog)["status"], "ready")
         program["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["evidence_text"] = "Birch owns all channels."
-        self.assertIn("invalid_narrative_claim_quote", self.codes(program, catalog))
+        self.assertIn("unknown_narrative_surface", self.codes(program, catalog))
 
     def test_conflicting_flat_projection_cannot_add_unattributed_text(self):
         for field, value in (("text", "Parent owns every route."), ("evidence_bindings", [])):
@@ -171,15 +173,15 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
     def test_claim_trace_survives_executor_and_input_is_immutable(self):
         original = deepcopy(self.program)
         validation = self.validate()
-        envelope = CompilationEnvelopeV2.create(program=self.program, validation=validation, visibility=self.visibility,
+        envelope = CompilationEnvelopeV2.create(program=address_program(self.program, self.catalog), validation=validation, visibility=self.visibility,
             candidate_catalog=self.catalog, obligations=self.owners, query="Describe routes.")
-        result = execute_semantic_calculation_program(program=self.program, candidate_catalog=self.catalog,
+        result = execute_semantic_calculation_program(program=address_program(self.program, self.catalog), candidate_catalog=self.catalog,
             obligations=self.owners, query="Describe routes.", compilation_envelope=envelope,
             require_compilation_envelope=True)
         self.assertEqual(result["status"], "ok")
         output = result["outputs"][0]
         self.assertEqual([row["subject"] for row in output["claim_readings"]], ["Birch", "Cedar"])
-        self.assertEqual(output["claim_readings"][0]["evidence"][0]["source_span"], [0, len("Birch sells through partners.")])
+        self.assertEqual(output["claim_readings"][0]["evidence"][0]["source_span"], [0, len("Birch sells through partners. ")])
         self.assertEqual(self.program, original)
 
     def test_claim_format_retry_keeps_cohort_and_other_island_bytes(self):
@@ -187,8 +189,8 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
             "obligation_id": "quantity", "candidate_id": "quantity-cell"}]})
         bad = deepcopy(self.program)
         bad["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["evidence_text"] = "Wrong quote"
-        llm = _StructuredQueueLLM(accepted, SemanticCalculationProgram.model_validate(bad),
-            SemanticCalculationProgram.model_validate(self.program))
+        llm = _StructuredQueueLLM(accepted, model_program(bad, self.catalog),
+            model_program(self.program, self.catalog))
         owners = [_obligation("quantity", "direct_value", "quantity"), *self.owners]
         catalog = [_candidate("quantity-cell", 10), *self.catalog[:2]]
         state = _case_state({"question": "Describe routes and quantity.", "obligations": owners}, catalog)
@@ -219,7 +221,7 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
         for link in links:
             link["source_requirement_id"] = "routes:" + link["candidate_id"]
         def validate():
-            return validate_semantic_calculation_program(program=program, candidate_catalog=self.catalog,
+            return validate_semantic_calculation_program(program=address_program(program, self.catalog), candidate_catalog=self.catalog,
                 obligations=owners, query="Describe routes.", candidate_visibility=visibility,
                 require_narrative_claims=True)
         self.assertEqual(validate()["status"], "ready")
@@ -235,11 +237,11 @@ class NarrativeClaimGroundingTests(unittest.TestCase):
             self.assertEqual(program, before)
 
     def test_v2_rejects_claim_changes_after_validation(self):
-        envelope = CompilationEnvelopeV2.create(program=self.program, validation=self.validate(), visibility=self.visibility,
+        envelope = CompilationEnvelopeV2.create(program=address_program(self.program, self.catalog), validation=self.validate(), visibility=self.visibility,
             candidate_catalog=self.catalog, obligations=self.owners, query="Describe routes.")
         changed = deepcopy(self.program)
         changed["narrative_bindings"][0]["claims"][0]["subject"] = "Parent"
-        result = execute_semantic_calculation_program(program=changed, candidate_catalog=self.catalog,
+        result = execute_semantic_calculation_program(program=address_program(changed, self.catalog), candidate_catalog=self.catalog,
             obligations=self.owners, query="Describe routes.", compilation_envelope=envelope, require_compilation_envelope=True)
         self.assertEqual(result["validation"]["errors"][0]["code"], "validation_drift")
 

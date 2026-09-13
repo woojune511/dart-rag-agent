@@ -1,6 +1,7 @@
 """Presentation is not candidate authority, semantic judging, or a new model call."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -18,7 +19,7 @@ from src.processing.financial_parser import FinancialParser
 from tests.semantic_program_test_support import _candidate, _obligation, _StructuredQueueLLM
 from tests.test_narrative_claim_grounding import source, claim
 from tests.test_narrative_retry_context import prompt_json
-from tests.compiler_presentation_test_support import bundle_text, context_surfaces
+from tests.compiler_presentation_test_support import bundle_text, context_surfaces, surface_text
 from tests.test_located_heading_context import catalog as parsed_catalog
 
 
@@ -53,7 +54,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
         return FinancialAgent._semantic_program_prompt_payload(catalog, _semantic_candidate_cohorts(catalog, owners))
 
     def compile(self, programs, *, owners=None, catalog=None):
-        llm = _StructuredQueueLLM(*[SemanticCalculationProgram.model_validate(p) for p in programs])
+        llm = _StructuredQueueLLM(*[model_program(p, catalog or self.catalog) for p in programs])
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.llm = llm
         result = agent._compile_semantic_calculation_program({
@@ -100,7 +101,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
         payload = self.payload()
         reading, = payload["source_readings"]
         self.assertEqual([c["context_id"] for c in reading["enclosing_contexts"]], ["z-heading", "a-inner"])
-        self.assertEqual(reading["bodies"][0]["source_text"], "We use local partners.\r\n")
+        self.assertEqual(surface_text(reading["bodies"][0]), "We use local partners.\r\n")
         self.assertEqual(context_surfaces(payload)["z-heading"], "[Cedar]\t ")
         self.assertLess(list(reading).index("enclosing_contexts"), list(reading).index("bodies"))
         self.assertNotIn("source_text", payload["source_contexts_by_id"]["z-heading"])
@@ -181,7 +182,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
             source_document_id="doc-a", source_contexts=[deepcopy(self.heading)])]
         payload = self.payload(catalog)
         fragments = [c for r in payload["source_readings"] for c in r["enclosing_contexts"]]
-        self.assertEqual(sum("source_text" in c for c in fragments), 1)
+        self.assertEqual(sum("pieces" in c for c in fragments), 1)
         self.assertEqual(len(payload["source_readings"]), 1)
         self.assertEqual(len(payload["source_readings"][0]["bodies"]), 2)
         for row in payload["candidates_by_id"].values():
@@ -229,7 +230,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
             self.assertNotIn(numeric, text)
             self.assertIn(numeric, CALCULATION_PROMPT_POLICY["semantic_program_prompt_template"])
         self.assertNotIn("row_description_quote_options", text)
-        self.assertEqual(prompt_json(prompts[0], MARKER)["schema"], "semantic_program_candidate_payload_v7")
+        self.assertEqual(prompt_json(prompts[0], MARKER)["schema"], "semantic_program_candidate_payload_v8")
         self.assertIn("source_display_reason", SemanticCalculationProgram.model_json_schema()["$defs"]["SemanticProgramExpression"]["properties"])
 
     def test_special_row_permission_requires_real_scalar_axes_and_provenance(self):

@@ -16,6 +16,7 @@ from src.agent.financial_graph_calculation import _semantic_candidate_cohorts, _
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from tests.semantic_program_test_support import FinancialAgent, _StructuredQueueLLM, _candidate, _obligation
+from tests.narrative_address_test_support import model_program
 
 
 def numeric(subject="Orchid", candidate_id="cell"):
@@ -36,9 +37,9 @@ def narrative(text):
 
 
 def validate_claim(subject, text, quotes, source):
-    program = SemanticCalculationProgram.model_validate({"narrative_bindings": [{
+    program = model_program({"narrative_bindings": [{
         "obligation_id": "answer", "claims": [{"subject": subject, "text": text,
-            "evidence_bindings": [{"candidate_id": "body", "evidence_text": quote} for quote in quotes]}]}]})
+            "evidence_bindings": [{"candidate_id": "body", "evidence_text": quote} for quote in quotes]}]}]}, [source])
     visibility = _semantic_candidate_visibility([source], visible_candidate_ids=["body"],
         candidate_ids_by_owner={"answer": ["body"]})
     return validate_semantic_calculation_program(program=program.model_dump(), candidate_catalog=[source],
@@ -137,7 +138,7 @@ class RequestSourceBoundaryCharacterizationTests(unittest.TestCase):
         source = narrative(quote)
         self.assertEqual(validate_claim("Orchid", "provides business tools.", [quote], source)["status"], "ready")
         invalid = validate_claim("Orchid", "provides business tools.", [quote.replace("supplies", "provides")], source)
-        self.assertIn("invalid_narrative_claim_quote", {error["code"] for error in invalid["errors"]})
+        self.assertIn("unknown_narrative_surface", {error["code"] for error in invalid["errors"]})
 
     def test_metadata_subject_is_not_accepted_as_a_quote(self):
         quote = "Birch supplies tools."

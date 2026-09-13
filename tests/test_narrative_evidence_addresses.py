@@ -3,6 +3,7 @@
 from copy import deepcopy
 from dataclasses import FrozenInstanceError
 import unittest
+from unittest.mock import patch
 
 from src.agent.financial_evidence_addresses import (
     MAX_PIECE_CHARACTERS, build_evidence_surface, build_narrative_address_book,
@@ -71,6 +72,14 @@ class NarrativeEvidenceAddressTests(unittest.TestCase):
         self.assertEqual(surface.resolve("p1", "p1")[0], "Alpha acts.")
         with self.assertRaises(FrozenInstanceError):
             surface.source_text = "changed"
+
+    def test_mechanical_boundary_changes_invalidate_old_piece_addresses(self):
+        source = {"source_bundle_id": "body", "source_text": "long " * 60}
+        original = build_evidence_surface(source)
+        with patch("src.agent.financial_evidence_addresses.MAX_PIECE_CHARACTERS", 80):
+            changed = build_evidence_surface(source)
+        self.assertNotEqual(original.surface_id, changed.surface_id)
+        self.assertEqual("".join(p['text'] for p in changed.to_projection()['pieces']), source['source_text'])
 
     def test_catalog_order_and_identity_stay_unchanged(self):
         catalog = [source("a", "Alpha acts."), source("b", "Beta acts.")]

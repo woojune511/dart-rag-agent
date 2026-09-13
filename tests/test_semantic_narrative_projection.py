@@ -138,7 +138,7 @@ class SemanticNarrativeProjectionTests(unittest.TestCase):
     def claimed_program(self):
         return SemanticCalculationProgram.model_validate(_with_narrative_claims(self.program,
             subject="The teams", quotes={"note-first": "The teams combine shared operations.",
-                "note-second": "The teams provide hosted services."}))
+                "note-second": "The teams provide hosted services."}, catalog=self.catalog))
 
 
 if __name__ == "__main__":

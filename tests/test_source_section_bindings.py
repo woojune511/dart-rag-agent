@@ -1,5 +1,6 @@
 """Observed section selection, separate from exact request wording; no providers."""
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 import json
 from types import SimpleNamespace
 import unittest
@@ -53,9 +54,9 @@ def candidate(cid="inside", path="II. Operations > 1. Overview", receipt="filing
 
 
 def program(cid="inside", owner_id="answer", *, quote="Birch operates a workshop."):
-    return SemanticCalculationProgram.model_validate({"status": "ready", "narrative_bindings": [{
+    return model_program({"status": "ready", "narrative_bindings": [{
         "obligation_id": owner_id, "claims": [{"subject": "Birch", "text": "operates a workshop.",
-            "evidence_bindings": [{"candidate_id": cid, "evidence_text": quote}]}]}]})
+            "evidence_bindings": [{"candidate_id": cid, "evidence_text": quote}]}]}]}, [candidate(cid)])
 
 
 class SourceSectionBindingTests(unittest.TestCase):
@@ -220,7 +221,8 @@ class SourceSectionBindingTests(unittest.TestCase):
         owner["evidence_requirements"][0]["requirement_id"] = "answer:input"
         selected = program().model_dump()
         binding = selected["narrative_bindings"][0]
-        for link in [*binding["evidence_bindings"], *binding["claims"][0]["evidence_bindings"]]:
+        for link in [*binding["evidence_bindings"], *binding["claims"][0]["fact_evidence_selections"],
+                     *binding["subject_bindings"][0]["evidence_selections"]]:
             link["source_requirement_id"] = "answer:input"
         def validate(obligation):
             return validate_semantic_calculation_program(program=selected, obligations=[obligation],

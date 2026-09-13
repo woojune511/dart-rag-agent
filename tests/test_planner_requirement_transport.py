@@ -1,6 +1,7 @@
 """Authored planner-response transport, not planner inference or semantic accuracy."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 import json
 import unittest
 from unittest.mock import Mock
@@ -53,8 +54,8 @@ def program(index, subject, cid, *, bad_quote=False):
     row = claim(subject, f'{subject} uses partners.', cid,
                 'Unwritten quote.' if bad_quote else f'{subject} uses partners.',
                 source_requirement_id=f'ob_{index:03d}:req_001')
-    return SemanticCalculationProgram.model_validate({'narrative_bindings': [
-        {'obligation_id': f'ob_{index:03d}', 'claims': [row]}]})
+    return model_program({'narrative_bindings': [
+        {'obligation_id': f'ob_{index:03d}', 'claims': [row]}]}, [evidence(subject, cid)])
 
 
 class PlannerRequirementTransportTests(unittest.TestCase):

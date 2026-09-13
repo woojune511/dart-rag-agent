@@ -5,6 +5,7 @@ be interpreted as approval to inherit a subject or silently drop required text.
 """
 
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program, model_program
 import json
 import unittest
 
@@ -59,19 +60,19 @@ class NarrativeBindingBoundaryTests(unittest.TestCase):
         ids = [c["candidate_id"] for c in catalog]
         visibility = _semantic_candidate_visibility(catalog, visible_candidate_ids=ids,
             candidate_ids_by_owner={"activity": ids})
-        validation = validate_semantic_calculation_program(program=program, candidate_catalog=catalog,
+        validation = validate_semantic_calculation_program(program=address_program(program, catalog), candidate_catalog=catalog,
             obligations=owners, query=self.query, candidate_visibility=visibility, require_narrative_claims=True)
-        envelope = CompilationEnvelopeV2.create(program=program, validation=validation, visibility=visibility,
+        envelope = CompilationEnvelopeV2.create(program=address_program(program, catalog), validation=validation, visibility=visibility,
             candidate_catalog=catalog, obligations=owners, query=self.query)
-        execution = execute_semantic_calculation_program(program=program, candidate_catalog=catalog,
+        execution = execute_semantic_calculation_program(program=address_program(program, catalog), candidate_catalog=catalog,
             obligations=owners, query=self.query, compilation_envelope=envelope, require_compilation_envelope=True)
         return validation, execution
 
     def compile_retry(self, catalog, bad, replacement):
         accepted = SemanticCalculationProgram(direct_bindings=[{
             "obligation_id": "size", "candidate_id": "size-cell"}])
-        llm = _StructuredQueueLLM(accepted, SemanticCalculationProgram.model_validate(bad),
-            SemanticCalculationProgram.model_validate(replacement))
+        llm = _StructuredQueueLLM(accepted, model_program(bad, catalog),
+            model_program(replacement, catalog))
         state = _case_state({"question": self.query, "obligations": [
             _obligation("size", "direct_value", "Size"), _obligation("activity", "narrative", self.query)]},
             [_candidate("size-cell", 12), *catalog])
@@ -96,8 +97,9 @@ class NarrativeBindingBoundaryTests(unittest.TestCase):
                 original = deepcopy((catalog, bad))
                 fingerprint = semantic_candidate_catalog_fingerprint(catalog)
                 validation, execution = self.validate(catalog, bad)
-                error = next(e for e in validation["errors"] if e["code"] == "invalid_narrative_claim_quote")
-                self.assertEqual(error["location"], "narrative_claims[0]")
+                error = next(e for e in validation["errors"] if e["code"] == "unknown_narrative_surface"
+                    and e["location"].startswith("narrative_claims"))
+                self.assertEqual(error["location"], "narrative_claims[0].fact_evidence_selections[0]")
                 self.assertEqual(error["candidate_id"], "note")
                 self.assertEqual(error["repair_action"], "repair_program")
                 self.assertFalse(execution["outputs"])
@@ -113,14 +115,14 @@ class NarrativeBindingBoundaryTests(unittest.TestCase):
         changed = deepcopy(bad)
         changed["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["evidence_text"] = source_quote.replace("\n", "")
         codes = {e["code"] for e in self.validate(catalog, changed)[0]["errors"]}
-        self.assertIn("invalid_narrative_claim_quote", codes)
+        self.assertIn("unknown_narrative_surface", codes)
 
     def test_last_elliptical_claim_rejects_the_entire_narrative_binding(self):
         catalog, bad, _ = paragraph_fixture()
         validation, execution = self.validate(catalog, bad)
         errors = validation["errors"]
         self.assertEqual([(e["code"], e["location"]) for e in errors],
-            [("ungrounded_narrative_subject", "narrative_claims[3]")])
+            [("ungrounded_narrative_subject", "subject_bindings[3]")])
         self.assertEqual(validation["valid_narrative_bindings"], [])
         self.assertEqual(execution["outputs"], [])
         self.assertEqual(execution["missing_obligation_ids"], ["activity"])
@@ -137,13 +139,14 @@ class NarrativeBindingBoundaryTests(unittest.TestCase):
                 self.assertEqual(execution["status"], "ok")
                 readings = execution["outputs"][0]["claim_readings"]
                 self.assertEqual(len(readings), 4)
-                for old, reading in zip(bad["narrative_bindings"][0]["claims"], readings):
-                    self.assertEqual(reading["evidence"][0]["evidence_text"], old["evidence_bindings"][0]["evidence_text"])
+                for index, (old, reading) in enumerate(zip(bad["narrative_bindings"][0]["claims"], readings)):
+                    self.assertEqual(reading["evidence"][0]["evidence_text"],
+                        old["evidence_bindings"][0]["evidence_text"] + (" " if index < 3 else ""))
                 self.assertEqual(execution["selected_candidate_ids"], ["note"])
                 self.assertEqual((catalog, bad, fixed), before)
 
     def test_unchanged_retry_retains_the_failure_without_losing_another_island(self):
-        for fixture, code in ((list_fixture, "invalid_narrative_claim_quote"),
+        for fixture, code in ((list_fixture, "unknown_narrative_surface"),
                               (paragraph_fixture, "ungrounded_narrative_subject")):
             with self.subTest(fixture=fixture.__name__):
                 catalog, bad, _ = fixture()
@@ -164,7 +167,7 @@ class NarrativeBindingBoundaryTests(unittest.TestCase):
                 compiled, _, _ = self.compile_retry(catalog, bad, fixed)
                 self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
                 self.assertEqual(canonical(compiled["semantic_program"]["narrative_bindings"]),
-                    canonical(SemanticCalculationProgram.model_validate(fixed).model_dump()["narrative_bindings"]))
+                    canonical(model_program(fixed, catalog).model_dump()["narrative_bindings"]))
 
     def test_literal_subject_support_does_not_prove_pronoun_attachment(self):
         # Contrasting subject assignments both satisfy today's lexical checks.

@@ -222,6 +222,7 @@ class LocatedHeadingContextTests(unittest.TestCase):
         self.assertEqual(from_docs([(Document(page_content=chunks[0].content, metadata=hydrated), 0)]), catalog(chunks))
 
     def test_subject_quote_reaches_executor_but_foreign_context_and_mutation_fail(self):
+        from tests.narrative_address_test_support import address_program
         chunks, _, _ = self.parse(xml('<P>[Aspen]</P><P>We use partners.</P><P>[Birch]</P><P>We deliver directly.</P>'))
         rows = catalog(chunks)
         selected = next(c for c in rows if 'partners' in c['source_text'])
@@ -234,7 +235,7 @@ class LocatedHeadingContextTests(unittest.TestCase):
         plan = _semantic_candidate_cohorts(rows, owners)
         visibility = _semantic_candidate_visibility(rows, visible_candidate_ids=plan['visible_candidate_ids'],
             candidate_ids_by_owner=plan['candidate_ids_by_owner'])
-        inputs = dict(program=program, candidate_catalog=rows, obligations=owners, query='Describe routes.')
+        inputs = dict(program=address_program(program, rows), candidate_catalog=rows, obligations=owners, query='Describe routes.')
         validation = validate_semantic_calculation_program(**inputs, candidate_visibility=visibility, require_narrative_claims=True)
         self.assertEqual(validation['status'], 'ready', validation['errors'])
         envelope = CompilationEnvelopeV2.create(**inputs, validation=validation, visibility=visibility)
@@ -244,7 +245,7 @@ class LocatedHeadingContextTests(unittest.TestCase):
         foreign = next(c for r in rows for c in r.get('source_contexts', []) if c['source_text'] == '[Birch]')
         invalid = deepcopy(program)
         invalid['narrative_bindings'][0]['claims'][0]['evidence_bindings'][1].update(context_id=foreign['context_id'], evidence_text='Birch')
-        rejected = validate_semantic_calculation_program(**{**inputs, 'program': invalid}, candidate_visibility=visibility, require_narrative_claims=True)
+        rejected = validate_semantic_calculation_program(**{**inputs, 'program': address_program(invalid, rows)}, candidate_visibility=visibility, require_narrative_claims=True)
         self.assertNotEqual(rejected['status'], 'ready')
         heading['source_text'] = '[Modified]'
         changed = execute_semantic_calculation_program(**inputs, compilation_envelope=envelope, require_compilation_envelope=True)

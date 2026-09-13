@@ -1,6 +1,7 @@
 """Authored quote-construction controls, not model attribution/entailment scores."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program, model_program, selection
 import json
 import unittest
 
@@ -39,7 +40,7 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
         ids = [row["candidate_id"] for row in catalog]
         visibility = _semantic_candidate_visibility(catalog, visible_candidate_ids=ids,
             candidate_ids_by_owner={"activity": ids} if permissions is None else permissions)
-        result = validate_semantic_calculation_program(program=program, candidate_catalog=catalog,
+        result = validate_semantic_calculation_program(program=address_program(program, catalog), candidate_catalog=catalog,
             obligations=owners, query=self.query, candidate_visibility=visibility,
             require_narrative_claims=True)
         return result, visibility
@@ -53,7 +54,7 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                     owners.insert(0, _obligation("size", "direct_value", "Size"))
                     catalog.append(_candidate("cell", 12))
                     program["direct_bindings"] = [{"obligation_id": "size", "candidate_id": "cell"}]
-                llm = _StructuredQueueLLM(SemanticCalculationProgram.model_validate(program))
+                llm = _StructuredQueueLLM(model_program(program, catalog))
                 state = _case_state({"question": self.query, "obligations": owners}, catalog)
                 before = deepcopy(state)
                 compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
@@ -61,20 +62,22 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                 self.assertEqual(len(llm.prompts), 1)
                 self.assertEqual(llm.models, ["SemanticCalculationProgram"])
                 prompt = llm.prompts[0].to_messages()[0].content
-                marker = "분리 인용 claim 예시:\n"
+                marker = "구간 선택 narrative 예시:\n"
                 self.assertTrue(marker in prompt, "Missing separate-quote construction example")
                 example = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])[0]
-                links = example["evidence_bindings"]
+                links = [*example["claims"][0]["fact_evidence_selections"],
+                    *example["subject_bindings"][0]["evidence_selections"]]
                 self.assertEqual(len(links), 2)
                 # Instruction IDs are not members of the live candidate payload.
                 payload = prompt_json(llm.prompts[0], "Source bundles, candidate cohorts, and candidates_by_id:")
                 self.assertTrue(all(link["candidate_id"] not in payload["candidates_by_id"] for link in links))
-                unbound = {"narrative_bindings": [{"obligation_id": "activity", "claims": [example]}]}
+                unbound = {"narrative_bindings": [{"obligation_id": "activity", **example}]}
                 self.assertIn("unknown_narrative_candidate", {e["code"] for e in self.validate(unbound)[0]["errors"]})
                 for link in links:
-                    link["candidate_id"] = "note"
-                    link["context_id"] = "heading" if link["context_id"] else ""
-                rebound = {"narrative_bindings": [{"obligation_id": "activity", "claims": [example]}]}
+                    heading = link["surface_id"] == "EXAMPLE_HEADING"
+                    link.update(selection(catalog, "note", "Birch" if heading else self.body,
+                        context_id="heading" if heading else ""))
+                rebound = {"narrative_bindings": [{"obligation_id": "activity", **example}]}
                 self.assertEqual(self.validate(rebound)[0]["status"], "ready")
                 self.assertEqual(state, before)
 
@@ -94,9 +97,9 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                 before = deepcopy((program, catalog))
                 validation, visibility = self.validate(program, catalog)
                 self.assertEqual(validation["status"], "ready", validation["errors"])
-                envelope = CompilationEnvelopeV2.create(program=program, validation=validation,
+                envelope = CompilationEnvelopeV2.create(program=address_program(program, catalog), validation=validation,
                     visibility=visibility, candidate_catalog=catalog, obligations=self.owners, query=self.query)
-                execution = execute_semantic_calculation_program(program=program, candidate_catalog=catalog,
+                execution = execute_semantic_calculation_program(program=address_program(program, catalog), candidate_catalog=catalog,
                     obligations=self.owners, query=self.query, compilation_envelope=envelope,
                     require_compilation_envelope=True)
                 self.assertEqual(execution["status"], "ok")
@@ -116,8 +119,8 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                 bad = deepcopy(self.program)
                 row = bad["narrative_bindings"][0]["claims"][0]
                 row["evidence_bindings"] = [{"candidate_id": "note", "evidence_text": quote}]
-                modeled = SemanticCalculationProgram.model_validate(bad)
-                llm = _StructuredQueueLLM(accepted, modeled, SemanticCalculationProgram.model_validate(self.program))
+                modeled = model_program(bad, self.catalog)
+                llm = _StructuredQueueLLM(accepted, modeled, model_program(self.program, self.catalog))
                 state = _case_state({"question": self.query, "obligations": [
                     _obligation("size", "direct_value", "Size"), *self.owners]},
                     [_candidate("size-cell", 12), *self.catalog])
@@ -129,19 +132,19 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                 feedback = prompt_json(llm.prompts[2], "재시도 피드백(없으면 -):")
                 contract = feedback["repair_contract"]
                 self.assertEqual(contract["target_obligation_ids"], ["activity"])
-                self.assertIn("separate evidence_bindings", contract["narrative_claim_invariant"])
-                self.assertIn("Do not insert", contract["narrative_claim_invariant"])
+                self.assertIn("subject_bindings", contract["narrative_claim_invariant"])
+                self.assertIn("do not recopy", contract["narrative_claim_invariant"])
                 self.assertEqual(contract["narrative_claim_invariant"],
                     CALCULATION_PROMPT_POLICY["semantic_program_narrative_repair_invariant"])
                 drafts = feedback["unvalidated_narrative_drafts"]
-                self.assertEqual(drafts[0]["claims"][0]["evidence_bindings"],
-                    modeled.model_dump()["narrative_bindings"][0]["claims"][0]["evidence_bindings"])
+                self.assertEqual(drafts[0]["claims"][0]["fact_evidence_selections"],
+                    modeled.model_dump()["narrative_bindings"][0]["claims"][0]["fact_evidence_selections"])
                 self.assertNotIn("size-cell", json.dumps(drafts))
                 for error in feedback["validation_errors"]:
-                    self.assertEqual(error["location"], "narrative_claims[0]")
+                    self.assertTrue(error["location"].startswith(("narrative_claims[0]", "subject_bindings[0]")))
                     self.assertEqual(error["repair_action"], "repair_program")
-                    if error["code"] in {"ungrounded_narrative_subject", "invalid_narrative_claim_quote"}:
-                        self.assertIn("separate", error["detail"])
+                    if error["code"] in {"ungrounded_narrative_subject", "unknown_narrative_surface"}:
+                        self.assertTrue(error["detail"])
                 marker = "Source bundles, candidate cohorts, and candidates_by_id:"
                 self.assertEqual(prompt_json(llm.prompts[1], marker), prompt_json(llm.prompts[2], marker))
 
@@ -163,10 +166,10 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
         catalog = [*self.catalog, source("foreign", "Birch", source_contexts=[{
             "context_id": "foreign-heading", "source_text": "Birch", "relation": "ancestor_heading"}])]
         for change, expected in (
-            ({"context_id": "foreign-heading"}, "invalid_narrative_claim_context"),
+            ({"context_id": "foreign-heading"}, "unknown_narrative_surface"),
             ({"candidate_id": "foreign", "context_id": ""}, "candidate_not_exposed_to_compiler"),
             ({"candidate_id": "invented", "context_id": ""}, "unknown_narrative_candidate"),
-            ({"context_id": "", "evidence_text": "Birch " + self.body}, "invalid_narrative_claim_quote"),
+            ({"context_id": "", "evidence_text": "Birch " + self.body}, "unknown_narrative_surface"),
         ):
             with self.subTest(change=change):
                 program = deepcopy(self.program)
@@ -182,7 +185,7 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
         claims[1]["evidence_bindings"].pop()
         validation = self.validate(program)[0]
         error = next(e for e in validation["errors"] if e["code"] == "ungrounded_narrative_subject")
-        self.assertEqual(error["location"], "narrative_claims[1]")
+        self.assertEqual(error["location"], "subject_bindings[1]")
 
     def test_exact_subject_and_fact_quotes_are_not_a_semantic_relationship_oracle(self):
         # Deliberately unfaithful controls: exact bindings cannot prove attribution

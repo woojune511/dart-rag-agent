@@ -1,5 +1,6 @@
 """Reading exposure is not numeric identity or semantic entailment authority."""
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 import json
 import unittest
 
@@ -172,17 +173,16 @@ class NarrativeReadingAdmissionTests(unittest.TestCase):
         required = target()
         required["request_unit_ids"] = ["request_001"]
         body = sources[-1]["source_text"]
-        response = SemanticCalculationProgram.model_validate({"narrative_bindings": [{"obligation_id": "overview",
-            "claims": [claim("Elm", body, "z-reading", body)]}]})
+        response = model_program({"narrative_bindings": [{"obligation_id": "overview",
+            "claims": [claim("Elm", body, "z-reading", body)]}]}, sources)
         llm = _StructuredQueueLLM(response)
         state = _case_state({"question": "Describe Elm's network reach.", "obligations": [required]}, sources)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
         self.assertEqual(len(llm.prompts), 1)
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
         bad = deepcopy(response.model_dump())
-        bad["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["evidence_text"] = "Elm reached everyone."
-        bad = SemanticCalculationProgram.model_validate({"narrative_bindings": [{"obligation_id": "overview",
-            "claims": bad["narrative_bindings"][0]["claims"]}]}).model_dump()
+        bad["narrative_bindings"][0]["claims"][0]["fact_evidence_selections"][0]["surface_id"] = "invented"
+        bad = SemanticCalculationProgram.model_validate(bad).model_dump()
         rejected = validate_semantic_calculation_program(program=bad, obligations=[required], candidate_catalog=sources,
             query="Describe Elm's network reach.", require_narrative_claims=True)
         self.assertNotEqual(rejected["status"], "ready")

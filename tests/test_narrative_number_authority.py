@@ -1,5 +1,6 @@
 """Exact claim quotes, including context, are the numeric evidence surface."""
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program, model_program
 import unittest
 
 from src.agent.financial_calculation_execution import (
@@ -29,7 +30,7 @@ class NarrativeNumberAuthorityTests(unittest.TestCase):
         catalog = self.catalog if catalog is None else catalog
         visibility = _semantic_candidate_visibility(catalog, visible_candidate_ids=["a", "b"],
             candidate_ids_by_owner={"coverage": ["a", "b"]})
-        return validate_semantic_calculation_program(program=program, obligations=self.owners,
+        return validate_semantic_calculation_program(program=address_program(program, catalog), obligations=self.owners,
             candidate_catalog=catalog, candidate_visibility=visibility, query=self.query,
             require_narrative_claims=True), visibility
 
@@ -37,15 +38,15 @@ class NarrativeNumberAuthorityTests(unittest.TestCase):
         original = deepcopy((self.catalog, self.program))
         validation, visibility = self.validate()
         self.assertEqual(validation["status"], "ready", validation["errors"])
-        envelope = CompilationEnvelopeV2.create(program=self.program, validation=validation,
+        envelope = CompilationEnvelopeV2.create(program=address_program(self.program, self.catalog), validation=validation,
             visibility=visibility, candidate_catalog=self.catalog, obligations=self.owners, query=self.query)
-        result = execute_semantic_calculation_program(program=self.program, candidate_catalog=self.catalog,
+        result = execute_semantic_calculation_program(program=address_program(self.program, self.catalog), candidate_catalog=self.catalog,
             obligations=self.owners, query=self.query, compilation_envelope=envelope,
             require_compilation_envelope=True)
         self.assertEqual(result["status"], "ok", result)
         evidence = result["outputs"][0]["claim_readings"][0]["evidence"][0]
         self.assertEqual(evidence["context_id"], "ctx-a")
-        self.assertEqual(evidence["evidence_text"], self.quote)
+        self.assertEqual(evidence["evidence_text"], self.quote + " ")
         self.assertEqual((self.catalog, self.program), original)
 
     def test_visible_shared_bundle_number_is_not_limited_to_selected_member_body(self):
@@ -72,9 +73,9 @@ class NarrativeNumberAuthorityTests(unittest.TestCase):
 
     def test_invalid_context_quote_or_model_written_reading_cannot_supply_numbers(self):
         for change, expected in (
-            ({"context_id": "ctx-b"}, "invalid_narrative_claim_context"),
-            ({"evidence_text": "Birch serves 37 regions!"}, "invalid_narrative_claim_quote"),
-            ({"candidate_id": "b"}, "invalid_narrative_claim_context"),
+            ({"context_id": "ctx-b"}, "unknown_narrative_surface"),
+            ({"evidence_text": "Birch serves 37 regions!"}, "unknown_narrative_surface"),
+            ({"candidate_id": "b"}, "unknown_narrative_surface"),
         ):
             with self.subTest(change=change):
                 program = deepcopy(self.program)
@@ -100,7 +101,7 @@ class NarrativeNumberAuthorityTests(unittest.TestCase):
     def test_valid_context_claim_needs_one_compiler_call_not_a_format_retry(self):
         from src.ops.replay_reviewed_compiler_selection import _CompilerOnlyAgent, _case_state
 
-        llm = _StructuredQueueLLM(SemanticCalculationProgram.model_validate(self.program))
+        llm = _StructuredQueueLLM(model_program(self.program, self.catalog))
         state = _case_state({"question": self.query, "obligations": self.owners}, self.catalog)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")

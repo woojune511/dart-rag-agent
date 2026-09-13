@@ -2023,7 +2023,8 @@ def validate_semantic_calculation_program(
         claim_readings, claim_errors = validate_narrative_claims(
             {**binding, "candidate_ids": candidate_ids}, candidate_by_id,
             number_check=_ungrounded_narrative_numbers,
-            visible_candidate_ids=None if selectable_ids is None else sorted(selectable_ids))
+            visible_candidate_ids=None if selectable_ids is None else sorted(selectable_ids),
+            require_addressed=require_narrative_claims)
         for claim_error in claim_errors:
             error(obligation_id=obligation_id, **claim_error)
             invalid = True

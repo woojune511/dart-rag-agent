@@ -53,7 +53,7 @@ from src.config.retrieval_policy import (
 )
 
 
-def _with_narrative_claims(program, *, subject, quotes):
+def _with_narrative_claims(program, *, subject, quotes, catalog):
     """Explicit authored witnesses, not inference or a production fallback."""
     from copy import deepcopy
     result = deepcopy(program)
@@ -61,7 +61,8 @@ def _with_narrative_claims(program, *, subject, quotes):
         binding["claims"] = [{"subject": subject, "text": binding["text"],
             "evidence_bindings": [{**row, "evidence_text": quotes[row["candidate_id"]]}
                 for row in binding["evidence_bindings"]]}]
-    return result
+    from tests.narrative_address_test_support import address_program
+    return address_program(result, catalog)
 
 
 def execute_semantic_calculation_program(**inputs):

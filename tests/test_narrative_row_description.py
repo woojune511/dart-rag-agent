@@ -220,7 +220,7 @@ class NarrativeRowDescriptionTests(unittest.TestCase):
 
     def claimed_program(self, program):
         return SemanticCalculationProgram.model_validate(_with_narrative_claims(program,
-            subject="Partners", quotes={"cell": "Partners | Regional outlets"}))
+            subject="Partners", quotes={"cell": "Partners | Regional outlets"}, catalog=self.catalog))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 """Authored compiler responses test observability, not model interpretation."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program, selection
 import hashlib
 import json
 import unittest
@@ -24,15 +25,15 @@ class CompilerAttemptDebugTests(unittest.TestCase):
             "source_text": "Larch", "source_span": [10, 15],
         }])]
         self.owner = _obligation("activity", "narrative", "Describe activity.")
-        self.bad = SemanticCalculationProgram(narrative_bindings=[{
+        self.bad = model_program({"narrative_bindings": [{
             "obligation_id": "activity", "claims": [
                 claim("We", self.body, "note", self.body),
                 claim("Larch", "In this section, We refers to Larch.", "note", self.body),
             ],
-        }])
+        }]}, self.catalog)
         good = self.bad.model_dump()
-        good["narrative_bindings"][0]["claims"][1]["evidence_bindings"].append({
-            "candidate_id": "note", "context_id": "heading", "evidence_text": "Larch"})
+        good["narrative_bindings"][0]["subject_bindings"][1]["evidence_selections"].append(
+            selection(self.catalog, "note", "Larch", context_id="heading"))
         self.good = SemanticCalculationProgram.model_validate(good)
 
     def compile(self, responses, *, debug=True, owners=None, catalog=None):
@@ -96,8 +97,8 @@ class CompilerAttemptDebugTests(unittest.TestCase):
     def test_targeted_model_response_and_merged_validation_input_are_distinct(self):
         accepted = {"obligation_id": "reference", "claims": [
             claim("Cedar", "Cedar uses direct delivery.", "reference-note", "Cedar uses direct delivery.")]}
-        initial = SemanticCalculationProgram(narrative_bindings=[
-            accepted, *self.bad.model_dump()["narrative_bindings"]])
+        initial = model_program({"narrative_bindings": [accepted, *self.bad.model_dump()["narrative_bindings"]]},
+            [source("reference-note", "Cedar uses direct delivery."), *self.catalog])
         owners = [_obligation("reference", "narrative", "Reference", coupling_key="shared-reading"),
             {**self.owner, "coupling_key": "shared-reading"}]
         result, _ = self.compile([initial, self.good], owners=owners,

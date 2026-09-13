@@ -5,6 +5,7 @@ exposure now separates the short-name diagnostic from shortlist allocation.
 No saved questions, candidate IDs, stores, APIs or external model outputs enter them.
 """
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program, model_program
 import unittest
 
 from langchain_core.documents import Document
@@ -53,10 +54,10 @@ class RequestSourceFailureIsolationTests(unittest.TestCase):
             claim("Elm Systems", "The platform handles secure workloads.", "passage", "The platform handles secure workloads."),
         ]}]}
         def validate(raw):
-            return validate_semantic_calculation_program(program=raw, candidate_catalog=catalog,
+            return validate_semantic_calculation_program(program=address_program(raw, catalog), candidate_catalog=catalog,
                 obligations=obligations, query="Describe the platform.", require_narrative_claims=True)
         failed = validate(program)
-        self.assertTrue(any(e["code"] == "ungrounded_narrative_subject" and e["location"] == "narrative_claims[1]"
+        self.assertTrue(any(e["code"] == "ungrounded_narrative_subject" and e["location"] == "subject_bindings[1]"
                             for e in failed["errors"]))
         repaired = deepcopy(program)
         repaired["narrative_bindings"][0]["claims"][1]["evidence_bindings"].append(
@@ -70,12 +71,12 @@ class RequestSourceFailureIsolationTests(unittest.TestCase):
             _requirement("summary:network", "Network"), _requirement("summary:delivery", "Delivery")])]
         visibility = _semantic_candidate_visibility(catalog, visible_candidate_ids=["intro", "detail"],
             candidate_ids_by_owner={"summary": ["intro", "detail"], "summary:network": ["intro"], "summary:delivery": ["detail"]})
-        program = SemanticCalculationProgram.model_validate({"narrative_bindings": [{"obligation_id": "summary", "claims": [
+        program = {"narrative_bindings": [{"obligation_id": "summary", "claims": [
             claim("Elm", "Expanded its partner network.", "intro", "Elm expanded its partner network.", source_requirement_id="summary:network"),
             claim("Elm", "Uses local delivery.", "detail", "Elm uses local delivery.", source_requirement_id="summary:delivery"),
-        ]}]}).model_dump()
+        ]}]}
         def validate(raw):
-            return validate_semantic_calculation_program(program=raw, obligations=obligations, candidate_catalog=catalog,
+            return validate_semantic_calculation_program(program=address_program(raw, catalog), obligations=obligations, candidate_catalog=catalog,
                 candidate_visibility=visibility, query="Describe network and delivery.", require_narrative_claims=True)
         self.assertEqual(validate(program)["status"], "ready")
         swapped = deepcopy(program)
@@ -83,9 +84,9 @@ class RequestSourceFailureIsolationTests(unittest.TestCase):
             "Elm expanded its partner network.", source_requirement_id="summary:delivery")
         # The renderer owns flat text/IDs: rebuild from claims instead of
         # retaining the old, deliberately inconsistent derived projection.
-        swapped = SemanticCalculationProgram.model_validate({"narrative_bindings": [{
+        swapped = model_program({"narrative_bindings": [{
             "obligation_id": "summary", "claims": swapped["narrative_bindings"][0]["claims"],
-        }]}).model_dump()
+        }]}, catalog).model_dump()
         rejected = validate(swapped)
         self.assertIn("intro", visibility.visible_candidate_ids)
         self.assertIn("candidate_not_exposed_to_compiler", {e["code"] for e in rejected["errors"]})

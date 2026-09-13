@@ -402,24 +402,35 @@ class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):
 
 
 class SemanticProgramNarrativeClaimEvidence(SemanticProgramNarrativeEvidenceBinding):
-    evidence_text: str = Field(description="Exact continuous quote from this candidate's visible source bundle or attached context.")
-    context_id: str = Field(default="", description="Attached visible context ID; empty means the candidate's source bundle.")
+    surface_id: str = Field(description="Visible source-reading surface attached to this candidate; never filing metadata.")
+    first_piece_id: str = Field(description="First selected piece in this surface.")
+    last_piece_id: str = Field(description="Last selected piece, inclusive; same partition and not before first_piece_id.")
+
+
+class SemanticProgramNarrativeSubjectBinding(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    subject_binding_id: str = Field(min_length=1, description="Unique local reference within this narrative obligation.")
+    subject: str = Field(min_length=1, description="Source-local subject copied from selected subject support, not filing metadata.")
+    evidence_selections: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
 
 
 class SemanticProgramNarrativeClaim(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
-    subject: str = Field(description="Source-local subject surface copied from a cited quote; never inferred from filing metadata. Code preserves it in the rendered output.")
+    subject_binding_id: str = Field(description="Explicit reference to this obligation's subject_bindings; no implicit inheritance.")
     text: str = Field(description="One source-supported statement about the declared subject; do not broaden its scope. Repeating subject is optional: code adds a subject label when absent. Do not replace it with another entity.")
-    evidence_bindings: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
+    fact_evidence_selections: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
 
 
 class SemanticProgramNarrativeBinding(_DeferredBaseModel):
     # The provider schema is current-only; parsing can still inspect frozen flat programs.
     model_config = ConfigDict(defer_build=True, extra="forbid",
-        json_schema_extra={"required": ["obligation_id", "claims"]})
+        json_schema_extra={"required": ["obligation_id", "subject_bindings", "claims"]})
 
     obligation_id: str
+    subject_bindings: List[SemanticProgramNarrativeSubjectBinding] = Field(default_factory=list,
+        json_schema_extra={"minItems": 1}, description="Explicit shared subject support for the claims in this output only.")
     # Internal projection / historical input, never a second model-written list.
     candidate_ids: SkipJsonSchema[List[str]] = Field(default_factory=list)
     evidence_bindings: SkipJsonSchema[List[SemanticProgramNarrativeEvidenceBinding]] = Field(
@@ -443,6 +454,7 @@ class SemanticProgramNarrativeBinding(_DeferredBaseModel):
     def _project_evidence_members(self) -> "SemanticProgramNarrativeBinding":
         if self.claims:
             projection = project_narrative_claims({
+                "subject_bindings": [subject.model_dump() for subject in self.subject_bindings],
                 "claims": [claim.model_dump() for claim in self.claims],
                 **({"text": self.text} if "text" in self.model_fields_set else {}),
                 **({"evidence_bindings": [item.model_dump() for item in self.evidence_bindings]}

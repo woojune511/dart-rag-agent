@@ -51,7 +51,8 @@ class CompilerReviewExpectationTests(unittest.TestCase):
         binding = response["cases"][0]["program"]["narrative_bindings"][0]
         binding["candidate_ids"][0] += "_alternative"
         binding["evidence_bindings"][0]["candidate_id"] += "_alternative"
-        binding["claims"][0]["evidence_bindings"][0]["candidate_id"] += "_alternative"
+        binding["claims"][0]["fact_evidence_selections"][0]["candidate_id"] += "_alternative"
+        binding["subject_bindings"][0]["evidence_selections"][0]["candidate_id"] += "_alternative"
         result = self.evaluate(corpus, response)
         self.assertEqual(result["status"], "passed")
         self.assertEqual(result["cases"][0]["acceptance_scope"], "runtime_contract_only")
@@ -83,7 +84,8 @@ class CompilerReviewExpectationTests(unittest.TestCase):
         binding = corpus["cases"][0]["program"]["narrative_bindings"][0]
         binding["candidate_ids"] = ["hidden_candidate"]
         binding["evidence_bindings"][0]["candidate_id"] = "hidden_candidate"
-        binding["claims"][0]["evidence_bindings"][0]["candidate_id"] = "hidden_candidate"
+        binding["claims"][0]["fact_evidence_selections"][0]["candidate_id"] = "hidden_candidate"
+        binding["subject_bindings"][0]["evidence_selections"][0]["candidate_id"] = "hidden_candidate"
         result = self.evaluate(corpus)
         self.assertEqual(result["status"], "failed")
         self.assertNotEqual(result["cases"][0]["validation"]["status"], "ready")

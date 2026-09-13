@@ -2,6 +2,8 @@
 
 
 def surface_text(surface):
+    if 'pieces' in surface:
+        return ''.join(piece['text'] for piece in surface['pieces'])
     if 'source_segments' in surface:
         return ''.join(segment['source_text'] for segment in surface['source_segments'])
     return surface['source_text']
@@ -16,4 +18,4 @@ def context_surfaces(payload):
     return {fragment["context_id"]: surface_text(fragment)
             for row in payload["source_readings"]
             for key in ("enclosing_contexts", "preceding_contexts", "following_contexts")
-            for fragment in row[key] if 'source_text' in fragment or 'source_segments' in fragment}
+            for fragment in row[key] if 'source_text' in fragment or 'source_segments' in fragment or 'pieces' in fragment}

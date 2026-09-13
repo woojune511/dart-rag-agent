@@ -1,6 +1,7 @@
 """Physical cell boundaries are source structure, not inferred word separators."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program, model_program
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -41,9 +42,10 @@ def row_reading(rows):
     return next(r for r in rows if r.get('source_context_provenance', {}).get('relation') == 'table_text_row')
 
 
-def payload(rows):
+def payload(rows, *, narrative=False):
     return FinancialAgentCalculationMixin._semantic_program_prompt_payload(rows, {
-        'visible_candidate_ids': [r['candidate_id'] for r in rows], 'cohorts': [],
+        'visible_candidate_ids': [r['candidate_id'] for r in rows],
+        'cohorts': ([{'owner_type': 'obligation', 'candidate_kind': 'evidence'}] if narrative else []),
     })
 
 
@@ -103,14 +105,17 @@ class TableCellSourceSegmentsTests(unittest.TestCase):
     def test_prompt_has_separate_quote_surfaces_and_no_joined_cell_text(self):
         rows = catalog(parse())
         before = deepcopy(rows)
-        output = payload(rows)
+        output = payload(rows, narrative=True)
         reading = row_reading(rows)
         bundle_id = output['candidates_by_id'][reading['candidate_id']]['source_bundle_id']
         body = next(b for r in output['source_readings'] for b in r['bodies'] if b['source_bundle_id'] == bundle_id)
         self.assertNotIn('source_text', body)
-        self.assertEqual([s['source_text'] for s in body['source_segments']], ['Goods', 'Aspen uses partners.'])
+        self.assertEqual([s['text'] for s in body['pieces']], ['Goods', 'Aspen uses partners.'])
+        self.assertEqual([s['partition'] for s in body['pieces']], [0, 1])
         self.assertNotIn('GoodsAspen', json.dumps(output, ensure_ascii=False))
-        self.assertEqual(output, payload(list(reversed(rows))))
+        self.assertEqual(output, payload(list(reversed(rows)), narrative=True))
+        numeric_body = next(b for r in payload(rows)['source_readings'] for b in r['bodies'] if b['source_bundle_id'] == bundle_id)
+        self.assertEqual([s['source_text'] for s in numeric_body['source_segments']], ['Goods', 'Aspen uses partners.'])
         self.assertEqual(rows, before)
 
     def test_segments_roundtrip_sidecar_without_changing_catalog_or_numeric_records(self):
@@ -150,13 +155,14 @@ class TableCellSourceSegmentsTests(unittest.TestCase):
                             evidence_text='GoodsAspen uses partners.')
                 program = {'narrative_bindings': [{'obligation_id': 'routes', 'claims': [
                     {'subject': 'Aspen', 'text': 'Uses partners for goods.', 'evidence_bindings': [link]}]}]}
-                inputs = dict(program=program, candidate_catalog=rows, obligations=owners, query='Describe routes.')
+                inputs = dict(program=address_program(program, rows), candidate_catalog=rows, obligations=owners, query='Describe routes.')
                 invalid = validate_semantic_calculation_program(**inputs, candidate_visibility=visibility, require_narrative_claims=True)
-                errors = [e for e in invalid['errors'] if e['code'] == 'invalid_narrative_claim_quote']
+                errors = [e for e in invalid['errors'] if e['code'] == 'cross_partition_narrative_selection']
                 self.assertTrue(errors, invalid['errors'])
                 self.assertEqual(errors[0]['repair_action'], 'repair_program')
                 program['narrative_bindings'][0]['claims'][0]['evidence_bindings'] = [
                     {**link, 'evidence_text': text} for text in ('Goods', 'Aspen uses partners.')]
+                inputs['program'] = address_program(program, rows)
                 valid = validate_semantic_calculation_program(**inputs, candidate_visibility=visibility, require_narrative_claims=True)
                 self.assertEqual(valid['status'], 'ready', valid['errors'])
                 envelope = CompilationEnvelopeV2.create(**inputs, validation=valid, visibility=visibility)
@@ -188,8 +194,8 @@ class TableCellSourceSegmentsTests(unittest.TestCase):
         good = deepcopy(bad)
         good['narrative_bindings'][0]['claims'][0]['evidence_bindings'] = [
             {**link, 'evidence_text': text} for text in ('Goods', 'Aspen uses partners.')]
-        llm = _StructuredQueueLLM(accepted, SemanticCalculationProgram.model_validate(bad),
-                                  SemanticCalculationProgram.model_validate(good))
+        llm = _StructuredQueueLLM(accepted, model_program(bad, rows),
+                                  model_program(good, rows))
         state = _case_state({'question': 'Report size and describe routes.', 'obligations': [
             _obligation('size', 'direct_value', 'Size'), _obligation('routes', 'narrative', 'Routes')]},
             [_candidate('size-cell', 12), *rows])

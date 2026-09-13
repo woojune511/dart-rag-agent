@@ -2,7 +2,9 @@
 
 Every fixture owner receives the complete question. These copies test execution
 and harness contracts, NOT planner mapping quality. Frozen files/programs/source
-records/expected outcomes are never changed. Production has no such migration.
+records/expected outcomes are never changed on disk. Temporary copies also
+address the already authored narrative quotes, not model behavior. Production
+has no such migration.
 """
 
 from copy import deepcopy
@@ -18,6 +20,10 @@ def bind_fixture_request(case):
     refs = [unit.request_unit_id for unit in build_request_units(copied['question'])]
     for owner in copied['obligations']:
         owner['request_unit_ids'] = list(refs)
+    if copied.get('program'):
+        from src.ops.replay_reviewed_compiler_selection import _compiler_case_catalog
+        from tests.narrative_address_test_support import address_program
+        copied['program'] = address_program(copied['program'], _compiler_case_catalog(copied)[0])
     return copied
 
 

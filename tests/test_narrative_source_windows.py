@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from copy import deepcopy
+from tests.narrative_address_test_support import address_program
 from unittest.mock import patch
 
 from src.agent.financial_calculation_execution import (
@@ -19,7 +20,7 @@ from src.agent.financial_reconciliation_candidates import (
     semantic_candidate_catalog_fingerprint,
 )
 from src.agent.financial_source_bundles import build_semantic_source_bundles
-from tests.compiler_presentation_test_support import bundle_text, context_surfaces
+from tests.compiler_presentation_test_support import bundle_text, context_surfaces, surface_text
 
 
 def source(text: str, source_id: str = "source-body") -> dict:
@@ -93,7 +94,7 @@ class NarrativeSourceWindowTests(unittest.TestCase):
         plan = _semantic_candidate_cohorts(catalog, [narrative_owner()])
         payload = FinancialAgentCalculationMixin._semantic_program_prompt_payload(catalog, plan)
         self.assertEqual(payload["candidates_by_id"][narrative["candidate_id"]]["source_body_coverage"], coverage)
-        windows = [b["source_text"] for r in payload["source_readings"] for b in r["bodies"]] + list(context_surfaces(payload).values())
+        windows = [surface_text(b) for r in payload["source_readings"] for b in r["bodies"]] + list(context_surfaces(payload).values())
         self.assertLessEqual(sum(map(len, windows)), 4800)
         self.assertNotIn("Unseen ending.", "".join(windows))
 
@@ -147,6 +148,7 @@ class NarrativeSourceWindowTests(unittest.TestCase):
                     "context_id": next(row["context_id"] for row in narrative["source_contexts"]
                         if "Final delivery count is 47." in row["source_text"])}]}],
         }]}
+        program = address_program(program, catalog)
         validation = validate_semantic_calculation_program(program=program, candidate_visibility=visibility, **inputs)
         self.assertEqual(validation["status"], "ready", validation["errors"])
         envelope = CompilationEnvelopeV2.create(visibility=visibility, program=program, validation=validation, **inputs)

@@ -1,8 +1,8 @@
-# Narrative evidence selection: proposed boundary change
+# Narrative evidence selection: source addresses and shared subjects
 
-Status: **characterized, not implemented** (2026-09-13). This is a design note,
-not a replacement for the [current runtime contract](agent_runtime_contract.md).
-No runtime, compiler schema, provider, store or historical result changed.
+Status: **implemented locally** (2026-09-14). The
+[runtime contract](agent_runtime_contract.md) is normative; this note records
+the design and provider-free evidence, not a measured model improvement.
 
 ## Evidence and diagnosis
 
@@ -48,8 +48,8 @@ Within each partition expose deterministic, lossless text pieces with short IDs.
 Use generic line/punctuation boundaries and a bounded-length fallback, not a
 financial sentence parser. Pieces are display addresses, not semantic units:
 the original text must reconstruct exactly, and adjacent pieces may be selected
-as a range. Pin this mechanical policy with multilingual fixtures before runtime
-integration; measure its prompt overhead against existing prompt limits.
+as a range. The fallback is at most 160 Python string characters, preferring a
+whitespace boundary; both the source and resulting partition/offset map bind the ID.
 
 The compiler selects `{candidate_id, source_requirement_id, surface_id,
 first_piece_id, last_piece_id}`. It does not calculate character offsets or return
@@ -82,18 +82,16 @@ Owner/requirement, scope and row-description checks remain independent.
 Validated readings retain subject and fact spans separately; public text and
 citations are deterministic projections, with the current HTTP shape preserved.
 
-## Small implementation sequence
+## Implementation boundary
 
-1. Add only the provider-free address projector/resolver contract. Test lossless
-   reconstruction, repeated occurrences, input-order invariance, multiline and
-   multilingual text, physical partitions, stale content, and visibility limits.
-   Check prompt bytes on anonymous sources and existing saved payloads, without
-   changing those payloads or treating their accepted answers as an oracle.
-2. Switch the internal narrative schema, prompt, validator, retry merge and
-   reading projection together. Add explicit subject references; do not maintain
-   a long-lived production dual-write/quote fallback. Update the normative runtime
-   contract in that implementation commit. Numeric programs/assertions and
-   multi-evidence narrative capability are outside the schema replacement.
+1. `financial_evidence_addresses.py` adds frozen source/piece values and a
+   provider-free projector/resolver; its independent contract commit is `2c86efd3`.
+2. Narrative schema, v8 reading payload, validator, retry and output projection
+   switch together. Numeric-only payloads remain v7; numeric program fields,
+   assertions, row-description authority and multi-evidence capability are unchanged.
+   The current compiler/protected executor reject old quote claims. Historical
+   raw/flat inspection remains explicitly non-current, not a production fallback.
+   Tests convert authored witnesses explicitly; frozen fixtures are not rewritten.
 
 Use the same compiler calls and **one** internal retry. Errors return the failed
 owner/address/claim location and preserve unrelated accepted program bytes.
@@ -107,10 +105,23 @@ as explicitly semantic negatives, not passing correctness scores. Any provider
 comparison needs a fresh scoped manifest/approval after these local gates; the
 consumed admission and old result bytes remain immutable.
 
-## Characterization verification
+## Local verification
 
-The new eight tests and related claim/context/retry controls pass **55/55**;
-import/topology/documentation checks pass **24/24**. Domain audit (83 reviewed
-literals), `py_compile` and `git diff --check` pass. Full unittest was not rerun
-for this test/docs-only change. The consumed result/receipt hashes and all **160**
-runtime and **77** protected files remain unchanged; provider calls: **0**.
+The address/integration controls pass **22/22**, including mechanical-policy ID
+drift, explicit shared subjects, fact-only numeric authority, source partitions,
+cross-owner references and targeted retry/accepted-island byte preservation.
+Original attribution/omitted-request negative controls remain, not correctness oracles.
+The full integration gate is recorded in [project status](../overview/project_status.md).
+
+Read-only reprojection of all nine frozen inputs (11 initial islands) preserves
+candidate metadata/IDs, cohorts, bundle/context fingerprints and constraints.
+Every displayed address matches the validator; numeric-only payload bytes are
+identical. Compact candidate payloads total **213,843 → 229,617 bytes (+7.38%)**.
+The real SDK serializer with network blocked and abstention stubs completes
+**11/11** initial dispatches: largest request **88,784 / 196,608 bytes**, total
+**545,494 bytes** including schema/instructions. This measures transport, not
+semantic acceptance, paid cost or retry-request size.
+
+All **77** protected files, **9** admission-local files and consumed result/receipt
+hashes are unchanged. Runtime/schema intentionally changed; provider calls **0**.
+The paid predecessor remains **7/9**, and full-agent remains **0/3**.

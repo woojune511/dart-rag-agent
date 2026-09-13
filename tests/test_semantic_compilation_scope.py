@@ -1,6 +1,7 @@
 """An island's bounded evidence is not a document-wide answer contract."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 import json
 import unittest
 
@@ -49,7 +50,7 @@ class SemanticCompilationScopeTests(unittest.TestCase):
             for owner, candidate in zip(self.owners, self.catalog)]
 
     def compile(self, programs):
-        llm = _StructuredQueueLLM(*[SemanticCalculationProgram.model_validate(item) for item in programs])
+        llm = _StructuredQueueLLM(*[model_program(item, self.catalog) for item in programs])
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.llm = llm
         state = {"query": "Summarize operations and distribution for Filing Group.",
@@ -98,7 +99,7 @@ class SemanticCompilationScopeTests(unittest.TestCase):
         self.assertEqual(len(prompts), 2)
         self.assert_scope(prompts[0], ["operations", "distribution"])
         self.assert_scope(prompts[1], ["distribution"])
-        accepted = SemanticCalculationProgram.model_validate({"narrative_bindings": [self.bindings[0]]}).model_dump()["narrative_bindings"][0]
+        accepted = model_program({"narrative_bindings": [self.bindings[0]]}, self.catalog).model_dump()["narrative_bindings"][0]
         self.assertEqual(json.dumps(result["semantic_program"]["narrative_bindings"][0], sort_keys=True),
                          json.dumps(accepted, sort_keys=True))
 

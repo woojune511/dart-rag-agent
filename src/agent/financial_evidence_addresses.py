@@ -60,8 +60,6 @@ def build_evidence_surface(source: Mapping[str, Any], *, context: bool = False) 
     text = str(source.get("source_text") or "")
     identity = {key: value for key, value in source.items() if key not in {
         "candidate_ids", "value_spans_by_candidate_id", "context_ids", "context_relations", "relation"}}
-    digest = hashlib.sha256(json.dumps([field, identity], ensure_ascii=False,
-        sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     segments = source.get("source_segments") or [{"text_span": [0, len(text)]}]
     partitions = sorted(tuple(row["text_span"]) for row in segments)
     pieces: list[EvidencePieceV1] = []
@@ -82,6 +80,11 @@ def build_evidence_surface(source: Mapping[str, Any], *, context: bool = False) 
                         stop = cursor + spaces[-1]
                 pieces.append(EvidencePieceV1(f"p{len(pieces) + 1}", cursor, stop, partition))
                 cursor = stop
+    # A mechanical boundary-policy change must invalidate old piece selections,
+    # even when candidate/source bytes themselves are unchanged.
+    digest = hashlib.sha256(json.dumps(["evidence_surface_v1", field, identity,
+        [(p.start, p.end, p.partition) for p in pieces]], ensure_ascii=False,
+        sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
     return EvidenceSurfaceV1(f"sur_{digest[:20]}", source_id, field, text, tuple(pieces))
 
 

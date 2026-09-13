@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-13
+Last updated: 2026-09-14
 
 ## Product and authority
 
@@ -29,19 +29,19 @@ defects, generic regressions, coverage limits, and remaining work.
   owns units, arithmetic, scope/ID authority, exact source assertions and execution.
   No seven-role classifier, cross-encoder, extra judge or benchmark-ID branch was added.
 - Each compiler attempt declares active outputs and bounded-excerpt coverage. Narrative
-  `claims` connect source-copied subjects/text to exact visible quotes; one renderer labels
-  subjectless fragments and derives the paragraph/IDs. Both number checks use verified claim quotes, with independent descriptor limits; compiler/executor
-  reject flat unattributed text. These checks do not prove semantic entailment/completeness.
+  `subject_bindings` explicitly share source-local subject support; each claim has its own
+  fact selections. Code extracts exact addressed ranges and renders subject labels; both number checks use fact ranges/report year only. Shared subject support grants no numeric authority.
+  Current compiler/executor reject raw quote or flat claims. No implicit subject inheritance; structural acceptance still does not prove entailment/completeness.
 - `CompilationEnvelopeV2` binds full catalog content, ordered obligations and query.
   Only declared `depends_on` outputs may become formula inputs. Retry assertion
   projection cannot modify unrelated accepted outputs or introduce foreign evidence.
-  Narrative retry carries only targeted unvalidated claims with original error locations;
+  Narrative retry carries only targeted unvalidated subject registries/claims with original error locations;
   excluded/foreign evidence links are omitted. Unsupported claims may be corrected/dropped or withheld.
   Opt-in `compiler_attempts` retain schema-parsed model/merged-input JSON, hashes, validation locations and exact retry feedback before pruning; request-local capture does not enter answer/review/ledger/scoring or change prompts/calls. Unavailable parsed output is explicit, not fabricated.
 - Source bundles preserve adjacent values and document context. Actual unique selectable
   unions are bounded by numeric 96 / narrative 32; at most eight islands and one internal
   retry per island. Budget/admission stops propagate without fallback or extra calls.
-- Compiler v7 groups only identical document/context attachments, retaining independent quote containers. Metadata and ranking diagnostics are not source authority; the saved seven-input/ten-response counterfactual preserves all IDs, scopes and execution bytes. Initial prompt bytes fell 20.74%, not measured cost or accuracy.
+- Compiler v8 uses lossless, content/provenance/partition-bound pieces for narrative-bearing calls; only identical document/context attachments share readings. Numeric-only candidate payloads remain byte-identical v7. Metadata/ranking diagnostics are not source authority; candidate IDs, cohorts and bundle/catalog fingerprints are unchanged.
 - XML recovery preserves ampersand text and quoted attributes; explicit header/body
   tables remain data. Both narrative modes can read numeric rows. Non-scalar rows gain
   reading-only evidence without changing existing chunk numeric extraction or spans.
@@ -129,7 +129,7 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    [Subject-context run](benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md) consumed `7e2961f6...d5a47`: Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60; billing unobserved. Ten saved responses replay identically, no API.
    [Retry-context repair](benchmarks/results/narrative_retry_context_2026-09-11/README.md) restores the failed draft to stateless retries. Compiler policy reads located heading/body evidence together and preserves requested explanation, not invalid claim counts. Local full gate **1360/1360**.
    [Paid retry-context predecessor](benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md) consumed `4a1a66f8...8c500`: Pro 10 calls/3 retries, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Narrow source criteria **1/7**, with an unsupported qualifier. Three retries received seven draft claims; one repeats its title/body quote error, one repairs the quote without resolving the subject relation. All ten responses replay identically without API; 58 protected files unchanged. This frozen outcome is not rewritten by the subsequent v7 comparison below. No case-specific rule or validator relaxation.
-3. [Eight anonymous boundary controls](tests/test_narrative_binding_boundaries.py) now reproduce quote-format drift, omitted claim-local subject support and whole-binding withholding; authored repairs preserve fact quotes and other island/cohort bytes. Dropping the failed claim can pass structurally while omitting requested content; literal subject support does not prove attribution. Related focused gate: **55/55**, provider-free. [Proposed source-address/shared-subject design](docs/architecture/narrative_evidence_address_design.md) is **not implemented**: next add the lossless address projector/resolver, then switch the narrative schema/readers together. Runtime and paid results are unchanged. No whitespace repair, automatic subject inheritance, silent partial acceptance, case branches or paid retry. Historical [boundary isolation](docs/architecture/request_source_boundary_review.md) remains predecessor-only. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
+3. [Source-address/shared-subject implementation](docs/architecture/narrative_evidence_address_design.md) removes model quote copying and repeated claim-local subject support through explicit references, without broadening fact-number authority or adding a call. New address/integration tests **22/22**; full integration gate is in project status. Nine frozen inputs/11 islands retain IDs/cohorts/source fingerprints; candidate payload bytes **+7.38%**. Network-blocked real SDK serialization with abstention stubs: **11/11**, max **88,784/196,608 bytes**, semantic acceptance unmeasured. All 77 protected files, nine admission-local files and consumed result/receipt unchanged; provider **0**. Next is separately scoped model verification with a fresh manifest, not a paid rerun under old approval. Attribution and automatic-pruning negative controls remain. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
    remains runtime 2/3, Codex source-review 1/3 on `ff283a58`, not current-head output.

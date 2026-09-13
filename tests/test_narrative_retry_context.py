@@ -1,6 +1,7 @@
 """Retry carries the failed draft, not a new source or a semantic correctness oracle."""
 
 from copy import deepcopy
+from tests.narrative_address_test_support import model_program
 import json
 import unittest
 
@@ -36,8 +37,8 @@ class NarrativeRetryContextTests(unittest.TestCase):
     def test_retry_carries_failed_claim_locations_without_replaying_accepted_island(self):
         accepted = SemanticCalculationProgram(direct_bindings=[{
             "obligation_id": "size", "candidate_id": "size-cell"}])
-        bad = SemanticCalculationProgram.model_validate(self.bad)
-        good = SemanticCalculationProgram.model_validate(self.good)
+        bad = model_program(self.bad, self.catalog)
+        good = model_program(self.good, self.catalog)
         llm = _StructuredQueueLLM(accepted, bad, good)
         state = _case_state({"question": self.question, "obligations": [
             _obligation("size", "direct_value", "Size"), *self.owners]},
@@ -55,7 +56,7 @@ class NarrativeRetryContextTests(unittest.TestCase):
         self.assertEqual([row["location"] for row in drafts[0]["claims"]],
             ["narrative_claims[0]", "narrative_claims[1]"])
         for original, draft in zip(bad.model_dump()["narrative_bindings"][0]["claims"], drafts[0]["claims"]):
-            for key in ("subject", "text", "evidence_bindings"):
+            for key in ("subject_binding_id", "text", "fact_evidence_selections"):
                 self.assertEqual(draft[key], original[key])
         self.assertNotIn("size-cell", json.dumps(drafts))
         marker = "Source bundles, candidate cohorts, and candidates_by_id:"
@@ -121,9 +122,9 @@ class NarrativeRetryContextTests(unittest.TestCase):
     def test_targeted_retry_does_not_replay_or_edit_an_accepted_narrative_in_same_island(self):
         accepted = {"obligation_id": "reference", "claims": [
             claim("Cedar", "Cedar uses direct delivery.", "reference-note", "Cedar uses direct delivery.")]}
-        initial = SemanticCalculationProgram.model_validate({"narrative_bindings": [
-            accepted, *self.bad["narrative_bindings"]]})
-        llm = _StructuredQueueLLM(initial, SemanticCalculationProgram.model_validate(self.good))
+        initial = model_program({"narrative_bindings": [accepted, *self.bad["narrative_bindings"]]},
+            [source("reference-note", "Cedar uses direct delivery."), *self.catalog])
+        llm = _StructuredQueueLLM(initial, model_program(self.good, self.catalog))
         owners = [_obligation("reference", "narrative", "Reference", coupling_key="shared-reading"),
             {**self.owners[0], "coupling_key": "shared-reading"}]
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(_case_state({
@@ -146,8 +147,8 @@ class NarrativeRetryContextTests(unittest.TestCase):
         abstention = {"status": "incomplete", "missing_obligation_ids": ["activity"]}
         for replacement, expected in ((shorter, "ready"), (abstention, "incomplete")):
             with self.subTest(expected=expected):
-                llm = _StructuredQueueLLM(SemanticCalculationProgram.model_validate(self.bad),
-                    SemanticCalculationProgram.model_validate(replacement))
+                llm = _StructuredQueueLLM(model_program(self.bad, self.catalog),
+                    model_program(replacement, self.catalog))
                 compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(_case_state({
                     "question": "Describe activity.", "obligations": self.owners}, self.catalog))
                 self.assertEqual(len(llm.prompts), 2)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from tests.semantic_program_test_support import *
+from tests.narrative_address_test_support import model_program
 
 
 class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
@@ -39,6 +40,11 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             }
         )
         summary_text = "The target unit reports active items 41 and total items 57."
+        summary_candidate = {
+            **_candidate("cand-summary", 0, context="activity-table"),
+            "company": "sample", "kind": "narrative",
+            "normalized_value": None, "source_text": summary_text,
+        }
         compiler_responses = [
             SemanticCalculationProgram.model_validate(
                 {
@@ -60,7 +66,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                     ]
                 }
             ),
-            SemanticCalculationProgram.model_validate(
+            model_program(
                 {
                     "narrative_bindings": [
                         {
@@ -78,7 +84,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                                     "source_requirement_id": "ob_003:req_001", "evidence_text": summary_text}]}],
                         }
                     ]
-                }
+                }, [summary_candidate]
             ),
         ]
         llm = _StructuredQueueLLM(planner_response, *compiler_responses)
@@ -124,11 +130,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 ),
                 "company": "sample",
             },
-            {
-                **_candidate("cand-summary", 0, context="activity-table"),
-                "company": "sample", "kind": "narrative",
-                "normalized_value": None, "source_text": summary_text,
-            },
+            summary_candidate,
         ]
         state = {
             **initial_state, **planned, "active_subtask": task,

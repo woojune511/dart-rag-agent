@@ -32,9 +32,9 @@ def binding(owner_id, cid):
         "evidence_bindings": [{"candidate_id": cid}]}
 
 
-def claimed_model(program):
+def claimed_model(program, catalog):
     return SemanticCalculationProgram.model_validate(_with_narrative_claims(program,
-        subject="Services", quotes={key: "Services include shared operations." for key in ("right", "wrong")}))
+        subject="Services", quotes={key: "Services include shared operations." for key in ("right", "wrong")}, catalog=catalog))
 
 
 class RequestedSourceSectionTests(unittest.TestCase):
@@ -221,9 +221,9 @@ class RequestedSourceSectionTests(unittest.TestCase):
         other = _obligation("notes", "narrative", "Services", source_sections=["Notes"],
                             request_unit_ids=["request_002"])
         self.query += ' Also summarize "Notes".'
-        accepted = claimed_model({"narrative_bindings": [binding("services", "right")]})
-        bad = claimed_model({"narrative_bindings": [binding("notes", "right")]})
-        good = claimed_model({"narrative_bindings": [binding("notes", "wrong")]})
+        accepted = claimed_model({"narrative_bindings": [binding("services", "right")]}, self.catalog)
+        bad = claimed_model({"narrative_bindings": [binding("notes", "right")]}, self.catalog)
+        good = claimed_model({"narrative_bindings": [binding("notes", "wrong")]}, self.catalog)
         llm = _StructuredQueueLLM(accepted, bad, good)
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(_case_state(
             {"question": self.query, "obligations": [self.owner, other]}, self.catalog))
@@ -243,7 +243,7 @@ class RequestedSourceSectionTests(unittest.TestCase):
         ]})
         llm = _StructuredQueueLLM(planned_response, claimed_model({
             "narrative_bindings": [{**binding("ob_002", "right"), "evidence_bindings": [
-                {"candidate_id": "right", "source_requirement_id": "ob_002:req_001"}]}]}))
+                {"candidate_id": "right", "source_requirement_id": "ob_002:req_001"}]}]}, self.catalog))
         agent = FinancialAgent.__new__(FinancialAgent)
         agent.llm, agent.llm_routes, agent.llm_usage_callback = llm, {}, None
         state = {"query": self.query, "report_scope": {}, "topic": "services", "companies": [], "years": []}
