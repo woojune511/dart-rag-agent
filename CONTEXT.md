@@ -119,9 +119,9 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    HTTP errors/redirects and usage overruns stop without another transmission.
    [Contract and policy fields](docs/evaluation/provider_admission.md).
    Full gate **1,596/1,596**, provider calls **0**; prompts, schemas, candidate permissions, stores
-   and old policies/results are unchanged. Next: a new immutable no-call admission
-   for a bounded live check, including count-call authority/allowance and separate
-   approval. Do not resume a consumed full-agent admission.
+   and old policies/results are unchanged. [Prepared admission](benchmarks/results/server_count_admission_2026-09-14/README.md):
+   `b3474acd8e0287993c3cf9d2146122534517e1e160b46a1d68afc0901096c24c`, counts **2** + generations **2**, proposed **USD 0.20** including **0.12** count allowance (not billing).
+   Preparation tests **10/10**, boundary tests **33/33**, two byte-identical no-call receipts `9fb61cdd...ac22`; runtime **161** / protected **63** hashes verified. Await separate approval; no paid call or consumed-run resume.
    The [measured predecessor](benchmarks/results/server_token_accounting_2026-09-14/RESULTS.md)
    consumed `1d067e26...bd3fa` on `0f97a533`: full counts **20 / 4,135** matched
    prompt usage; byte reservations **24,841 / 43,977** were excessive on those two
