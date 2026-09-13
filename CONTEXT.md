@@ -118,10 +118,10 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    separately from usage-estimated generation cost. Count failure has no fallback;
    HTTP errors/redirects and usage overruns stop without another transmission.
    [Contract and policy fields](docs/evaluation/provider_admission.md).
-   Full gate **1,596/1,596**, provider calls **0**; prompts, schemas, candidate permissions, stores
-   and old policies/results are unchanged. [Paid guard validation](benchmarks/results/server_count_validation_2026-09-14/RESULTS.md)
-   consumed `b3474acd8e0287993c3cf9d2146122534517e1e160b46a1d68afc0901096c24c` on clean `557177d8`/runtime `d7b52100`: counts **2** + generations **2**, **4/4 HTTP 200**, retry **0**, 14.079s. Server counts/reservations/prompt usage all match: **20 / 4,135**; exact schema/system bodies and output bound **5120** retained.
-   Generation estimate **USD 0.01798725** + count allowance **0.12** (not billing) = accounted **0.13798725/0.20**; peak reservation **0.17810725**, pending **0**. Runtime **161** / protected **63** hashes intact; result `1142a959...3d3dc`, offline review `ceb447ef...d67b7`. Next is a separately scoped full-agent admission, not an automatic resume or default change.
+   Local implementation gate **1,596/1,596**, provider calls **0**; production prompts/schema/permissions/defaults and old policies/results remain unchanged.
+   [Paid guard validation](benchmarks/results/server_count_validation_2026-09-14/RESULTS.md) consumed `b3474acd...6c24c` on clean `557177d8`/runtime `d7b52100`: counts **2** + generations **2**, **4/4 HTTP 200**, retry **0**, 14.079s. Counts/reservations/prompt usage match **20 / 4,135**; full schema/system and output bound **5120** retained.
+   Generation estimate **USD 0.01798725** + count allowance **0.12** (not billing) = accounted **0.13798725/0.20**; peak **0.17810725**, pending **0**. Result `1142a959...3d3dc`/review `ceb447ef...d67b7` remain immutable; this does not establish full-agent success.
+   [Prepared full-agent successor](benchmarks/results/server_count_full_agent_admission_2026-09-14/README.md), `5295c516ec186d4310203a2b97db15bb79bbf939ceae678e9d56cc5cc0599a14`, keeps the same three questions/order/stores and fresh planning; proposes **USD 1.60** with count allowance **0.06/attempt**, not billing. Tests **14/14 + 36/36**, two byte-identical receipts `4d3c4a2f...fa270`; runtime **161**, input/protected **124**, original store **23** hashes verified. Existing query tokenizer is pinned/read-only; no download. Provider calls **0**, separate approval pending; no automatic resume/default change.
    The [measured predecessor](benchmarks/results/server_token_accounting_2026-09-14/RESULTS.md)
    consumed `1d067e26...bd3fa` on `0f97a533`: full counts **20 / 4,135** matched
    prompt usage; byte reservations **24,841 / 43,977** were excessive on those two
