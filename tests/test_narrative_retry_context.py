@@ -58,6 +58,11 @@ class NarrativeRetryContextTests(unittest.TestCase):
         for original, draft in zip(bad.model_dump()["narrative_bindings"][0]["claims"], drafts[0]["claims"]):
             for key in ("subject_binding_id", "text", "fact_evidence_selections"):
                 self.assertEqual(draft[key], original[key])
+        self.assertNotIn("source_selection_check", drafts[0]["subject_bindings"][0])
+        check = drafts[0]["subject_bindings"][1]["source_selection_check"]
+        self.assertEqual(check["declared_subject"], "Larch")
+        self.assertEqual(check["selections"][0]["selected_text"], self.body)
+        self.assertFalse(check["selections"][0]["contains_declared_subject"])
         self.assertNotIn("size-cell", json.dumps(drafts))
         marker = "Source bundles, candidate cohorts, and candidates_by_id:"
         self.assertEqual(prompt_json(llm.prompts[1], marker), prompt_json(llm.prompts[2], marker))
@@ -84,14 +89,16 @@ class NarrativeRetryContextTests(unittest.TestCase):
             "activity:b": ["b"], "other:r": ["a"]}
         before = deepcopy((program, owners, selectable))
         drafts = project_narrative_retry_drafts(program, obligations=owners,
-            target_obligation_ids=["activity"], candidate_ids_by_owner=selectable)
+            target_obligation_ids=["activity"], candidate_ids_by_owner=selectable,
+            visible_catalog=[], validation_errors=[])
         rows = drafts[0]["claims"]
         self.assertEqual(rows[0]["evidence_bindings"], links[:2])
         self.assertEqual(rows[0]["omitted_evidence_binding_count"], 5)
         self.assertEqual(rows[1], {"location": "narrative_claims[1]", "subject": "みどり",
             "text": "追加説明。", "evidence_bindings": [], "omitted_evidence_binding_count": 1})
         self.assertEqual(drafts, project_narrative_retry_drafts(program, obligations=owners,
-            target_obligation_ids=["activity"], candidate_ids_by_owner=selectable))
+            target_obligation_ids=["activity"], candidate_ids_by_owner=selectable,
+            visible_catalog=[], validation_errors=[]))
         rows[0]["evidence_bindings"][0]["evidence_text"] = "Edited draft"
         drafts[0]["scope_applicability_fields"].append("basis")
         self.assertEqual((program, owners, selectable), before)
@@ -104,10 +111,12 @@ class NarrativeRetryContextTests(unittest.TestCase):
         program = {"narrative_bindings": bindings}
         drafts = project_narrative_retry_drafts(program, obligations=owners,
             target_obligation_ids=["second", "numeric", "missing", "first"],
-            candidate_ids_by_owner={row["obligation_id"]: ["a"] for row in owners})
+            candidate_ids_by_owner={row["obligation_id"]: ["a"] for row in owners},
+            visible_catalog=[], validation_errors=[])
         self.assertEqual([row["obligation_id"] for row in drafts], ["first", "second"])
         self.assertEqual(project_narrative_retry_drafts({}, obligations=owners,
-            target_obligation_ids=["first"], candidate_ids_by_owner={}), [])
+            target_obligation_ids=["first"], candidate_ids_by_owner={},
+            visible_catalog=[], validation_errors=[]), [])
 
     def test_numeric_retry_does_not_add_narrative_draft_payload(self):
         llm = _StructuredQueueLLM(*[SemanticCalculationProgram(direct_bindings=[{
@@ -117,7 +126,10 @@ class NarrativeRetryContextTests(unittest.TestCase):
             [_candidate("cell", 12)]))
         self.assertEqual(len(llm.prompts), 2)
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
-        self.assertNotIn("unvalidated_narrative_drafts", prompt_json(llm.prompts[1], "재시도 피드백(없으면 -):"))
+        feedback = prompt_json(llm.prompts[1], "재시도 피드백(없으면 -):")
+        self.assertNotIn("unvalidated_narrative_drafts", feedback)
+        self.assertNotIn("subject_selection_invariant", feedback["repair_contract"])
+        self.assertNotIn("source_selection_check", llm.prompts[1].to_messages()[0].content)
 
     def test_targeted_retry_does_not_replay_or_edit_an_accepted_narrative_in_same_island(self):
         accepted = {"obligation_id": "reference", "claims": [
@@ -138,6 +150,11 @@ class NarrativeRetryContextTests(unittest.TestCase):
         self.assertEqual(feedback["repair_contract"]["target_obligation_ids"], ["activity"])
         self.assertEqual([row["obligation_id"] for row in feedback["unvalidated_narrative_drafts"]], ["activity"])
         self.assertNotIn("reference-note", json.dumps(feedback["unvalidated_narrative_drafts"]))
+        checks = [subject["source_selection_check"]
+            for draft in feedback["unvalidated_narrative_drafts"] for subject in draft["subject_bindings"]
+            if "source_selection_check" in subject]
+        self.assertEqual([row["declared_subject"] for row in checks], ["Larch"])
+        self.assertEqual(checks[0]["selections"][0]["selected_text"], self.body)
 
     def test_retry_can_remove_unsupported_optional_claim_or_abstain(self):
         # A draft is not a required answer or a claim-count lock. These are

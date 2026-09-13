@@ -2290,6 +2290,9 @@ class FinancialAgentCalculationMixin:
                 narrative_retry_drafts = project_narrative_retry_drafts(
                     program_data, obligations=obligations, target_obligation_ids=retry_target_ids,
                     candidate_ids_by_owner=retry_selectable_ids_by_owner,
+                    visible_catalog=[candidate_by_id[key]
+                        for key in active_cohort_plan.get("visible_candidate_ids") or []],
+                    validation_errors=validation.get("errors") or [],
                 )
                 retry_feedback = json.dumps(
                     {
@@ -2322,6 +2325,10 @@ class FinancialAgentCalculationMixin:
                             if str(requirement.get("requirement_id") or "")
                         ],
                         "repair_contract": {
+                            **({"subject_selection_invariant": CALCULATION_PROMPT_POLICY[
+                                "semantic_program_subject_selection_repair_invariant"]}
+                               if any("source_selection_check" in subject for draft in narrative_retry_drafts
+                                   for subject in draft.get("subject_bindings") or []) else {}),
                             "target_obligation_ids": retry_target_ids,
                             "dependency_ids_by_obligation": {
                                 str(item.get("obligation_id") or ""): [

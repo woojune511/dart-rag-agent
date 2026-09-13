@@ -11,12 +11,15 @@ from src.utils.source_segments import source_quote_is_contiguous
 def project_narrative_retry_drafts(
     program: Mapping[str, Any], *, obligations: Sequence[Mapping[str, Any]],
     target_obligation_ids: Sequence[str], candidate_ids_by_owner: Mapping[str, Sequence[str]],
+    visible_catalog: Sequence[Mapping[str, Any]], validation_errors: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, Any]]:
     """Carry failed model statements for repair, without granting source authority.
 
     Claims keep their original error locations, including claims with no remaining
     links. Only currently selectable owner/requirement links survive; their quotes
-    are still unvalidated drafts, not evidence. Accepted outputs are not replayed.
+    are still unvalidated drafts, not evidence. Failed subject locations additionally
+    show their exact selected text from the current prompt's address book, never a
+    searched/repaired range. Accepted outputs are not replayed.
     """
     targets = set(target_obligation_ids)
     owners = {
@@ -27,6 +30,9 @@ def project_narrative_retry_drafts(
         if obligation.get("kind") == "narrative" and obligation["obligation_id"] in targets
     }
     selectable = {owner: set(ids) for owner, ids in candidate_ids_by_owner.items()}
+    failed_subjects = {(error.get("obligation_id"), error.get("location"))
+        for error in validation_errors if error.get("code") == "ungrounded_narrative_subject"}
+    book = None
     drafts = []
     for owner_id, requirement_ids in owners.items():
         for binding in program.get("narrative_bindings") or []:
@@ -50,10 +56,28 @@ def project_narrative_retry_drafts(
                         "omitted_evidence_binding_count": len(claim["fact_evidence_selections"]) - len(links)})
                 for index, subject in enumerate(binding["subject_bindings"]):
                     links = copied_links(subject["evidence_selections"])
-                    subjects.append({"location": f"subject_bindings[{index}]",
+                    location = f"subject_bindings[{index}]"
+                    draft = {"location": location,
                         "subject_binding_id": subject["subject_binding_id"], "subject": subject["subject"],
                         "evidence_selections": links,
-                        "omitted_evidence_binding_count": len(subject["evidence_selections"]) - len(links)})
+                        "omitted_evidence_binding_count": len(subject["evidence_selections"]) - len(links)}
+                    if (owner_id, location) in failed_subjects:
+                        if book is None:
+                            book = build_narrative_address_book(visible_catalog)
+                        checks = []
+                        for link in links:
+                            check = {key: link[key] for key in ("candidate_id", "source_requirement_id",
+                                "surface_id", "first_piece_id", "last_piece_id") if key in link}
+                            try:
+                                surface, quote, span = resolve_narrative_selection(link, book)
+                            except ValueError as exc:
+                                check["resolution_error"] = str(exc)
+                            else:
+                                check.update(selected_text=quote, source_field=surface.source_field,
+                                    source_span=list(span), contains_declared_subject=subject["subject"] in quote)
+                            checks.append(check)
+                        draft["source_selection_check"] = {"declared_subject": subject["subject"], "selections": checks}
+                    subjects.append(draft)
                 drafts.append({"obligation_id": owner_id, "subject_bindings": subjects, "claims": claims,
                     "scope_applicability_fields": list(binding.get("scope_applicability_fields") or [])})
                 continue

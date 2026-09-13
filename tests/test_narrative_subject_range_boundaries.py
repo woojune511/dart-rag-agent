@@ -215,6 +215,14 @@ class NarrativeSubjectRangeBoundaryTests(unittest.TestCase):
             bad.model_dump()["narrative_bindings"][0]["subject_bindings"][0]["evidence_selections"])
         self.assertEqual(draft["claims"][0]["fact_evidence_selections"],
             good.model_dump()["narrative_bindings"][0]["claims"][0]["fact_evidence_selections"])
+        check = draft["subject_bindings"][0]["source_selection_check"]
+        self.assertEqual(check["declared_subject"], BOUNDARY_SUBJECTS["abbreviation"])
+        self.assertEqual(check["selections"][0]["selected_text"], "Aster Labs, Inc. ")
+        self.assertFalse(check["selections"][0]["contains_declared_subject"])
+        self.assertIn("subject_selection_invariant", feedback["repair_contract"])
+        self.assertNotIn("source_selection_check", llm.prompts[1].to_messages()[0].content)
+        self.assertNotIn("source_selection_check", canonical(compiled["semantic_program"]).decode())
+        self.assertNotIn("source_selection_check", canonical(compiled["semantic_program_validation"]).decode())
         self.assertNotIn("cell", canonical(draft).decode())
         self.assertEqual(state, before)
 

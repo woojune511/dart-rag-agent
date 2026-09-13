@@ -627,6 +627,13 @@ _COMPILER_INPUT_FIELDS = (
 )
 
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
+    'semantic_program_subject_selection_repair_invariant': (
+        "source_selection_check compares your declared subject with only the exact text your selected addresses resolve to. "
+        "It is read-only feedback, not evidence permissions, an attribution verdict or replacement addresses. "
+        "Pieces are mechanical addresses, not complete semantic units. If supported, select a continuous first-to-last "
+        "range containing the complete source-copied subject within one permitted partition; never join cells/surfaces. "
+        "Otherwise revise the subject/claim from permitted source support or abstain. Do not copy diagnostics into the output schema."
+    ),
     'semantic_program_narrative_repair_invariant': (
         "Each claim explicitly references an obligation-local subject_binding_id and supported fact_evidence_selections. "
         "Keep valid fact ranges; repair the failed surface/piece references using currently permitted addresses. "

@@ -174,6 +174,8 @@ class AddressedNarrativeCompilerTests(unittest.TestCase):
         feedback = prompt_json(llm.prompts[2], "재시도 피드백(없으면 -):")
         drafts = feedback["unvalidated_narrative_drafts"]
         self.assertEqual(drafts[0]["subject_bindings"][0]["subject"], "Pine Workshop")
+        self.assertNotIn("source_selection_check", canonical(drafts).decode())
+        self.assertNotIn("subject_selection_invariant", feedback["repair_contract"])
         self.assertNotIn("size-cell", canonical(drafts).decode())
         self.assertEqual(state, before)
 
