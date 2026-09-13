@@ -111,25 +111,25 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    rejects a metadata-only issuer subject and accepts an authored source-local quote.
    Retagging the old broadened paragraph with its mentioned subsidiary still passes:
    this negative control remains open. No new model answer or semantic score is claimed.
-2. The [claim interpretation run](benchmarks/results/narrative_claim_compiler_2026-09-11/RESULTS.md)
-   consumed `966a0fa7...759a5`: Pro 10 calls, three internal retries, runtime **3/7**,
-   estimated USD **0.212920 / 0.60**, provider/execution exceptions zero; billing unobserved.
-   Three source-supported structured readings fail only because text does not repeat
-   the separate subject field; one causal abstention is faithful, not runtime complete.
-   The known excerpt names the local company/routes but leaves "당사" coreference unresolved.
-   Ten saved responses replay with identical prompts/programs/validation/execution, no API.
-   The [rendering successor](benchmarks/results/narrative_claim_rendering_2026-09-11/README.md)
-   processes the unchanged first responses **6/7**, no retry/API, preserving the three old
-   accepted programs and causal abstention byte-for-byte. Prior paid output stays **3/7**.
-   Quote/subject/number authority remains; labels replace raw-text repetition, not entailment.
-   Actionable errors and per-attempt history survive export. Rendering gate: **1341/1341**.
-   The [located-heading successor](benchmarks/results/located_heading_context_2026-09-11/v2/README.md)
-   repairs the hint-only context gap in fresh parsing; six unchanged anonymous sources
-   keep all 14 visible IDs/catalog fingerprints. Issuer-only claims still fail; full gate **1354/1354**.
-   [Subject-context run](benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md) consumed `7e2961f6...d5a47`: Pro 10 calls/3 retries, runtime 7/7, fixed-criterion Codex source review 1/7, estimated USD 0.2632575/0.60; billing unobserved. Ten saved responses replay identically, no API.
-   [Retry-context repair](benchmarks/results/narrative_retry_context_2026-09-11/README.md) restores the failed draft to stateless retries. Compiler policy reads located heading/body evidence together and preserves requested explanation, not invalid claim counts. Local full gate **1360/1360**.
-   [Paid retry-context predecessor](benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md) consumed `4a1a66f8...8c500`: Pro 10 calls/3 retries, runtime **6/7**, estimated **USD 0.29252125/0.60**, billing unobserved. Narrow source criteria **1/7**, with an unsupported qualifier. Three retries received seven draft claims; one repeats its title/body quote error, one repairs the quote without resolving the subject relation. All ten responses replay identically without API; 58 protected files unchanged. This frozen outcome is not rewritten by the subsequent v7 comparison below. No case-specific rule or validator relaxation.
-3. Request-local interruption diagnostics are implemented in `507ef2c6`, outside answer/ledger/judge authority; implementation full gate **1,581/1,581**. Runtime, prompts, candidate permissions and reservation policy remain unchanged. [Server token accounting](benchmarks/results/server_token_accounting_2026-09-14/RESULTS.md) consumed `1d067e26...bd3fa` once on `0f97a533`: six count calls plus one Flash/one Pro generation, **8/8 HTTP 200**, retries **0**, **13.353s**. Full server counts **20 / 4,135** exactly match generation input usage and schema-omitted counts. Existing input reservations **24,841 / 43,977** are excessive for this sample. The [local schema omission](benchmarks/results/provider_token_accounting_2026-09-14/README.md) therefore is not evidence of provider-input undercount here; no universal +1 correction or schema billing rule follows. Generation usage estimate **USD 0.01636975 / 0.30**; actual invoice and count endpoint charges unobserved, fixed count allowance is not money spent. Result `11a2640f...5ce87`, offline review `c0ddb285...09813`; **19** raw outputs, **160** runtime files, **11** protected inputs and **23** original store files verify. No benchmark/source-store/OpenAI/embedding calls or reservation changes. Next: provider-free full-request server-count admission integration, preserving request identity, output reservation, usage reconciliation and first-error behavior; any live successor needs a new manifest/approval. This approval is consumed and cannot authorize a full-agent rerun. Historical NAV lost drafts remain unrecoverable; the [consumed full-agent admission](benchmarks/results/narrative_address_full_agent_admission_2026-09-14/README.md) must not be resumed. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
+2. Historical [claim](benchmarks/results/narrative_claim_compiler_2026-09-11/RESULTS.md), [subject](benchmarks/results/narrative_subject_compiler_2026-09-11/RESULTS.md) and [retry](benchmarks/results/narrative_retry_compiler_2026-09-11/RESULTS.md) results remain immutable, not current-head semantic scores; exact quotation does not prove attribution or requested-theme completeness.
+3. Server-count admission is now an explicit experiment option, not a runtime default.
+   It counts the final SDK body without removing schema/system fields, reserves that
+   input plus the unchanged **5120** output bound, and records count allowances
+   separately from usage-estimated generation cost. Count failure has no fallback;
+   HTTP errors/redirects and usage overruns stop without another transmission.
+   [Contract and policy fields](docs/evaluation/provider_admission.md).
+   Full gate **1,596/1,596**, provider calls **0**; prompts, schemas, candidate permissions, stores
+   and old policies/results are unchanged. Next: a new immutable no-call admission
+   for a bounded live check, including count-call authority/allowance and separate
+   approval. Do not resume a consumed full-agent admission.
+   The [measured predecessor](benchmarks/results/server_token_accounting_2026-09-14/RESULTS.md)
+   consumed `1d067e26...bd3fa` on `0f97a533`: full counts **20 / 4,135** matched
+   prompt usage; byte reservations **24,841 / 43,977** were excessive on those two
+   inputs. **8/8 HTTP 200**, retries **0**, generation estimate **USD 0.01636975**;
+   invoices/count tariffs unobserved. No universal framing or schema-billing rule
+   follows, and this is not a paid validation of the new guard. Request-local
+   interruption diagnostics remain outside answer/ledger/judge authority; lost NAV
+   drafts remain unrecoverable. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
    The [three-narrative comparison](benchmarks/results/narrative_reading_compiler_2026-09-11/RESULTS.md)
    remains runtime 2/3, Codex source-review 1/3 on `ff283a58`, not current-head output.
