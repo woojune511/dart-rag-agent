@@ -33,6 +33,7 @@ from src.agent.financial_graph_state import (
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
 from src.agent.financial_narrative_claims import project_narrative_retry_drafts
 from src.agent.financial_compiler_debug import project_compiler_attempt
+from src.utils.request_diagnostics import diagnostic_location, diagnostics_enabled, record_diagnostic
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
@@ -2010,7 +2011,19 @@ class FinancialAgentCalculationMixin:
                             "row_description_instructions": row_description_instructions,
                         }
                     )
-                    compiled: Any = structured_llm.invoke(prompt_value)
+                    with diagnostic_location(attempt=attempt + 1):
+                        if diagnostics_enabled():
+                            messages = [{"type": message.type, "content": message.content}
+                                        for message in prompt_value.to_messages()]
+                            prompt_json = _compiler_json(messages)
+                            record_diagnostic("compiler_request", {
+                                "active_obligation_ids": compilation_scope["active_obligation_ids"],
+                                "visible_candidate_ids": active_prompt_candidate_ids,
+                                "prompt_messages_json": prompt_json,
+                                "prompt_messages_bytes": len(prompt_json.encode("utf-8")),
+                                "candidate_payload_bytes": len(active_prompt_catalog_json.encode("utf-8")),
+                            })
+                        compiled: Any = structured_llm.invoke(prompt_value)
                     compiled_program = compiled.model_dump()
                     if capture_attempts:
                         model_program_json = _compiler_json(compiled_program)
@@ -2699,20 +2712,28 @@ class FinancialAgentCalculationMixin:
                 for obligation in island_obligations
                 for requirement in obligation.get("evidence_requirements") or []
             )
-            compiled = self._compile_semantic_calculation_island(
-                {
-                    **dict(state),
-                    "answer_obligations": island_obligations,
-                    "semantic_candidate_catalog": catalog,
-                    "semantic_source_candidates": source_candidates,
-                    "semantic_candidate_catalog_prebuilt": True,
-                },
-                other_selectable_ids=[
-                    candidate_id for owner_id, ids in query_selectable_by_owner.items()
-                    if owner_id not in island_owner_ids for candidate_id in ids
-                ],
-                output_responsibility_context_json=output_responsibility_context_json,
-            )
+            with diagnostic_location(island_id=str(island["island_id"])):
+                compiled = self._compile_semantic_calculation_island(
+                    {
+                        **dict(state),
+                        "answer_obligations": island_obligations,
+                        "semantic_candidate_catalog": catalog,
+                        "semantic_source_candidates": source_candidates,
+                        "semantic_candidate_catalog_prebuilt": True,
+                    },
+                    other_selectable_ids=[
+                        candidate_id for owner_id, ids in query_selectable_by_owner.items()
+                        if owner_id not in island_owner_ids for candidate_id in ids
+                    ],
+                    output_responsibility_context_json=output_responsibility_context_json,
+                )
+                if diagnostics_enabled():
+                    attempts = compiled.get("compiler_attempts", [])
+                    record_diagnostic("compiler_island_completed", {
+                        "program_json": (_compiler_json(compiled["semantic_program"])
+                            if attempts and attempts[-1]["response_status"] == "parsed" else None),
+                        "validation": compiled["semantic_program_validation"],
+                    })
             compiler_attempts.extend(
                 {**row, "island_id": str(island["island_id"])}
                 for row in compiled.get("compiler_attempts", [])

@@ -6,8 +6,9 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from src.ops.provider_admission import BudgetStop, ProviderBudget, google_request_parameters, guarded_providers
+from src.ops.provider_admission import BudgetStop, ProviderBudget, google_request_parameters, guarded_providers, json_bytes
 from src.utils.provider_errors import ProviderAdmissionError
+from src.utils.request_diagnostics import capture_request_diagnostics, request_diagnostic_scope, diagnostic_location
 
 
 POLICY = {"cap_usd": 0.20, "max_google_calls": 16, "max_openai_embedding_calls": 32,
@@ -181,6 +182,72 @@ class ProviderAdmissionTests(unittest.TestCase):
             self.assertEqual(tracked.embed_documents(["canonical query"]), [[1.0]])
             with self.assertRaises(BudgetStop):
                 tracked.embed_documents(["filing document text"])
+
+    def test_observer_copies_safe_components_without_changing_reservation_or_settlement(self):
+        from google.genai import types
+
+        config = types.GenerateContentConfig(response_json_schema={"type": "object", "properties": {"answer": {"type": "string"}}},
+            system_instruction="Interpret exact sources.",
+            http_options=types.HttpOptions(headers={"Authorization": "private-header-sentinel"}))
+        request = {"contents": [{"role": "user", "parts": [{"text": 'Text 한글 "12".'}]}], "config": config}
+        params = self.params(request=request)
+        reference = ProviderBudget(POLICY)
+        self.dispatch(reference, request=request)
+        budget = ProviderBudget(POLICY)
+        with request_diagnostic_scope(True) as recorder:
+            with diagnostic_location(phase="compilation", island_id="island_a", attempt=2):
+                self.dispatch(budget, request=request)
+        self.assertEqual(budget.snapshot(), reference.snapshot())
+        request_event, outcome_event = recorder.snapshot()["events"]
+        self.assertEqual(request_event["location"], outcome_event["location"])
+        observation = request_event["data"]
+        quote = ProviderBudget(POLICY).preflight(**params)
+        self.assertTrue(all(observation[key] == value for key, value in quote.items()))
+        self.assertEqual(observation["request_bytes"], len(json_bytes(request)))
+        self.assertEqual(observation["components_json"]["response_json_schema"], json_bytes(config.response_json_schema).decode("utf-8"))
+        self.assertEqual(observation["component_bytes"]["contents"], len(json_bytes(request["contents"])))
+        self.assertEqual(outcome_event["data"], budget.records[0])
+        self.assertNotIn("private-header-sentinel", json.dumps(recorder.snapshot()))
+        self.assertNotIn("Authorization", json.dumps(recorder.snapshot()))
+        budget.records[0]["estimated_usd"] = 999
+        request["contents"].clear()
+        self.assertEqual(recorder.snapshot()["events"][1], outcome_event)
+
+    def test_guard_events_survive_real_full_agent_retry_stop_and_preserve_first_cause(self):
+        from google.genai import types
+        from google.genai.models import Models
+        from src.utils.gemini_usage import GeminiUsageCallbackHandler
+        from tests.test_interrupted_run_diagnostics import InterruptedRunDiagnosticsTests
+
+        agent, _, _ = InterruptedRunDiagnosticsTests().agent()
+        program = agent.llm.responses[0]
+        response = types.GenerateContentResponse(
+            candidates=[types.Candidate(index=0, finish_reason=types.FinishReason.STOP,
+                content=types.Content(role="model", parts=[types.Part(text=program.model_dump_json())]))],
+            usage_metadata=types.GenerateContentResponseUsageMetadata(
+                prompt_token_count=100, candidates_token_count=20, thoughts_token_count=30, total_token_count=150))
+        agent.llm_usage_callback = GeminiUsageCallbackHandler()
+        agent.llm = agent._create_chat_model({"provider": "google", "model": "gemini-2.5-pro", "temperature": 0,
+            "max_output_tokens": 4096, "thinking_budget": 1024,
+            "provider_client_retries": 0, "include_thoughts": False}, phase="program_compilation")
+        with patch.object(Models, "generate_content", return_value=response) as transport:
+            with guarded_providers({**POLICY, "cap_usd": 10, "max_google_calls": 1}, []) as budget:
+                with capture_request_diagnostics() as captured:
+                    with self.assertRaises(BudgetStop) as raised:
+                        agent.run("Describe activity.", include_debug_bundle=True)
+                self.assertIs(raised.exception, budget.stop_reason)
+                self.assertEqual(raised.exception.code, "provider_call_limit_reached")
+                transport.assert_called_once()
+                events = captured[0]["events"]
+                requests = [e for e in events if e["kind"] == "provider_request"]
+                self.assertEqual([e["location"]["attempt"] for e in requests], [1, 2])
+                self.assertTrue(all(e["location"]["phase"] == "compilation" for e in requests))
+                self.assertEqual(requests[0]["location"]["island_id"], requests[1]["location"]["island_id"])
+                self.assertEqual([e["data"]["allowed"] for e in requests], [True, False])
+                self.assertEqual(sum(e["kind"] == "compiler_attempt" for e in events), 1)
+                self.assertEqual(sum(e["kind"] == "provider_outcome" for e in events), 1)
+                self.assertNotIn("synthetic-not-a-credential", json.dumps(captured))
+                agent._execute_semantic_calculation_program.assert_not_called()
 
 
 if __name__ == "__main__":

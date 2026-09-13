@@ -16,6 +16,7 @@
 | `src/agent/financial_graph_state.py` | concrete phase input/output TypedDicts and `FinancialAgentStateV2` |
 | `src/agent/financial_runtime_contracts.py` | immutable visibility and V2 full execution-content fingerprint |
 | `src/agent/financial_run_result.py` | versioned `FinancialRunResultV1` |
+| `src/agent/financial_run_observation.py`, `src/utils/request_diagnostics.py` | opt-in request-owned copied phase/attempt/SDK observations and exception-safe caller delivery; no state writer, answer or execution authority |
 
 ## Shared numeric and narrative path
 
@@ -65,9 +66,9 @@
 
 | Path | Responsibility |
 | --- | --- |
-| `src/ops/evaluator.py` | evaluator-only numeric variants; opt-in canonical row/period/document identity separate from answer labels |
+| `src/ops/evaluator.py` | evaluator-only numeric variants; canonical identity separate from answer labels; interrupted-run observations exported separately, never scoring input |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
-| `src/ops/provider_admission.py` | opt-in SDK preflight/dispatch, shared reservations and first-cause preservation; safe failure status codes, frozen scripts unchanged |
+| `src/ops/provider_admission.py` | opt-in SDK preflight/dispatch, unchanged reservations/first-cause preservation; copied source/schema request components and settlement observations without HTTP credentials; frozen scripts unchanged |
 | `src/utils/provider_errors.py` | dependency-light terminal admission error and safe code-only projection; no core-to-ops import or error-message capture |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
 | `src/ops/plan_parser_store_successor.py` | socket-blocked full-filing reparse inventory, exact table/unit/header drift and index-text reuse candidates; no vector/store publication |

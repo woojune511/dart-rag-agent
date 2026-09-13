@@ -1255,6 +1255,8 @@ def _serialise_eval_results(results: Iterable[Any]) -> List[Dict[str, Any]]:
                 "unsupported_sentences": result.unsupported_sentences,
                 "sentence_checks": result.sentence_checks,
                 "compiler_attempts": deepcopy(getattr(result, "compiler_attempts", []) or []),
+                **({"interrupted_run": deepcopy(result.interrupted_run)}
+                   if getattr(result, "interrupted_run", None) is not None else {}),
                 "resolved_calculation_trace": resolved_trace,
                 "runtime_projection_source": projection_metadata.get("source") or "",
                 "runtime_projection_legacy_fallback": bool(

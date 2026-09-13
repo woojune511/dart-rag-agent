@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Literal, NotRequired, Optional, TypedDict
 
 from src.agent.financial_runtime_contracts import CompilationEnvelopeV2
+from src.utils.request_diagnostics import RequestDiagnosticSnapshot
 
 
 class RuntimeProjectionMetadata(TypedDict, total=False):
@@ -70,6 +71,7 @@ class CompilerAttemptDebugV1(TypedDict):
 
 class DebugBundle(TypedDict, total=False):
     debug_traces: DebugTraceBundle
+    request_diagnostics: RequestDiagnosticSnapshot
     compiler_attempts: List[CompilerAttemptDebugV1]
     llm_usage: Dict[str, Any]
     llm_usage_by_phase: Dict[str, Any]

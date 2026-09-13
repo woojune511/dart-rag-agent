@@ -5,6 +5,7 @@ import hashlib
 from typing import Any, Mapping, Sequence
 
 from src.agent.financial_graph_state import CompilerAttemptDebugV1
+from src.utils.request_diagnostics import diagnostic_location, record_diagnostic
 
 
 def project_compiler_attempt(
@@ -27,7 +28,7 @@ def project_compiler_attempt(
         for key in ("valid_direct_bindings", "valid_expressions", "valid_narrative_bindings")
         for row in validation.get(key) or []
     }
-    return {
+    snapshot: CompilerAttemptDebugV1 = {
         "schema_version": "compiler_attempt_debug_v1",
         "island_id": "",  # Assigned by the island owner when collecting results.
         "attempt": attempt,
@@ -46,3 +47,6 @@ def project_compiler_attempt(
         "ambiguous_obligation_ids": list(validation.get("ambiguous_obligation_ids") or []),
         "retry_feedback_text": retry_feedback_text,
     }
+    with diagnostic_location(attempt=attempt):
+        record_diagnostic("compiler_attempt", snapshot)
+    return snapshot

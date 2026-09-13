@@ -32,6 +32,7 @@ from src.agent.financial_run_result import (
     FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
     FinancialRunResultV1,
 )
+from src.agent.financial_run_observation import observe_financial_run, observe_phase
 from src.agent.financial_retrieval_pipeline import FinancialRetrievalPipelineMixin
 from src.agent.financial_runtime_normalization import _normalise_spaces
 from src.agent.financial_task_artifacts import (
@@ -369,6 +370,7 @@ class FinancialAgent(
             else "build_narrative"
         )
 
+    @observe_phase("routing")
     def _route_request_phase(
         self,
         state: FinancialAgentStateV2,
@@ -378,6 +380,7 @@ class FinancialAgent(
         extracted = self._extract_entities(phase_input)
         return {"routing": {**classified, **extracted}}
 
+    @observe_phase("requirements")
     def _plan_requirements_phase(
         self,
         state: FinancialAgentStateV2,
@@ -387,6 +390,7 @@ class FinancialAgent(
         )
         return {"requirements": cast(RequirementsPhase, planned)}
 
+    @observe_phase("retrieval")
     def _retrieve_evidence_phase(
         self,
         state: FinancialAgentStateV2,
@@ -399,6 +403,7 @@ class FinancialAgent(
             "retrieval": {**retrieved, **expanded}
         }
 
+    @observe_phase("candidates")
     def _build_candidates_phase(
         self,
         state: FinancialAgentStateV2,
@@ -417,6 +422,7 @@ class FinancialAgent(
             }
         }
 
+    @observe_phase("compilation")
     def _compile_program_phase(
         self,
         state: FinancialAgentStateV2,
@@ -426,6 +432,7 @@ class FinancialAgent(
         )
         return {"compilation": cast(CompilationPhase, compiled)}
 
+    @observe_phase("numeric_result")
     def _execute_numeric_phase(
         self,
         state: FinancialAgentStateV2,
@@ -435,6 +442,7 @@ class FinancialAgent(
         )
         return {"numeric_result": cast(NumericResultPhase, executed)}
 
+    @observe_phase("narrative_result")
     def _build_narrative_phase(
         self,
         state: FinancialAgentStateV2,
@@ -471,6 +479,7 @@ class FinancialAgent(
             }
         }
 
+    @observe_phase("ledger")
     def _assemble_ledger_phase(
         self,
         state: FinancialAgentStateV2,
@@ -610,6 +619,7 @@ class FinancialAgent(
             }
         }
 
+    @observe_phase("final_result")
     def _assemble_final_phase(
         self,
         state: FinancialAgentStateV2,
@@ -775,6 +785,7 @@ class FinancialAgent(
             }
         }
 
+    @observe_financial_run
     def run(
         self,
         query: str,

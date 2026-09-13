@@ -23,6 +23,7 @@ if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config.retrieval_policy import FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES
+from src.utils.request_diagnostics import RequestDiagnosticSnapshot, capture_request_diagnostics
 logger = logging.getLogger(__name__)
 mlflow = None
 
@@ -360,6 +361,7 @@ class EvalResult:
     calculation_operands: List[Dict[str, Any]] = field(default_factory=list)
     calculation_plan: Dict[str, Any] = field(default_factory=dict)
     compiler_attempts: List[Dict[str, Any]] = field(default_factory=list)
+    interrupted_run: Optional[RequestDiagnosticSnapshot] = None
     calculation_result: Dict[str, Any] = field(default_factory=dict)
     agent_llm_usage: Dict[str, Any] = field(default_factory=dict)
     agent_llm_usage_by_phase: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -4892,6 +4894,8 @@ class RAGEvaluator:
         calculation_variant_operands: List[Dict[str, Any]] = []
         calculation_plan: Dict[str, Any] = {}
         compiler_attempts: List[Dict[str, Any]] = []
+        interrupted_run: Optional[RequestDiagnosticSnapshot] = None
+        observed_runs: List[RequestDiagnosticSnapshot] = []
         calculation_result: Dict[str, Any] = {}
         resolved_calculation_trace: Dict[str, Any] = {}
         runtime_projection: Dict[str, Any] = {}
@@ -4911,12 +4915,13 @@ class RAGEvaluator:
             reset_judge_embedding_usage()
 
         try:
-            result = self.agent.run(
-                example.question,
-                report_scope=_build_example_report_scope(example),
-                include_review_trace=True,
-                include_debug_bundle=True,
-            )
+            with capture_request_diagnostics() as observed_runs:
+                result = self.agent.run(
+                    example.question,
+                    report_scope=_build_example_report_scope(example),
+                    include_review_trace=True,
+                    include_debug_bundle=True,
+                )
             agent_answer = result.agent_answer
             review_trace = result.review_trace or {}
             debug_bundle = result.debug_bundle or {}
@@ -5001,6 +5006,8 @@ class RAGEvaluator:
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
             contexts = _prioritize_runtime_evidence_contexts(contexts, runtime_evidence)
         except Exception as exc:
+            if observed_runs and any(event["kind"] == "run_interrupted" for event in observed_runs[-1]["events"]):
+                interrupted_run = deepcopy(observed_runs[-1])
             error = str(exc)
             logger.error("[%s] agent.run failed: %s", example.id, exc)
 
@@ -5395,6 +5402,7 @@ class RAGEvaluator:
             calculation_operands=calculation_operands,
             calculation_plan=calculation_plan,
             compiler_attempts=compiler_attempts,
+            interrupted_run=interrupted_run,
             calculation_result=calculation_result,
             agent_llm_usage=agent_llm_usage,
             agent_llm_usage_by_phase=agent_llm_usage_by_phase,

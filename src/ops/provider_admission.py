@@ -13,6 +13,7 @@ import threading
 from unittest.mock import patch
 
 from src.utils.provider_errors import ProviderAdmissionError, provider_error_projection
+from src.utils.request_diagnostics import diagnostics_enabled, record_diagnostic
 
 
 class BudgetStop(ProviderAdmissionError):
@@ -22,6 +23,27 @@ class BudgetStop(ProviderAdmissionError):
 def json_bytes(value):
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
                       default=lambda obj: obj.model_dump(mode="json", exclude_none=True)).encode("utf-8")
+
+
+def _request_observation(kind, request):
+    """SDK-call JSON, not wire bytes or token counts; never retain HTTP options.
+
+    Component sizes are separate serializations, not an additive byte breakdown.
+    Only source/schema fields may be retained, not arbitrary SDK configuration.
+    """
+    config = request.get("config")
+    config_values = (config.model_dump(mode="json", exclude_none=True)
+                     if config is not None and not isinstance(config, dict) else config or {})
+    fields = ({"contents": request.get("contents"), **{
+        key: config_values[key] for key in (
+            "system_instruction", "response_json_schema", "response_schema",
+        ) if key in config_values
+    }} if kind == "google" else {"input": request.get("input")})
+    encoded = {key: json_bytes(value) for key, value in fields.items()}
+    return {"representation": "sdk_call_json", "component_sizes_additive": False,
+            "components_json": {key: value.decode("utf-8") for key, value in encoded.items()},
+            "component_bytes": {key: len(value) for key, value in encoded.items()},
+            "config_bytes": len(json_bytes(config)) if config is not None else 0}
 
 
 class ProviderBudget:
@@ -76,6 +98,8 @@ class ProviderBudget:
         with self.lock:
             quote = self.preflight(kind=kind, model=model, request=request,
                                    input_bound=input_bound, output_bound=output_bound)
+            if diagnostics_enabled():
+                record_diagnostic("provider_request", {**quote, **_request_observation(kind, request)})
             if not quote["allowed"]:
                 self.blocked_requests.append(quote)
                 raise self._close(quote["blocked_code"], "request admission denied before provider transmission")
@@ -97,6 +121,7 @@ class ProviderBudget:
                 row.update(status="failed", error_type=type(exc).__name__, estimated_usd=reserve, usage_unknown=True,
                            http_status=safe_error["http_status"], provider_status=safe_error["provider_status"])
                 stopped = self._close("provider_request_failed", "failed or unaccounted request; reservation retained")
+                record_diagnostic("provider_outcome", row)
             raise stopped from exc
         with self.lock:
             self.pending -= reserve
@@ -106,6 +131,7 @@ class ProviderBudget:
             if actual_input > input_bound or actual_output > output_bound:
                 row["reservation_exceeded"] = True
                 self._close("provider_usage_exceeded_reservation", "observed usage exceeds the reserved bound")
+            record_diagnostic("provider_outcome", row)
         return response
 
     def snapshot(self):
