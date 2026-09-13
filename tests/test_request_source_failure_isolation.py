@@ -1,6 +1,7 @@
 """Anonymous current-boundary characterizations, not repaired-output oracles.
 
-These tests intentionally retain observed limitations as explicit contrasts.
+These tests retain identity/quote limitations as explicit contrasts; reading
+exposure now separates the short-name diagnostic from shortlist allocation.
 No saved questions, candidate IDs, stores, APIs or external model outputs enter them.
 """
 from copy import deepcopy
@@ -90,7 +91,7 @@ class RequestSourceFailureIsolationTests(unittest.TestCase):
         self.assertIn("candidate_not_exposed_to_compiler", {e["code"] for e in rejected["errors"]})
         self.assertIn("missing_required_evidence_binding", {e["code"] for e in rejected["errors"]})
 
-    def test_short_prose_names_have_different_matching_authority_from_exact_axes(self):
+    def test_short_name_identity_stays_unknown_without_starving_reading_exposure(self):
         for name in ("Elm", "Oak", "별빛팀"):
             with self.subTest(name=name):
                 target = owner("relationship explanation")
@@ -103,7 +104,8 @@ class RequestSourceFailureIsolationTests(unittest.TestCase):
                     candidate_kind="evidence", limit=6)
                 self.assertEqual(matches["explanation"]["subject_state"], "unknown")
                 self.assertTrue(all(matches[r["candidate_id"]]["subject_state"] == "match" for r in rows))
-                self.assertNotIn("explanation", [r["candidate_id"] for r in selected])
+                self.assertEqual(matches["explanation"]["reading_subject_state"], "local_literal")
+                self.assertIn("explanation", [r["candidate_id"] for r in selected])
                 selected_reverse, _, _, _ = _rank_applicable_owner_candidates([prose, *reversed(rows)],
                     owner=target, candidate_kind="evidence", limit=6)
                 self.assertEqual(selected, selected_reverse)

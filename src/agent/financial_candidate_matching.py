@@ -43,7 +43,7 @@ CANDIDATE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
     "structured_locality",
 )
 NARRATIVE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
-    *CANDIDATE_MATCH_RANK_FACTORS[:4], "reading_match", "format_neutral",
+    "reading_applicability", "reading_match", "subject_mention", "owner_kind", "unit", "format_neutral",
 )
 
 
@@ -220,6 +220,8 @@ class CandidateMatchV1:
     selection_mode: str = "numeric"
     reading_metric_state: str = ""
     context_metric_state: str = ""
+    reading_subject_state: str = ""
+    reading_state: str = ""
 
 
 def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
@@ -240,7 +242,9 @@ def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
     if match.selection_mode == "narrative":
         projection.update(selection_mode=match.selection_mode,
                           reading_metric_state=match.reading_metric_state,
-                          context_metric_state=match.context_metric_state)
+                          context_metric_state=match.context_metric_state,
+                          reading_subject_state=match.reading_subject_state,
+                          reading_state=match.reading_state)
     return projection
 
 
@@ -618,6 +622,34 @@ def _narrative_metric_states(
     return _best_metric_state(reading, target)[0], _best_metric_state(context, target)[0]
 
 
+def _narrative_subject_mention(
+    candidate: Mapping[str, Any], fact: CandidateFactViewV1, subjects: Sequence[str],
+) -> str:
+    """A literal reading hint, NOT subject identity, attribution or quote authority.
+
+    Unlike identity comparison, occurrence in a longer passage has no minimum
+    name length. Preserve punctuation/word separation; do not infer an alias.
+    Even occurrence within another name is only a hint, never equivalence.
+    """
+    if not subjects:
+        return "unspecified"
+    contexts = candidate.get("source_contexts") or []
+    local = [candidate.get("source_bundle_text", candidate.get("source_text")), candidate.get("row_context_text"),
+        *[item.get("source_text") for item in contexts if item.get("relation") == "source_continuation"]]
+    if fact.structured:
+        local.extend([candidate.get("row_label"), *(candidate.get("row_headers") or []),
+                      *(candidate.get("column_headers") or [])])
+    inherited = [item.get("source_text") for item in contexts
+        if item.get("relation") in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}]
+    # Filing metadata, inferred local_entity_surfaces and hidden body tails
+    # cannot create this hint. Read separate surfaces, never concatenated text.
+    wanted = [_normalise_spaces(subject).casefold() for subject in subjects if subject.strip()]
+    for state, surfaces in (("local_literal", local), ("context_literal", inherited)):
+        if any(subject in surface.casefold() for surface in _ordered_surfaces(surfaces) for subject in wanted):
+            return state
+    return "unknown"
+
+
 def narrative_candidate_source_path(candidate: Mapping[str, Any]) -> Tuple[Tuple[str, str], ...]:
     """Source hierarchy for budget diversity only, never scope/identity authority.
 
@@ -842,6 +874,26 @@ def build_candidate_matches(
         )
         if owner_kind == "narrative":
             locality_rank = 0
+        rank_vector = (state_rank, subject_rank, owner_kind_rank, unit_rank, metric_rank, locality_rank)
+        reading_subject_state = reading_state = ""
+        if owner_kind == "narrative":
+            reading_subject_state = _narrative_subject_mention(
+                candidate_by_id[fact.candidate_id], fact, target.local_subjects,
+            )
+            subject_mention_rank = int(reading_subject_state != "unknown")
+            # Keep applicability/identity diagnostics and all conflict gates.
+            # Only the narrative exposure tier uses reading hints; it cannot
+            # upgrade cell identity or authorize numeric use/bundle coupling.
+            # Topic overlap orders an eligible tier; it must not promote an
+            # unknown-scope passage over an explicitly scoped source overview.
+            if explicit_conflict:
+                reading_state = "explicit_conflict"
+            elif scope_state == "compatible" and unit_state != "unknown" and subject_mention_rank:
+                reading_state = "compatible"
+            else:
+                reading_state = "unknown_only"
+            reading_rank = {"explicit_conflict": 0, "unknown_only": 1, "compatible": 2}[reading_state]
+            rank_vector = (reading_rank, metric_rank, subject_mention_rank, owner_kind_rank, unit_rank, 0)
         matches[fact.candidate_id] = CandidateMatchV1(
             candidate_id=fact.candidate_id,
             state=state,
@@ -851,19 +903,14 @@ def build_candidate_matches(
             owner_kind_state=owner_kind_state,
             metric_state=metric_state,
             unit_state=unit_state,
-            rank_vector=(
-                state_rank,
-                subject_rank,
-                owner_kind_rank,
-                unit_rank,
-                metric_rank,
-                locality_rank,
-            ),
+            rank_vector=rank_vector,
             target_concept_keys=target.concept_keys,
             target_local_subjects=target.local_subjects,
             selection_mode="narrative" if owner_kind == "narrative" else "numeric",
             reading_metric_state=reading_metric_state,
             context_metric_state=context_metric_state,
+            reading_subject_state=reading_subject_state,
+            reading_state=reading_state,
         )
     return matches
 

@@ -1,8 +1,8 @@
 # Request-to-source boundary review
 
 Status: provider-free isolation at diagnostic baseline `845704bd`/runtime `83755b1e`
-is complete. Its first bounded successor applies section eligibility before search
-top-K; source identity, narrative admission and claim construction remain separate.
+is complete. Successors apply early section eligibility, source-aware planning
+and separate narrative reading exposure; model interpretation/claims remain unverified.
 The [paid successor](../../benchmarks/results/request_source_full_agent_2026-09-13/RESULTS.md)
 remains **0/3 complete**, **1/5 outputs accepted**, ledger **3/3 ok**,
 API/execution exceptions **0**, estimated **USD 0.38085963/0.80**, billing unobserved.
@@ -26,10 +26,10 @@ not model inference, a repaired answer or unseen-question generalization.
 | Required input → selectable evidence | Relevant prose IDs are island-visible but admitted only for one input. Another input's six slots are all numeric rows; the compiler assigns prose to that input anyway. | Rebinding to the existing allowed input removes the wrong-owner error but still leaves the other input missing. This is allocation plus binding failure, not globally hidden-ID invention. |
 | Located section → retrieval coverage | The requested note location resolves correctly and contains the omitted passage. Search truncates vector/BM25/RRF candidates before section filtering, which retains **15/65**. The passage is absent from retrieved and seed windows. | Real lexical replay and anonymous top-K contrasts expose a late-filter coverage defect. No original query vectors/per-search IDs were retained, so the exact historical hybrid omission remains unproven. |
 
-### Why prose loses the requirement shortlist
+### Diagnosed shortlist failure and reading-exposure repair
 
-Current [fact matching](../../src/agent/financial_candidate_matching.py) has a
-length-dependent containment rule. A short name inside longer prose can remain
+The retained identity diagnostic in [fact matching](../../src/agent/financial_candidate_matching.py)
+has a length-dependent containment rule. A short name inside longer prose can remain
 `unknown`, while that exact name on a table axis is a subject `match`.
 Anonymous `Elm`, `Oak` and `별빛팀` controls reproduce this; longer `Aster`
 and `Birch` prose names match. This is a literal threshold, not semantic evidence.
@@ -38,8 +38,11 @@ In the saved explanatory input, selected rows rank `[1,3,2,1,0,0]` and the
 two prose sources rank `[1,1,2,1,0,0]`. The difference is subject authority,
 not a numeric-format quota, repeated-keyword bonus or rank tie. Six rows exhaust
 the input cohort despite not establishing the requested explanation.
-Fixing this requires source-grounded identity/admission, not widening every
-input to every island-visible ID or treating arbitrary substrings as identity.
+Narrative exposure now uses separate reading applicability and length-neutral
+literal source mentions. Original identity/applicability states, all explicit
+conflicts and numeric execution checks are unchanged; mentions do not establish
+equivalence or resolve aliases. Existing source diversity operates within the
+new reading tiers. No input receives every island ID and no format quota is added.
 
 ### What retrieval replay can and cannot show
 
@@ -99,11 +102,15 @@ history and earlier source controls remain in Git and the linked artifacts.
    candidate permission is added. Original request conditions and strict cell
    identity remain; bad authored targets are not silently rewritten. Correct
    model interpretation remains unverified, not a repaired paid answer.
-3. Separately repair narrative admission so short names and exact numeric axes
-   do not mechanically hide relevant explanatory sources from an input. Retain
-   per-input permission and capacity; no new repeated-keyword scoring or
-   company/question-specific rule. Reassess claim construction using the existing
-   exact multi-quote contract before inventing another schema or model call.
+3. **Reading-admission seam implemented:** narrative ranks use reading scope/topic
+   hints and literal mentions instead of numeric identity precision. New hint
+   fields remain diagnostic-only; no compiler schema/instruction, numeric rank,
+   validator, capacity or source-group authority change. The saved explanatory
+   input moves from six numeric rows to six prose readings, including a previously
+   inaccessible explanatory source. The other previously selected prose ID is
+   still outside that input; this is not automatic repair of the frozen program.
+   Reassess model name interpretation and claim/source-display quote construction
+   using the existing contracts before another schema or model call.
 
 Do not rerun unchanged paid work, relax validation or claim that a structural
 check proves semantic attribution. An intentionally false anonymous attribution
