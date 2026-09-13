@@ -119,15 +119,15 @@ Old 3/3 and five-case successes are historical, not a synchronized current-head 
    HTTP errors/redirects and usage overruns stop without another transmission.
    [Contract and policy fields](docs/evaluation/provider_admission.md).
    Full gate **1,596/1,596**, provider calls **0**; prompts, schemas, candidate permissions, stores
-   and old policies/results are unchanged. [Prepared admission](benchmarks/results/server_count_admission_2026-09-14/README.md):
-   `b3474acd8e0287993c3cf9d2146122534517e1e160b46a1d68afc0901096c24c`, counts **2** + generations **2**, proposed **USD 0.20** including **0.12** count allowance (not billing).
-   Preparation tests **10/10**, boundary tests **33/33**, two byte-identical no-call receipts `9fb61cdd...ac22`; runtime **161** / protected **63** hashes verified. Await separate approval; no paid call or consumed-run resume.
+   and old policies/results are unchanged. [Paid guard validation](benchmarks/results/server_count_validation_2026-09-14/RESULTS.md)
+   consumed `b3474acd8e0287993c3cf9d2146122534517e1e160b46a1d68afc0901096c24c` on clean `557177d8`/runtime `d7b52100`: counts **2** + generations **2**, **4/4 HTTP 200**, retry **0**, 14.079s. Server counts/reservations/prompt usage all match: **20 / 4,135**; exact schema/system bodies and output bound **5120** retained.
+   Generation estimate **USD 0.01798725** + count allowance **0.12** (not billing) = accounted **0.13798725/0.20**; peak reservation **0.17810725**, pending **0**. Runtime **161** / protected **63** hashes intact; result `1142a959...3d3dc`, offline review `ceb447ef...d67b7`. Next is a separately scoped full-agent admission, not an automatic resume or default change.
    The [measured predecessor](benchmarks/results/server_token_accounting_2026-09-14/RESULTS.md)
    consumed `1d067e26...bd3fa` on `0f97a533`: full counts **20 / 4,135** matched
    prompt usage; byte reservations **24,841 / 43,977** were excessive on those two
    inputs. **8/8 HTTP 200**, retries **0**, generation estimate **USD 0.01636975**;
    invoices/count tariffs unobserved. No universal framing or schema-billing rule
-   follows, and this is not a paid validation of the new guard. Request-local
+   follows; even the new two-input guard success is not full-agent validation. Request-local
    interruption diagnostics remain outside answer/ledger/judge authority; lost NAV
    drafts remain unrecoverable. The [12-question pilot](benchmarks/results/independent_pilot_compiler_2026-09-10/README.md)
    remains runtime 7/12, reference-scalar 4/9, with three incomplete/unfaithful narratives.
