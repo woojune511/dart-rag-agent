@@ -222,6 +222,7 @@ class CandidateMatchV1:
     context_metric_state: str = ""
     reading_subject_state: str = ""
     reading_state: str = ""
+    reading_hint_state: str = ""
 
 
 def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
@@ -244,7 +245,8 @@ def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
                           reading_metric_state=match.reading_metric_state,
                           context_metric_state=match.context_metric_state,
                           reading_subject_state=match.reading_subject_state,
-                          reading_state=match.reading_state)
+                          reading_state=match.reading_state,
+                          reading_hint_state=match.reading_hint_state)
     return projection
 
 
@@ -759,6 +761,16 @@ def build_candidate_matches(
         )
         if grounded_subjects:
             target = replace(target, local_subjects=grounded_subjects)
+    # Search hints already belong to this owner. They may connect a descriptive
+    # request label to a shorter observed topic, but cannot rewrite its semantic
+    # target, numeric matching, scope, identity or another requirement's intent.
+    reading_hint_target = None
+    if owner_kind == "narrative":
+        reading_hint_target = replace(target, concept_keys=(), concept_aliases=(),
+            metric_surfaces=_ordered_surfaces(
+                _without_scope_surfaces(hint, local_subjects=target.local_subjects,
+                    scope={**dict((parent_owner or {}).get("scope") or {}), **dict(owner.get("scope") or {})})
+                for hint in owner.get("retrieval_hints") or []))
     matching_rows_by_table: Dict[str, set[str]] = {}
 
     def subject_matches(fact: CandidateFactViewV1) -> bool:
@@ -875,25 +887,34 @@ def build_candidate_matches(
         if owner_kind == "narrative":
             locality_rank = 0
         rank_vector = (state_rank, subject_rank, owner_kind_rank, unit_rank, metric_rank, locality_rank)
-        reading_subject_state = reading_state = ""
+        reading_subject_state = reading_state = reading_hint_state = ""
         if owner_kind == "narrative":
+            reading_hint_state = "unknown"
+            if reading_hint_target and reading_hint_target.metric_surfaces:
+                candidate = candidate_by_id[fact.candidate_id]
+                hint_local, hint_context = _narrative_metric_states(
+                    {**candidate, "source_text": candidate.get("source_bundle_text", candidate.get("source_text"))},
+                    fact, reading_hint_target)
+                reading_hint_state = (f"reading:{hint_local}" if hint_local != "unknown"
+                    else f"context:{hint_context}" if hint_context != "unknown" else "unknown")
+            reading_metric_rank = int(metric_state != "unknown" or reading_hint_state != "unknown")
             reading_subject_state = _narrative_subject_mention(
                 candidate_by_id[fact.candidate_id], fact, target.local_subjects,
             )
             subject_mention_rank = int(reading_subject_state != "unknown")
             # Keep applicability/identity diagnostics and all conflict gates.
-            # Only the narrative exposure tier uses reading hints; it cannot
-            # upgrade cell identity or authorize numeric use/bundle coupling.
-            # Topic overlap orders an eligible tier; it must not promote an
-            # unknown-scope passage over an explicitly scoped source overview.
+            # Scope/unit eligibility is independent of whether this passage
+            # repeats a name. Within a scope tier, topic relevance precedes a
+            # mention hint; an issuer overview cannot starve subject-implicit
+            # readings. Neither hint grants attribution or numeric authority.
             if explicit_conflict:
                 reading_state = "explicit_conflict"
-            elif scope_state == "compatible" and unit_state != "unknown" and subject_mention_rank:
+            elif scope_state == "compatible" and unit_state != "unknown":
                 reading_state = "compatible"
             else:
                 reading_state = "unknown_only"
             reading_rank = {"explicit_conflict": 0, "unknown_only": 1, "compatible": 2}[reading_state]
-            rank_vector = (reading_rank, metric_rank, subject_mention_rank, owner_kind_rank, unit_rank, 0)
+            rank_vector = (reading_rank, reading_metric_rank, subject_mention_rank, owner_kind_rank, unit_rank, 0)
         matches[fact.candidate_id] = CandidateMatchV1(
             candidate_id=fact.candidate_id,
             state=state,
@@ -911,6 +932,7 @@ def build_candidate_matches(
             context_metric_state=context_metric_state,
             reading_subject_state=reading_subject_state,
             reading_state=reading_state,
+            reading_hint_state=reading_hint_state,
         )
     return matches
 
