@@ -82,10 +82,18 @@ tokens, billing or latency. Schema sizes per call: 6,619 / 8,267 / 6,872 / 6,754
   public answer/ledger and storage tests remain independent regression gates.
 
 Unnecessary literal rejection is removed for authored source-linked wrapper cases;
-this is not a measured false-rejection rate on real model outputs. Semantic error
-rate remains unmeasured. A separately approved experiment must assess all frozen
-anonymous pairs, equal-valued distractors and named regressions separately, retaining
-structural failures, semantic failures, retries and SDK sizes without one blended score.
+this is not a measured false-rejection rate on real model outputs. Further experiments
+must retain all frozen pairs, equal-valued distractors and named regressions separately,
+reporting structural failures, semantic failures, retries and SDK sizes without one blended score.
+
+The subsequent [delegated one-shot probe](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
+completed nine of twelve model cases: seven accepted/source-reviewed correct, one
+over-abstention, and one reverse-direction error in a structurally invalid draft.
+A Google token-count 404 interrupted question ten; two were unattempted. Five
+questions required repair of redundant invalid context references. This shows
+remaining transport and semantic errors; it does not justify relaxing source checks.
+The unattempted source-display pair also lacked bare-quantity candidates before
+the run. No operand injection, runtime change, paid rerun or release claim followed.
 
 Local integration gate: Python 3.13, 1,650 tests passed without skips; focused
 118 + reading cleanup 20, import/topology/docs 24, domain audit 83 reviewed

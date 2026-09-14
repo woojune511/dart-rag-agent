@@ -53,7 +53,27 @@ Selected IDs and numeric/display output signature are identical
 Prompt/schema reductions are 35.6% / 38.0%, not SDK token or latency measurements.
 Source-linked wrapper/name contrasts now execute without a literal-equality gate;
 unlinked/foreign axes still fail. Structurally valid wrong interpretations remain
-semantic negative controls. Model semantic error rate is **unmeasured**, not zero.
+semantic negative controls. These local gates do not measure model semantic accuracy.
+
+## Current-build anonymous Compiler probe
+
+Under the user's delegated instruction to proceed without another approval prompt,
+one [12-question probe](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
+ran on `ad51fa61`, with an assistant-selected USD 1.60 ceiling. Nine questions
+completed: seven structurally accepted and source-reviewed correct, one explicit
+over-abstention, and one wrong comparison direction in a structurally rejected draft.
+The tenth stopped before generation at Google `countTokens` HTTP 404 `NOT_FOUND`;
+two were unattempted. The exact provider-side cause is unestablished, not a runtime
+or credential diagnosis. This is not a complete 12-case or full-agent pass.
+
+Generation calls 14 / count attempts 15; five internal retries, no runner restart.
+All retries involved redundant invalid context links (nine validation errors),
+four repaired and one withheld. Generation estimate USD 0.257575; separate count
+contingency USD 0.90, accounted total USD 1.157575, not billing. The source-display
+pair had an independently observed pre-run gap: bare `110`/`100` were not candidates;
+only `11.5%` was registered. No operands, expected answers or runtime fixes were
+injected. Manifest `aa88c29e...ccb163` is consumed. Two real-SDK socket-blocked
+rehearsals were byte-identical, and the 32 focused source/wire/admission tests passed.
 
 ## Historical evidence, not current-build acceptance
 
@@ -72,9 +92,12 @@ semantic negative controls. Model semantic error rate is **unmeasured**, not zer
 
 ## Next work
 
-- New manifest/cost approval for frozen anonymous meaning contrasts, then a bounded
-  store-fixed full-agent follow-up if warranted. Report source validation separately
-  from meaning, no automatic retry or new paid call under consumed approvals.
+- Reduce duplicate axis/context reference choices through the actual available
+  source kinds, without bypassing provenance validation. Treat over-abstention and
+  comparison direction as separate model-reading errors, not string/alias rules.
+- Characterize bare-value extraction generally; retain the unattempted contrasts.
+  Any further provider work needs a new bounded successor; no automatic paid rerun.
+  Store-fixed full-agent validation remains later work, not established by this probe.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

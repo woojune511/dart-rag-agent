@@ -49,6 +49,15 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
+The subsequent [anonymous Compiler probe](benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
+ran once on `ad51fa61` under the user's delegated no-additional-approval instruction
+(assistant-selected USD 1.60 cap). Of 12 fixed questions, 9 received completed
+model runs: 7 accepted/source-reviewed correct, one over-abstention and one wrong
+comparison direction in a source-invalid draft. Question 10 stopped at Google
+`countTokens` HTTP 404; two were unattempted. Generation 14 / count attempts 15,
+5 internal retries, estimated generation USD 0.257575 plus USD 0.90 count contingency
+(not billing). Manifest `aa88c29e...ccb163` is consumed; no automatic rerun occurred.
+
 The latest historical [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
 remains 2/3 complete, 3/5 outputs accepted on `054c6b22`; its admission
 `af784682...a8f0` is consumed. The [fixed-plan compiler result](benchmarks/results/narrative_address_compiler_2026-09-14/RESULTS.md)
@@ -59,11 +68,15 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. After local gates, prepare a new immutable manifest and cost estimate for the
-   frozen anonymous semantic controls. Compare structural acceptance, semantic
-   correctness, calls/retries and final SDK size separately; known questions are
-   regressions, not the training target. Obtain separate provider approval.
-2. Only then consider a store-fixed full-agent follow-up. No automatic paid retry,
+1. Characterize duplicate numeric axis/context fields: five questions needed repair
+   for invalid context IDs; preserve source checks while reducing invalid choices
+   in model transport. Separately address comparison direction and over-abstention
+   through general instructions/independent contrasts, not query-specific rules.
+2. Bare prose quantities `110`/`100` were absent from the current candidate projection
+   before the run; do not inject them to claim source-display coverage. Unattempted
+   questions and the opposite consolidation variant remain unmeasured. Further
+   provider work needs a new bounded successor, never reuse the consumed manifest.
+   Only then consider a store-fixed full-agent follow-up. No automatic paid retry,
    fresh ingest, store adoption/mutation, answer-key/tolerance change, or artifact commit.
 3. Default `data/chroma_dart` remains a separate incomplete store, not repaired by
    this task. Source acquisition ambiguity/pagination, whole-source consistency,

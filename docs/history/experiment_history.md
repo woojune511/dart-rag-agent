@@ -8182,3 +8182,28 @@ References:
 - OpenAI, embedding, store mutation, planner/retrieval, full-agent, paid judges and batch
   reruns 0. No ledger/release or untouched-source generalization claim. Delegation consumed.
 - [Local report and immutable artifacts](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md).
+
+## Request/Source Boundary Anonymous Probe (2026-09-14)
+
+- The user delegated the next bounded validation without another approval prompt.
+  Runtime `ad51fa61`, assistant-selected USD 1.60 cap, one compiler-only run;
+  manifest `aa88c29ec8488fdace88db91096abdc028983a455062de1c7913c64560ccb163`.
+- Twelve anonymous questions were fixed as six pairs before runtime edits. Nine
+  received model results: seven accepted and source-reviewed correct, one
+  over-abstention, one wrong direction in a source-invalid reverse-comparison draft.
+  Structural acceptance is separate from source/meaning review, not a blended score.
+- Five questions used the one allowed retry for invalid context links; nine
+  `context_not_attached_to_candidate` occurrences, four repaired and one withheld.
+  The source-display pair's bare 110/100 operands were absent before execution;
+  missing candidates were not injected to make a compiler test pass.
+- Question ten stopped before generation at Google `countTokens` HTTP 404
+  `NOT_FOUND`; exact provider-side cause unestablished. Two questions remained
+  unattempted. Generation calls 14 / count attempts 15, runner restarts 0.
+- Estimated generation USD 0.257575 plus a separate USD 0.90 count contingency;
+  accounted USD 1.157575 below the cap, not an invoice or count-token tariff.
+  All 14 successful input counts matched observed generation input and linked
+  request fingerprints. No OpenAI/embedding/store/ingest/judge calls or mutations.
+- Two fresh real-SDK/socket-blocked rehearsal receipts were byte-identical; focused
+  source/authority/wire/server-count tests 32/32. Runtime, fixed inputs and old
+  artifacts stayed unchanged. No complete-pair, full-agent, ledger, or release claim.
+- [Local result/source review](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md).
