@@ -12746,3 +12746,36 @@ are complete. It remains only as an audit record, not an active priority.
 - Provider calls and source/store/dataset/predecessor mutations 0. The prior paid
   2/3 semantic result remains unchanged. Model verification needs a new bounded
   successor; no consumed manifest or automatic paid rerun.
+
+## Numeric comparison and reported-row reading instructions (2026-09-15)
+
+- Baseline `2d701d8c`. Replayed the immutable parent/child and reversed-period
+  controls before source changes, then repeated the same seven local paths after.
+  Original parent-row abstention stays unanswered with one mock invocation. A
+  separately authored parent-row selection executes, disproving a required engine
+  or source-authority change for that row, not proving sampled-model accuracy.
+- The original reversed-period drafts remain invalid under current transport.
+  Explicit offline deletion of retired fields, with every edit recorded, leaves
+  the original wrong formula and produces -10%. A separately authored reverse
+  formula yields +11.111…% with identical inputs. Historical records were not edited;
+  transport isolation is not production repair or a corrected paid-model result.
+- Classified as compiler request/evidence interpretation. Added two numeric policy
+  instructions: derive comparison reference/target from the request rather than
+  period labels/order, and distinguish reported-row lookup from unrequested
+  aggregation. Related/equal-valued rows alone do not imply ambiguity or inclusion.
+  True alternative readings and missing evidence remain reasons to abstain.
+- No runtime branch, alias, result correction, new field/classifier, extra call or
+  forced answer/retry. Unit/sign/physical/source/period/visibility/V2 gates remain.
+- Seven new contracts, with two absent-guidance assertions failing before the
+  change. Test harness key/import mistakes were corrected before the baseline;
+  these were not runtime failures. Controls vary names, years, signed values,
+  directions and candidate order; preserve distinct equal-value row axes, genuine
+  gaps, explicit over-abstention and wrong-direction semantic negatives.
+- Focused 104/104, import/topology/docs 24/24, domain audit 83, pycompile/diff passed.
+  Most recent full suite remains 1,678/1,678 on `a2d89d40`; not rerun for this seam.
+  Before/after seven replay paths preserve original sources, program/schema/authority
+  and 8 mock invocations / 1 mock retry. Local JSON prompt strings grow 1,012 UTF-8
+  bytes each, not SDK token/cost data. Provider/store/dataset mutations 0.
+- Actual model improvement remains unmeasured; a future bounded successor must
+  retain original paired criteria plus independent contrasts, never reuse a consumed
+  admission or inject expected answers. [Local evidence](../../benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md).

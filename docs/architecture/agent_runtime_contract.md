@@ -26,6 +26,7 @@ Display priority: expression -> obligation -> inferred canonical unit (count: un
 Legacy `result_unit` is an offline/internal projection concern, not a production Compiler field.
 
 Source signs stay intact. Compiler explains comparison target, transformations and formula in diagnostic `rationale`, using generic contrasts rather than a role enum.
+Compiler interprets the requested reference and comparison points before choosing operators/denominator; input period labels, chronological order and listing order do not set direction. For direct lookup, distinguish the reported row from an unrequested aggregation using complete axes/context. Related or equal-valued rows alone do not establish ambiguity or inclusion/exclusion; abstention explains actual alternative interpretations or missing evidence. These are reading instructions, not code-certified meaning, new fields, automatic formula correction or forced answers/retries.
 Code never flips signs; undefined/uncertain comparisons stay unanswered. Offline oracles never drive retries or prove model accuracy.
 
 Unsupported planner units remain recorded and block the affected island. Errors identify owner, candidate, location, and repair action. Compiler format errors keep the cohort; only

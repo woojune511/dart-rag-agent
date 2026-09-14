@@ -135,7 +135,18 @@ on `a2d89d40` subsequently ran the unchanged pair once: source/execution **2/2**
 separate Codex source-semantic review **2/2**, two generations/counts, no retries.
 The raw model now selects null source display for calculation-only, preserving
 11.5%/10% when both are requested. No lowering repair or changed criterion.
-Focused 39/39 and two byte-identical no-call rehearsals preceded this run; current
-implementation integration gate is 1,678/1,678. The effect of individual instruction
+Focused 39/39 and two byte-identical no-call rehearsals preceded this run; its
+implementation integration gate was 1,678/1,678. The effect of individual instruction
 components is not isolated, and one exposed pair is not general accuracy evidence.
 No context-rich, full-agent or general retry reduction claim; both manifests consumed.
+
+The later [provider-free numeric-reading replay](../../benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md)
+separates reverse-direction semantics from retired invalid context fields, and
+explicit parent-row availability from model-conjectured aggregation. Correctly
+authored selections/formulas execute without a source or arithmetic gate change.
+Numeric instructions now resolve requested reference/target before direction and
+distinguish row lookup from aggregation. Genuine gaps/ambiguity remain valid;
+no answer forcing, new schema field, extra call or code-side semantic correction.
+Seven new contracts and 104 focused / 24 import/topology/docs tests pass. Before/after
+program/schema/authority bytes and mock call counts are unchanged; prompt strings
+grow 1,012 local JSON bytes per invocation. Provider calls 0; model effect unmeasured.

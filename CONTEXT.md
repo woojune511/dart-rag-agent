@@ -18,6 +18,10 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
   request. Existing nullable choice/reason fields suffice; no intent classifier,
   keyword gate, extra field or call was added. The preserved synthetic display pair
   passes the bounded model successor below; broader accuracy is not established.
+- Numeric reading instructions distinguish requested comparison reference/target
+  from period labels/order, and reported-row lookup from unrequested aggregation.
+  Genuine ambiguity stays unanswered; no formula repair or forced answer/retry.
+  This subsequent clarification has local replay evidence only, not model accuracy.
 - Existing Compiler calls interpret the selected source. Numeric selections requiring
   local subject/scope interpretation carry request-to-own-axis/attached-context
   correspondence; code checks source linkage, not semantic equivalence.
@@ -81,14 +85,22 @@ and [one-question continuation](benchmarks/results/request_source_boundary_remai
 retain their original results, including over-abstention, reverse comparison and a
 token-count 404 of unestablished cause. General bare-scalar admission preserves old
 candidate identities and evaluation extraction; no expected operands were injected.
-Current Python 3.13 gate: 1,678 tests passed (44.240s), display-intent focused 90;
-import/topology/docs 24, domain audit 83, pycompile/diff checks passed.
+Current Python 3.13 numeric-reading focused gate: 104 passed; import/topology/docs
+24, domain audit 83, pycompile/diff checks passed. Most recent full suite on
+`a2d89d40`: 1,678 passed (44.240s); not rerun for this instruction-only seam.
 Six new contracts cover initial/retry guidance, actual normalization through final
 answer/ledger, positive/negative/equal values, direct precision and fingerprint
 tampering. Authored wrong semantics remain a negative, not silently repaired.
 One local expression fixture grows by 588 prompt / 303 schema UTF-8 bytes, with
 unchanged candidate fingerprint/permissions and one mock call. Not SDK token or
 model-quality evidence.
+
+[Comparison/abstention local replay](benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md)
+isolates the old reverse formula (-10%) from its invalid context fields; an explicitly
+authored reverse formula produces +11.111…% with the same inputs. The explicit parent
+row also executes when selected. Seven before/after replay paths preserve program,
+schema, source hashes, authority and 8 mock calls / 1 mock retry; prompt strings grow
+1,012 local JSON UTF-8 bytes each. No provider call, hidden repair or changed criterion.
 
 The latest historical [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
 remains 2/3 complete, 3/5 outputs accepted on `054c6b22`; its admission
@@ -100,11 +112,11 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. The bounded display-intent regression passed; preserve its original pair and
-   negative cases without answer injection, keyword branches or relabeled history.
-   Reproduce the separate comparison-direction/over-abstention boundaries from
-   existing traces with provider-free controls before selecting the next change.
-2. Comparison direction and over-abstention remain separate semantic issues.
+1. Comparison direction and reported-row abstention are locally reproduced, with
+   instruction-only clarification and seven contracts. Actual model improvement
+   remains unmeasured; any successor must retain the original paired criteria and
+   independent contrasts, without injecting answers or relabeling past failures.
+2. No execution bug was established by these two semantic failures.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
    No automatic paid retry, fresh ingest, store adoption/mutation,

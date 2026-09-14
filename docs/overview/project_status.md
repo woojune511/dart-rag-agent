@@ -17,6 +17,7 @@ checks. Baseline: `d9c36d8d`.
 | Model transport | CompilerResponseV2; selected-cell axes assembled by code, one outside-context quote with declared uses and owner-exposed addresses; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
+| Numeric reading | Request defines comparison reference/target; reported-row lookup differs from aggregation; genuine gaps remain unanswered, no semantic auto-repair |
 | Execution | Immutable visibility plus V2 content/program/validation fingerprints; units, arithmetic, source-first display and ledger ownership retained |
 
 Ranking factors and free subject/metric mismatch diagnostics no longer masquerade
@@ -32,10 +33,10 @@ The separately delegated compiler-only verification is recorded below.
 
 ## Local verification
 
-Python 3.13 integration gate: **1,678/1,678 unittest tests passed**, no skips
-(44.240s). Display-intent/numeric/source/retry/compiler/admission focused tests **90/90**,
-import/topology/docs **24/24**, domain audit **83 reviewed literals**, pycompile,
-checked topology and `git diff --check` passed.
+Python 3.13 current numeric-reading/compiler focused tests **104/104**,
+import/topology/docs **24/24**, domain audit **83 reviewed literals**, pycompile
+and `git diff --check` passed. Most recent full suite on `a2d89d40`: **1,678/1,678**,
+no skips (44.240s); not rerun for the subsequent instruction-only clarification.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
 byte-identical; test-only copies explicitly author new request/proof/transport fields.
 An authored response is an execution witness, not a sampled model answer.
@@ -53,6 +54,13 @@ positive/negative/equal values, direct precision and query/program tampering.
 One authored expression grows 16,474 → 17,062 prompt bytes and 4,151 → 4,454 schema
 bytes; candidate fingerprint/permissions and one mock call are unchanged.
 No new schema fields, classifier or semantic validator; no SDK-token/accuracy claim.
+Seven numeric-reading contracts cover both directions, signs, names/years/order,
+equal-valued parent/child axes, true gaps, unforced abstention and forbidden periods.
+The [before/after local replay](../../benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md)
+retains seven paths' programs/schemas/authority and 8 mock calls / 1 mock retry.
+Only prompt strings grow 1,012 local JSON UTF-8 bytes each. Explicit offline transport
+isolation retains the wrong reverse formula; neither that draft nor an abstention is
+silently fixed. Model improvement under these new instructions remains unmeasured.
 Schema preparation errors now retain the original error class and scoped diagnostics,
 with unavailable schema bytes marked null; they no longer become UnboundLocalError.
 
@@ -127,9 +135,9 @@ it does not inject answers or change shared evaluation extraction.
 
 - The display-intent pair now has bounded model evidence. Preserve both requests,
   source/calculated provenance and semantic negatives; do not broaden its claim.
-- Reproduce over-abstention/comparison direction provider-free from existing traces
-  before choosing the next generic change. These remain separate semantic errors;
-  this two-case run does not establish context-rich accuracy or retry improvement.
+- Verify model selection under the subsequent numeric-reading instructions with
+  fixed original pairs and independent contrasts; local witnesses are not model
+  improvement. No execution defect or context-rich/retry improvement was established.
   Further provider work needs a new bounded successor; no automatic paid rerun.
   Store-fixed full-agent validation remains later work, not established by this probe.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
