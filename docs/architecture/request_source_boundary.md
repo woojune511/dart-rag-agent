@@ -115,3 +115,13 @@ quote can explicitly support interpretation and resolve scope, without promoting
 scope-only context to subject evidence. The selected cell's full axes are assembled
 deterministically; meaning remains the Compiler's decision. See
 [transport regressions](../../tests/test_numeric_compiler_grounding.py).
+
+The [numeric transport model successor](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
+on `51330fe5` ran three synthetic questions once: source/execution 3/3, separate
+Codex source-semantic review 2/3, retries 0. The separate-row lookup and source-plus-
+calculation request succeed. Calculation-only still incorrectly selects a source
+display even though its forward arithmetic is correct. This is a preserved semantic
+negative, not a reason to relabel acceptance or add a literal intent gate.
+Next boundary: explicit request intent must precede source-first display defaults;
+the exact model contribution of current instructions is not isolated by this run.
+No context-rich, full-agent or general retry reduction claim; the manifest is consumed.

@@ -25,8 +25,9 @@ Narrative subject support remains separate from each claim's exact fact ranges.
 Invalid source addresses stay invalid; lowering never guesses replacements.
 Compiler exception messages are not copied into retry prompts or public diagnostics.
 
-No parser/store/candidate-ID/hash redesign, new model call, provider run, source-store
+No parser/store/candidate-ID/hash redesign, extra runtime model call, source-store
 mutation, dataset/evaluator change or HTTP/public-result change was included.
+The separately delegated compiler-only verification is recorded below.
 
 ## Local verification
 
@@ -66,40 +67,36 @@ Source-linked wrapper/name contrasts now execute without a literal-equality gate
 unlinked/foreign axes still fail. Structurally valid wrong interpretations remain
 semantic negative controls. These local gates do not measure model semantic accuracy.
 
-## Current-build anonymous Compiler probe
+## Latest compiler-only evidence
 
-Under the user's delegated instruction to proceed without another approval prompt,
-one [12-question probe](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
-ran on `ad51fa61`, with an assistant-selected USD 1.60 ceiling. Nine questions
-completed: seven structurally accepted and source-reviewed correct, one explicit
-over-abstention, and one wrong comparison direction in a structurally rejected draft.
-The tenth stopped before generation at Google `countTokens` HTTP 404 `NOT_FOUND`;
-two were unattempted. The exact provider-side cause is unestablished, not a runtime
-or credential diagnosis. This is not a complete 12-case or full-agent pass.
+The [three-question numeric successor](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
+ran once on clean `51330fe5` under the user's no-additional-approval delegation.
+Source/execution acceptance is **3/3**; separate Codex source-semantic review is
+**2/3**, not a blended success rate. Generation 3 / count 3, internal retries 0,
+provider errors 0. The formerly invalid-context separate-row lookup now executes;
+only one row was eligible, so it is not proof of two-visible-row semantic selection.
 
-Generation calls 14 / count attempts 15; five internal retries, no runner restart.
-All retries involved redundant invalid context links (nine validation errors),
-four repaired and one withheld. Generation estimate USD 0.257575; separate count
-contingency USD 0.90, accounted total USD 1.157575, not billing. The source-display
-pair had an independently observed pre-run gap: bare `110`/`100` were not candidates;
-only `11.5%` was registered. No operands, expected answers or runtime fixes were
-injected. Manifest `aa88c29e...ccb163` is consumed. Two real-SDK socket-blocked
-rehearsals were byte-identical, and the 32 focused source/wire/admission tests passed.
+Both source-display cases now select the actually extracted current 110 / prior 100
+operands and calculate 10%. The request for source plus calculation correctly keeps
+11.5% and 10%. The calculation-only request wrongly selects 11.5% as primary display.
+The raw model response makes this choice; lowering does not invent it. Existing
+source-first instructions are a plausible contributor, not an ablation-proven cause.
+The semantic failure remains unfixed; no post-result runtime or criteria edits.
 
-The [one-question continuation](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
-ran on unchanged `2f80217e` runtime/input bytes. The exact previously failing count
-body succeeded; provider error 0, generation/count calls 2/2. The correct separate
-row was selected in both drafts, but an invented context ID and schema-invalid retry
-prevented acceptance. Generation estimate USD 0.03393625, count contingency USD 0.12
-(not billing), cap USD 0.25. Manifest `4cea0e53...5c055d` is consumed, without auto-rerun.
+Estimated generation USD 0.05837875 (without cache discount), separate count
+contingency USD 0.18, accounted total USD 0.23837875, below assistant-selected USD 0.80.
+These are not invoice/count tariff observations. Manifest `8998a347...0a87d3` is
+consumed; no automatic rerun. Two socket-blocked SDK receipts were byte-identical;
+focused numeric/wire/prose/count tests 44/44 passed before calls. All bound files
+and original criteria remain hash-identical. Synthetic fixed plans only: no new
+planner/retrieval/full-agent/HTTP/ledger or unseen-question performance claim.
 
-The subsequent general catalog fix exposes bare scalars independently of digit count;
-existing candidate indices/IDs, table records and evaluation extraction stay intact.
-Standalone tokens retain signs/spans and exact bundle/assertion/capacity checks,
-without borrowing another value's unit. Obvious date/time/address/list fragments
-are not newly admitted. All original 12 control catalogs retain old member identity,
-value and physical provenance. The source-display pair now passes authored local
-compiler/execution witnesses; there is still no actual model result for those two.
+The [earlier twelve-question probe](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
+and [interrupted-question continuation](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
+remain immutable. Prior over-abstention and reverse-direction errors are separate
+semantic issues. The earlier count 404's provider-side cause remains unestablished.
+Bare-scalar catalog exposure preserves existing IDs, spans and table provenance;
+it does not inject answers or change shared evaluation extraction.
 
 ## Historical evidence, not current-build acceptance
 
@@ -118,12 +115,12 @@ compiler/execution witnesses; there is still no actual model result for those tw
 
 ## Next work
 
-- Verify the locally simplified numeric transport with actual model choices.
-  Selection/retry improvements remain unmeasured; over-abstention and comparison
-  direction are separate model-reading errors, not string/alias rules.
-- Verify actual model selection for the remaining source-display pair after transport
-  cleanup, alongside the prior invalid-context case; local coverage is not model accuracy.
-  Any further provider work needs a new bounded successor; no automatic paid rerun.
+- Make explicit request intent take precedence over source-first display defaults.
+  Fix the general contract/instructions with local contrasts, not question/value rules;
+  preserve separate source/calculation provenance and existing source checks.
+- Over-abstention/comparison direction remain separate errors; this three-case run
+  does not establish context-rich accuracy or a general retry improvement.
+  Further provider work needs a new bounded successor; no automatic paid rerun.
   Store-fixed full-agent validation remains later work, not established by this probe.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.

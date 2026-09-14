@@ -8234,3 +8234,40 @@ References:
 - Python 3.13 full unittest 1,660/1,660 (63.278s, no skips), focused 71,
   import/topology/docs 24, domain audit 83 reviewed literals, pycompile/diff checks.
 - [Paid result and local coverage](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md).
+
+## 2026-09-15 — Numeric axis/context compiler successor
+
+- User explicitly requested proceeding without another approval prompt. The new
+  manifest `8998a3473b8ef4ffa5500783a801418afff4390f5434d8b093b3e0eb3d0a87d3`
+  fixed the prior context failure and two unattempted source-display questions,
+  assistant-selected USD 0.80 cap, one compiler-only run on clean `51330fe5`.
+  This was delegated authorization, not explicit user approval of a named SHA/cap.
+- Runtime V2 numeric transport attaches selected-cell axes deterministically and
+  quotes outside context once; independent bare-scalar catalog coverage supplies
+  real 110/100 operands. Original question/plan bytes, old candidate identities,
+  criteria, helper and predecessor evidence remain unchanged; no expected input
+  or historical model response was injected into live prompts.
+- All three source/execution validations passed; separate Codex source-semantic
+  review passed two. `CONTROL_05_B` selected the correct separate 2045 row, 23 items,
+  without invented context. Only one candidate was eligible: no two-visible-row claim.
+  `CONTROL_06_A` selected 110/100 and forward growth 10%, preserving source 11.5%.
+  `CONTROL_06_B` computed 10% but wrongly chose source display 11.5% despite the
+  explicit calculation-only request. Its raw response already contains that choice.
+- This is an observed display-intent error, not missing evidence or arithmetic.
+  The generic source-first instruction omits explicit calculation-only precedence;
+  the model's stated reason is consistent with over-applying it, but sole causation
+  has not been demonstrated. No runtime/criterion/result correction or paid retry
+  followed. Request-priority semantics is the next generic contract seam.
+- Generations 3 / token counts 3, internal retries 0, provider errors/404 0.
+  Input tokens 13,031; output plus thinking 4,209. Generation estimate USD
+  0.05837875 without cache discount; count contingency USD 0.18; accounted total
+  USD 0.23837875 below cap. Contingency is not an observed tariff or invoice.
+- Two independent socket-blocked real-SDK rehearsals were byte-identical, receipt
+  SHA `0f9acf0f701b4f3d48d2111315b560e10ff080407841d2c7229bcf3de4d7fc74`.
+  Focused numeric/wire/prose/count tests 44/44 passed before calls; prior implementation
+  gate was 1,672/1,672. All manifest-bound files and the frozen fixture were verified
+  hash-identical after the run. OpenAI/embedding/planner/retrieval/judge/store writes 0.
+- Three previously exposed synthetic questions, not human gold or unseen holdout.
+  No current full-agent/final-answer/HTTP/ledger, context-rich model performance or
+  generalized retry-reduction claim. Manifest consumed; no automatic rerun.
+- [Immutable output and source review](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md).

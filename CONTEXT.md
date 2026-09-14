@@ -52,23 +52,25 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The subsequent [anonymous Compiler probe](benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
-ran once on `ad51fa61` under the user's delegated no-additional-approval instruction
-(assistant-selected USD 1.60 cap). Of 12 fixed questions, 9 received completed
-model runs: 7 accepted/source-reviewed correct, one over-abstention and one wrong
-comparison direction in a source-invalid draft. Question 10 stopped at Google
-`countTokens` HTTP 404; two were unattempted. Generation 14 / count attempts 15,
-5 internal retries, estimated generation USD 0.257575 plus USD 0.90 count contingency
-(not billing). Manifest `aa88c29e...ccb163` is consumed; no automatic rerun occurred.
+The [latest numeric Compiler successor](benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
+ran once on `51330fe5`: source/execution validation **3/3**, separate Codex
+source-semantic review **2/3**, no retries or provider errors. The previously blocked
+separate-row lookup now executes. Both growth questions select real 110/100 inputs
+and calculate 10%; the source-plus-calculation request correctly retains 11.5%/10%.
+The calculation-only request incorrectly selects source display 11.5% as primary.
+This is an observed request-meaning error, not an arithmetic or source-linkage failure.
+The source-first instruction is a plausible contributor, not an ablation-proven cause.
+Generation/count calls 3/3; generation estimate USD 0.05837875 plus USD 0.18 count
+contingency (not billing), below the delegated assistant-selected USD 0.80 cap.
+Manifest `8998a347...0a87d3` is consumed; no automatic rerun. Two independent
+socket-blocked SDK rehearsals were byte-identical; pre-run focused tests 44/44.
+These are previously exposed synthetic controls, not unseen or full-agent evidence.
 
-The user-requested [one-question continuation](benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
-used unchanged runtime/input bytes on `2f80217e`. The identical token-count request
-succeeded, but invented context links/schema-invalid retry still prevented acceptance.
-Generation/count calls 2/2; generation estimate USD 0.03393625 plus USD 0.12 count
-contingency, under USD 0.25. Manifest `4cea0e53...5c055d` is consumed.
-Subsequent catalog-only bare-scalar projection preserves old candidate identities
-and evaluation behavior. The two source-display cases now execute with authored,
-provider-free programs (source 11.5%, calculation 10%); model selection is unmeasured.
+The preceding [12-question probe](benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
+and [one-question continuation](benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
+retain their original results, including over-abstention, reverse comparison and a
+token-count 404 of unestablished cause. General bare-scalar admission preserves old
+candidate identities and evaluation extraction; no expected operands were injected.
 Current local gate: 1,672 tests passed, focused 97, import/topology/docs 24, domain audit 83.
 Numeric transport has 11 new source/schema contracts and a network-blocked real-SDK
 round trip. Context-free table schema is 2,309 versus 3,477 UTF-8 bytes at `dd61e466`;
@@ -84,15 +86,15 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Numeric axis/context transport is simplified locally, not model-validated.
-   Recheck the previously invalid-context selection and the source-display pair in
-   a new bounded successor. Comparison direction and over-abstention remain separate
-   semantic issues for independent contrasts, never query-specific rules.
-2. Bare-value candidate coverage is repaired, not model-validated. The two remaining
-   source-display questions still need actual model selection evidence;
-   never reuse consumed manifests or inject expected operands/answers.
-   Only then consider a store-fixed full-agent follow-up. No automatic paid retry,
-   fresh ingest, store adoption/mutation, answer-key/tolerance change, or artifact commit.
+1. Make explicit request intent govern source-display selection before the
+   source-first default. Preserve calculation/source provenance and existing physical
+   checks; no keyword, value, company or question-ID branch. Pin generic local
+   contrasts first. The observed calculation-only failure remains unfixed.
+2. Comparison direction and over-abstention remain separate semantic issues.
+   Context-rich model accuracy and current full-agent acceptance remain unmeasured.
+   Further provider work requires a new bounded successor, never a consumed manifest.
+   No automatic paid retry, fresh ingest, store adoption/mutation,
+   answer-key/tolerance change, or artifact commit.
 3. Default `data/chroma_dart` remains a separate incomplete store, not repaired by
    this task. Source acquisition ambiguity/pagination, whole-source consistency,
    retired narrative helpers and formula-wide rounding propagation remain deferred.
