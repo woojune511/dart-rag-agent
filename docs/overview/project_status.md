@@ -76,28 +76,30 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [three-question numeric successor](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
-ran once on clean `51330fe5` under the user's no-additional-approval delegation.
-Source/execution acceptance is **3/3**; separate Codex source-semantic review is
-**2/3**, not a blended success rate. Generation 3 / count 3, internal retries 0,
-provider errors 0. The formerly invalid-context separate-row lookup now executes;
-only one row was eligible, so it is not proof of two-visible-row semantic selection.
+The [two-question display-intent successor](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
+ran once on clean `a2d89d40` under the user's no-additional-approval delegation.
+Source/execution acceptance is **2/2**; separate Codex source-semantic review is
+**2/2**, not a blended rate. Generation 2 / count 2, retries 0, provider errors 0.
+On the unchanged source, both questions bind current 110 / previous 100 and compute
+forward growth 10%. The model selects source 11.5% with separate calculated 10%
+when both are requested; calculation-only selects null source display and primary
+10%. These choices appear in raw responses, with request-based reasons and no
+fabricated rounding cause; lowering does not correct semantic choices.
 
-Both source-display cases now select the actually extracted current 110 / prior 100
-operands and calculate 10%. The request for source plus calculation correctly keeps
-11.5% and 10%. The calculation-only request wrongly selects 11.5% as primary display.
-The raw model response makes this choice; lowering does not invent it. The then-current
-source-first instruction is a plausible contributor, not an ablation-proven cause.
-Subsequent display-intent instructions/schema descriptions are clarified locally;
-this paid failure and its criteria remain immutable, not a corrected model result.
+Estimated generation USD 0.039515 (without cache discount), count contingency
+USD 0.12, accounted total USD 0.159515 below assistant-selected USD 0.50.
+Not invoice/count tariff observations. Manifest `67788de2...2c09ff` is consumed.
+Focused tests 39/39 and two byte-identical socket-blocked SDK receipts preceded
+calls. Runtime and bound files were verified unchanged; each prior case and criterion
+is canonically byte-identical. Each request grew 892 SDK bytes / 120 input tokens.
+Previously exposed synthetic fixed plans only: not unseen/general accuracy, isolated
+causal ablation, planner/retrieval/full-agent/final-answer/HTTP/ledger acceptance.
 
-Estimated generation USD 0.05837875 (without cache discount), separate count
-contingency USD 0.18, accounted total USD 0.23837875, below assistant-selected USD 0.80.
-These are not invoice/count tariff observations. Manifest `8998a347...0a87d3` is
-consumed; no automatic rerun. Two socket-blocked SDK receipts were byte-identical;
-focused numeric/wire/prose/count tests 44/44 passed before calls. All bound files
-and original criteria remain hash-identical. Synthetic fixed plans only: no new
-planner/retrieval/full-agent/HTTP/ledger or unseen-question performance claim.
+The [prior numeric successor](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
+on `51330fe5` remains structural **3/3**, separate semantic review **2/3**. Its
+calculation-only display failure is unchanged, not retroactively marked correct.
+The separate-row lookup had only one eligible candidate, not two-visible-row proof.
+Manifest `8998a347...0a87d3` is also consumed; neither run is automatically repeated.
 
 The [earlier twelve-question probe](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
 and [interrupted-question continuation](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
@@ -123,11 +125,11 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-- Validate actual model choices under the clarified display-intent instructions.
-  New local contracts preserve calculated/source displays and public answer/ledger
-  equality, but authored choices do not establish semantic improvement.
-- Over-abstention/comparison direction remain separate errors; this three-case run
-  does not establish context-rich accuracy or a general retry improvement.
+- The display-intent pair now has bounded model evidence. Preserve both requests,
+  source/calculated provenance and semantic negatives; do not broaden its claim.
+- Reproduce over-abstention/comparison direction provider-free from existing traces
+  before choosing the next generic change. These remain separate semantic errors;
+  this two-case run does not establish context-rich accuracy or retry improvement.
   Further provider work needs a new bounded successor; no automatic paid rerun.
   Store-fixed full-agent validation remains later work, not established by this probe.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add

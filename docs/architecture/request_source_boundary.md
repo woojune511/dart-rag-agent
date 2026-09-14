@@ -104,7 +104,7 @@ Subsequent catalog-only bare-scalar exposure preserves old member identities and
 shared evaluation behavior. Source-display local witnesses now execute the actually
 extracted operands without injection; they are not sampled model answers.
 
-Local integration gate: Python 3.13, 1,672 tests passed without skips; focused
+Earlier numeric-transport integration gate: Python 3.13, 1,672 tests without skips; focused
 numeric-transport/source/retry/compiler/admission 97, import/topology/docs 24, domain audit 83 reviewed
 literals, pycompile and clean diff check. No provider
 execution or release acceptance is claimed by these gates.
@@ -130,6 +130,12 @@ Six local contracts preserve exact requested text on initial/retry calls, unchan
 candidate authority, actual normalization through final answer/ledger, direct source
 precision and tamper rejection. A wrong authored selection remains structurally valid
 and semantically wrong; no keyword gate pretends to prove interpretation.
-The prior paid failure is unchanged. Actual model improvement is still unmeasured;
-the exact contribution of earlier instructions was not isolated by that run.
-No context-rich, full-agent or general retry reduction claim; the manifest is consumed.
+The prior paid failure is unchanged. The [display-intent successor](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
+on `a2d89d40` subsequently ran the unchanged pair once: source/execution **2/2**,
+separate Codex source-semantic review **2/2**, two generations/counts, no retries.
+The raw model now selects null source display for calculation-only, preserving
+11.5%/10% when both are requested. No lowering repair or changed criterion.
+Focused 39/39 and two byte-identical no-call rehearsals preceded this run; current
+implementation integration gate is 1,678/1,678. The effect of individual instruction
+components is not isolated, and one exposed pair is not general accuracy evidence.
+No context-rich, full-agent or general retry reduction claim; both manifests consumed.

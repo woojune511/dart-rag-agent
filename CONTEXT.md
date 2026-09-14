@@ -16,7 +16,8 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
 - Compiler display instructions now put explicit request intent before source-first
   defaults: calculation-only chooses null; a selected reported value must fit the
   request. Existing nullable choice/reason fields suffice; no intent classifier,
-  keyword gate, extra field or call was added. Actual model improvement is unmeasured.
+  keyword gate, extra field or call was added. The preserved synthetic display pair
+  passes the bounded model successor below; broader accuracy is not established.
 - Existing Compiler calls interpret the selected source. Numeric selections requiring
   local subject/scope interpretation carry request-to-own-axis/attached-context
   correspondence; code checks source linkage, not semantic equivalence.
@@ -56,21 +57,24 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [latest numeric Compiler successor](benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
-ran once on `51330fe5`: source/execution validation **3/3**, separate Codex
-source-semantic review **2/3**, no retries or provider errors. The previously blocked
-separate-row lookup now executes. Both growth questions select real 110/100 inputs
-and calculate 10%; the source-plus-calculation request correctly retains 11.5%/10%.
-The calculation-only request incorrectly selects source display 11.5% as primary.
-This is an observed request-meaning error, not an arithmetic or source-linkage failure.
-The then-current source-first instruction is a plausible contributor, not an
-ablation-proven cause. Subsequent instruction/schema-description clarification is
-local-only; this paid failure remains unchanged, not retroactively marked correct.
-Generation/count calls 3/3; generation estimate USD 0.05837875 plus USD 0.18 count
-contingency (not billing), below the delegated assistant-selected USD 0.80 cap.
-Manifest `8998a347...0a87d3` is consumed; no automatic rerun. Two independent
-socket-blocked SDK rehearsals were byte-identical; pre-run focused tests 44/44.
-These are previously exposed synthetic controls, not unseen or full-agent evidence.
+The [display-intent Compiler successor](benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
+ran once on `a2d89d40`: source/execution validation **2/2**, separate Codex
+source-semantic review **2/2**, no retries or provider errors. On the unchanged
+synthetic source, the model selects 11.5% plus calculated 10% when both are requested,
+and null source display / primary 10% for calculation-only. The raw responses make
+these choices; lowering does not repair them. Inputs, plans, catalogs, criteria and
+predecessor bytes are unchanged. Generation/count calls 2/2, generation estimate
+USD 0.039515 plus USD 0.12 count contingency (not billing), below the delegated
+assistant-selected USD 0.50 cap. Manifest `67788de2...2c09ff` is consumed.
+Focused tests 39/39 and two byte-identical, socket-blocked SDK rehearsals preceded
+calls. Previously exposed fixed-plan controls only: not unseen/full-agent evidence,
+general semantic accuracy or an isolated causal ablation of prompt components.
+
+The [prior numeric run](benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
+on `51330fe5` remains source/execution **3/3**, separate semantic review **2/3**.
+Its calculation-only source-display error is preserved, not retroactively corrected.
+Its separate-row success had only one eligible candidate, not a two-visible-row test.
+Manifest `8998a347...0a87d3` is consumed; no automatic rerun of either manifest.
 
 The preceding [12-question probe](benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
 and [one-question continuation](benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
@@ -96,10 +100,10 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Verify the clarified display-intent instructions with a new bounded model
-   successor; local execution witnesses do not prove corrected model selection.
-   Preserve the original source/display pair and negative cases without answer
-   injection, keyword branches or changes to the consumed run's criteria/results.
+1. The bounded display-intent regression passed; preserve its original pair and
+   negative cases without answer injection, keyword branches or relabeled history.
+   Reproduce the separate comparison-direction/over-abstention boundaries from
+   existing traces with provider-free controls before selecting the next change.
 2. Comparison direction and over-abstention remain separate semantic issues.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

@@ -8271,3 +8271,37 @@ References:
   No current full-agent/final-answer/HTTP/ledger, context-rich model performance or
   generalized retry-reduction claim. Manifest consumed; no automatic rerun.
 - [Immutable output and source review](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Request-first display-intent compiler successor
+
+- User continued under the prior no-additional-approval delegation. Manifest
+  `67788de2d89c1a3448ece8e4719cb60f388890abaa875f0b72e0f3d3782c09ff`
+  fixed `CONTROL_06_A/B`, clean runtime `a2d89d40`, one Gemini 2.5 Pro compiler-only
+  execution and assistant-selected USD 0.50 cap, announced before calls. This was
+  delegated authorization, not explicit approval of this named SHA/cap.
+- Each input case (question, fixed plan, catalog) and pre-frozen criterion is
+  canonically byte-identical to the numeric predecessor. Existing candidate IDs,
+  source spans, helper and results are unchanged. Expected labels, authored
+  witnesses and historical model responses were never live inputs.
+- Source/execution validation 2/2; separate Codex source-semantic review 2/2.
+  Both select current 110 / previous 100 and calculate forward growth 10%.
+  A retains source 11.5% plus calculated 10% with separate provenance. B selects
+  null source display and primary 10%, explicitly citing the calculation-only
+  request. These are raw model choices, not a lowering correction. No invented
+  rounding explanation. The predecessor's B failure remains immutable.
+- Generation 2 / token count 2, retries 0, provider errors/404 0. Input 9,508;
+  output plus thinking 2,763 tokens. Generation estimate USD 0.039515 without cache
+  discount; count contingency USD 0.12; accounted USD 0.159515 below cap. Estimates
+  are not an invoice; contingency is not a count tariff. Each generation request
+  grew 892 SDK bytes and 120 input tokens versus its prior counterpart.
+- Focused display/wire/prose/server-count tests 39/39. Two independent socket-blocked
+  real-SDK rehearsals byte-identical, SHA
+  `42af08ff30156345843ca845ea7660ddfbfee15be90d0235e2b0d052b567b465`.
+  Runtime, fixture and every bound file verified unchanged after calls. Prior
+  implementation gate 1,678/1,678; no runtime edits in this experiment turn.
+- Two previously exposed synthetic fixed-plan controls, not human gold or unseen
+  holdout. No general semantic accuracy, isolated prompt-component causation,
+  context-rich/table, retry reduction, planner/retrieval/final-answer/HTTP/ledger
+  or full-agent claim. Comparison direction and over-abstention remain separate.
+  OpenAI/embedding/ingest/store/judge calls or writes 0; manifest consumed, no rerun.
+- [Immutable output and source review](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md).
