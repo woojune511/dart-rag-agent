@@ -12717,3 +12717,32 @@ are complete. It remains only as an audit record, not an active priority.
   Ignored artifacts: `benchmarks/results/filing_table_identity_2026-09-07/`.
   This verifies source projection, not new compiler choices or quality acceptance.
   LG period/source interpretation versus evaluator governance remains separate pending work.
+
+## Request-first source-display instructions (2026-09-15)
+
+- Baseline `975f9e21`. The preceding compiler-only run retained correct forward
+  arithmetic but chose a reported display for an explicit calculation-only request.
+  Classified as compiler request/display semantics, not parser, candidate coverage
+  or execution. No frozen result or expected answer was altered.
+- Existing numeric instructions and nullable `source_display` field descriptions
+  now make explicit request intent precede source-first defaults. Calculation-only
+  chooses null even with an available/equal reported value; `source_display_reason`
+  connects the decision to the request, not just source existence. The same policy
+  appears in initial/retry calls. AGENTS and normative runtime contract agree.
+- No new field/enum, keyword/name/value branch, model call, candidate authority,
+  source validation, arithmetic, lowering or public shape change. Meaning remains
+  the Compiler's responsibility; a structurally valid wrong choice is not silently
+  repaired or certified correct. Source/calculation provenance remains separate.
+- Six provider-free contracts use actual prose normalization, nested authored
+  responses, protected execution and final-answer/ledger assembly. They cover
+  positive/negative/equal values, renamed subjects/years, reported precision,
+  nullable choice, same-cohort schema retry and query/program tampering. Two missing
+  instruction/schema-guidance assertions failed before implementation and pass now.
+- Python 3.13 full unittest 1,678/1,678 (44.240s, no skips), focused 90/90,
+  import/topology/docs 24/24, domain audit 83, pycompile and diff checks passed.
+  One authored fixture: prompt 16,474 → 17,062 UTF-8 bytes; schema 4,151 → 4,454.
+  Catalog fingerprint/permissions and one mock call remain identical. These are
+  local sizes/witnesses, not measured tokens, bills or actual model improvement.
+- Provider calls and source/store/dataset/predecessor mutations 0. The prior paid
+  2/3 semantic result remains unchanged. Model verification needs a new bounded
+  successor; no consumed manifest or automatic paid rerun.

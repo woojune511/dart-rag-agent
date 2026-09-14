@@ -742,7 +742,11 @@ def compiler_response_model(obligations, refs):
             inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)
             result = create_model("Calculation_" + key, __base__=WireModel,
                 inputs=(inputs, ...), formula=(str, ...), display_unit=(str, ""), display_format=(str, ""),
-                source_display=(Optional[numeric_model(owner["obligation_id"])], ...), source_display_reason=(str, Field(min_length=1)),
+                source_display=(Optional[numeric_model(owner["obligation_id"])], Field(description=(
+                    "Primary source-stated display only when consistent with the linked request. "
+                    "Use null for calculation-only requests; explicit intent overrides source-first defaults."))),
+                source_display_reason=(str, Field(min_length=1, description=(
+                    "Explain selection or null from the request's display intent, not merely the presence of a reported value."))),
                 compatibility_refs=(list[str], Field(default_factory=list)), constants=(list[SemanticProgramConstant], Field(default_factory=list)))
         elif kind == "narrative":
             evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)

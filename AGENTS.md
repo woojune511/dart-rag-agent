@@ -18,7 +18,7 @@
 - LLMs may propose candidate concepts, sections, and slots, but final runtime behavior must be grounded against retrieved evidence or structured store artifacts. The fallback for LLM uncertainty is not hard-coded vocabulary in code; it is better policy/schema plus traceable validation.
 - If a concept lookup value is recovered from prose, the runtime must preserve it as a structured answer slot and attach the retrieved source text that contains the value. Do not let aggregate synthesis reformat evidence-visible values into a different display unit when the source display is available.
 - If graph expansion or reranking pushes a relevant raw chunk out of the visible `retrieved_docs` window, the runtime may still use `seed_retrieved_docs` as candidate evidence when the chunk satisfies the active task's generic required-operand contract. This is evidence preservation, not a license to add topic-specific fallback rules.
-- If a source sentence already states a derived numeric display such as a year-over-year percentage, preserve that source-stated display alongside the deterministic formula trace. Keep the calculated value in trace metadata when it differs because of rounding or source display precision.
+- Explicit request intent takes precedence over source-first display defaults. A calculation-only request uses the calculated result even when a source-stated derived value exists. Otherwise preserve a selected, request-compatible source display alongside the separate deterministic formula trace; do not invent a rounding explanation for a difference. Compiler interprets this intent, not keyword control flow.
 - Any PR/change that adds domain terms to runtime code must explain why the same behavior cannot be represented in ontology/policy/config. If that explanation is weak, stop and refactor the design.
 - Before committing changes under `src/agent` or `src/routing`, run `python -m src.ops.audit_runtime_domain_terms`. Unexpected literals must be moved to ontology/policy/config or deliberately added to the reviewed baseline with rationale.
 
@@ -40,7 +40,7 @@
    - Narrative 주체의 표시 공백 차이는 선택된 원문의 유일한 위치와 별도 witness로 연결한다. 모델 진술·원문을 수정하거나 단어/셀을 합치지 않으며, 문자열 대응을 의미·대상 범위 검증으로 주장하지 않는다.
    - numeric answer는 `structured_result`, `resolved_calculation_trace`, `evidence_items`의 계약을 우선한다.
    - seed retrieval에 있던 근거가 expansion/rerank 과정에서 최종 window 밖으로 밀린 경우, required operand와 provenance 계약을 만족하는지 먼저 확인하고 evidence로 승격한다.
-   - 원문에 보이는 값/단위/파생 비율 표기는 answer slot의 display로 보존하고, 필요하면 deterministic formula 결과는 trace에 별도로 남긴다.
+   - 선택한 원문 값/단위/파생 비율은 원래 표기로 보존한다. 명시적 계산-only 요청에는 계산값을 표시하고, 원문 우선 기본값으로 요청을 덮지 않는다. 원문과 계산값의 provenance는 분리한다.
 
 4. **작게 검증하고 크게 돌린다.**
    - 먼저 unit/contract test로 실패 층을 좁힌다.

@@ -561,7 +561,8 @@ _COMPILER_NUMERIC_INSTRUCTIONS = (
     "원문 부호/배율을 유지하고 필요한 의미 변환은 formula에 표현하세요. 부호 있는 값과 크기는 다릅니다: (abs(A)-abs(B))/abs(B)*100, (A-B)/abs(B)*100, (A-B)/B*100은 서로 다른 비교입니다. 원하는 답의 부호로 고르지 말고 비교 대상과 분모를 rationale에 설명하세요.\n"
     "formula는 변수, 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다. 변수 집합과 inputs의 variable 집합을 맞추세요. 0, 1, 100 외 상수는 constants에 query 또는 deterministic_cardinality origin으로 선언합니다. 분모 0을 작은 상수로 보정하지 마세요.\n"
     "단위 차원과 scale은 코드가 추론합니다. 원문 배율을 formula에 재적용하지 말고 display_unit은 표시 의도만 적으세요. 백분율과 percentage-point를 구별하며 나눗셈 비율을 %로 계산할 때만 formula의 *100이 필요합니다.\n"
-    "source_display는 필수 nullable 선택입니다. 동일 의미의 원문 파생값을 선택하거나 null로 두고 source_display_reason을 반드시 쓰세요. 선택해도 formula/원시 입력을 유지합니다. 원문 우선·계산 병기를 위해 차이를 억지로 맞추거나 근거 없는 반올림 설명을 만들지 마세요.\n"
+    "source_display는 필수 nullable 선택이며 선택하면 최종 주 표시값이 됩니다. 명시적인 요청이 원문 우선 기본값보다 우선합니다. 연결된 요청 구간에서 원하는 결과가 원문 보고값인지, 입력으로 계산한 값인지, 둘 다인지 먼저 판단하세요. 계산값만 요청하면 source_display=null로 두고 원문 보고값으로 대체하지 마세요. 두 값이 같아도 요청 의도에 따라 결정합니다.\n"
+    "원문 보고값이 요청 결과와 부합할 때만 동일 의미의 원문 파생값을 선택하세요. 별도 표시 지시가 없으면 원문 우선·계산 병기를 적용합니다. source_display_reason에는 단순히 원문 값이 있다는 사실이 아니라 요청과 선택/null의 관계를 쓰세요. 선택해도 formula/원시 입력을 유지하고, 차이를 억지로 맞추거나 근거 없는 반올림 설명을 만들지 마세요.\n"
     "output_relationships의 shared_basis는 각 선택의 interpretation.scope.basis에 일관되게 선언하고 자기 원문으로 뒷받침하세요. 동일 기준의 의미 판단과 실제 동일 행 사용 여부는 별개입니다. compatibility_refs는 실제 호환성 근거만 가리키며 출처 충돌을 허용하지 않습니다.\n"
     "재시도의 read_only_dependency_outputs는 검증된 계산값이지 원문 표시값이 아닙니다. 허용된 dependency ID를 source_ref로 쓰고 상수로 복사하거나 accepted 출력을 다시 작성하지 마세요. 그 candidate IDs는 provenance일 뿐 선택 권한이 아닙니다.\n"
 )

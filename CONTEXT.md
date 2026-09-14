@@ -13,6 +13,10 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
 - Planner preserves exact request units, required outputs, display intent and explicit
   report/section/period constraints. Subject/metric wording is a reading target,
   not an allowlist of source names.
+- Compiler display instructions now put explicit request intent before source-first
+  defaults: calculation-only chooses null; a selected reported value must fit the
+  request. Existing nullable choice/reason fields suffice; no intent classifier,
+  keyword gate, extra field or call was added. Actual model improvement is unmeasured.
 - Existing Compiler calls interpret the selected source. Numeric selections requiring
   local subject/scope interpretation carry request-to-own-axis/attached-context
   correspondence; code checks source linkage, not semantic equivalence.
@@ -37,7 +41,7 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
   program and source proofs. No global-only execution or production legacy-wire path.
   Explicit offline/test fixture projections are not new model answers.
 - Public `FinancialRunResultV1`/HTTP, parser/store formats, candidate IDs/catalog hash
-  algorithms, unit/sign/arithmetic/source-first display and final-answer/ledger
+  algorithms, unit/sign/arithmetic/display execution and final-answer/ledger
   ownership are unchanged. No source store, dataset or historical result was rewritten.
 
 ## Evidence and claim limits
@@ -59,7 +63,9 @@ separate-row lookup now executes. Both growth questions select real 110/100 inpu
 and calculate 10%; the source-plus-calculation request correctly retains 11.5%/10%.
 The calculation-only request incorrectly selects source display 11.5% as primary.
 This is an observed request-meaning error, not an arithmetic or source-linkage failure.
-The source-first instruction is a plausible contributor, not an ablation-proven cause.
+The then-current source-first instruction is a plausible contributor, not an
+ablation-proven cause. Subsequent instruction/schema-description clarification is
+local-only; this paid failure remains unchanged, not retroactively marked correct.
 Generation/count calls 3/3; generation estimate USD 0.05837875 plus USD 0.18 count
 contingency (not billing), below the delegated assistant-selected USD 0.80 cap.
 Manifest `8998a347...0a87d3` is consumed; no automatic rerun. Two independent
@@ -71,10 +77,14 @@ and [one-question continuation](benchmarks/results/request_source_boundary_remai
 retain their original results, including over-abstention, reverse comparison and a
 token-count 404 of unestablished cause. General bare-scalar admission preserves old
 candidate identities and evaluation extraction; no expected operands were injected.
-Current local gate: 1,672 tests passed, focused 97, import/topology/docs 24, domain audit 83.
-Numeric transport has 11 new source/schema contracts and a network-blocked real-SDK
-round trip. Context-free table schema is 2,309 versus 3,477 UTF-8 bytes at `dd61e466`;
-this is not a total-request/token/latency or model-quality measurement.
+Current Python 3.13 gate: 1,678 tests passed (44.240s), display-intent focused 90;
+import/topology/docs 24, domain audit 83, pycompile/diff checks passed.
+Six new contracts cover initial/retry guidance, actual normalization through final
+answer/ledger, positive/negative/equal values, direct precision and fingerprint
+tampering. Authored wrong semantics remain a negative, not silently repaired.
+One local expression fixture grows by 588 prompt / 303 schema UTF-8 bytes, with
+unchanged candidate fingerprint/permissions and one mock call. Not SDK token or
+model-quality evidence.
 
 The latest historical [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
 remains 2/3 complete, 3/5 outputs accepted on `054c6b22`; its admission
@@ -86,10 +96,10 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Make explicit request intent govern source-display selection before the
-   source-first default. Preserve calculation/source provenance and existing physical
-   checks; no keyword, value, company or question-ID branch. Pin generic local
-   contrasts first. The observed calculation-only failure remains unfixed.
+1. Verify the clarified display-intent instructions with a new bounded model
+   successor; local execution witnesses do not prove corrected model selection.
+   Preserve the original source/display pair and negative cases without answer
+   injection, keyword branches or changes to the consumed run's criteria/results.
 2. Comparison direction and over-abstention remain separate semantic issues.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

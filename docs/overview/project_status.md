@@ -16,6 +16,7 @@ checks. Baseline: `d9c36d8d`.
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
 | Model transport | CompilerResponseV2; selected-cell axes assembled by code, one outside-context quote with declared uses and owner-exposed addresses; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
+| Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Execution | Immutable visibility plus V2 content/program/validation fingerprints; units, arithmetic, source-first display and ledger ownership retained |
 
 Ranking factors and free subject/metric mismatch diagnostics no longer masquerade
@@ -31,8 +32,8 @@ The separately delegated compiler-only verification is recorded below.
 
 ## Local verification
 
-Python 3.13 integration gate: **1,672/1,672 unittest tests passed**, no skips
-(57.422s). Numeric transport/source/retry/compiler/admission focused tests **97/97**,
+Python 3.13 integration gate: **1,678/1,678 unittest tests passed**, no skips
+(44.240s). Display-intent/numeric/source/retry/compiler/admission focused tests **90/90**,
 import/topology/docs **24/24**, domain audit **83 reviewed literals**, pycompile,
 checked topology and `git diff --check` passed.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
@@ -46,6 +47,12 @@ Schema sizes versus `dd61e466`: axis-only 3,477 → 2,309 bytes; one context
 schema sizes, not total request/token savings or measured model success.
 Numeric instructions grow 2,890 → 3,420 UTF-8 bytes; schema reduction alone
 does not imply a smaller complete request, especially for contextual inputs.
+Those sizes precede display-intent clarification. Its six new contracts cover
+initial/retry request guidance, actual normalization through final answer/ledger,
+positive/negative/equal values, direct precision and query/program tampering.
+One authored expression grows 16,474 → 17,062 prompt bytes and 4,151 → 4,454 schema
+bytes; candidate fingerprint/permissions and one mock call are unchanged.
+No new schema fields, classifier or semantic validator; no SDK-token/accuracy claim.
 Schema preparation errors now retain the original error class and scoped diagnostics,
 with unavailable schema bytes marked null; they no longer become UnboundLocalError.
 
@@ -79,9 +86,10 @@ only one row was eligible, so it is not proof of two-visible-row semantic select
 Both source-display cases now select the actually extracted current 110 / prior 100
 operands and calculate 10%. The request for source plus calculation correctly keeps
 11.5% and 10%. The calculation-only request wrongly selects 11.5% as primary display.
-The raw model response makes this choice; lowering does not invent it. Existing
-source-first instructions are a plausible contributor, not an ablation-proven cause.
-The semantic failure remains unfixed; no post-result runtime or criteria edits.
+The raw model response makes this choice; lowering does not invent it. The then-current
+source-first instruction is a plausible contributor, not an ablation-proven cause.
+Subsequent display-intent instructions/schema descriptions are clarified locally;
+this paid failure and its criteria remain immutable, not a corrected model result.
 
 Estimated generation USD 0.05837875 (without cache discount), separate count
 contingency USD 0.18, accounted total USD 0.23837875, below assistant-selected USD 0.80.
@@ -115,9 +123,9 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-- Make explicit request intent take precedence over source-first display defaults.
-  Fix the general contract/instructions with local contrasts, not question/value rules;
-  preserve separate source/calculation provenance and existing source checks.
+- Validate actual model choices under the clarified display-intent instructions.
+  New local contracts preserve calculated/source displays and public answer/ledger
+  equality, but authored choices do not establish semantic improvement.
 - Over-abstention/comparison direction remain separate errors; this three-case run
   does not establish context-rich accuracy or a general retry improvement.
   Further provider work needs a new bounded successor; no automatic paid rerun.

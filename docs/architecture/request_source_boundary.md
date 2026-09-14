@@ -122,6 +122,14 @@ Codex source-semantic review 2/3, retries 0. The separate-row lookup and source-
 calculation request succeed. Calculation-only still incorrectly selects a source
 display even though its forward arithmetic is correct. This is a preserved semantic
 negative, not a reason to relabel acceptance or add a literal intent gate.
-Next boundary: explicit request intent must precede source-first display defaults;
-the exact model contribution of current instructions is not isolated by this run.
+Subsequent numeric instructions and existing nullable-field descriptions explicitly
+prioritize request intent over source-first defaults. Calculation-only chooses null;
+the reason connects the decision to the request, not just availability of a report.
+No new enum, field, prompt-time classifier, call or execution repair was introduced.
+Six local contracts preserve exact requested text on initial/retry calls, unchanged
+candidate authority, actual normalization through final answer/ledger, direct source
+precision and tamper rejection. A wrong authored selection remains structurally valid
+and semantically wrong; no keyword gate pretends to prove interpretation.
+The prior paid failure is unchanged. Actual model improvement is still unmeasured;
+the exact contribution of earlier instructions was not isolated by that run.
 No context-rich, full-agent or general retry reduction claim; the manifest is consumed.
