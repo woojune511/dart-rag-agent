@@ -68,7 +68,17 @@ Compiler authority uses frozen, slotted standard-library contracts:
 - `CandidateVisibilityV1`
 - `CompilationEnvelopeV2`
 
-Visibility stores catalog and cohort fingerprints, all visible candidate IDs,
+Exposure ranking and source authority are separate. Owner quotas select the
+visible bundle union; `exposure_candidate_ids` records that allocation. Each
+owner may select visible sources satisfying its report, section, period,
+consolidation and unit conditions, independently of another owner's topic rank.
+Unknown fields still need execution-time grounding. Retry exclusions, atomic
+physical-row choices and source-defined complete-row selections cannot be
+widened by sharing. Requirement periods override output periods; section
+restrictions intersect. Parent visibility includes its required inputs, without
+granting those inputs to other requirements. No hidden source is admitted.
+
+Visibility stores catalog and authority-cohort fingerprints, all visible candidate IDs,
 and selectable IDs per obligation or requirement owner as tuples. Construction
 copies caller inputs. Serialization is available only through explicit
 projection methods.

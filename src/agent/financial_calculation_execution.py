@@ -797,6 +797,26 @@ def semantic_candidate_applicability(
     }
 
 
+def source_candidate_applicability(
+    candidate: Mapping[str, Any], owner: Mapping[str, Any],
+    parent_owner: Optional[Mapping[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Source permissions, independent of topic rank or a generated subject label.
+
+    Unknown fields require grounding later; this projection never certifies
+    interpretation. Input periods override output periods, while source-section
+    restrictions always intersect their parent's restrictions.
+    """
+    scope = {**dict((parent_owner or {}).get("scope") or {}), **dict(owner.get("scope") or {})}
+    hard_owner = {"scope": {key: scope[key] for key in
+                  ("company", "period", "consolidation_scope") if key in scope}}
+    result = semantic_candidate_applicability(candidate, hard_owner)
+    section = source_section_applicability(candidate, owner, parent_owner)["state"]
+    if section not in {"unrestricted", "match"}:
+        result = {**result, "state": "explicit_conflict"}
+    return {**result, "source_section_state": section}
+
+
 def _normalized_subject_surfaces(raw_values: Any) -> List[str]:
     values = (
         [raw_values]

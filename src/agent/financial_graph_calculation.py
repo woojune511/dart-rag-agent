@@ -22,6 +22,7 @@ from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
     project_semantic_program_operand,
     semantic_candidate_applicability,
+    source_candidate_applicability,
     validate_semantic_calculation_program,
 )
 from src.agent.financial_graph_model_loaders import semantic_calculation_program_model
@@ -1057,6 +1058,51 @@ def _semantic_candidate_cohorts(
     )
 
     projected_visible_ids = list(atomic_projection["visible_candidate_ids"])
+    # Ranking decides what to expose, not where an exposed source may be used.
+    # Physical row selection and explicit retry exclusions remain independent
+    # authority boundaries, including sources visible through another owner.
+    bundles_by_candidate = source_bundle_id_by_candidate_id(build_semantic_source_bundles(catalog))
+    physical_allowed: Dict[str, set[str]] = {}
+    for constraint in atomic_projection["evidence_bundle_constraints"]:
+        for option in constraint["options"]:
+            for owner_id, identifiers in option["candidate_ids_by_owner"].items():
+                allowed = set(identifiers)
+                physical_allowed[owner_id] = physical_allowed.get(owner_id, allowed) & allowed
+    authorized_cohorts = []
+    for raw_cohort in atomic_projection["cohorts"]:
+        cohort = dict(raw_cohort)
+        specification = specification_by_cohort[cohort["cohort_id"]]
+        owner_id, parent_id = cohort["owner_id"], cohort["parent_obligation_id"]
+        kind = cohort["candidate_kind"]
+        allowed_kinds = {"numeric", "narrative"} if kind == "evidence" else {kind}
+        excluded = set(excluded_by_owner.get(owner_id, []))
+        excluded_bundles = {bundles_by_candidate[item] for item in excluded if item in bundles_by_candidate}
+        exposure_ids = list(cohort["candidate_ids"])
+        candidate_ids = []
+        for candidate_id in dict.fromkeys([*exposure_ids, *sorted(projected_visible_ids)]):
+            candidate = candidate_by_id[candidate_id]
+            if candidate["kind"] not in allowed_kinds or candidate_id in excluded:
+                continue
+            if kind == "numeric" and bundles_by_candidate.get(candidate_id) in excluded_bundles:
+                continue
+            if cohort["owner_type"] != "compatibility" and parent_id in physical_allowed:
+                if candidate_id not in physical_allowed[parent_id]:
+                    continue
+            group = cohort.get("source_defined_group_selection") or {}
+            if group.get("selection_mode") == "complete_physical_row" and candidate_id not in exposure_ids:
+                continue
+            applicability = source_candidate_applicability(candidate, specification["owner"], specification["parent_owner"])
+            match = match_by_id.get(candidate_id, {}).get(owner_id, {})
+            if applicability["state"] == "explicit_conflict" or match.get("unit_state") == "conflict":
+                continue
+            candidate_ids.append(candidate_id)
+        cohort.update(exposure_candidate_ids=exposure_ids, candidate_ids=candidate_ids,
+                      candidate_id_fingerprint=semantic_candidate_id_fingerprint(candidate_ids))
+        authorized_cohorts.append(cohort)
+    # Reuse the canonical parent/input visibility projection without reselecting
+    # physical rows. The already frozen constraints remain on the envelope.
+    authority = _project_atomic_evidence_bundle_options(
+        cohorts=authorized_cohorts, visible_candidate_ids=projected_visible_ids, constraints=())
     numeric_count = sum(
         str(candidate_by_id.get(candidate_id, {}).get("kind") or "")
         == "numeric"
@@ -1089,8 +1135,8 @@ def _semantic_candidate_cohorts(
         "schema": "semantic_candidate_cohorts_v2",
         "status": "ok",
         "reservation": reservation,
-        "cohorts": atomic_projection["cohorts"],
-        "candidate_ids_by_owner": atomic_projection[
+        "cohorts": authority["cohorts"],
+        "candidate_ids_by_owner": authority[
             "candidate_ids_by_owner"
         ],
         "visible_candidate_ids": projected_visible_ids,
