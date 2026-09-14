@@ -22,7 +22,8 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
   binding existing variables `reference`/`target`. Code copies the owned exact request
   and source/requirement links into trace; no repeated model quote, new candidate role,
   direction inference, formula repair or additional call. Other calculations choose null.
-  This wiring is locally tested, not new model accuracy; wrong meanings remain negatives.
+  Four-case model probing used this wiring, but the original reverse question still
+  has wrong endpoints; request linkage is not evidence of semantic equivalence.
   Reported-row lookup versus aggregation and genuine abstention remain separate issues.
 - Existing Compiler calls interpret the selected source. Numeric selections requiring
   local subject/scope interpretation carry request-to-own-axis/attached-context
@@ -66,22 +67,23 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [numeric-reading Compiler probe](benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
-ran eight fixed synthetic questions once on clean `02c799a0` under delegated
-no-additional-approval authority. Four numeric outputs pass source/execution checks;
-separate Codex source review finds **3 correct numeric / 1 wrong reverse direction**.
-The four withheld outputs are **1 appropriate evidence-gap abstention / 2 excess
-abstentions / 1 scope-declaration rejection**. The rejected forward formula is right,
-but both model drafts assign period names to segment. These outcomes are not a
-blended semantic success rate; a structurally accepted reverse formula is wrong.
-Original four inputs/criteria are unchanged; four variations were authored before
-calls but after implementation, not unseen holdout. All attempts expose two candidates.
-Generations/counts 10/10, existing retries 2, provider errors 0. Estimated generation
-USD 0.19730625 + USD 0.60 count contingency = USD 0.79730625 accounted against the
-assistant-selected USD 1.20 cap, not observed billing. Manifest `24deb343...d2141a`
-is consumed. Focused 41/41 and two byte-identical socket-blocked SDK rehearsals
-preceded calls; runtime and all bound files were verified unchanged afterward.
-No automatic rerun, runtime patch, source mutation or current full-agent claim.
+The [comparison-binding Compiler probe](benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
+ran four fixed synthetic questions once on clean `9837d78b`, under exact SHA/cap approval.
+Source/execution accepts **4/4**; separate Codex review finds **3 correct directions /
+1 wrong reverse direction**. All four link the exact request, but only three assign
+the right endpoints. Original reverse wording yields -10% instead of +11.111…%; both
+explicit-reference controls are correct. Same catalog/plan bytes, original two
+inputs/criteria unchanged; not unseen holdout or isolated patch causation.
+The reverse retry repairs a previous candidate misplaced under the current input;
+it does not repair the wrong comparison direction. No automatic formula correction.
+Generations/counts 5/5, internal retries 1, provider errors 0. Generation estimate
+USD 0.10857625 + count contingency USD 0.30 = accounted USD 0.40857625 below USD 0.60;
+not an invoice/count tariff. Manifest `b2a68ca0...ff0f0` consumed. Focused 41/41 and two
+byte-identical socket-blocked SDK rehearsals preceded calls; all first request hashes,
+runtime and bound files verified unchanged afterward. No runtime patch or paid rerun.
+The [prior numeric-reading run](benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
+on `02c799a0` retains 3 correct / 1 wrong numeric, 1 appropriate / 2 excess abstentions
+and 1 scope rejection. Its consumed `24deb343...d2141a` and original results are immutable.
 
 The [earlier display-intent pair](benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
 on `a2d89d40` remains source/execution 2/2 and separate source-semantic review 2/2:
@@ -122,10 +124,10 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Comparison request/input wiring is locally verified; its model effect remains
-   unmeasured. Next use fixed same-source direction pairs in a new bounded Compiler
-   probe before full-agent work. Requested lookup scope/over-abstention is separate;
-   do not force a row/formula, relabel criteria or treat structural checks as meaning.
+1. Request linkage alone did not fix reverse interpretation. Inspect exact request,
+   endpoint assignment and competing fixed-plan instructions provider-free before
+   another experiment; a `growth`-label bias remains a hypothesis. Lookup scope /
+   over-abstention is separate. Do not force formulas or equate structure with meaning.
 2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

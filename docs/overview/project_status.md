@@ -84,24 +84,23 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [numeric-reading probe](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
-ran once on clean `02c799a0` under the user's no-additional-approval delegation.
-Eight synthetic fixed-plan cases: four originals unchanged, four variations authored
-after implementation/before calls, not unseen holdout. All attempts expose two IDs.
-Four numeric outputs pass source/execution validation; separate Codex source review
-finds **3 correct numeric / 1 wrong direction**. Four withheld outputs comprise
-**1 appropriate evidence-gap abstention / 2 excess abstentions / 1 scope rejection**.
-The rejected forward drafts have the right inputs/formula but assign period names
-to segment. Reverse comparison repairs a basis conflict, then executes the wrong
-forward -10% instead of +11.111…%. No blended structural/semantic success rate.
-
-Generation/count 10/10, existing internal retries 2, provider errors 0. Generation
-estimate USD 0.19730625 + count contingency USD 0.60 = accounted USD 0.79730625,
-below assistant-selected USD 1.20; not invoice/count tariff observations.
-Manifest `24deb343...d2141a` consumed. Focused 41/41 and two byte-identical socket-
-blocked SDK receipts preceded calls. Runtime and every bound file verified unchanged.
-No new runtime patch, planner/retrieval/embedding/store/judge or automatic paid rerun.
-No causal ablation, general accuracy, final-answer/HTTP/ledger/full-agent claim.
+The [comparison-binding probe](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
+ran four questions once on clean `9837d78b` under exact SHA/cap approval. All catalogs
+and fixed plans are byte-identical; two original inputs/criteria stay unchanged.
+Source/execution **4/4**, separate Codex direction review **3 correct / 1 wrong**.
+All four use comparison request links; only three endpoint assignments are correct.
+The original reverse question yields -10%, not +11.111…%; both explicit-reference
+controls succeed. Retry fixes input ownership, not direction. No blended success rate.
+Generation/count 5/5, internal retries 1, provider errors 0. Generation estimate
+USD 0.10857625 + count contingency USD 0.30 = accounted USD 0.40857625 below USD 0.60;
+not an invoice/count tariff. Manifest `b2a68ca0...ff0f0` consumed. Focused 41/41, two
+byte-identical socket-blocked SDK receipts; initial paid request hashes match rehearsal.
+Runtime and every bound file verified unchanged before documentation updates.
+No runtime patch or paid rerun. Synthetic pre-exposed controls, not unseen holdout,
+isolated patch causation, general accuracy or final-answer/HTTP/ledger/full-agent proof.
+The [prior numeric-reading run](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
+on `02c799a0` retains 3 correct / 1 wrong numeric, 1 appropriate / 2 excess abstentions
+and 1 scope rejection. Its consumed `24deb343...d2141a` and original results are immutable.
 
 The [earlier display-intent pair](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
 on `a2d89d40` remains structural **2/2**, separate semantic review **2/2**: reported
@@ -135,10 +134,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Comparison request/input wiring is locally verified; model improvement is unmeasured.
-  Next use fixed same-source direction pairs in a bounded Compiler successor.
-  Requested lookup scope/over-abstention remains separate; do not force row/formula choices.
-  Full-agent validation remains later work; no paid execution in this implementation.
+- Request linkage alone did not fix reverse interpretation. Inspect the original
+  request, endpoint assignment and competing fixed-plan instructions provider-free;
+  `growth`-label bias is still a hypothesis, not established cause. Do not force formulas.
+  Lookup over-abstention and full-agent validation remain separate later work.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

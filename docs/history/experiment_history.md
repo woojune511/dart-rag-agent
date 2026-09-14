@@ -8347,3 +8347,38 @@ References:
   separately. No instruction-only general remedy or full-agent/HTTP/ledger claim.
   OpenAI/planner/retrieval/judge/embedding/ingest/store writes 0; manifest consumed.
 - [Immutable output and source review](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Comparison request binding, same-source direction controls
+
+- Exact user approval bound manifest
+  `b2a68ca0e1e329c6c91e412f654e3d37e6045404fddfa1137bdfac2c908ff0f0`, clean runtime
+  `9837d78b`, Gemini 2.5 Pro compiler-only once, four fixed cases and USD 0.60 cap.
+  All source catalogs/plans byte-identical; two original inputs/criteria unchanged.
+  Two explicit-reference controls were authored before calls but after implementation.
+- Source/execution accepts 4/4; separate Codex review against frozen synthetic
+  criteria finds 3 correct directions and 1 wrong direction. All four retain exact
+  comparison request links; only three assign the requested endpoints correctly.
+  The original reverse question still gives -10% instead of +11.111…%, while the
+  same-source explicit-reference reverse question is correct. No abstentions.
+- Original reverse draft places the previous candidate under the current requirement.
+  `candidate_not_authorized_for_output_input` correctly rejects it. Its one retry
+  repairs nesting only, leaving previous=reference/current=target and the wrong
+  forward result. The rationale changes directed wording to a comparison “between”
+  periods; arithmetic executes the submitted formula correctly. Request ID binding
+  does not prove semantic correctness. Fixed-plan `growth` bias is only a hypothesis.
+- Generations/counts 5/5, internal retries 1, provider errors 0, SDK retries 0.
+  Input 28,133; output 1,797 plus thinking 5,544 = 7,341 tokens. Generation estimate
+  USD 0.10857625 without cache discount; count contingency USD 0.30; accounted
+  USD 0.40857625 below cap. No observed count tariff or invoice. Case time 69.129s.
+- Focused 41/41 before calls; two separate socket-blocked SDK receipts identical,
+  SHA `b18cc789d55a7454f09e1ca43fa8c5cef03545ec9f0094322ba5985b7d52a76d`.
+  First paid request hashes match rehearsals; count/generation hashes and input
+  tokens agree. Runtime, all bound files and original inputs/criteria verified
+  unchanged after calls, before docs. Latest full suite 1,706 on the same runtime;
+  not rerun for this experiment-only task. All attempts expose the same two candidates.
+- Manifest consumed. No runtime patch, automatic rerun, source/store mutation,
+  OpenAI/planner/retrieval/judge/embedding/ingest call, formula repair or criterion
+  change. No unseen/human-gold/general/full-agent/HTTP/ledger/release claim.
+  Next inspect request/endpoint interpretation and competing plan instructions
+  provider-free rather than adding fields or flipping formulas from this case alone.
+- [Immutable output and raw-response review](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md).
