@@ -149,4 +149,14 @@ distinguish row lookup from aggregation. Genuine gaps/ambiguity remain valid;
 no answer forcing, new schema field, extra call or code-side semantic correction.
 Seven new contracts and 104 focused / 24 import/topology/docs tests pass. Before/after
 program/schema/authority bytes and mock call counts are unchanged; prompt strings
-grow 1,012 local JSON bytes per invocation. Provider calls 0; model effect unmeasured.
+grow 1,012 local JSON bytes per invocation. That local replay makes no model claim.
+
+The subsequent [bounded model probe](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
+on `02c799a0` produces four numeric outputs from eight fixed cases: three correct,
+one wrong comparison direction despite passing source/execution validation. Other
+outcomes are one appropriate abstention, two excess abstentions and one scope-field
+rejection. Period names written into segment/basis cause cross-input conflicts;
+the forward formula itself is correct. Do not merge these into a semantic pass rate.
+Existing retries 2, provider errors 0; no source, criterion or runtime repair followed.
+Instruction-only general improvement is not established. Reproduce the declaration
+and feedback seam locally before another paid trial; preserve real scope conflicts.

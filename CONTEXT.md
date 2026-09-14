@@ -21,7 +21,7 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
 - Numeric reading instructions distinguish requested comparison reference/target
   from period labels/order, and reported-row lookup from unrequested aggregation.
   Genuine ambiguity stays unanswered; no formula repair or forced answer/retry.
-  This subsequent clarification has local replay evidence only, not model accuracy.
+  The bounded model probe below still exposes abstention, scope and direction errors.
 - Existing Compiler calls interpret the selected source. Numeric selections requiring
   local subject/scope interpretation carry request-to-own-axis/attached-context
   correspondence; code checks source linkage, not semantic equivalence.
@@ -61,24 +61,29 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [display-intent Compiler successor](benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
-ran once on `a2d89d40`: source/execution validation **2/2**, separate Codex
-source-semantic review **2/2**, no retries or provider errors. On the unchanged
-synthetic source, the model selects 11.5% plus calculated 10% when both are requested,
-and null source display / primary 10% for calculation-only. The raw responses make
-these choices; lowering does not repair them. Inputs, plans, catalogs, criteria and
-predecessor bytes are unchanged. Generation/count calls 2/2, generation estimate
-USD 0.039515 plus USD 0.12 count contingency (not billing), below the delegated
-assistant-selected USD 0.50 cap. Manifest `67788de2...2c09ff` is consumed.
-Focused tests 39/39 and two byte-identical, socket-blocked SDK rehearsals preceded
-calls. Previously exposed fixed-plan controls only: not unseen/full-agent evidence,
-general semantic accuracy or an isolated causal ablation of prompt components.
+The [numeric-reading Compiler probe](benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
+ran eight fixed synthetic questions once on clean `02c799a0` under delegated
+no-additional-approval authority. Four numeric outputs pass source/execution checks;
+separate Codex source review finds **3 correct numeric / 1 wrong reverse direction**.
+The four withheld outputs are **1 appropriate evidence-gap abstention / 2 excess
+abstentions / 1 scope-declaration rejection**. The rejected forward formula is right,
+but both model drafts assign period names to segment. These outcomes are not a
+blended semantic success rate; a structurally accepted reverse formula is wrong.
+Original four inputs/criteria are unchanged; four variations were authored before
+calls but after implementation, not unseen holdout. All attempts expose two candidates.
+Generations/counts 10/10, existing retries 2, provider errors 0. Estimated generation
+USD 0.19730625 + USD 0.60 count contingency = USD 0.79730625 accounted against the
+assistant-selected USD 1.20 cap, not observed billing. Manifest `24deb343...d2141a`
+is consumed. Focused 41/41 and two byte-identical socket-blocked SDK rehearsals
+preceded calls; runtime and all bound files were verified unchanged afterward.
+No automatic rerun, runtime patch, source mutation or current full-agent claim.
 
+The [earlier display-intent pair](benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
+on `a2d89d40` remains source/execution 2/2 and separate source-semantic review 2/2:
+source-plus-calculation gives 11.5%/10%; calculation-only gives null display/10%.
 The [prior numeric run](benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
-on `51330fe5` remains source/execution **3/3**, separate semantic review **2/3**.
-Its calculation-only source-display error is preserved, not retroactively corrected.
-Its separate-row success had only one eligible candidate, not a two-visible-row test.
-Manifest `8998a347...0a87d3` is consumed; no automatic rerun of either manifest.
+retains its source-display error (structural 3/3, separate semantic 2/3); no relabeling.
+Both older manifests are consumed, not current full-agent/general accuracy evidence.
 
 The preceding [12-question probe](benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
 and [one-question continuation](benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
@@ -112,11 +117,13 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Comparison direction and reported-row abstention are locally reproduced, with
-   instruction-only clarification and seven contracts. Actual model improvement
-   remains unmeasured; any successor must retain the original paired criteria and
-   independent contrasts, without injecting answers or relabeling past failures.
-2. No execution bug was established by these two semantic failures.
+1. Before more paid trials, reproduce the free interpretation.scope/grounding/retry
+   seam provider-free: period labels became conflicting segment/basis declarations.
+   Keep genuine cross-scope negatives; do not merely ignore the resulting conflict.
+   Separately examine requested lookup scope and comparison reference preservation.
+   Parent-row abstention repeats; wrong reverse arithmetic follows the model formula.
+   Do not force a row, flip a formula or relabel fixed criteria to pass.
+2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
    No automatic paid retry, fresh ingest, store adoption/mutation,

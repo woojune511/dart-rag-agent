@@ -60,7 +60,7 @@ The [before/after local replay](../../benchmarks/results/numeric_reading_intent_
 retains seven paths' programs/schemas/authority and 8 mock calls / 1 mock retry.
 Only prompt strings grow 1,012 local JSON UTF-8 bytes each. Explicit offline transport
 isolation retains the wrong reverse formula; neither that draft nor an abstention is
-silently fixed. Model improvement under these new instructions remains unmeasured.
+silently fixed. The bounded model probe below records remaining failures separately.
 Schema preparation errors now retain the original error class and scoped diagnostics,
 with unavailable schema bytes marked null; they no longer become UnboundLocalError.
 
@@ -84,30 +84,31 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [two-question display-intent successor](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
-ran once on clean `a2d89d40` under the user's no-additional-approval delegation.
-Source/execution acceptance is **2/2**; separate Codex source-semantic review is
-**2/2**, not a blended rate. Generation 2 / count 2, retries 0, provider errors 0.
-On the unchanged source, both questions bind current 110 / previous 100 and compute
-forward growth 10%. The model selects source 11.5% with separate calculated 10%
-when both are requested; calculation-only selects null source display and primary
-10%. These choices appear in raw responses, with request-based reasons and no
-fabricated rounding cause; lowering does not correct semantic choices.
+The [numeric-reading probe](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
+ran once on clean `02c799a0` under the user's no-additional-approval delegation.
+Eight synthetic fixed-plan cases: four originals unchanged, four variations authored
+after implementation/before calls, not unseen holdout. All attempts expose two IDs.
+Four numeric outputs pass source/execution validation; separate Codex source review
+finds **3 correct numeric / 1 wrong direction**. Four withheld outputs comprise
+**1 appropriate evidence-gap abstention / 2 excess abstentions / 1 scope rejection**.
+The rejected forward drafts have the right inputs/formula but assign period names
+to segment. Reverse comparison repairs a basis conflict, then executes the wrong
+forward -10% instead of +11.111…%. No blended structural/semantic success rate.
 
-Estimated generation USD 0.039515 (without cache discount), count contingency
-USD 0.12, accounted total USD 0.159515 below assistant-selected USD 0.50.
-Not invoice/count tariff observations. Manifest `67788de2...2c09ff` is consumed.
-Focused tests 39/39 and two byte-identical socket-blocked SDK receipts preceded
-calls. Runtime and bound files were verified unchanged; each prior case and criterion
-is canonically byte-identical. Each request grew 892 SDK bytes / 120 input tokens.
-Previously exposed synthetic fixed plans only: not unseen/general accuracy, isolated
-causal ablation, planner/retrieval/full-agent/final-answer/HTTP/ledger acceptance.
+Generation/count 10/10, existing internal retries 2, provider errors 0. Generation
+estimate USD 0.19730625 + count contingency USD 0.60 = accounted USD 0.79730625,
+below assistant-selected USD 1.20; not invoice/count tariff observations.
+Manifest `24deb343...d2141a` consumed. Focused 41/41 and two byte-identical socket-
+blocked SDK receipts preceded calls. Runtime and every bound file verified unchanged.
+No new runtime patch, planner/retrieval/embedding/store/judge or automatic paid rerun.
+No causal ablation, general accuracy, final-answer/HTTP/ledger/full-agent claim.
 
+The [earlier display-intent pair](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
+on `a2d89d40` remains structural **2/2**, separate semantic review **2/2**: reported
+11.5% plus calculated 10% when both requested; null display/10% for calculation-only.
 The [prior numeric successor](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
-on `51330fe5` remains structural **3/3**, separate semantic review **2/3**. Its
-calculation-only display failure is unchanged, not retroactively marked correct.
-The separate-row lookup had only one eligible candidate, not two-visible-row proof.
-Manifest `8998a347...0a87d3` is also consumed; neither run is automatically repeated.
+retains structural 3/3, separate semantic 2/3, including the old display error.
+Its single-eligible-candidate lookup is not two-visible-row proof. Both manifests consumed.
 
 The [earlier twelve-question probe](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
 and [interrupted-question continuation](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
@@ -133,13 +134,12 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-- The display-intent pair now has bounded model evidence. Preserve both requests,
-  source/calculated provenance and semantic negatives; do not broaden its claim.
-- Verify model selection under the subsequent numeric-reading instructions with
-  fixed original pairs and independent contrasts; local witnesses are not model
-  improvement. No execution defect or context-rich/retry improvement was established.
-  Further provider work needs a new bounded successor; no automatic paid rerun.
-  Store-fixed full-agent validation remains later work, not established by this probe.
+- Preserve the bounded display-intent pair and its source/calculated provenance.
+- Reproduce interpretation.scope typing/grounding and retry feedback provider-free,
+  preserving genuine cross-scope negatives. Period labels became segment/basis
+  declarations; do not weaken scope checks or send the same failed prompt again.
+  Separately inspect lookup scope and comparison reference; no forced row/formula.
+  Full-agent validation remains later work; new paid work needs a bounded successor.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

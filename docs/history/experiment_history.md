@@ -8305,3 +8305,45 @@ References:
   or full-agent claim. Comparison direction and over-abstention remain separate.
   OpenAI/embedding/ingest/store/judge calls or writes 0; manifest consumed, no rerun.
 - [Immutable output and source review](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Numeric reading and abstention compiler probe
+
+- User explicitly delegated experiments without another approval prompt. New manifest
+  `24deb34370e61d7508cdb1eca7a4d3f4501d43b5098a02c0500b11b8bcd2141a`
+  fixed eight cases, clean runtime `02c799a0`, Gemini 2.5 Pro compiler-only once,
+  assistant-selected USD 1.20 cap. This is not user approval of a named SHA/cap.
+- Original parent/child and forward/reverse pairs retain canonical input/criterion
+  bytes. Four variations change names/values/order, add explicit reference wording
+  or a genuinely incomplete/overlapping coverage caption. They were authored after
+  implementation but before calls, not unseen holdout or a one-factor causal ablation.
+  Expected labels, historical answers and offline witnesses were not live inputs.
+- Source/execution accepts four numeric outputs. Separate Codex source review finds
+  three correct numeric answers and one accepted wrong reverse direction. Withheld
+  outputs are one appropriate evidence-gap abstention, two excess abstentions and
+  one scope-declaration rejection. These are not a blended semantic success rate.
+- `CONTROL_02_A` and renamed/reordered `VAR_ROW_01` again conjecture group-total
+  ambiguity instead of selecting the explicit parent row under the frozen criterion.
+  The child row is selected correctly. `VAR_ROW_02` appropriately cites its attached
+  coverage caption and does not manufacture a complete group scalar from partial rows.
+- `CONTROL_03_A` selects correct operands and forward formula in both raw responses,
+  but assigns period names to `interpretation.scope.segment`; both attempts fail
+  `expression_context_mismatch(segment)`. This is not voluntary abstention or an
+  arithmetic error. `CONTROL_03_B` repairs a basis conflict but retains a forward
+  formula, producing -10% instead of the requested reverse +11.111…% while passing
+  execution checks. Explicit-reference variations produce +50% and -33.333…%.
+- Generations/counts 10/10, existing internal retries 2, SDK retries 0, provider errors
+  0. Input 53,829 and output including thinking 13,002 tokens; generation estimate
+  USD 0.19730625 without cache discount, count contingency USD 0.60, accounted
+  USD 0.79730625 below cap. Contingency is not observed count pricing or an invoice.
+- Focused 41/41 before calls. Two independent socket-blocked real-SDK rehearsals are
+  byte-identical, SHA `c9d7ab84833bca89ef65b4008adac9613eef8d13e76b9af4f782cac99d14ce3a`.
+  Runtime, fixture, all bound predecessor/input files and original criteria verified
+  unchanged after calls, before documentation edits. Two IDs remain exposed per attempt.
+  Prior implementation gates 104 focused / 24 import/topology/docs; latest full suite
+  remains 1,678 on `a2d89d40`, not rerun for this experiment-only task.
+- No new runtime patch, forced row, formula correction, criterion relabeling or paid
+  rerun. First reproduce scope declaration/grounding/feedback with actual drafts and
+  independent true-conflict negatives provider-free; inspect request scope/direction
+  separately. No instruction-only general remedy or full-agent/HTTP/ledger claim.
+  OpenAI/planner/retrieval/judge/embedding/ingest/store writes 0; manifest consumed.
+- [Immutable output and source review](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md).
