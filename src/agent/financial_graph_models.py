@@ -1,15 +1,11 @@
 """Structured-output models for narrative evidence and semantic calculation programs."""
 
-import hashlib
 from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, create_model
 from pydantic.json_schema import SkipJsonSchema
 
 from src.agent.financial_program_projection import narrative_candidate_ids, project_narrative_claims
-
-
-_SEMANTIC_COUPLING_KEY_MAX_CHARS = 128
 
 
 def _normalise_optional_planner_text(value: Any) -> str:
@@ -19,15 +15,6 @@ def _normalise_optional_planner_text(value: Any) -> str:
     if text.casefold() in {"null", "none"}:
         return ""
     return text
-
-
-def _bounded_semantic_coupling_key(value: Any) -> str:
-    text = _normalise_optional_planner_text(value)
-    if len(text) <= _SEMANTIC_COUPLING_KEY_MAX_CHARS:
-        return text
-    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
-    prefix_length = _SEMANTIC_COUPLING_KEY_MAX_CHARS - len(digest) - 1
-    return f"{text[:prefix_length]}:{digest}"
 
 
 class _DeferredBaseModel(BaseModel):
@@ -208,25 +195,11 @@ class AnswerObligation(_DeferredBaseModel):
             "evidence requirement IDs; raw inputs belong in evidence_requirements."
         ),
     )
-    coupling_key: str = Field(
-        default="",
-        max_length=_SEMANTIC_COUPLING_KEY_MAX_CHARS,
-        description=(
-            "Share a key only when outputs require a common semantic basis. "
-            "Leave empty for independently requested outputs; sharing a query, "
-            "company, or report does not establish coupling."
-        ),
-    )
 
     @field_validator("display_unit", "display_format", mode="before")
     @classmethod
     def _normalise_optional_display_fields(cls, value: Any) -> str:
         return _normalise_optional_planner_text(value)
-
-    @field_validator("coupling_key", mode="before")
-    @classmethod
-    def _bound_coupling_key(cls, value: Any) -> str:
-        return _bounded_semantic_coupling_key(value)
 
     @model_validator(mode="after")
     def _materialize_source_defined_group(self) -> "AnswerObligation":
@@ -257,6 +230,14 @@ class AnswerObligation(_DeferredBaseModel):
         return self
 
 
+class OutputRelationshipV1(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    kind: Literal["shared_basis"]
+    output_ids: List[str] = Field(min_length=2)
+    request_unit_id: str
+    request_text: str = Field(min_length=1, description="Exact request substring requiring these outputs to share a basis, not merely a company or topic.")
+
+
 class RequirementPlannerOutput(_DeferredBaseModel):
     """Pre-retrieval semantic requirements without a fixed calculation type."""
 
@@ -264,6 +245,7 @@ class RequirementPlannerOutput(_DeferredBaseModel):
 
     companies: List[str] = Field(default_factory=list)
     years: List[int] = Field(default_factory=list)
+    output_relationships: List[OutputRelationshipV1] = Field(default_factory=list)
     topic: str = ""
     section_filter: Optional[str] = None
     obligations: List[AnswerObligation] = Field(default_factory=list)
@@ -287,12 +269,19 @@ class SourceInterpretationContext(_DeferredBaseModel):
     evidence_text: str = Field(min_length=1)
 
 
+class InterpretedScopeV1(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    segment: str = ""
+    basis: str = ""
+
+
 class SourceInterpretationV1(_DeferredBaseModel):
     """Model interpretation linked to the unchanged request and own sources."""
     model_config = ConfigDict(defer_build=True, extra="forbid")
     request_unit_ids: List[str] = Field(min_length=1)
     subject: str = Field(min_length=1)
     metric: str = Field(min_length=1)
+    scope: InterpretedScopeV1 = Field(default_factory=InterpretedScopeV1)
     axis_refs: List[str] = Field(default_factory=list)
     context_evidence: List[SourceInterpretationContext] = Field(default_factory=list)
     source_evidence_text: Optional[str] = None
@@ -443,6 +432,7 @@ class SemanticProgramNarrativeClaim(_DeferredBaseModel):
 
 
 class SemanticProgramNarrativeBinding(_DeferredBaseModel):
+    basis_interpretation: str = ""
     # The provider schema is current-only; parsing can still inspect frozen flat programs.
     model_config = ConfigDict(defer_build=True, extra="forbid",
         json_schema_extra={"required": ["obligation_id", "subject_bindings", "claims"]})
@@ -667,3 +657,70 @@ class ValidationOutput(_DeferredBaseModel):
     final_answer: str = Field(
         description="검증을 거친 최종 답변",
     )
+
+
+class WireModel(_DeferredBaseModel):
+    model_config = ConfigDict(extra="forbid", defer_build=True)
+
+
+class NumericSelection(WireModel):
+    source_ref: str
+    interpretation: Optional[SourceInterpretationV1] = None
+    context_bindings: list[SemanticProgramContextBinding] = Field(default_factory=list)
+    evidence_text: Optional[str] = Field(default=None, description="Exact bundle substring covering a selected prose number; null for a cell or dependency.")
+
+
+class NumericInput(NumericSelection):
+    variable: str
+    scope_applicability_fields: list[Literal["segment", "basis"]] = Field(default_factory=list)
+
+
+class ReadingSelection(WireModel):
+    source_ref: str
+    row_description_quote: Optional[str] = None
+    surface_ref: Optional[str] = None
+    first_piece_ref: Optional[str] = None
+    last_piece_ref: Optional[str] = None
+
+
+def _input_groups(owner, refs, item_type, name):
+    requirements = owner.get("evidence_requirements") or []
+    fields = {refs.ref(row["requirement_id"]): (list[item_type], ...) for row in requirements}
+    if not requirements:
+        fields["own"] = (list[item_type], ...)
+    return create_model(name, __base__=WireModel, **fields)
+
+
+def compiler_response_model(obligations, refs):
+    """Only the active outputs and their own kinds exist in the provider schema."""
+    output_fields = {}
+    for owner in obligations:
+        key = refs.ref(owner["obligation_id"])
+        kind = owner["kind"]
+        if kind == "direct_value":
+            result = create_model("Direct_" + key, __base__=WireModel,
+                selection=(NumericSelection, ...), compatibility_refs=(list[str], Field(default_factory=list)))
+        elif kind == "derived_value":
+            inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key)
+            result = create_model("Calculation_" + key, __base__=WireModel,
+                inputs=(inputs, ...), formula=(str, ...), display_unit=(str, ""), display_format=(str, ""),
+                source_display=(Optional[NumericSelection], ...), source_display_reason=(str, Field(min_length=1)),
+                compatibility_refs=(list[str], Field(default_factory=list)), constants=(list[SemanticProgramConstant], Field(default_factory=list)))
+        elif kind == "narrative":
+            evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)
+            claim = create_model("Claim_" + key, __base__=WireModel, text=(str, Field(min_length=1)), evidence=(evidence, ...))
+            subject = create_model("Subject_" + key, __base__=WireModel,
+                subject=(str, Field(min_length=1)), support=(evidence, ...), claims=(list[claim], Field(min_length=1)))
+            result = create_model("Narrative_" + key, __base__=WireModel,
+                subjects=(list[subject], Field(min_length=1)),
+                basis_interpretation=(str, ""),
+                scope_applicability_fields=(list[Literal["segment", "basis", "consolidation_scope"]], Field(default_factory=list)))
+        else:
+            raise ValueError("unknown_output_kind")
+        reply = create_model("Reply_" + key, __base__=WireModel,
+            status=(Literal["ready", "missing", "ambiguous"], ...), result=(Optional[result], ...), reason=(str, ...))
+        output_fields[key] = (reply, ...)
+    outputs = create_model("CompilerOutputs", __base__=WireModel, **output_fields)
+    model = create_model("CompilerResponseV1", __base__=WireModel, outputs=(outputs, ...), rationale=(str, ""))
+    model.__compiler_references__ = refs
+    return model

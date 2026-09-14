@@ -25,7 +25,7 @@ from src.agent.financial_calculation_execution import (
     source_candidate_applicability,
     validate_semantic_calculation_program,
 )
-from src.agent.financial_graph_model_loaders import semantic_calculation_program_model
+from src.agent.financial_compiler_wire import CompilerReferencesV1, compiler_response_model, lower_compiler_response
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids
 from src.agent.financial_graph_state import (
     FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase, CompilerAttemptDebugV1,
@@ -37,6 +37,7 @@ from src.agent.financial_compiler_debug import project_compiler_attempt
 from src.utils.request_diagnostics import diagnostic_location, diagnostics_enabled, record_diagnostic
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_source_interpretation import interpretation_axis_sources
+from src.agent.financial_output_relationships import output_relationships
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
     project_prompt_cohort, project_prompt_match, project_prompt_retry_feedback, project_reading_payload,
@@ -159,13 +160,10 @@ def build_semantic_compilation_islands(
             adjacency[obligation_id].add(dependency_id)
             adjacency[dependency_id].add(obligation_id)
 
-    coupling_groups: Dict[str, List[str]] = {}
-    for obligation_id, obligation in obligation_by_id.items():
-        coupling_key = _normalise_spaces(
-            str(obligation.get("coupling_key") or "")
-        )
-        if coupling_key:
-            coupling_groups.setdefault(coupling_key, []).append(obligation_id)
+    relationships, relationship_errors = output_relationships(rows, query)
+    for issue in relationship_errors:
+        errors_by_id[issue["obligation_id"]].append(issue)
+    coupling_groups = {key: row["output_ids"] for key, row in relationships.items()}
     for obligation_ids in coupling_groups.values():
         for left, right in zip(obligation_ids, obligation_ids[1:]):
             adjacency[left].add(right)
@@ -262,7 +260,7 @@ def build_semantic_compilation_islands(
                 "island_id": f"island_{island_index:03d}",
                 "obligation_ids": component,
                 "dependency_edges": [list(edge) for edge in local_edges],
-                "coupling_keys": island_coupling_keys,
+                "output_relationships": {key: relationships[key] for key in island_coupling_keys},
                 "evidence_bundle_constraint_ids": island_bundle_ids,
                 "evidence_bundle_edges": [
                     list(edge)
@@ -1259,6 +1257,8 @@ def _semantic_retry_target_ids(
         validation.get("ambiguous_obligation_ids") or [])
     errors = list(validation.get("errors") or [])
     error_owners = {str(item.get("obligation_id") or "") for item in errors}
+    planning_errors = {str(item.get("obligation_id") or "") for item in errors
+                       if item.get("repair_action") == "repair_requirements"}
     abstentions = set()
     if (not invocation_failed and program.get("status") in {"incomplete", "ambiguous"}
             and error_owners.issubset(owner_ids)):
@@ -1277,7 +1277,7 @@ def _semantic_retry_target_ids(
                 return expanded
 
     # Row-atomic peers cannot be repaired by reopening a withheld member.
-    targets = bundled_owners(unresolved - bundled_owners(abstentions))
+    targets = bundled_owners(unresolved - bundled_owners(abstentions | planning_errors))
     return [owner_id for owner_id in owner_ids if owner_id in targets]
 
 
@@ -1286,6 +1286,7 @@ def _merge_targeted_program_retry(
     previous_validation: Dict[str, Any],
     retry_program: Dict[str, Any],
     target_obligation_ids: List[str],
+    previous_program: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Preserve valid prior outputs and accept retry edits only for targets."""
 
@@ -1294,10 +1295,12 @@ def _merge_targeted_program_retry(
     }
 
     def merged_rows(validation_key: str, program_key: str) -> List[Dict[str, Any]]:
+        accepted_ids = {str(item.get("obligation_id") or "") for item in previous_validation.get(validation_key) or []}
         preserved = [
             dict(item)
-            for item in previous_validation.get(validation_key) or []
-            if str((item or {}).get("obligation_id") or "").strip() not in targets
+            for item in ((previous_program.get(program_key) or []) if previous_program is not None
+                         else (previous_validation.get(validation_key) or []))
+            if str((item or {}).get("obligation_id") or "").strip() in accepted_ids - targets
         ]
         for row in preserved:
             # Validation-owned quote locations are trace, not model program JSON.
@@ -1982,9 +1985,6 @@ class FinancialAgentCalculationMixin:
             and cohort_plan.get("status") == "ok"
             and prompt_candidate_ids
         ):
-            structured_llm = self._llm_for_phase("program_compilation").with_structured_output(
-                semantic_calculation_program_model()
-            )
             retry_feedback = "-"
             retry_target_ids: List[str] = []
             read_only_dependency_outputs: Dict[str, Dict[str, Any]] = {}
@@ -1999,6 +1999,8 @@ class FinancialAgentCalculationMixin:
                 model_program_json = None
                 validation_input_program_json = None
                 response_error_type = ""
+                transport_errors = []
+                response_wire = None
                 prompt_retry_feedback = "-"
                 active_prompt_candidate_ids = [
                     str(item)
@@ -2021,9 +2023,16 @@ class FinancialAgentCalculationMixin:
                         if attempt and retry_target_ids
                         else obligations
                     )
+                    references = CompilerReferencesV1.build(catalog, obligations, query, active_prompt_payload)
+                    response_model = compiler_response_model(prompt_obligations, references)
+                    structured_llm = self._llm_for_phase("program_compilation").with_structured_output(response_model)
+                    wire_payload = references.project(active_prompt_payload)
+                    wire_payload["schema"] = "semantic_program_candidate_payload_v9"
+                    active_prompt_catalog_json = _compiler_json(wire_payload)
                     if any(item.get("kind") == "narrative" for item in prompt_obligations):
                         active_responsibility_context_json = output_responsibility_context_json
                     if active_responsibility_context_json:
+                        active_responsibility_context_json = _compiler_json(references.project(json.loads(active_responsibility_context_json)))
                         responsibility_prompt = CALCULATION_PROMPT_POLICY[
                             "semantic_program_output_responsibility_context_template"
                         ].format(context=active_responsibility_context_json)
@@ -2050,17 +2059,21 @@ class FinancialAgentCalculationMixin:
                     )
                     prompt_retry_feedback = project_prompt_retry_feedback(retry_feedback,
                         narrative_only=active_prompt_payload["reading_mode"] == "narrative_only")
+                    if prompt_retry_feedback != "-":
+                        prompt_retry_feedback = _compiler_json(references.project(json.loads(prompt_retry_feedback)))
                     prompt_value = prompt.invoke(
                         {
                             "query": query,
-                            "compilation_scope": _compiler_json(compilation_scope),
-                            "obligations": _compiler_json(prompt_obligations),
+                            "compilation_scope": _compiler_json(references.project(compilation_scope)),
+                            "obligations": _compiler_json(references.project(prompt_obligations)),
                             "output_responsibility_context": responsibility_prompt,
                             "candidate_catalog": active_prompt_catalog_json,
                             "retry_feedback": prompt_retry_feedback,
                             "row_description_instructions": row_description_instructions,
                         }
                     )
+                    # The provider sees only the new per-output transport schema.
+                    prompt_value.messages[-1].content += CALCULATION_PROMPT_POLICY["compiler_wire_instructions"]
                     with diagnostic_location(attempt=attempt + 1):
                         if diagnostics_enabled():
                             messages = [{"type": message.type, "content": message.content}
@@ -2074,12 +2087,20 @@ class FinancialAgentCalculationMixin:
                                 "candidate_payload_bytes": len(active_prompt_catalog_json.encode("utf-8")),
                             })
                         compiled: Any = structured_llm.invoke(prompt_value)
-                    compiled_program = compiled.model_dump()
+                    response_wire = compiled.model_dump()
                     if capture_attempts:
-                        model_program_json = _compiler_json(compiled_program)
+                        model_program_json = _compiler_json(compiled.model_dump())
+                    compiled_program = lower_compiler_response(
+                        compiled, model=response_model, refs=references, obligations=prompt_obligations,
+                        errors=transport_errors,
+                        catalog=catalog, visibility=_semantic_candidate_visibility(catalog,
+                            visible_candidate_ids=active_prompt_candidate_ids,
+                            candidate_ids_by_owner=active_cohort_plan["candidate_ids_by_owner"],
+                            evidence_bundle_constraints=active_cohort_plan.get("evidence_bundle_constraints") or []))
                     program_data = (
                         _merge_targeted_program_retry(
                             previous_validation=previous_validation,
+                            previous_program=program_data,
                             retry_program=compiled_program,
                             target_obligation_ids=retry_target_ids,
                         )
@@ -2094,6 +2115,10 @@ class FinancialAgentCalculationMixin:
                     invocation_failed = True
                     response_error_type = type(exc).__name__
                     invocation_errors.append(str(exc))
+                    for owner_id in retry_target_ids if attempt else required_ids:
+                        transport_errors.append({"code": "compiler_response_schema_error" if isinstance(exc, ValueError) else "compiler_invocation_error",
+                            "obligation_id": owner_id, "owner_id": owner_id, "candidate_id": "",
+                            "location": "compiler_response", "repair_action": "repair_program", "detail": str(exc)})
                     failed_program = {
                         "status": "incomplete",
                         "direct_bindings": [],
@@ -2109,6 +2134,7 @@ class FinancialAgentCalculationMixin:
                     program_data = (
                         _merge_targeted_program_retry(
                             previous_validation=previous_validation,
+                            previous_program=program_data,
                             retry_program=failed_program,
                             target_obligation_ids=retry_target_ids,
                         )
@@ -2142,6 +2168,11 @@ class FinancialAgentCalculationMixin:
                         )
                     ),
                 )
+                execution_validation = validation
+                if transport_errors:
+                    validation = {**validation, "errors": [*validation["errors"], *transport_errors],
+                        "status": "invalid" if not any(validation.get(key) for key in (
+                            "valid_direct_bindings", "valid_expressions", "valid_narrative_bindings")) else "partial"}
                 if capture_attempts:
                     compiler_attempts.append(project_compiler_attempt(
                         attempt=attempt + 1,
@@ -2220,6 +2251,9 @@ class FinancialAgentCalculationMixin:
                             active_prompt_payload.get("source_bundle_fingerprint")
                             or ""
                         ),
+                        "compiler_schema": "compiler_response_v1",
+                        "serialized_schema_bytes": len(_compiler_json(response_model.model_json_schema()).encode("utf-8")),
+                        "reference_fingerprint": hashlib.sha256(_compiler_json(references.entries).encode()).hexdigest(),
                         "source_context_fingerprint": active_prompt_payload.get("source_context_fingerprint", ""),
                         "source_context_count": len(active_prompt_payload.get("source_contexts_by_id") or {}),
                         "serialized_context_bytes": len(json.dumps(
@@ -2275,7 +2309,7 @@ class FinancialAgentCalculationMixin:
                     active_cohort_plan,
                 )
                 read_only_dependency_outputs = _retry_dependency_outputs(
-                    program=program_data, validation=validation, visibility=validation_visibility,
+                    program=program_data, validation=execution_validation, visibility=validation_visibility,
                     obligations=obligations, catalog=catalog, query=query,
                     target_obligation_ids=retry_target_ids,
                 )
@@ -2358,6 +2392,9 @@ class FinancialAgentCalculationMixin:
                             retry_selectable_ids_by_owner
                         ),
                         "read_only_dependency_outputs": read_only_dependency_outputs,
+                        **({"unvalidated_compiler_response": {"outputs": {
+                            key: value for key, value in response_wire.get("outputs", {}).items() if key in target_id_set}}}
+                           if transport_errors and response_wire is not None else {}),
                         **({"unvalidated_narrative_drafts": narrative_retry_drafts} if narrative_retry_drafts else {}),
                         "declared_obligation_ids": [
                             str(item.get("obligation_id") or "")
@@ -2442,6 +2479,10 @@ class FinancialAgentCalculationMixin:
                 attempts=attempt_candidate_diagnostics,
             )
         )
+        # Transport failures belong to attempt diagnostics, not the reproducible
+        # execution validation fingerprint of the lowered final program.
+        validation = validate_semantic_calculation_program(program=program_data, obligations=obligations,
+            candidate_catalog=catalog, query=query, candidate_visibility=validation_visibility, require_narrative_claims=True)
         compilation_envelope = CompilationEnvelopeV2.create(
             visibility=validation_visibility,
             program=program_data,
@@ -2457,7 +2498,7 @@ class FinancialAgentCalculationMixin:
                 cohorts=list(cohort_plan.get("cohorts") or []),
                 attempts=attempt_candidate_diagnostics,
             ),
-            "schema": "semantic_candidate_stage_diagnostics_v9",
+            "schema": "semantic_candidate_stage_diagnostics_v10",
             "evidence_bundle_constraints": active_bundle_constraints,
             "evidence_bundle_option_selections": active_bundle_selections,
             "source_bundle_count": len(
@@ -3156,7 +3197,7 @@ class FinancialAgentCalculationMixin:
                     "dependency_edges": list(
                         island.get("dependency_edges") or []
                     ),
-                    "coupling_keys": list(island.get("coupling_keys") or []),
+                    "output_relationships": dict(island.get("output_relationships") or {}),
                     "evidence_bundle_constraint_ids": list(
                         island.get("evidence_bundle_constraint_ids") or []
                     ),
@@ -3184,7 +3225,7 @@ class FinancialAgentCalculationMixin:
             )
         candidate_stage_diagnostics = {
             **base_candidate_diagnostics,
-            "schema": "semantic_candidate_stage_diagnostics_v9",
+            "schema": "semantic_candidate_stage_diagnostics_v10",
             "island_count": len(islands),
             "compiler_call_count": total_call_count,
             "compiler_retry_count": total_retry_count,

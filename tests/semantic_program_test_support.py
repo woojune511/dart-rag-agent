@@ -287,13 +287,18 @@ class _StructuredQueueLLM:
 
     def with_structured_output(self, model):
         self.models.append(model.__name__)
+        self.response_model = model
         return self
 
     def invoke(self, prompt):
         self.prompts.append(prompt)
         if not self.responses:
             raise AssertionError("unexpected structured invocation")
-        return self.responses.pop(0)
+        response = self.responses.pop(0)
+        if self.response_model.__name__ == "CompilerResponseV1" and isinstance(response, SemanticCalculationProgram):
+            from tests.compiler_wire_test_support import wire_fixture
+            return self.response_model.model_validate(wire_fixture(response, self.response_model))
+        return response
 
 
 class _StaticFinancialRunAgent:

@@ -20,10 +20,14 @@ def bind_fixture_request(case):
     refs = [unit.request_unit_id for unit in build_request_units(copied['question'])]
     for owner in copied['obligations']:
         owner['request_unit_ids'] = list(refs)
+    from tests.source_interpretation_fixture_support import authored_relationships, authored_source_program
+    copied['obligations'] = authored_relationships(copied['obligations'], copied['question'])
     if copied.get('program'):
         from src.ops.replay_reviewed_compiler_selection import _compiler_case_catalog
         from tests.narrative_address_test_support import address_program
-        copied['program'] = address_program(copied['program'], _compiler_case_catalog(copied)[0])
+        catalog = _compiler_case_catalog(copied)[0]
+        copied['program'] = authored_source_program(address_program(copied['program'], catalog),
+            copied['obligations'], catalog, copied['question'])
     return copied
 
 

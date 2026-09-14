@@ -67,13 +67,17 @@ def validate_source_interpretation(
 ) -> dict[str, Any]:
     if not isinstance(interpretation, Mapping):
         raise ValueError("missing_source_interpretation")
-    allowed = {"request_unit_ids", "subject", "metric", "axis_refs", "context_evidence", "source_evidence_text"}
+    allowed = {"request_unit_ids", "subject", "metric", "scope", "axis_refs", "context_evidence", "source_evidence_text"}
     if set(interpretation) - allowed or any(
         not isinstance(interpretation.get(key), str) or not interpretation[key].strip()
         for key in ("subject", "metric")
     ):
         raise ValueError("invalid_source_interpretation")
     refs = interpretation.get("request_unit_ids")
+    scope = interpretation.get("scope") or {}
+    if (not isinstance(scope, Mapping) or set(scope) - {"segment", "basis"}
+            or any(not isinstance(value, str) for value in scope.values())):
+        raise ValueError("invalid_source_interpretation_scope")
     known = {unit.request_unit_id: unit for unit in build_request_units(query)}
     owned = set(owner.get("request_unit_ids") or (parent_owner or {}).get("request_unit_ids") or [])
     if (not isinstance(refs, list) or not refs or any(not isinstance(ref, str) or ref not in known or ref not in owned for ref in refs)):
@@ -96,7 +100,7 @@ def validate_source_interpretation(
                          "source_span": [start, start + len(source_quote)]})
     result = {"request_units": [{"request_unit_id": ref, "text": known[ref].text,
                "span": [known[ref].start, known[ref].end]} for ref in dict.fromkeys(refs)],
-              "subject": interpretation["subject"], "metric": interpretation["metric"],
+              "subject": interpretation["subject"], "metric": interpretation["metric"], "scope": dict(scope),
               "evidence": evidence, "validation_scope": "source_linkage_not_semantic_equivalence"}
     result["fingerprint"] = hashlib.sha256(json.dumps(result, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     return result

@@ -39,8 +39,10 @@ def authored_pipeline(query, bodies, owners, response_specs, *, year=2051, coupl
     plan = RequirementPlannerOutput.model_validate({'obligations': [
         {'obligation_id': f'raw_{index}', 'kind': 'narrative', 'label': label,
          'request_unit_ids': refs, 'semantic_target': {'local_subjects': [subject]},
-         'evidence_mode': 'source_defined_group', 'coupling_key': coupling}
-        for index, (subject, label, refs) in enumerate(owners, 1)]})
+         'evidence_mode': 'source_defined_group'}
+        for index, (subject, label, refs) in enumerate(owners, 1)],
+        'output_relationships': [{'kind': 'shared_basis', 'output_ids': [f'raw_{i}' for i in range(1, len(owners) + 1)],
+            'request_unit_id': 'request_001', 'request_text': build_request_units(query)[0].text}] if coupling else []})
     programs = []
     for specs in response_specs:
         bindings = {}
@@ -48,6 +50,9 @@ def authored_pipeline(query, bodies, owners, response_specs, *, year=2051, coupl
             oid = f'ob_{index:03d}'
             bindings.setdefault(oid, {'obligation_id': oid, 'claims': []})['claims'].append(
                 claim(subject, text, ids[source_index], quote, source_requirement_id=f'{oid}:req_001'))
+        if coupling:
+            for binding in bindings.values():
+                binding['basis_interpretation'] = 'authored fixture common basis'
         programs.append(model_program({'narrative_bindings': list(bindings.values())}, candidates['semantic_candidate_catalog']))
     llm = _StructuredQueueLLM(plan, *programs)
     agent, state = agent_for(llm), request(query)
@@ -86,8 +91,8 @@ class NarrativeOutputPartitionTests(unittest.TestCase):
              ('Aspen', 'Scheduling', ['request_003'])],
             [[(1, 0, 'Aspen', intake, intake)], [(2, 1, 'Aspen', schedule, schedule)]])
         self.assertEqual(self.assert_ready(state), intake + ' ' + schedule)
-        self.assertEqual(llm.models, ['RequirementPlannerOutput', 'SemanticCalculationProgram',
-                                     'SemanticCalculationProgram'])
+        self.assertEqual(llm.models, ['RequirementPlannerOutput', 'CompilerResponseV1',
+                                     'CompilerResponseV1'])
         prompt = llm.prompts[0].to_messages()[0].content
         # This checks delivery of the policy, not that a model follows it.
         self.assertIn('같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고', prompt)

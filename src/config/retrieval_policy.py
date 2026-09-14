@@ -555,7 +555,7 @@ _COMPILER_SHARED_INSTRUCTIONS = (
     "- year는 공시 연도이며 값의 기간은 period/value_year와 그 근거인 period_source로 확인합니다. source_period_surface는 원래 열/기간 표기이고, period_label_scope=unbound_table인 period_label_surfaces는 본문 날짜가 섞인 힌트일 뿐 값의 기간 근거가 아닙니다. 불명확한 기간을 공시 연도로 채우지 마세요.\n"
     "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
     "- source_sections와 source_section_bindings는 질문이 명시한 근거 절의 선택 권한입니다. binding의 requested_text는 원래 요청이고 resolved_sections는 관측된 문서 위치입니다. 해당 owner와 상위 obligation의 모든 제한을 만족하는 보고서·절에서만 근거를 고르세요. 해석된 위치로 요청의 한정 조건을 지우지 마세요. 본문 언급이나 인접 제목은 다른 절의 선택 권한이 아닙니다. 허용된 근거가 없으면 missing/ambiguous로 남기세요.\n"
-    "- 같은 coupling_key를 가진 출력은 공통 의미 기준을 만족해야 합니다. 서로 다른 source context를 결합할 때는 그 호환성을 명시하는 narrative candidate ID를 compatibility_candidate_ids에 연결하고, 근거가 없으면 missing 또는 ambiguous로 남기세요. coupling_key가 빈 독립 출력은 서로 다른 표에서 선택할 수 있지만 각 출력의 scope와 단위 검증은 그대로 적용됩니다.\n"
+    "- output_relationships가 명시한 공통 기준은 각 숫자 선택의 interpretation.scope.basis에 일관되게 해석하고 자기 원문으로 뒷받침하세요. 공통 기준의 의미 판단과 동일 물리 행 제약은 별개입니다. 같은 표에 있다고 의미가 자동으로 같아지지 않으며 독립 출력은 다른 표에서 선택할 수 있습니다.\n"
     "- 근거가 부족하거나 의미가 모호하면 억지로 선택하지 말고 status와 missing/ambiguous obligation IDs를 표시합니다.\n"
     "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
     "- source_readings를 enclosing_contexts, preceding_contexts, bodies, following_contexts 순서로 함께 읽으세요. 각 body/context는 독립된 원문 표면입니다. surface_ref는 앞에서 한 번 제시된 context_id의 동일 원문입니다. surface_id와 pieces가 있으면 piece.text를 순서대로 읽되 라벨은 원문이 아닙니다. 같은 partition의 연속 piece만 한 구간이며 서로 다른 표면/셀은 이어 붙이지 마세요. 숫자 source_assertions/context_bindings는 기존처럼 정확한 원문을 인용하고 narrative는 아래 구간 선택 계약을 따릅니다. source_bundles_by_id의 context_ids와 candidate의 attached_context_ids, owner cohort 권한을 지키세요. 배열 순서는 읽기 편의이지 의미·대상 일치의 증거가 아닙니다.\n"
@@ -628,6 +628,18 @@ _COMPILER_INPUT_FIELDS = (
 )
 
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
+    "compiler_wire_instructions": (
+        "\nCompilerResponseV1만 출력하세요. outputs의 지정된 출력별 status/result/reason을 채우고 "
+        "원문 선택에는 제시된 짧은 참조를 사용하세요. 요구사항 ID는 inputs/support/evidence의 중첩된 키로만 "
+        "연결되므로 selection 안에 반복 작성하지 않습니다. direct는 selection, derived는 inputs와 formula, "
+        "narrative는 subjects와 각 subject의 support/claims만 작성하세요. narrative에는 수식이 없습니다. "
+        "수식 피연산자의 변수명은 variable로, 후보나 선언된 선행 출력은 source_ref로 지정합니다. "
+        "서술 주체 근거와 각 사실 근거는 별도로 선택하고 여러 원문을 종합할 수 있습니다. "
+        "숫자 선택의 interpretation은 요청 참조와 그 셀의 실제 전체 축/연결 문맥의 대응입니다. "
+        "prose 숫자는 selection.evidence_text에 해당 값을 포함하는 정확한 bundle 원문을 남기세요. "
+        "missing/ambiguous 출력은 result=null로 남깁니다. 내부 프로그램 형식의 재시도 초안은 진단일 뿐 "
+        "그 형식으로 응답하지 마세요. 보여준 source만 선택하며 허용 목록은 검색 순위가 아니라 사용 조건입니다.\n"
+    ),
     'semantic_program_subject_selection_repair_invariant': (
         "source_selection_check compares your declared subject with only the exact text your selected addresses resolve to. "
         "It is read-only feedback, not evidence permissions, an attribution verdict or replacement addresses. "
@@ -789,7 +801,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- derived_value는 사용자에게 표시할 결과 scope와 별도로, 계산에 필요한 각 원시 입력을 evidence_requirements에 선언합니다. 입력마다 고유 requirement_id, label, period 및 다른 scope, retrieval_hints를 적고 이 입력들은 사용자 출력 obligation으로 만들지 않습니다.\n"
             "- depends_on에는 이 obligation의 계산에 앞서 결과가 필요한 다른 answer obligation의 obligation_id만 적으세요. 같은 obligation의 원시 입력이나 evidence requirement ID는 적지 않습니다. 원시 입력 관계는 evidence_requirements만으로 선언합니다.\n"
             "- evidence_mode의 기본값은 declared_inputs입니다. 원시 계산 입력과 질문에 명시된 사실·관계에는 이 모드를 유지하세요. 이 모드의 narrative obligation은 답변에 필요한 각 사실과 관계, 특히 인과 설명을 evidence_requirements에 선언합니다. 대상 변화와 설명 요인을 함께 식별할 수 있는 label과 retrieval_hints를 사용하고, 다른 지표의 변화나 일반적 배경을 대상 변화의 직접 원인 근거로 대용하지 마세요.\n"
-            "- 총액과 구성비처럼 공통 기준으로 결합되어야 하는 출력만 같은 coupling_key를 사용합니다. 같은 질문·회사·보고서에 속한다는 이유만으로 묶지 마세요. 독립적으로 요청된 출력은 coupling_key를 비워 두며 서로 다른 표를 근거로 사용할 수 있습니다. coupling_key는 반복 없는 64자 이하의 짧고 안정적인 식별자로 작성하세요.\n"
+            "- 공통 기준이 필요한 출력은 output_relationships에 kind=shared_basis, output_ids와 그 관계를 요구한 request_unit_id 및 정확한 request_text를 기록하세요. 같은 회사·문장·주제라는 이유로 관계를 만들지 마세요. 독립 출력은 관계 목록에서 제외합니다. 계산상 의존성은 depends_on, 물리적 행 공유는 별도 근거 계약입니다.\n"
             "- ontology hints는 검색과 후보 의미 결합에 쓰는 제한된 vocabulary입니다. 질문에 맞는 정확한 concept가 없다고 비슷한 key를 만들거나 obligation을 삭제하지 마세요.\n"
             "- retrieval_hints와 retrieval_queries는 질문의 표현과 선택 가능한 ontology hint를 이용하되 계산식을 넣지 마세요.\n"
             "- 질문에 없는 회사·기간·범위를 만들지 말고 report_scope 기본값만 사용할 수 있습니다.\n"

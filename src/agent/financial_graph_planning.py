@@ -467,12 +467,25 @@ class FinancialAgentPlanningMixin:
                     "semantic_target": obligation_target,
                     "evidence_requirements": evidence_requirements,
                     "depends_on": list(dict.fromkeys(dependencies)),
-                    "coupling_key": _normalise_spaces(
-                        str(obligation.get("coupling_key") or "")
-                    ),
+                    "output_relationships": [],
                 }
             )
 
+        from src.agent.financial_output_relationships import output_relationships
+        for relation in planned.output_relationships:
+            row = relation.model_dump()
+            row["output_ids"] = [raw_id_to_stable.get(item, item) for item in row["output_ids"]]
+            attached = False
+            for obligation in obligations:
+                if obligation["obligation_id"] in row["output_ids"]:
+                    obligation["output_relationships"].append(dict(row))
+                    attached = True
+            if not attached and obligations:
+                requirement_errors.append({"code": "invalid_output_relationship", "obligation_id": obligations[0]["obligation_id"],
+                    "owner_id": obligations[0]["obligation_id"], "candidate_id": "", "location": "output_relationships",
+                    "repair_action": "repair_requirements", "detail": "unknown output IDs"})
+        _, relationship_errors = output_relationships(obligations, query)
+        requirement_errors.extend(relationship_errors)
         obligations = resolve_source_section_bindings(obligations, query=query, inventory=section_inventory)
         request_errors = request_unit_errors(request_units, obligations)
         requirement_errors.extend(request_errors)

@@ -213,12 +213,16 @@ class _ReviewedProgramQueue:
         if not include_raw:
             raise AssertionError("rehearsal must exercise the raw-response adapter")
         self.requested_models.append(str(getattr(model, "__name__", "")))
+        self.response_model = model
         return self
 
     def invoke(self, _prompt: Any) -> dict[str, Any]:
         if not self._responses:
             raise AssertionError("unexpected reviewed compiler rehearsal invocation")
-        return {"raw": None, "parsed": self._responses.pop(0), "parsing_error": None}
+        from src.ops.compiler_fixture_transport import project_offline_program_to_wire
+        response = self._responses.pop(0)
+        parsed = self.response_model.model_validate(project_offline_program_to_wire(response, self.response_model))
+        return {"raw": None, "parsed": parsed, "parsing_error": None}
 
     @property
     def remaining_response_count(self) -> int:
@@ -277,6 +281,7 @@ def _island_obligation_ids(case: Mapping[str, Any]) -> list[list[str]]:
     cohorts = _semantic_candidate_cohorts(catalog, obligations)
     islands = build_semantic_compilation_islands(
         obligations,
+        query=str(case.get("question") or ""),
         evidence_bundle_constraints=list(
             cohorts.get("evidence_bundle_constraints") or []
         ),
@@ -818,7 +823,7 @@ def build_admission_manifest(
                 "is guidance, not a guaranteed reservation for either component"
             ),
             "provider_client_retries": 0,
-            "structured_output": "SemanticCalculationProgram",
+            "structured_output": "CompilerResponseV1",
             "response_capture": "final_text_finish_reason_usage_and_parsing_error",
             "thought_content_recorded": False,
             "required_credential_name": "GOOGLE_API_KEY",

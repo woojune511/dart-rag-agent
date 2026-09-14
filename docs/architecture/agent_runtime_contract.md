@@ -31,7 +31,7 @@ Code never flips signs; undefined/uncertain comparisons stay unanswered. Offline
 Unsupported planner units remain recorded and block the affected island. Errors identify owner, candidate, location, and repair action. Compiler format errors keep the cohort; only
 explicit dimension/scope/subject conflicts replace candidates, never unknowns or diagnostic prose.
 Typed validation normalizes `null`/`none` only for optional planner text
-(`display_unit`, `display_format`, `coupling_key`); real unsupported units still block their island.
+(`display_unit`, `display_format`); real unsupported units still block their island. Free-string coupling keys are not planner fields.
 
 ## 2. Public result v1
 
@@ -178,7 +178,7 @@ Malformed, unowned/non-exact requests, unknown IDs and unresolved bindings remai
 Validation independently checks direct/operand/display/compatibility/narrative sources and transitive dependency evidence against each owner. Source-defined groups copy the same bindings. V2 binds request excerpts/spans, selected IDs/locations and inventory fingerprint in the ordered obligations; mutation fails before execution. Candidates, ID/catalog hashing, store bytes and public HTTP shape are unchanged. Source scope is not a proof of entailment or parser correctness.
 Numeric owners have capacity two source bundles, narrative requirements six candidates, and numeric compatibility narrative capacity two. Query-wide visibility stays bounded by 96 unique numeric and 32 narrative candidates. Bundle expansion is atomic: capacity overflow fails before compiler calls, never trims a bundle.
 
-Coupling applies only when two or more distinct obligations share the same non-empty `coupling_key`. Multiple period operands of one derived obligation do not create a cross-obligation coupling mismatch. A true coupled basis conflict must fail validation.
+`OutputRelationshipV1` explicitly names two or more output IDs, `kind=shared_basis`, an original request unit and its exact request substring. Unknown/duplicate IDs or ungrounded requests block affected islands before dispatch. A shared topic/company/string is not an edge. Compiler source interpretations declare a common basis consistently; this checks declaration consistency, not semantic equivalence of different source contexts. Narrative declarations retain their independently validated subject/fact support. Physical same-row constraints are separate. A lone derived output's multiple period operands do not create a cross-output relationship. Historical non-empty `coupling_key` is rejected in runtime and requires an explicitly authored successor for current replay.
 
 Formula inputs bound to declared requirements or validated dependencies may span
 physical sources, including a separately sourced display. Formula compatibility checks
@@ -199,7 +199,7 @@ the first option. Compatibility narratives remain auxiliary IDs. Only the active
 option enters the prompt; ranked alternatives remain diagnostics.
 
 Constrained outputs share one row. Validator and executor also reject mixing
-rows as `evidence_bundle_mismatch`, independently of planner `coupling_key`.
+rows as `evidence_bundle_mismatch`, independently of semantic output relationships.
 
 A required `source_defined_group` narrative may join that bundle across tables
 only when local subject and declared scope agree and its filing company, report
@@ -238,7 +238,7 @@ Google phase routes forward explicit `max_output_tokens`, `thinking_budget`,
 Omitted controls retain defaults. Zero retries permit only the initial HTTP attempt. `ProviderAdmissionError` is terminal across planning, routing, search, context generation and compiler/evidence helpers: propagate its first cause without fallback, another call or an evidence-insufficiency program.
 
 Each answer obligation is a vertex. Islands connect only through a dependency on
-another user-visible answer obligation, a shared non-empty `coupling_key`, or an
+another user-visible answer obligation, a request-grounded output relationship, or an
 inferred evidence-bundle constraint. `depends_on` never names raw inputs; those
 live in `evidence_requirements` and are not vertices. Projection drops an exact
 own-requirement reference only after known answer IDs are resolved. Unknown,
@@ -264,7 +264,13 @@ source-display values. Failed execution yields no input. Dependency obligation I
 be bound as sources; attached candidate provenance never widens owner selection authority.
 
 Unretried island program JSON stays byte-identical. Programs, missing/ambiguous IDs, and diagnostics merge in obligation order.
-`semantic_candidate_stage_diagnostics_v9` records owner factors, bundle/member counts and fingerprints, row constraints, islands, call/retry counts, attempt-visible/context/dependency IDs/fingerprints/bytes, and assertion errors. Ranking diagnostics are observability-only, never compiler prompt input. In v7/v8, `serialized_context_bytes` measures the context metadata index; `serialized_candidate_bytes` includes reading surfaces/pieces/indices, not SDK schema. Per-attempt `output_responsibility_context_fingerprint` hashes compact UTF-8 context JSON; `serialized_output_responsibility_context_bytes` counts that JSON and `output_responsibility_prompt_bytes` includes its policy/framing. Absent context records empty fingerprint/zero bytes. Admission must inspect the final SDK request, not infer total size from candidate bytes.
+`semantic_candidate_stage_diagnostics_v10` records owner factors, bundle/member counts and fingerprints, row constraints, islands, call/retry counts, attempt-visible/context/dependency IDs/fingerprints/bytes, assertion errors, compiler schema bytes and reference fingerprint. Candidate payload bytes include reading surfaces/pieces/indices, not SDK schema. Per-attempt output responsibility context bytes/fingerprint describe compact request context, not accepted answers. Admission must inspect the final SDK request, not infer total size from candidate bytes.
+
+### Compiler transport
+
+Production uses only `CompilerResponseV1` with `semantic_program_candidate_payload_v9`. Each active output is a required nested key with its own direct/calculation/narrative result schema; narrative results cannot contain expressions. Requirements are nested input/evidence keys, subject support and claim support stay separate, and code assigns local subject links. Missing/ambiguous outputs explicitly carry `result=null`. Candidate/bundle/context/axis/surface/piece references are stable short execution-local addresses. Output/request IDs remain readable checklist keys. The immutable reference index never rewrites source text or catalog identity and is not a source-name alias system.
+
+`lower_compiler_response` is the sole production conversion: resolve references, check owner visibility, assemble the internal program, parse it, then run the existing source/unit/AST/physical validation. It never guesses missing links or fixes choices. Prose selections generate assertions from model-selected exact evidence text. Reference failures are target-local same-source repair; accepted outputs and their original correspondence JSON survive retries without validation-added fields. Transport errors are attempt diagnostics, not execution-validation fingerprints. The old internal program schema is not a provider response; explicit offline fixture transport lives under `src/ops`, never in core imports. Test-authored legacy-witness copies do not prove planner/compiler semantic accuracy.
 Multi-island `rationale` deterministically projects final validation status, ordered valid/missing/ambiguous obligation IDs and error codes, not concatenated model prose.
 Original explanations remain in island diagnostics as `program_rationale`, with island/owner IDs, not validated query-wide verdicts. Single-island rationale, including explicit abstention, stays unchanged.
 Finalize the merged summary before freezing the V2 envelope; its program fingerprint includes the explanation. This rationale projection alone does not change model schema/prompt, selection, formulas or retry policy.

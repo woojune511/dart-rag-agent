@@ -25,6 +25,7 @@ from src.agent.financial_source_scope import source_section_applicability, sourc
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
 from src.agent.financial_narrative_claims import validate_narrative_claims
 from src.agent.financial_source_interpretation import attached_context_quote, validate_source_interpretation
+from src.agent.financial_output_relationships import output_relationships
 from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
 )
@@ -583,6 +584,8 @@ def _scope_errors(
         checks.append("basis")
     errors: List[str] = []
     for field in checks:
+        if field in {"segment", "basis"} and candidate.get("source_interpretation_resolution"):
+            continue
         state = _scope_match_state(field, scope.get(field), candidate)
         if conflicts_only and state != "conflict":
             continue
@@ -644,7 +647,7 @@ def _evidence_requirement_scope_conflicts(
     output_scope = dict(obligation.get("scope") or {})
     input_scope = dict(requirement.get("scope") or {})
     conflicts: List[str] = []
-    for field in ("company", "consolidation_scope", "segment", "basis"):
+    for field in ("company", "consolidation_scope"):
         output_value = _normalise_spaces(str(output_scope.get(field) or "")).lower()
         input_value = _normalise_spaces(str(input_scope.get(field) or "")).lower()
         if output_value in {"", "unknown"} or input_value in {"", "unknown"}:
@@ -1146,14 +1149,14 @@ def validate_semantic_calculation_program(
                     candidate, interpretation, owner=owner, parent_owner=parent, query=query)
                 # These are the model's interpretations of semantic labels, never
                 # overrides for filing, measurement period, consolidation or unit.
-                semantic_scope = {field: scope[field] for field in ("segment", "basis")
-                                  if scope.get(field) not in (None, "", "unknown")}
-                proof["scope"] = semantic_scope
+                semantic_scope = proof["scope"]
+                proof["requested_scope"] = {field: scope[field] for field in ("segment", "basis") if scope.get(field)}
                 proof.pop("fingerprint", None)
                 proof["fingerprint"] = hashlib.sha256(json.dumps(
                     proof, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
                 binding[proof_key] = proof
                 resolved.update(semantic_scope)
+                resolved["source_interpretation_resolution"] = proof
         except ValueError as exc:
             error(str(exc), obligation_id, owner_id=owner_id,
                   candidate_id=str(candidate.get("candidate_id") or ""), location=location)
@@ -2442,92 +2445,30 @@ def validate_semantic_calculation_program(
         ]
         produced.difference_update(invalid_bundled)
 
-    coupling_groups: Dict[str, List[str]] = {}
-    for obligation_id, obligation in obligation_by_id.items():
-        coupling_key = _normalise_spaces(str(obligation.get("coupling_key") or ""))
-        if (
-            coupling_key
-            and obligation_id in produced
-            and str(obligation.get("kind") or "") != "narrative"
-        ):
-            coupling_groups.setdefault(coupling_key, []).append(obligation_id)
-    invalid_coupled: set[str] = set()
-    for coupling_key, obligation_ids in coupling_groups.items():
-        if len(obligation_ids) < 2:
+    relationships, relationship_errors = output_relationships(obligation_rows, query)
+    errors.extend(relationship_errors)
+    invalid_coupled = {issue["obligation_id"] for issue in relationship_errors}
+    for relation_id, relation in relationships.items():
+        obligation_ids = relation["output_ids"]
+        if not all(owner_id in produced for owner_id in obligation_ids):
             continue
-        resolved_conflicts = _expression_context_conflicts([
-            candidate for owner_id in obligation_ids
-            for candidate in resolved_sources_by_output.get(owner_id, [])])
-        if resolved_conflicts and any(
-            candidate.get("context_resolution") for owner_id in obligation_ids
-            for candidate in resolved_sources_by_output.get(owner_id, [])
-        ):
+        # The compiler's common-basis declaration is checked for consistency,
+        # not equated with sharing a chunk/table. Physical same-row rules above
+        # are independent. The truth of this interpretation is model-evaluated.
+        declarations = []
+        for owner_id in obligation_ids:
+            if obligation_by_id[owner_id].get("kind") == "narrative":
+                declarations.append(next((str(row.get("basis_interpretation") or "") for row in valid_narrative
+                                          if row["obligation_id"] == owner_id), ""))
+                continue
+            sources = resolved_sources_by_output.get(owner_id, [])
+            declarations.extend(str((source.get("source_interpretation_resolution") or {}).get("scope", {}).get("basis") or "")
+                                for source in sources if source.get("kind") == "numeric")
+        if not declarations or any(not value.strip() for value in declarations) or len(set(declarations)) != 1:
             for owner_id in obligation_ids:
-                error("coupled_scope_mismatch", owner_id, ",".join(resolved_conflicts))
+                error("relationship_interpretation_missing_or_inconsistent", owner_id, relation_id,
+                      location="source_interpretation.scope.basis", repair_action="repair_program")
                 invalid_coupled.add(owner_id)
-        source_candidate_ids_by_obligation = {
-            obligation_id: [
-                candidate_id
-                for candidate_id in sources_by_output.get(obligation_id, [])
-                if candidate_id in candidate_by_id
-                and candidate_id
-                not in set(
-                    compatibility_sources_by_output.get(obligation_id, [])
-                )
-            ]
-            for obligation_id in obligation_ids
-        }
-        contexts_by_obligation = {
-            obligation_id: frozenset(
-                _normalise_spaces(
-                    str(
-                        candidate_by_id[candidate_id].get(
-                            "context_fingerprint"
-                        )
-                        or ""
-                    )
-                )
-                for candidate_id in candidate_ids
-                if _normalise_spaces(
-                    str(
-                        candidate_by_id[candidate_id].get(
-                            "context_fingerprint"
-                        )
-                        or ""
-                    )
-                )
-            )
-            for obligation_id, candidate_ids in (
-                source_candidate_ids_by_obligation.items()
-            )
-        }
-        missing_context = any(
-            not _normalise_spaces(
-                str(
-                    candidate_by_id[candidate_id].get("context_fingerprint")
-                    or ""
-                )
-            )
-            for candidate_ids in source_candidate_ids_by_obligation.values()
-            for candidate_id in candidate_ids
-        )
-        compatibility_witnesses = {
-            candidate_id
-            for obligation_id in obligation_ids
-            for candidate_id in compatibility_sources_by_output.get(obligation_id, [])
-            if candidate_id in candidate_by_id
-        }
-        if missing_context and not compatibility_witnesses:
-            for obligation_id in obligation_ids:
-                error("coupled_context_missing", obligation_id, coupling_key)
-                invalid_coupled.add(obligation_id)
-        elif (
-            len(set(contexts_by_obligation.values())) > 1
-            and not compatibility_witnesses
-        ):
-            for obligation_id in obligation_ids:
-                error("coupled_context_mismatch", obligation_id, coupling_key)
-                invalid_coupled.add(obligation_id)
     if invalid_coupled:
         valid_direct = [
             item for item in valid_direct if str(item.get("obligation_id") or "") not in invalid_coupled
