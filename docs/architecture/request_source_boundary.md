@@ -157,6 +157,14 @@ one wrong comparison direction despite passing source/execution validation. Othe
 outcomes are one appropriate abstention, two excess abstentions and one scope-field
 rejection. Period names written into segment/basis cause cross-input conflicts;
 the forward formula itself is correct. Do not merge these into a semantic pass rate.
-Existing retries 2, provider errors 0; no source, criterion or runtime repair followed.
-Instruction-only general improvement is not established. Reproduce the declaration
-and feedback seam locally before another paid trial; preserve real scope conflicts.
+That paid run had two retries and no provider errors; its result remains unchanged.
+Instruction-only general improvement is not established.
+
+The subsequent [scope-isolation fix and exact replay](../../benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md)
+keeps free interpretation labels on proofs without overriding source/context facts.
+Expression checks use filing/consolidation, not segment/basis label equality;
+explicit request-grounded relationships retain their declaration checks. All eight
+original responses replay without editing, with mock calls 10→8 / retries 2→0 and
+the forward -10% now executable. Reverse direction and over-abstention remain wrong.
+All initial prompts/schemas/visible IDs and six unaffected programs/output bytes
+are identical. Full unittest 1,694 passed; no new model or paid/full-agent claim.

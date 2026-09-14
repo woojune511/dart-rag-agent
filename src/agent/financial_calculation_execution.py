@@ -905,25 +905,26 @@ def _collective_narrative_scope_errors(
 def _expression_context_conflicts(
     candidates: Sequence[Mapping[str, Any]],
 ) -> List[str]:
-    """Compare semantic scopes, not the physical locations of bound inputs.
+    """Compare known filing/consolidation facts, not free interpretation labels.
 
     Owner binding, source assertions and explicit physical/coupling contracts
-    are validated separately; a formula need not live inside one source.
+    are validated separately; a formula need not live inside one source or use
+    identical segment/basis wording. Explicit shared-basis declarations are
+    checked only by the request-grounded output-relationship contract.
     """
 
     conflicts: List[str] = []
     for field in (
         "company",
         "consolidation_scope",
-        "segment",
-        "basis",
     ):
-        values = {
-            _normalise_spaces(str(candidate.get(field) or "")).lower()
-            for candidate in candidates
-            if _normalise_spaces(str(candidate.get(field) or "")).lower()
-            not in {"", "unknown"}
-        }
+        values = set()
+        for candidate in candidates:
+            value = (candidate.get("document_company") or candidate.get("company")
+                     if field == "company" else candidate.get(field))
+            normalized = _normalise_spaces(str(value or "")).lower()
+            if normalized not in {"", "unknown"}:
+                values.add(normalized)
         if len(values) > 1:
             conflicts.append(field)
     return conflicts
@@ -1148,15 +1149,13 @@ def validate_semantic_calculation_program(
                 location = location.rsplit('.', 1)[0] + '.source_interpretation'
                 proof = validate_source_interpretation(
                     candidate, interpretation, owner=owner, parent_owner=parent, query=query)
-                # These are the model's interpretations of semantic labels, never
-                # overrides for filing, measurement period, consolidation or unit.
-                semantic_scope = proof["scope"]
+                # Free interpretations remain on the proof; they do not overwrite
+                # source fields or explicit attached-context resolutions above.
                 proof["requested_scope"] = {field: scope[field] for field in ("segment", "basis") if scope.get(field)}
                 proof.pop("fingerprint", None)
                 proof["fingerprint"] = hashlib.sha256(json.dumps(
                     proof, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
                 binding[proof_key] = proof
-                resolved.update(semantic_scope)
                 resolved["source_interpretation_resolution"] = proof
         except ValueError as exc:
             error(str(exc), obligation_id, owner_id=owner_id,
@@ -2687,8 +2686,6 @@ def project_semantic_program_operand(
     interpretation = dict(binding.get("source_interpretation_resolution") or {})
     if resolution:
         candidate = {**dict(candidate), **dict(resolution.get("scope") or {})}
-    if interpretation:
-        candidate = {**dict(candidate), **dict(interpretation.get("scope") or {})}
     obligation_row = dict(obligation or {})
     obligation_scope = dict(obligation_row.get("scope") or {})
     period = str(candidate.get("period") or "")

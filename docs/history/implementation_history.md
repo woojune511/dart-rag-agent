@@ -12779,3 +12779,39 @@ are complete. It remains only as an audit record, not an active priority.
 - Actual model improvement remains unmeasured; a future bounded successor must
   retain original paired criteria plus independent contrasts, never reuse a consumed
   admission or inject expected answers. [Local evidence](../../benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md).
+
+## Free numeric scope interpretation isolation (2026-09-15)
+
+- Baseline `0497d421`; classified as validator/operand boundary drift from the
+  existing runtime contract, not missing domain vocabulary or an arithmetic defect.
+  Saved first drafts wrote period labels into segment/basis. The validator merged
+  those free interpretations into source facts, then rejected their string inequality.
+- One runtime owner changed: `financial_calculation_execution.py`. Interpretations
+  stay on their fingerprint-bound proofs, without overwriting source/context fields
+  in validation or operand projection. Expression context comparison no longer treats
+  free segment/basis labels (including legacy catalog text) as equality gates.
+  Filing metadata takes precedence over legacy company text, consistent with owner
+  checks. Known filing/consolidation conflicts and explicit request-grounded shared-
+  basis declarations remain independently validated; no generic compatibility bypass
+  was introduced. Existing scope, period, units, physical-row and V2 gates remain.
+- Added nine independent contracts: signed numbers/years/order, differing source
+  labels, proof retention versus source/attached-context facts, filing precedence,
+  hard source conflicts, separate source display, wrong-direction semantic negative
+  and post-validation proof tampering. Fixtures use actual normalization. Test setup
+  corrections for display units, default schema fields and diagnostics were not
+  runtime defects; no existing tests or frozen fixtures were weakened or relabeled.
+- Replayed all eight immutable paid cases before/after with sockets blocked and
+  raw wire bytes unchanged. The forward first draft now executes -10%; the reverse
+  first draft still wrongly executes -10%. Two excess abstentions and one appropriate
+  gap abstention are unchanged. Local numeric outputs 4→5, mock calls 10→8 / retries
+  2→0; six other final programs and outputs remain byte-identical. Every initial
+  prompt/schema/visibility and source/response hash remains the same. Unused original
+  retry responses are preserved, not rewritten. This is not sampled-model improvement
+  or measured live retry reduction, and earlier paid results remain immutable.
+- Python 3.13 focused 141/141, import/topology/docs 24/24, domain audit 83 reviewed
+  literals, pycompile/diff checks. Full unittest 1,694/1,694, no skips (61.383s).
+  No prompt/schema/public API, source-store/dataset/identity algorithm or model-call
+  changes. Provider/embedding/ingest/real store writes 0; no paid successor prepared.
+- Remaining work is request lookup scope/abstention and comparison direction as
+  separate model interpretation problems, not another free-label gate or a forced
+  row/formula correction. [Exact replay](../../benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md).

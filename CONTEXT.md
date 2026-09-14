@@ -25,6 +25,9 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
 - Existing Compiler calls interpret the selected source. Numeric selections requiring
   local subject/scope interpretation carry request-to-own-axis/attached-context
   correspondence; code checks source linkage, not semantic equivalence.
+  Free segment/basis interpretations stay on their fingerprint-bound proofs, not in
+  source/context fields or cross-input equality gates. Filing metadata takes priority;
+  explicit shared-basis output relationships remain independently checked.
 - Ranking allocates exposure; immutable owner visibility is recomputed from the
   exposed union using actual source conditions. Same-source narrative requirements
   can share evidence, but hidden/foreign-period/section/filing sources remain barred.
@@ -90,22 +93,20 @@ and [one-question continuation](benchmarks/results/request_source_boundary_remai
 retain their original results, including over-abstention, reverse comparison and a
 token-count 404 of unestablished cause. General bare-scalar admission preserves old
 candidate identities and evaluation extraction; no expected operands were injected.
-Current Python 3.13 numeric-reading focused gate: 104 passed; import/topology/docs
-24, domain audit 83, pycompile/diff checks passed. Most recent full suite on
-`a2d89d40`: 1,678 passed (44.240s); not rerun for this instruction-only seam.
-Six new contracts cover initial/retry guidance, actual normalization through final
-answer/ledger, positive/negative/equal values, direct precision and fingerprint
-tampering. Authored wrong semantics remain a negative, not silently repaired.
-One local expression fixture grows by 588 prompt / 303 schema UTF-8 bytes, with
-unchanged candidate fingerprint/permissions and one mock call. Not SDK token or
-model-quality evidence.
+Current Python 3.13 scope-isolation gate: 141 focused, 24 import/topology/docs,
+domain audit 83, pycompile/diff passed. Full unittest **1,694 passed**, no skips
+(61.383s). Nine new contracts preserve raw/attached source scope, signed arithmetic,
+source display, known filing/consolidation conflicts and proof tamper rejection.
+Test-only authored controls and saved responses are not new model-accuracy evidence.
 
-[Comparison/abstention local replay](benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md)
-isolates the old reverse formula (-10%) from its invalid context fields; an explicitly
-authored reverse formula produces +11.111…% with the same inputs. The explicit parent
-row also executes when selected. Seven before/after replay paths preserve program,
-schema, source hashes, authority and 8 mock calls / 1 mock retry; prompt strings grow
-1,012 local JSON UTF-8 bytes each. No provider call, hidden repair or changed criterion.
+[Exact scope-isolation replay](benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md)
+reuses all eight paid cases' original wire responses with blocked sockets. The forward
+case now executes -10% from its first draft; the reverse case still wrongly yields
+-10%. Two excess abstentions and one appropriate gap abstention are unchanged.
+Local numeric outputs 4→5, mock calls 10→8 / retries 2→0; six other final programs and
+outputs are byte-identical. All source/response bytes and first prompt/schema/visible
+IDs are unchanged. No new model sample, semantic repair, paid retry-reduction claim
+or retroactive correction of the paid result above.
 
 The latest historical [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
 remains 2/3 complete, 3/5 outputs accepted on `054c6b22`; its admission
@@ -117,12 +118,10 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Before more paid trials, reproduce the free interpretation.scope/grounding/retry
-   seam provider-free: period labels became conflicting segment/basis declarations.
-   Keep genuine cross-scope negatives; do not merely ignore the resulting conflict.
-   Separately examine requested lookup scope and comparison reference preservation.
-   Parent-row abstention repeats; wrong reverse arithmetic follows the model formula.
-   Do not force a row, flip a formula or relabel fixed criteria to pass.
+1. Scope isolation is locally verified. Remaining model issues are requested lookup
+   scope/abstention and comparison reference preservation, not the same execution
+   gate. Fix the next interpretation seam against fixed independent contrasts;
+   do not force a row, flip a formula, relabel criteria or repeat a failed prompt.
 2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

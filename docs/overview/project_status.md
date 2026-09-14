@@ -18,7 +18,7 @@ checks. Baseline: `d9c36d8d`.
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Numeric reading | Request defines comparison reference/target; reported-row lookup differs from aggregation; genuine gaps remain unanswered, no semantic auto-repair |
-| Execution | Immutable visibility plus V2 content/program/validation fingerprints; units, arithmetic, source-first display and ledger ownership retained |
+| Execution | V2 fingerprints; interpretation scope stays on proofs, never overwrites source/context facts; no free-label expression gate; units/physical constraints/explicit output relations retained |
 
 Ranking factors and free subject/metric mismatch diagnostics no longer masquerade
 as Compiler selection permissions. Exact filing metadata takes precedence over
@@ -33,10 +33,10 @@ The separately delegated compiler-only verification is recorded below.
 
 ## Local verification
 
-Python 3.13 current numeric-reading/compiler focused tests **104/104**,
-import/topology/docs **24/24**, domain audit **83 reviewed literals**, pycompile
-and `git diff --check` passed. Most recent full suite on `a2d89d40`: **1,678/1,678**,
-no skips (44.240s); not rerun for the subsequent instruction-only clarification.
+Python 3.13 scope-isolation focused tests **141/141**, import/topology/docs **24/24**,
+domain audit **83 reviewed literals**, pycompile and `git diff --check` passed.
+Full unittest **1,694/1,694**, no skips (61.383s). Nine new scope contracts use real
+normalization and preserve source/context facts, hard conflicts, displays and V2 proofs.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
 byte-identical; test-only copies explicitly author new request/proof/transport fields.
 An authored response is an execution witness, not a sampled model answer.
@@ -56,11 +56,11 @@ bytes; candidate fingerprint/permissions and one mock call are unchanged.
 No new schema fields, classifier or semantic validator; no SDK-token/accuracy claim.
 Seven numeric-reading contracts cover both directions, signs, names/years/order,
 equal-valued parent/child axes, true gaps, unforced abstention and forbidden periods.
-The [before/after local replay](../../benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md)
-retains seven paths' programs/schemas/authority and 8 mock calls / 1 mock retry.
-Only prompt strings grow 1,012 local JSON UTF-8 bytes each. Explicit offline transport
-isolation retains the wrong reverse formula; neither that draft nor an abstention is
-silently fixed. The bounded model probe below records remaining failures separately.
+The [latest exact-response replay](../../benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md)
+uses eight saved cases with blocked sockets: numeric outputs 4→5, mock calls 10→8,
+retries 2→0. Forward -10% now executes unchanged; reverse -10% remains wrong.
+All source/raw response/initial prompt/schema/visible IDs and six other programs/output
+bytes are unchanged. No live retry-reduction, semantic repair or new model sample.
 Schema preparation errors now retain the original error class and scoped diagnostics,
 with unavailable schema bytes marked null; they no longer become UnboundLocalError.
 
@@ -135,10 +135,9 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Reproduce interpretation.scope typing/grounding and retry feedback provider-free,
-  preserving genuine cross-scope negatives. Period labels became segment/basis
-  declarations; do not weaken scope checks or send the same failed prompt again.
-  Separately inspect lookup scope and comparison reference; no forced row/formula.
+- Scope isolation is locally verified. Next inspect requested lookup scope and
+  comparison reference as separate interpretation problems; keep independent
+  contrasts and actual source conflicts, without forced row/formula choices.
   Full-agent validation remains later work; new paid work needs a bounded successor.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
