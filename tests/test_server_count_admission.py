@@ -207,6 +207,40 @@ class ServerCountAdmissionTests(unittest.TestCase):
                          self.requests[1][1]["generationConfig"]["responseJsonSchema"])
         self.assertEqual(budget.records[0]["input_token_reservation"], 37)
 
+    def test_numeric_context_schema_round_trips_through_real_sdk_without_network(self):
+        from src.agent.financial_graph import FinancialAgent
+        from src.utils.gemini_usage import GeminiUsageCallbackHandler
+        from tests.test_numeric_compiler_grounding import source, output, selection, wire
+
+        for with_context in (False, True):
+            with self.subTest(context=with_context):
+                self.requests.clear()
+                candidate = source(context=with_context)
+                refs, model, _, _ = wire([candidate], [output()])
+                authored = {"outputs": {"answer": {"status": "ready", "result": {
+                    "selection": selection(refs, candidate, context=with_context)}}}}
+                def handle(request, **kwargs):
+                    self.requests.append((str(request.url), json.loads(request.content)))
+                    response = self.response()
+                    response["candidates"][0]["content"]["parts"][0]["text"] = json.dumps(authored)
+                    return httpx.Response(200, request=request,
+                        json={"totalTokens": 37} if request.url.path.endswith(":countTokens") else response)
+                agent = FinancialAgent.__new__(FinancialAgent)
+                agent.llm_usage_callback = GeminiUsageCallbackHandler()
+                llm = agent._create_chat_model({"provider": "google", "model": "gemini-2.5-pro", "temperature": 0,
+                    "max_output_tokens": 4096, "thinking_budget": 1024,
+                    "provider_client_retries": 0, "include_thoughts": False}, phase="program_compilation")
+                with patch.object(httpx.Client, "send", side_effect=handle), guarded_providers(COUNT_POLICY, []):
+                    result = llm.with_structured_output(model).invoke("Synthetic question.")
+                self.assertEqual(result.model_dump(), model.model_validate(authored).model_dump())
+                self.assertEqual(len(self.requests), 2)
+                schema = self.requests[1][1]["generationConfig"]["responseJsonSchema"]
+                self.assertEqual(schema, self.requests[0][1]["generateContentRequest"]["generationConfig"]["responseJsonSchema"])
+                serialized = json.dumps(schema)
+                self.assertNotIn('"axis_refs"', serialized)
+                self.assertNotIn('"context_bindings"', serialized)
+                self.assertEqual('"context_ref"' in serialized, with_context)
+
     def test_timeout_and_generation_failure_are_single_attempts(self):
         for stage in ("countTokens", "generateContent"):
             with self.subTest(stage=stage):

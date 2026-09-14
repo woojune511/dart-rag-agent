@@ -91,8 +91,8 @@ class NarrativeOutputPartitionTests(unittest.TestCase):
              ('Aspen', 'Scheduling', ['request_003'])],
             [[(1, 0, 'Aspen', intake, intake)], [(2, 1, 'Aspen', schedule, schedule)]])
         self.assertEqual(self.assert_ready(state), intake + ' ' + schedule)
-        self.assertEqual(llm.models, ['RequirementPlannerOutput', 'CompilerResponseV1',
-                                     'CompilerResponseV1'])
+        self.assertEqual(llm.models, ['RequirementPlannerOutput', 'CompilerResponseV2',
+                                     'CompilerResponseV2'])
         prompt = llm.prompts[0].to_messages()[0].content
         # This checks delivery of the policy, not that a model follows it.
         self.assertIn('같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고', prompt)

@@ -153,7 +153,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(compiled["semantic_program_retry_count"], 0)
         self.assertEqual(
             llm.models,
-            ["CompilerResponseV1"] * 3,
+            ["CompilerResponseV2"] * 3,
         )
         self.assertEqual(len(llm.prompts), 3)
         visible_obligations = self._prompt_json(llm.prompts[2], "Answer obligations:")
@@ -724,7 +724,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         }
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=catalog):
             compiled = agent._compile_semantic_calculation_program(state)
-        self.assertEqual(llm.models, ["CompilerResponseV1"] * 2)
+        self.assertEqual(llm.models, ["CompilerResponseV2"] * 2)
         visible_payload = self._prompt_json(
             llm.prompts[0], "Source bundles, candidate cohorts, and candidates_by_id:"
         )
@@ -1376,7 +1376,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         ):
             compiled = agent._compile_semantic_calculation_program(state)
         self.assertEqual(compiled["semantic_program_retry_count"], 0)
-        self.assertEqual(llm.models, ["CompilerResponseV1"])
+        self.assertEqual(llm.models, ["CompilerResponseV2"])
         self.assertEqual(len(llm.prompts), 1)
         executed = execute_compiled_fixture(agent, {**state, **compiled}, fixture["candidate_catalog"])
         self.assertEqual(executed["structured_result"]["status"], "ok")

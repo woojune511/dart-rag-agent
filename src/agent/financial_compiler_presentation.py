@@ -79,7 +79,7 @@ def project_prompt_retry_feedback(feedback: str, *, narrative_only: bool) -> str
     contract = result.get("repair_contract", {})
     for key in ("formula_variable_binding_invariant", "candidate_requirement_binding_invariant",
                 "required_evidence_binding_invariant", "source_assertion_invariant",
-                "dependency_input_invariant"):
+                "dependency_input_invariant", "numeric_context_invariant"):
         contract.pop(key, None)
     return json.dumps(result, ensure_ascii=False, separators=(",", ":"))
 

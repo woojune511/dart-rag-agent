@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-14
+Last updated: 2026-09-15
 
 ## Product and current boundary
 
@@ -20,10 +20,13 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
   exposed union using actual source conditions. Same-source narrative requirements
   can share evidence, but hidden/foreign-period/section/filing sources remain barred.
   Ranking matches stay in diagnostics, not the Compiler payload.
-- Production accepts only nested `CompilerResponseV1`: kind-specific output schemas,
+- Production accepts only nested `CompilerResponseV2`: kind-specific output schemas,
   short source references, nested input/requirement ownership, separate narrative
   subject support and fact evidence. `lower_compiler_response` resolves references
   without guessing or repairing choices, then the execution program is revalidated.
+  Code attaches the selected cell's complete axes. Outside context is quoted once
+  with declared interpretation/scope uses; its field/addresses exist only for inputs
+  with visible numeric attachments. Foreign context and inexact quotes still fail.
 - Explicit request-grounded output relationships replace arbitrary `coupling_key`.
   Dependencies and physical shared-row constraints remain separate. At most eight
   islands, one retry each, numeric 96 / narrative 32 unique IDs, atomic bundles.
@@ -66,7 +69,10 @@ contingency, under USD 0.25. Manifest `4cea0e53...5c055d` is consumed.
 Subsequent catalog-only bare-scalar projection preserves old candidate identities
 and evaluation behavior. The two source-display cases now execute with authored,
 provider-free programs (source 11.5%, calculation 10%); model selection is unmeasured.
-Current local gate: 1,660 tests passed, focused 71, import/topology/docs 24, domain audit 83.
+Current local gate: 1,672 tests passed, focused 97, import/topology/docs 24, domain audit 83.
+Numeric transport has 11 new source/schema contracts and a network-blocked real-SDK
+round trip. Context-free table schema is 2,309 versus 3,477 UTF-8 bytes at `dd61e466`;
+this is not a total-request/token/latency or model-quality measurement.
 
 The latest historical [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
 remains 2/3 complete, 3/5 outputs accepted on `054c6b22`; its admission
@@ -78,12 +84,12 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Characterize duplicate numeric axis/context fields: five questions needed repair
-   for invalid context IDs; preserve source checks while reducing invalid choices
-   in model transport. Separately address comparison direction and over-abstention
-   through general instructions/independent contrasts, not query-specific rules.
+1. Numeric axis/context transport is simplified locally, not model-validated.
+   Recheck the previously invalid-context selection and the source-display pair in
+   a new bounded successor. Comparison direction and over-abstention remain separate
+   semantic issues for independent contrasts, never query-specific rules.
 2. Bare-value candidate coverage is repaired, not model-validated. The two remaining
-   source-display questions need a new bounded successor after transport cleanup;
+   source-display questions still need actual model selection evidence;
    never reuse consumed manifests or inject expected operands/answers.
    Only then consider a store-fixed full-agent follow-up. No automatic paid retry,
    fresh ingest, store adoption/mutation, answer-key/tolerance change, or artifact commit.

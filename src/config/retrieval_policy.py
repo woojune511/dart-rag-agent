@@ -542,7 +542,7 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 
 
 _COMPILER_SHARED_INSTRUCTIONS = (
-    "검색된 원문을 읽고 CompilerResponseV1의 outputs를 작성하세요. 별도의 독해 호출이나 원문 이름의 허용 목록은 없습니다.\n"
+    "검색된 원문을 읽고 CompilerResponseV2의 outputs를 작성하세요. 별도의 독해 호출이나 원문 이름의 허용 목록은 없습니다.\n"
     "Compilation scope의 active_obligation_ids만 출력하며 각 request_unit_ids의 정확한 요청 구간과 한정 조건을 보존하세요. label/rationale은 상세 요청이나 공개 답변을 대신하지 않습니다. 같은 설명의 공유 조건과 독립적으로 요청된 설명 주제를 구별하세요.\n"
     "입력은 bounded excerpts입니다. 개별 본문이 완전해도 보고서 전체의 coverage를 뜻하지 않습니다. 근거가 부족하면 해당 출력의 status=missing 또는 ambiguous, result=null로 남기며 전체 문서의 부재를 단정하지 마세요.\n"
     "cohorts의 candidate_ids는 owner별 사용 권한입니다. 동일한 출처 조건의 요구사항은 노출된 근거를 공유할 수 있지만 숨은 후보, 다른 보고서·제한 섹션·명시적 측정 기간·연결 범위는 공유하지 않습니다. 검색 힌트/주체 문자열 차이는 금지 사유가 아닙니다.\n"
@@ -555,8 +555,9 @@ _COMPILER_SHARED_INSTRUCTIONS = (
 
 _COMPILER_NUMERIC_INSTRUCTIONS = (
     "direct result는 selection, derived result는 inputs와 formula입니다. 각 입력은 그 requirement 키 안에 두고 변수 이름을 variable로 적습니다. source_ref는 허용된 후보 또는 선언된 선행 출력입니다. requirements와 dependencies가 함께 있으면 선행 출력만 inputs.dependencies에 둡니다.\n"
-    "숫자 대상·범위는 interpretation으로 요청 구간 → 해당 셀의 interpretation_axis_sources 전체 축/실제로 연결된 context_evidence → 해석한 subject/metric/scope를 남기세요. 문장 값은 source_evidence_text로 자기 원문을 제시하세요. 의미가 같은지는 문자 동일성으로 판정하지 않습니다.\n"
-    "prose 숫자의 selection.evidence_text는 그 값 span을 덮는 byte-exact 연속 bundle 원문입니다. 표 셀에는 이 인용을 요구하지 않습니다. context_bindings는 연결된 원문으로 확인할 수 있는 기간/범위만 보완하며 명시적 출처 충돌을 덮지 않습니다.\n"
+    "숫자 대상·범위는 interpretation에 요청 구간과 해석한 subject/metric/scope를 남기세요. 선택한 셀의 전체 행·열 축은 코드가 그대로 연결하므로 axis_refs를 쓰지 않습니다. 문장 값은 source_evidence_text로 자기 원문을 제시하세요. 의미가 같은지는 문자 동일성으로 판정하지 않습니다.\n"
+    "표 밖 문맥이 필요하면 selection.context_evidence에 원문 인용을 한 번만 적으세요: schema에 노출된 context_ref, 정확한 evidence_text, 대상·항목 해석 근거이면 supports_interpretation=true, 기간/범위 보완은 resolves의 field/value로 표현합니다. 각 문맥은 선택한 셀에 실제로 연결되어야 합니다. 해당 입력 schema에 문맥 필드가 없으면 쓰지 말고, 이미 축/메타데이터로 확인된 조건에 새 문맥을 만들지 마세요. context_bindings는 모델 출력 필드가 아닙니다.\n"
+    "prose 숫자의 selection.evidence_text는 그 값 span을 덮는 byte-exact 연속 bundle 원문입니다. 표 셀에는 이 인용을 요구하지 않습니다. 문맥 해석은 명시적 보고서/기간/연결 범위 충돌을 덮지 않습니다.\n"
     "원문 부호/배율을 유지하고 필요한 의미 변환은 formula에 표현하세요. 부호 있는 값과 크기는 다릅니다: (abs(A)-abs(B))/abs(B)*100, (A-B)/abs(B)*100, (A-B)/B*100은 서로 다른 비교입니다. 원하는 답의 부호로 고르지 말고 비교 대상과 분모를 rationale에 설명하세요.\n"
     "formula는 변수, 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다. 변수 집합과 inputs의 variable 집합을 맞추세요. 0, 1, 100 외 상수는 constants에 query 또는 deterministic_cardinality origin으로 선언합니다. 분모 0을 작은 상수로 보정하지 마세요.\n"
     "단위 차원과 scale은 코드가 추론합니다. 원문 배율을 formula에 재적용하지 말고 display_unit은 표시 의도만 적으세요. 백분율과 percentage-point를 구별하며 나눗셈 비율을 %로 계산할 때만 formula의 *100이 필요합니다.\n"

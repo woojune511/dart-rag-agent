@@ -5,6 +5,30 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Numeric axis/context transport consolidation (2026-09-15)
+
+- Baseline `dd61e466`. Reproduced context-free schemas exposing redundant axis/context
+  fields and schema-construction failures being masked by UnboundLocalError.
+- Production `CompilerResponseV2` assembles the selected cell's complete observed
+  axes in code. One selection-level context quote declares interpretation support
+  and/or scope resolutions. Context fields/finite addresses exist only for each
+  owner/input's exposed numeric attachments; dependencies gain no source contexts.
+- Lowering does not infer meaning or repair IDs/quotes. Existing attachment,
+  partition, scope, unit, assertion, visibility and immutable V2 execution checks
+  remain. Scope-only text-row context cannot become subject support implicitly.
+- Offline fixture transport consolidates only authored exact context uses and
+  refuses foreign legacy axes. One unknown-candidate retry fixture now removes the
+  old cell proof when authoring its fake ID; unknown selection and accepted-sibling
+  preservation assertions are unchanged. Foreign-axis rejection has its own test.
+- Python 3.13: focused 97/97; full unittest 1,672/1,672, no skips (57.422s);
+  domain audit 83, import/topology/docs 24, pycompile and diff checks pass. Real SDK
+  schema/count/generation round trips use mocked HTTP with external sockets blocked.
+- Local schema bytes before/after: axis-only 3,477/2,309, single-context 3,477/3,234,
+  parsed located-context fixture 3,469/3,293; numeric instructions 2,890/3,420.
+  A smaller schema need not mean a smaller total request. These are not SDK/token/cost measurements.
+  Provider/model-selection improvement remains unmeasured; no paid call, store,
+  dataset, historical artifact, parser, candidate identity or HTTP change.
+
 ## Why The Simplification Was Needed
 
 The repository accumulated several valid but competing surfaces: the verified

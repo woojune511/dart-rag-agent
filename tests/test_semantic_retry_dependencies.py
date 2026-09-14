@@ -144,6 +144,10 @@ class SemanticRetryDependencyTests(unittest.TestCase):
         case = _reviewed_case()
         first = deepcopy(case["program"])
         first["direct_bindings"][1]["candidate_id"] = "invented_candidate"
+        # This tests an unknown source_ref, not a legacy axis ID copied from a
+        # different cell. V2 has no model-written axes; foreign-axis migration
+        # is independently rejected in test_numeric_compiler_grounding.
+        first["direct_bindings"][1].pop("source_interpretation", None)
         retry = {
             "status": "ready", "direct_bindings": [deepcopy(case["program"]["direct_bindings"][1])],
             "expressions": deepcopy(case["program"]["expressions"]),

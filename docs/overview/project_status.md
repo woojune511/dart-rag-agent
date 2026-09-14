@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-14
+Last updated: 2026-09-15
 
 ## Current implementation
 
@@ -14,7 +14,7 @@ checks. Baseline: `d9c36d8d`.
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
 | Exposure / authority | Ranking selects bounded bundles; actual source conditions govern use of their visible union |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | Kind-specific nested output schemas, short source addresses, one explicit lowering function; no narrative expressions |
+| Model transport | CompilerResponseV2; selected-cell axes assembled by code, one outside-context quote with declared uses and owner-exposed addresses; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Execution | Immutable visibility plus V2 content/program/validation fingerprints; units, arithmetic, source-first display and ledger ownership retained |
 
@@ -30,17 +30,28 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 integration gate: **1,660/1,660 unittest tests passed**, no skips
-(63.278s). Bare-value/source/compiler/admission focused tests **71/71**,
+Python 3.13 integration gate: **1,672/1,672 unittest tests passed**, no skips
+(57.422s). Numeric transport/source/retry/compiler/admission focused tests **97/97**,
 import/topology/docs **24/24**, domain audit **83 reviewed literals**, pycompile,
 checked topology and `git diff --check` passed.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
 byte-identical; test-only copies explicitly author new request/proof/transport fields.
 An authored response is an execution witness, not a sampled model answer.
+Eleven new numeric-transport contracts cover available fields, foreign/inexact
+contexts, owner/input isolation, offline invalid-proof rejection and V2 tampering.
+Real SDK count/generation serialization is tested with blocked sockets and mocked HTTP.
+Schema sizes versus `dd61e466`: axis-only 3,477 → 2,309 bytes; one context
+3,477 → 3,234; parsed located-context fixture 3,469 → 3,293. These are local UTF-8
+schema sizes, not total request/token savings or measured model success.
+Numeric instructions grow 2,890 → 3,420 UTF-8 bytes; schema reduction alone
+does not imply a smaller complete request, especially for contextual inputs.
+Schema preparation errors now retain the original error class and scoped diagnostics,
+with unavailable schema bytes marked null; they no longer become UnboundLocalError.
 
-The five-case provider-free baseline/current comparison passed in both versions:
+The earlier five-case provider-free boundary comparison passed in both versions
+(before the subsequent bare-value and V2 numeric-transport changes):
 
-| Measurement | Baseline `d9c36d8d` | Current |
+| Measurement | Baseline `d9c36d8d` | Earlier boundary build |
 | --- | ---: | ---: |
 | Authored fixture cases | 5 | 5 |
 | Mock Compiler invocations / retries | 6 / 0 | 6 / 0 |
@@ -107,11 +118,11 @@ compiler/execution witnesses; there is still no actual model result for those tw
 
 ## Next work
 
-- Reduce duplicate axis/context reference choices through the actual available
-  source kinds, without bypassing provenance validation. Treat over-abstention and
-  comparison direction as separate model-reading errors, not string/alias rules.
+- Verify the locally simplified numeric transport with actual model choices.
+  Selection/retry improvements remain unmeasured; over-abstention and comparison
+  direction are separate model-reading errors, not string/alias rules.
 - Verify actual model selection for the remaining source-display pair after transport
-  cleanup; bare-value coverage is now locally verified, not paid-model accuracy.
+  cleanup, alongside the prior invalid-context case; local coverage is not model accuracy.
   Any further provider work needs a new bounded successor; no automatic paid rerun.
   Store-fixed full-agent validation remains later work, not established by this probe.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add

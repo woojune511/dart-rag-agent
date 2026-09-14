@@ -663,10 +663,24 @@ class WireModel(_DeferredBaseModel):
     model_config = ConfigDict(extra="forbid", defer_build=True)
 
 
+class NumericInterpretation(WireModel):
+    """Meaning supplied by the model; selected-cell axes are assembled by code."""
+
+    request_unit_ids: list[str] = Field(min_length=1)
+    subject: str = Field(min_length=1)
+    metric: str = Field(min_length=1)
+    scope: InterpretedScopeV1 = Field(default_factory=InterpretedScopeV1)
+    source_evidence_text: Optional[str] = None
+
+
+class ContextScopeValue(WireModel):
+    field: Literal["period", "consolidation_scope", "segment", "basis"]
+    value: str = Field(min_length=1)
+
+
 class NumericSelection(WireModel):
     source_ref: str
-    interpretation: Optional[SourceInterpretationV1] = None
-    context_bindings: list[SemanticProgramContextBinding] = Field(default_factory=list)
+    interpretation: Optional[NumericInterpretation] = None
     evidence_text: Optional[str] = Field(default=None, description="Exact bundle substring covering a selected prose number; null for a cell or dependency.")
 
 
@@ -683,11 +697,14 @@ class ReadingSelection(WireModel):
     last_piece_ref: Optional[str] = None
 
 
-def _input_groups(owner, refs, item_type, name):
+def _input_groups(owner, refs, item_type, name, *, numeric_model=None):
     requirements = owner.get("evidence_requirements") or []
-    fields = {refs.ref(row["requirement_id"]): (list[item_type], ...) for row in requirements}
+    fields = {refs.ref(row["requirement_id"]): (
+        list[numeric_model(row["requirement_id"], input=True) if numeric_model else item_type], ...)
+        for row in requirements}
     if not requirements or item_type is ReadingSelection:
-        fields["own"] = (list[item_type], ...)
+        own_type = numeric_model(owner["obligation_id"], input=True) if numeric_model else item_type
+        fields["own"] = (list[own_type], ...)
     elif item_type is NumericInput and owner.get("depends_on"):
         fields["dependencies"] = (list[item_type], ...)
     return create_model(name, __base__=WireModel, **fields)
@@ -695,18 +712,37 @@ def _input_groups(owner, refs, item_type, name):
 
 def compiler_response_model(obligations, refs):
     """Only the active outputs and their own kinds exist in the provider schema."""
+    numeric_types = {}
+
+    def numeric_model(owner_id, *, input=False):
+        base = NumericInput if input else NumericSelection
+        context_refs = refs.context_refs_for_owner(owner_id)
+        if not context_refs:
+            return base
+        key = (context_refs, input)
+        if key not in numeric_types:
+            # A context address is offered only if an owner-visible numeric source
+            # attaches it. The selected member's attachment is validated later.
+            context_type = create_model("ContextEvidence_" + refs.ref(owner_id), __base__=WireModel,
+                context_ref=(Literal[context_refs], ...), evidence_text=(str, Field(min_length=1)),
+                supports_interpretation=(bool, False),
+                resolves=(list[ContextScopeValue], Field(default_factory=list)))
+            numeric_types[key] = create_model(base.__name__ + "_" + refs.ref(owner_id), __base__=base,
+                context_evidence=(list[context_type], Field(default_factory=list)))
+        return numeric_types[key]
+
     output_fields = {}
     for owner in obligations:
         key = refs.ref(owner["obligation_id"])
         kind = owner["kind"]
         if kind == "direct_value":
             result = create_model("Direct_" + key, __base__=WireModel,
-                selection=(NumericSelection, ...), compatibility_refs=(list[str], Field(default_factory=list)))
+                selection=(numeric_model(owner["obligation_id"]), ...), compatibility_refs=(list[str], Field(default_factory=list)))
         elif kind == "derived_value":
-            inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key)
+            inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)
             result = create_model("Calculation_" + key, __base__=WireModel,
                 inputs=(inputs, ...), formula=(str, ...), display_unit=(str, ""), display_format=(str, ""),
-                source_display=(Optional[NumericSelection], ...), source_display_reason=(str, Field(min_length=1)),
+                source_display=(Optional[numeric_model(owner["obligation_id"])], ...), source_display_reason=(str, Field(min_length=1)),
                 compatibility_refs=(list[str], Field(default_factory=list)), constants=(list[SemanticProgramConstant], Field(default_factory=list)))
         elif kind == "narrative":
             evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)
@@ -723,6 +759,6 @@ def compiler_response_model(obligations, refs):
             status=(Literal["ready", "missing", "ambiguous"], ...), result=(Optional[result], ...))
         output_fields[key] = (reply, ...)
     outputs = create_model("CompilerOutputs", __base__=WireModel, **output_fields)
-    model = create_model("CompilerResponseV1", __base__=WireModel, outputs=(outputs, ...), rationale=(str, ""))
+    model = create_model("CompilerResponseV2", __base__=WireModel, outputs=(outputs, ...), rationale=(str, ""))
     model.__compiler_references__ = refs
     return model

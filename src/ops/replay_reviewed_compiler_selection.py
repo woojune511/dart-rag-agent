@@ -823,7 +823,7 @@ def build_admission_manifest(
                 "is guidance, not a guaranteed reservation for either component"
             ),
             "provider_client_retries": 0,
-            "structured_output": "CompilerResponseV1",
+            "structured_output": "CompilerResponseV2",
             "response_capture": "final_text_finish_reason_usage_and_parsing_error",
             "thought_content_recorded": False,
             "required_credential_name": "GOOGLE_API_KEY",

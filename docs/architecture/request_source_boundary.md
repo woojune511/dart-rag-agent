@@ -27,12 +27,16 @@ No paid run, fresh ingest or source mutation is part of this implementation.
 
 ## Production and offline interfaces
 
-`CompilerResponseV1` has one required key per active output, with only that kind's
+`CompilerResponseV2` has one required key per active output, with only that kind's
 result schema. Numeric inputs and narrative support/facts nest under requirement
 keys; source addresses are short, stable and exactly reversible. Ranking matches
 are absent from the payload. `lower_compiler_response` resolves addresses and
 assembles the internal program without inferring choices or missing proof.
 Source-linked interpretation and the lowered program are bound by V2 fingerprints.
+The selected cell supplies its full axes without model-written axis IDs. Outside
+context is quoted once with explicit interpretation/scope uses; the context field
+and finite addresses exist only for inputs with exposed numeric attachments.
+Lowering assembles internal proofs, retaining exact attachment/quote/partition checks.
 
 `OutputRelationshipV1` requires a shared exact request excerpt owned by all members.
 It does not replace declared dependencies or physical-row constraints. Format,
@@ -43,14 +47,14 @@ Old fixture files remain immutable. Explicit offline copies add authored request
 assignments, relationships and source proofs; the offline wire adapter only
 rearranges those existing choices. It is not a production fallback or a model judge.
 
-## Provider-free comparison
+## Earlier provider-free boundary comparison
 
 The same five reviewed cases were rehearsed at `d9c36d8d` in a temporary clean
 worktree and in the current implementation using their respective explicit fixture
 transport. Network sockets were blocked. Questions, selected IDs and numeric/display
 outputs were retained; current request/proof fields were authored, not model-generated.
 
-| Metric | Baseline | Current |
+| Metric | Baseline | Boundary build before numeric-transport cleanup |
 | --- | ---: | ---: |
 | Authored cases accepted | 5 | 5 |
 | Mock Compiler calls / retries | 6 / 0 | 6 / 0 |
@@ -60,7 +64,7 @@ outputs were retained; current request/proof fields were authored, not model-gen
 
 Output signature in both runs:
 `2ca7903e16772081eb5bed50489e7ce982fc83e020521b586983a200ab5880d5`.
-Current prompt fingerprint:
+That boundary build's prompt fingerprint:
 `ffe814f1c7defd08f24fcd6481b49a948d2b496b81486ab826fcf55091bb18d0`.
 These are local compact schema/prompt serializations, not final SDK bytes, measured
 tokens, billing or latency. Schema sizes per call: 6,619 / 8,267 / 6,872 / 6,754 /
@@ -100,7 +104,14 @@ Subsequent catalog-only bare-scalar exposure preserves old member identities and
 shared evaluation behavior. Source-display local witnesses now execute the actually
 extracted operands without injection; they are not sampled model answers.
 
-Local integration gate: Python 3.13, 1,660 tests passed without skips; focused
-source/compiler/admission 71, import/topology/docs 24, domain audit 83 reviewed
+Local integration gate: Python 3.13, 1,672 tests passed without skips; focused
+numeric-transport/source/retry/compiler/admission 97, import/topology/docs 24, domain audit 83 reviewed
 literals, pycompile and clean diff check. No provider
 execution or release acceptance is claimed by these gates.
+
+Numeric V2 contracts additionally reject unavailable context fields/addresses,
+foreign attachments, altered quotes and ungrounded legacy fixture axes. A single
+quote can explicitly support interpretation and resolve scope, without promoting
+scope-only context to subject evidence. The selected cell's full axes are assembled
+deterministically; meaning remains the Compiler's decision. See
+[transport regressions](../../tests/test_numeric_compiler_grounding.py).

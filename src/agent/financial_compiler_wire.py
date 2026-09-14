@@ -26,6 +26,8 @@ class CompilerReferenceError(ValueError):
 @dataclass(frozen=True, slots=True)
 class CompilerReferencesV1:
     entries: tuple[tuple[str, str], ...]
+    numeric_axes: tuple[tuple[str, tuple[str, ...]], ...]
+    owner_context_refs: tuple[tuple[str, tuple[str, ...]], ...]
 
     @classmethod
     def build(cls, catalog, obligations, query, payload):
@@ -68,7 +70,27 @@ class CompilerReferencesV1:
         surfaces(payload)
         if len(set(entries.values())) != len(entries):
             raise ValueError("compiler_reference_collision")
-        return cls(tuple(sorted(entries.items())))
+        exposed = set(payload.get("source_contexts_by_id") or {})
+        visible = set(payload.get("candidates_by_id") or {})
+        numeric = {row["candidate_id"]: row for row in catalog if row.get("kind") == "numeric"}
+        contexts_by_owner = {}
+        for cohort in payload.get("cohorts") or []:
+            permitted = contexts_by_owner.setdefault(cohort["owner_id"], set())
+            for candidate_id in cohort.get("candidate_ids") or []:
+                if candidate_id not in visible or candidate_id not in numeric:
+                    continue
+                permitted.update(entries[context["context_id"]]
+                    for context in numeric[candidate_id].get("source_contexts") or []
+                    if context.get("context_id") in exposed)
+        return cls(tuple(sorted(entries.items())),
+            tuple(sorted((key, tuple(interpretation_axis_sources(row))) for key, row in numeric.items())),
+            tuple(sorted((key, tuple(sorted(values))) for key, values in contexts_by_owner.items())))
+
+    def context_refs_for_owner(self, owner_id):
+        return dict(self.owner_context_refs).get(owner_id, ())
+
+    def axis_refs_for_candidate(self, candidate_id):
+        return dict(self.numeric_axes).get(candidate_id, ())
 
     def ref(self, source_id):
         try:
@@ -125,12 +147,27 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
     def numeric(selection, owner_id, *, dependencies=()):
         source_id = selected(selection["source_ref"], owner_id, dependencies=dependencies)
         interpretation = refs.project(selection.get("interpretation"), reverse=True)
-        contexts = refs.project(selection.get("context_bindings") or [], reverse=True)
+        contexts, interpretation_contexts = [], []
+        for evidence in selection.get("context_evidence") or []:
+            context_id = refs.resolve(evidence["context_ref"])
+            proof = {"context_id": context_id, "evidence_text": evidence["evidence_text"]}
+            if evidence["supports_interpretation"]:
+                if interpretation is None:
+                    raise CompilerReferenceError("context_without_interpretation", owner_id, source_id)
+                interpretation_contexts.append(proof)
+            elif not evidence["resolves"]:
+                raise CompilerReferenceError("unused_context_evidence", owner_id, source_id)
+            contexts.extend({**proof, **binding} for binding in evidence["resolves"])
         quote = selection.get("evidence_text")
         if source_id not in candidates:
             if interpretation is not None or contexts or quote is not None:
                 raise ValueError("dependency_has_source_grounding")
         else:
+            if interpretation is not None:
+                # Selection addresses exactly one cell: carry all its observed
+                # axes without asking the model to repeat (or invent) axis IDs.
+                interpretation.update(axis_refs=list(refs.axis_refs_for_candidate(source_id)),
+                    context_evidence=interpretation_contexts)
             if quote is not None:
                 result["source_assertions"].append({"source_bundle_id": bundle_ids[source_id],
                     "candidate_ids": [source_id], "evidence_text": quote})

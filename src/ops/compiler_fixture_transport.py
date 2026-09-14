@@ -27,10 +27,6 @@ def project_offline_program_to_wire(program, model):
         for key, value in node.items():
             if key == "request_unit_ids":
                 result[key] = [short_ref(item, "q") for item in value]
-            elif key == "axis_refs":
-                result[key] = [short_ref(item, "a") for item in value]
-            elif key == "context_id":
-                result[key] = short_ref(value, "x")
             elif isinstance(value, (dict, list)):
                 result[key] = addresses(value)
         return result
@@ -38,10 +34,29 @@ def project_offline_program_to_wire(program, model):
     def selection(source_id, binding, *, display=False):
         prefix = "source_display_" if display else "source_"
         references = dict(model.__compiler_references__.entries)
-        return {"source_ref": references.get(source_id, short_ref(source_id, "c")),
-            "interpretation": addresses(binding.get(prefix + "interpretation")),
-            "context_bindings": addresses(binding.get("source_display_context_bindings" if display else "context_bindings") or []),
-            "evidence_text": assertions.get(source_id)}
+        interpretation = deepcopy(binding.get(prefix + "interpretation"))
+        evidence = {}
+
+        def context(row):
+            key = (row["context_id"], row["evidence_text"])
+            if key not in evidence:
+                evidence[key] = {"context_ref": references.get(key[0], short_ref(key[0], "x")),
+                    "evidence_text": key[1], "supports_interpretation": False, "resolves": []}
+            return evidence[key]
+
+        if interpretation is not None:
+            own_axes = model.__compiler_references__.axis_refs_for_candidate(source_id)
+            if any(axis not in own_axes for axis in interpretation.pop("axis_refs", [])):
+                raise ValueError("offline_fixture_has_foreign_axis")
+            for row in interpretation.pop("context_evidence", []):
+                context(row)["supports_interpretation"] = True
+        for row in binding.get("source_display_context_bindings" if display else "context_bindings") or []:
+            context(row)["resolves"].append({"field": row["field"], "value": row["value"]})
+        result = {"source_ref": references.get(source_id, short_ref(source_id, "c")),
+            "interpretation": addresses(interpretation), "evidence_text": assertions.get(source_id)}
+        if evidence:
+            result["context_evidence"] = list(evidence.values())
+        return result
 
     def reading(row):
         result = {"source_ref": short_ref(row["candidate_id"], "c")}

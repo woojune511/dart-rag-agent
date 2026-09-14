@@ -60,7 +60,7 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                 compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
                 self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
                 self.assertEqual(len(llm.prompts), 1)
-                self.assertEqual(llm.models, ["CompilerResponseV1"])
+                self.assertEqual(llm.models, ["CompilerResponseV2"])
                 prompt = llm.prompts[0].to_messages()[0].content
                 schema = json.dumps(llm.model_instances[0].model_json_schema())
                 for field in ("subjects", "support", "claims", "evidence", "source_ref", "surface_ref"):

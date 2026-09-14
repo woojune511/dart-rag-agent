@@ -293,13 +293,13 @@ class _StructuredQueueLLM:
         return self
 
     def invoke(self, prompt):
-        if self.response_model.__name__ == "CompilerResponseV1":
+        if self.response_model.__name__ == "CompilerResponseV2":
             object.__setattr__(prompt, "fixture_references", self.response_model.__compiler_references__)
         self.prompts.append(prompt)
         if not self.responses:
             raise AssertionError("unexpected structured invocation")
         response = self.responses.pop(0)
-        if self.response_model.__name__ == "CompilerResponseV1" and isinstance(response, SemanticCalculationProgram):
+        if self.response_model.__name__ == "CompilerResponseV2" and isinstance(response, SemanticCalculationProgram):
             from tests.compiler_wire_test_support import wire_fixture
             return self.response_model.model_validate(wire_fixture(response, self.response_model))
         return response

@@ -292,7 +292,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         }
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=deepcopy(self.catalog)):
             state.update(agent._compile_semantic_calculation_program(state))
-        self.assertEqual(llm.models, ["CompilerResponseV1"] * expected_calls)
+        self.assertEqual(llm.models, ["CompilerResponseV2"] * expected_calls)
         self.assertEqual(len(llm.prompts), expected_calls)
         self.assertEqual(state["semantic_program_retry_count"], expected_calls - 1)
         state.update(execute_compiled_fixture(agent, state, state["semantic_candidate_catalog"]))

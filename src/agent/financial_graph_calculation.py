@@ -1997,19 +1997,24 @@ class FinancialAgentCalculationMixin:
                 active_prompt_catalog_json = _compiler_json(active_prompt_payload)
                 active_responsibility_context_json = ""
                 responsibility_prompt = ""
+                references = None
+                serialized_schema_bytes = None
+                prompt_obligations = (
+                    [item for item in obligations if str(item.get("obligation_id") or "") in set(retry_target_ids)]
+                    if attempt and retry_target_ids else obligations
+                )
+                compilation_scope = {
+                    "schema": "semantic_compilation_scope_v1",
+                    "active_obligation_ids": [str(item["obligation_id"]) for item in prompt_obligations],
+                    "question_role": "context_only",
+                    "request_units_by_id": project_request_units(build_request_units(query), prompt_obligations),
+                    "evidence_coverage": "bounded_excerpts",
+                    "document_absence_established": False,
+                }
                 try:
-                    prompt_obligations = (
-                        [
-                            item
-                            for item in obligations
-                            if str(item.get("obligation_id") or "")
-                            in set(retry_target_ids)
-                        ]
-                        if attempt and retry_target_ids
-                        else obligations
-                    )
                     references = CompilerReferencesV1.build(catalog, obligations, query, active_prompt_payload)
                     response_model = compiler_response_model(prompt_obligations, references)
+                    serialized_schema_bytes = len(_compiler_json(response_model.model_json_schema()).encode("utf-8"))
                     structured_llm = self._llm_for_phase("program_compilation").with_structured_output(response_model)
                     wire_payload = references.project(active_prompt_payload)
                     wire_payload["schema"] = "semantic_program_candidate_payload_v9"
@@ -2021,16 +2026,6 @@ class FinancialAgentCalculationMixin:
                         responsibility_prompt = CALCULATION_PROMPT_POLICY[
                             "semantic_program_output_responsibility_context_template"
                         ].format(context=active_responsibility_context_json)
-                    compilation_scope = {
-                        "schema": "semantic_compilation_scope_v1",
-                        "active_obligation_ids": [str(item["obligation_id"]) for item in prompt_obligations],
-                        "question_role": "context_only",
-                        "request_units_by_id": project_request_units(
-                            build_request_units(query), prompt_obligations,
-                        ),
-                        "evidence_coverage": "bounded_excerpts",
-                        "document_absence_established": False,
-                    }
                     template_key = (
                         "semantic_program_narrative_prompt_template"
                         if active_prompt_payload["reading_mode"] == "narrative_only"
@@ -2236,9 +2231,9 @@ class FinancialAgentCalculationMixin:
                             active_prompt_payload.get("source_bundle_fingerprint")
                             or ""
                         ),
-                        "compiler_schema": "compiler_response_v1",
-                        "serialized_schema_bytes": len(_compiler_json(response_model.model_json_schema()).encode("utf-8")),
-                        "reference_fingerprint": hashlib.sha256(_compiler_json(references.entries).encode()).hexdigest(),
+                        "compiler_schema": "compiler_response_v2",
+                        "serialized_schema_bytes": serialized_schema_bytes,
+                        "reference_fingerprint": hashlib.sha256(_compiler_json(references.entries).encode()).hexdigest() if references else "",
                         "source_context_fingerprint": active_prompt_payload.get("source_context_fingerprint", ""),
                         "source_context_count": len(active_prompt_payload.get("source_contexts_by_id") or {}),
                         "serialized_context_bytes": len(json.dumps(
@@ -2440,6 +2435,14 @@ class FinancialAgentCalculationMixin:
                                 "For each prose numeric selection, use its visible source_ref and "
                                 "copy a byte-exact continuous evidence_text from its own bundle "
                                 "covering the selected value span."
+                            ),
+                            "numeric_context_invariant": (
+                                "Code attaches the selected cell's complete axes. Do not emit axis_refs or context_bindings. "
+                                "For attached outside context use selection.context_evidence once per exact quote, "
+                                "choosing only context_ref values offered in this input's schema. "
+                                "supports_interpretation links that quote to interpretation; resolves carries only "
+                                "explicit field/value scope interpretations. If context_evidence is absent from the schema, omit it. "
+                                "Internal context_bindings/source_interpretation error locations refer to these assembled proofs."
                             ),
                             "narrative_claim_invariant": CALCULATION_PROMPT_POLICY[
                                 "semantic_program_narrative_repair_invariant"
