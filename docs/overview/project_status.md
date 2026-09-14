@@ -134,10 +134,12 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Request linkage alone did not fix reverse interpretation. Inspect the original
-  request, endpoint assignment and competing fixed-plan instructions provider-free;
-  `growth`-label bias is still a hypothesis, not established cause. Do not force formulas.
-  Lookup over-abstention and full-agent validation remain separate later work.
+- [Plan-hint ablation](../../benchmarks/results/plan_metric_hint_ablation_2026-09-15/README.md)
+  is prepared provider-free: only two post-exposure prompt fields change. `growth`
+  originates in the authored fixture, not a sampled Planner. Five diagnostic + 41
+  focused tests pass; fixed responses, full V2 envelopes, schema and permissions stay
+  identical. Model effect remains unmeasured; no production target clearing or paid call.
+  Next bounded direction-pair comparison is separate from lookup/full-agent work.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

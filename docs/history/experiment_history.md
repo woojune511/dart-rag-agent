@@ -8382,3 +8382,26 @@ References:
   Next inspect request/endpoint interpretation and competing plan instructions
   provider-free rather than adding fields or flipping formulas from this case alone.
 - [Immutable output and raw-response review](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Post-exposure plan metric hints, provider-free ablation
+
+- Inspected the failed direction pair's actual prompts and fixture origin on clean
+  `b56c9958`. `growth` is authored by the frozen fixture's `owner_for`, then copied
+  into label and metric_surfaces; no actual Planner was called. Planner failure and
+  causal label bias are not established. Existing direction instructions stay fixed.
+- Diagnostic-only copied prompt values clear those two derived-output fields after
+  exposure. Query/requests, canonical plan, source catalog, requirements, subjects,
+  concepts, scope/unit/period, permissions, schema and retry feedback remain unchanged.
+  No runtime rule or production hint-removal path was added; artifacts stay ignored.
+- Five diagnostic contracts and 41 existing focused tests pass. Two separate blocked-
+  socket captures are byte-identical, SHA
+  `5bee0e87b53fb018ef41544bc7597e1f37ebe805dc69e618482864b901a21d2f`.
+  Four saved cases replay their five original wire responses in both variants:
+  all program/validation/execution and complete V2 envelope bytes remain identical,
+  including the wrong reverse -10% and the correctly rejected first input placement.
+- Each initial prompt text shrinks 14 UTF-8 bytes, two metric mentions to zero;
+  this is not SDK-token or model-accuracy measurement. Provider/store writes 0,
+  predecessor bytes unchanged. A response-free initial-input pack is prepared,
+  not a paid admission. Next compare original direction pairs with/without hints
+  only after a new bounded manifest; no correction or automatic rerun was performed.
+- [Provider-free analysis and comparison inputs](../../benchmarks/results/plan_metric_hint_ablation_2026-09-15/README.md).

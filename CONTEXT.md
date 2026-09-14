@@ -124,10 +124,12 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Request linkage alone did not fix reverse interpretation. Inspect exact request,
-   endpoint assignment and competing fixed-plan instructions provider-free before
-   another experiment; a `growth`-label bias remains a hypothesis. Lookup scope /
-   over-abstention is separate. Do not force formulas or equate structure with meaning.
+1. [Plan-hint ablation](benchmarks/results/plan_metric_hint_ablation_2026-09-15/README.md)
+   isolates two model-visible metric fields after exposure. `growth` came from the
+   authored fixture, not a sampled Planner. Five diagnostic + 41 focused tests pass;
+   two captures and fixed-response execution/envelope/schema bytes are identical.
+   No runtime change or new model evidence. Next compare original direction pairs
+   with/without those hints under a new admission; do not force formulas or clear runtime targets.
 2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
