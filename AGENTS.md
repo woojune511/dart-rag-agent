@@ -31,6 +31,8 @@
    - LLM은 intent, concept, evidence interpretation처럼 의미 판단에 쓴다.
    - 산술, 단위 변환, dependency binding, dedupe, ordering, validation은 deterministic code로 처리한다.
    - deterministic fallback은 없는 근거를 만들어내는 답변 생성이 아니라, 이미 구조화된 row/evidence를 조립하는 경우에만 허용한다.
+   - Planner의 주체·항목 표현은 요청 보존과 독해 목표이지 원문 표현의 허용 목록이 아니다. Compiler는 요청 구간과 선택한 셀의 전체 축·연결 문맥의 대응을 기록한다. 코드는 물리적 연결을 검증하며, 문자 동일성으로 의미 동등성을 판정하지 않는다.
+   - 원문 연결 검증 통과와 의미 정확도를 별도로 보고한다. 잘못된 대상 해석은 익명 의미 대조 평가에 남기고, 다른 셀·미연결 문맥 인용은 provider-free 계약에서 거절한다.
 
 3. **Evidence-first.**
    - 답변 품질 개선은 먼저 retrieval/evidence coverage를 확인한 뒤 진행한다.

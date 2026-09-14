@@ -1,4 +1,4 @@
-"""Whole cell-axis subjects, not substring/filing identity, authorize numeric use."""
+"""Source-proof gates and former identity contrasts (semantic review, not code truth)."""
 
 from copy import deepcopy
 import hashlib
@@ -11,6 +11,7 @@ from src.agent.financial_calculation_execution import (
 )
 from src.agent.financial_graph_calculation import _semantic_candidate_cohorts, _retry_candidate_exclusions
 from src.agent.financial_graph_models import SemanticCalculationProgram
+from src.agent.financial_source_interpretation import interpretation_axis_sources
 from src.agent.financial_reconciliation_candidates import semantic_candidate_catalog_fingerprint
 from tests.semantic_program_test_support import (
     FinancialAgent, _StructuredQueueLLM, _candidate, _obligation, _requirement, _binding,
@@ -36,8 +37,18 @@ def direct(candidate_id):
     return {"status": "ready", "direct_bindings": [{"obligation_id": "answer", "candidate_id": candidate_id}]}
 
 
+def authored_interpretation(candidate, subject):
+    """Explicit fixture authorship, not a runtime fallback or a model accuracy oracle."""
+    return {"request_unit_ids": ["request_001"], "subject": subject, "metric": "cash flow",
+            "axis_refs": list(interpretation_axis_sources(candidate)), "context_evidence": []}
+
+
 class NumericSubjectAuthorityTests(unittest.TestCase):
-    def validate(self, candidate, obligation=None, program=None):
+    def validate(self, candidate, obligation=None, program=None, *, interpreted=False):
+        if interpreted:
+            program = deepcopy(program or direct(candidate["candidate_id"]))
+            program["direct_bindings"][0]["source_interpretation"] = authored_interpretation(
+                candidate, (obligation or owner())["semantic_target"]["local_subjects"][0])
         return validate_semantic_calculation_program(program=program or direct(candidate["candidate_id"]),
             obligations=[obligation or owner()], candidate_catalog=[candidate], query="Return the named subject's amount.")
 
@@ -47,7 +58,7 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         plan = _semantic_candidate_cohorts([group, exact], [owner()])
         self.assertEqual(plan["candidate_match_by_id"]["exact"]["answer"]["subject_state"], "match")
         self.assertNotEqual(plan["candidate_match_by_id"]["group"]["answer"]["subject_state"], "match")
-        self.assertEqual(self.validate(exact)["status"], "ready")
+        self.assertEqual(self.validate(exact, interpreted=True)["status"], "ready")
         reverse = _semantic_candidate_cohorts([exact, group], [owner()])
         self.assertEqual(plan["candidate_ids_by_owner"], reverse["candidate_ids_by_owner"])
         self.assertEqual(plan["candidate_match_by_id"], reverse["candidate_match_by_id"])
@@ -59,8 +70,11 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
                 with self.subTest(axis=axis, surface=surface):
                     result = self.validate(candidate)
                     self.assertNotEqual(result["status"], "ready")
-                    self.assertTrue(any(error["code"] == "candidate_subject_unresolved" for error in result["errors"]))
-                    self.assertEqual(self.validate(candidate, owner(surface))["status"], "ready")
+                    self.assertTrue(any(error["code"] == "missing_source_interpretation" for error in result["errors"]))
+                    self.assertEqual(self.validate(candidate, owner(surface), interpreted=True)["status"], "ready")
+                    # Former member/group equivalence assertions are semantic controls.
+                    # A source-linked but wrong interpretation is not code-proven correct.
+                    self.assertEqual(self.validate(candidate, interpreted=True)["status"], "ready")
 
     def test_partial_name_is_unknown_not_an_excluded_candidate(self):
         candidate = numeric()
@@ -68,9 +82,9 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         plan = _semantic_candidate_cohorts([candidate], [owner()])
         self.assertEqual(plan["candidate_match_by_id"]["group"]["answer"]["state"], "unknown_only")
         rejected = self.validate(candidate)
-        issue = next(error for error in rejected["errors"] if error["code"] == "candidate_subject_unresolved")
+        issue = next(error for error in rejected["errors"] if error["code"] == "missing_source_interpretation")
         self.assertEqual((issue["candidate_id"], issue["owner_id"], issue["location"], issue["repair_action"]),
-            ("group", "answer", "direct_binding", "repair_program"))
+            ("group", "answer", "direct_binding.context_bindings", "repair_program"))
         self.assertEqual(_retry_candidate_exclusions(program=direct("group"),
             validation_errors=rejected["errors"], target_obligation_ids=["answer"]), {})
         self.assertEqual(candidate, before)
@@ -78,11 +92,11 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
 
     def test_question_aliases_footnotes_case_and_spaces_preserve_whole_identity(self):
         candidate = numeric(subject=" ALPHA   Cells (*1,5) ")
-        self.assertEqual(self.validate(candidate)["status"], "ready")
+        self.assertEqual(self.validate(candidate, interpreted=True)["status"], "ready")
         candidate = numeric(subject="대상법인")
         obligation = owner()
         obligation["semantic_target"]["local_subjects"].append("대상법인")
-        self.assertEqual(self.validate(candidate, obligation)["status"], "ready")
+        self.assertEqual(self.validate(candidate, obligation, interpreted=True)["status"], "ready")
         self.assertNotEqual(self.validate(numeric(subject="Alpha / Cells"))["status"], "ready")
 
     def test_more_specific_axis_cannot_borrow_parent_or_metadata_identity(self):
@@ -112,7 +126,7 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         obligation = owner()
         obligation["scope"]["segment"] = "Alpha Cells"
         result = self.validate(candidate, obligation)
-        self.assertIn("candidate_subject_mismatch", [error["code"] for error in result["errors"]])
+        self.assertIn("missing_source_interpretation", [error["code"] for error in result["errors"]])
 
     def test_whole_local_identity_does_not_override_an_independent_segment(self):
         candidate, obligation = numeric(subject="Alpha Cells"), owner()
@@ -121,7 +135,7 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         result = self.validate(candidate, obligation)
         self.assertNotEqual(result["status"], "ready")
         plan = _semantic_candidate_cohorts([candidate], [obligation])
-        self.assertEqual(plan["candidate_match_by_id"]["group"]["answer"]["state"], "explicit_conflict")
+        self.assertNotEqual(plan["candidate_match_by_id"]["group"]["answer"]["state"], "explicit_conflict")
 
     def test_derived_input_requires_its_own_subject_even_with_soft_scope_override(self):
         obligation = owner(kind="derived_value")
@@ -132,8 +146,8 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         program = {"status": "ready", "expressions": [{"obligation_id": "answer", "formula": "A",
             "variable_bindings": [binding], "source_display_candidate_id": None, "source_display_reason": "No separate display."}]}
         result = self.validate(numeric(), obligation, program)
-        self.assertTrue(any(error["code"] == "candidate_subject_unresolved" and error["owner_id"] == "answer:input"
-            and error["location"] == "expression_input" for error in result["errors"]))
+        self.assertTrue(any(error["code"] == "missing_source_interpretation" and error["owner_id"] == "answer:input"
+            for error in result["errors"]))
         execution = execute_semantic_calculation_program(program=program, obligations=[obligation], candidate_catalog=[numeric()], query="Return the amount.")
         self.assertEqual(execution["outputs"], [])
 
@@ -142,10 +156,11 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         obligation = owner(kind="derived_value")
         obligation["evidence_requirements"] = [_requirement("answer:input", "cash flow")]
         program = {"status": "ready", "expressions": [{"obligation_id": "answer", "formula": "A",
-            "variable_bindings": [_binding("A", "exact", "answer:input")],
+            "variable_bindings": [{**_binding("A", "exact", "answer:input"),
+                "source_interpretation": authored_interpretation(exact, "Alpha Cells")}],
             "source_display_candidate_id": "group", "source_display_reason": "Selected display."}]}
         result = validate_semantic_calculation_program(program=program, obligations=[obligation], candidate_catalog=[exact, group], query="Return the amount.")
-        self.assertTrue(any(error["code"] == "candidate_subject_unresolved" and error["location"] == "source_display"
+        self.assertTrue(any(error["code"] == "missing_source_interpretation" and error["location"] == "source_display.context_bindings"
             for error in result["errors"]))
 
     def test_unknown_subject_retries_same_cohort_and_preserves_accepted_island(self):
@@ -153,7 +168,8 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         stable_owner["obligation_id"] = "stable"
         catalog, obligations = [numeric("stable-value", "Beta Cells"), numeric()], [stable_owner, owner()]
         accepted = SemanticCalculationProgram.model_validate({"status": "ready",
-            "direct_bindings": [{"obligation_id": "stable", "candidate_id": "stable-value"}],
+            "direct_bindings": [{"obligation_id": "stable", "candidate_id": "stable-value",
+                "source_interpretation": authored_interpretation(catalog[0], "Beta Cells")}],
             "rationale": "Preserve this accepted result."})
         wrong = SemanticCalculationProgram.model_validate(direct("group"))
         abstain = SemanticCalculationProgram.model_validate({"status": "ambiguous", "ambiguous_obligation_ids": ["answer"],
@@ -197,7 +213,7 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
             candidate_catalog=catalog, query=query, compilation_envelope=compiled["semantic_compilation_envelope"],
             require_compilation_envelope=True)
         self.assertEqual(execution["outputs"], [])
-        self.assertIn("candidate_subject_unresolved", str(agent.llm.prompts[-1]))
+        self.assertIn("missing_source_interpretation", str(agent.llm.prompts[-1]))
         self.assertEqual(compiled["semantic_program_validation"]["missing_obligation_ids"], ["answer"])
 
 

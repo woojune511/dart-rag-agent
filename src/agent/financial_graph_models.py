@@ -93,18 +93,17 @@ class AnswerObligationScope(_DeferredBaseModel):
 
 
 class SemanticTargetV1(_DeferredBaseModel):
-    """Typed semantic identity used to admit evidence for one owner."""
+    """Request-preserving reading targets, not a source-name allowlist."""
 
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     local_subjects: List[str] = Field(
         default_factory=list,
         description=(
-            "Complete query-written identities of the requested row, column or sentence subjects, "
-            "not the whole request phrase or descriptive wrappers. Do not shorten complete names "
-            "or identity-bearing modifiers/group membership. Preserve other request conditions "
-            "through request_unit_ids and applicable scope fields, not by appending them to names. "
-            "Keep query-written aliases only; do not invent translations or source-name equivalents. "
+            "Query-written subject targets, preserving modifiers and group membership. "
+            "These guide retrieval and reading, not an allowlist of source expressions. "
+            "Keep the request intact; the compiler explains its correspondence to observed axes/context. "
+            "Do not invent translations or source-name equivalents in the plan. "
             "Each required input identifies its own subject. The filing company in scope.company "
             "does not establish a value's local subject."
         ),
@@ -282,11 +281,29 @@ class SemanticProgramContextBinding(_DeferredBaseModel):
     value: str = Field(min_length=1)
 
 
+class SourceInterpretationContext(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    context_id: str
+    evidence_text: str = Field(min_length=1)
+
+
+class SourceInterpretationV1(_DeferredBaseModel):
+    """Model interpretation linked to the unchanged request and own sources."""
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    request_unit_ids: List[str] = Field(min_length=1)
+    subject: str = Field(min_length=1)
+    metric: str = Field(min_length=1)
+    axis_refs: List[str] = Field(default_factory=list)
+    context_evidence: List[SourceInterpretationContext] = Field(default_factory=list)
+    source_evidence_text: Optional[str] = None
+
+
 class SemanticProgramDirectBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     obligation_id: str
     candidate_id: str
+    source_interpretation: Optional[SourceInterpretationV1] = None
     context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
@@ -302,6 +319,7 @@ class SemanticProgramVariableBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     variable: str
+    source_interpretation: Optional[SourceInterpretationV1] = None
     context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
     source_id: str = Field(description="A candidate_id or a previously produced obligation_id")
     source_requirement_id: str = Field(
@@ -356,6 +374,7 @@ class SemanticProgramExpression(_DeferredBaseModel):
         description="Explain why the source-stated result was selected or not selected.",
     )
     source_display_context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
+    source_display_interpretation: Optional[SourceInterpretationV1] = None
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
         description=(

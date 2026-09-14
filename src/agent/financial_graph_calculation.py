@@ -36,6 +36,7 @@ from src.agent.financial_narrative_claims import project_narrative_retry_drafts
 from src.agent.financial_compiler_debug import project_compiler_attempt
 from src.utils.request_diagnostics import diagnostic_location, diagnostics_enabled, record_diagnostic
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
+from src.agent.financial_source_interpretation import interpretation_axis_sources
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
     project_prompt_cohort, project_prompt_match, project_prompt_retry_feedback, project_reading_payload,
@@ -581,9 +582,10 @@ def _rank_applicable_owner_candidates(
         candidate_id = str(candidate.get("candidate_id") or "").strip()
         if not candidate_id:
             continue
-        base_applicability_by_id[candidate_id] = semantic_candidate_applicability(
+        base_applicability_by_id[candidate_id] = source_candidate_applicability(
             candidate,
             owner,
+            parent_owner,
         )
     matches_by_id = build_candidate_matches(
         catalog,
@@ -1608,6 +1610,8 @@ class FinancialAgentCalculationMixin:
                     item.get("local_entity_surfaces") or []
                 ),
                 "column_headers": list(item.get("column_headers") or []),
+                **({"interpretation_axis_sources": interpretation_axis_sources(item)}
+                   if item.get("kind") == "numeric" and item.get("candidate_kind") != "sentence_value" else {}),
                 "raw_value": str(item.get("raw_value") or ""),
                 "raw_unit": str(item.get("raw_unit") or ""),
                 **({"source_unit_hint": item.get("source_unit_hint", ""),

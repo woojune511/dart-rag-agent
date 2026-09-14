@@ -860,14 +860,13 @@ def build_candidate_matches(
         )
         explicit_conflict = (
             scope_state == "explicit_conflict"
-            or subject_state == "conflict"
             or unit_state == "conflict"
         )
         if explicit_conflict:
             state = "explicit_conflict"
         elif (
             scope_state == "compatible"
-            and subject_state != "unknown"
+            and subject_state in {"unspecified", "match"}
             and unit_state != "unknown"
             and (not metric_is_declared or metric_state != "unknown")
         ):
