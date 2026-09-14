@@ -46,7 +46,7 @@ class AuthoredDisplayLLM:
         result = {"selection": selection("reported")} if self.direct else {
             "inputs": {"initial": [{**selection("initial"), "variable": "P"}],
                        "final": [{**selection("final"), "variable": "Q"}]},
-            "formula": "(Q - P) / P * 100", "display_unit": "%",
+            "comparison_request_unit_id": None, "formula": "(Q - P) / P * 100", "display_unit": "%",
             "source_display": selection("reported") if self.use_display else None,
             "source_display_reason": ("The request includes the reported figure alongside calculation."
                 if self.use_display else "The request asks for calculation from the quantities only."),
@@ -80,11 +80,11 @@ class CompilerDisplayIntentTests(unittest.TestCase):
         self.assert_ready(compiled)
         return execute_compiled_fixture(agent, {**state, **compiled}, state["semantic_candidate_catalog"])
 
-    def test_production_schema_explains_request_priority_without_new_fields(self):
+    def test_production_schema_explains_request_priority_without_extra_display_fields(self):
         agent, _, _ = compile_case(fixture(), "Calculate the change using the quantities only.")
         result = agent.llm.models[0].model_json_schema()["$defs"]["Calculation_answer"]
         props = result["properties"]
-        self.assertEqual(set(props), {"inputs", "formula", "display_unit", "display_format",
+        self.assertEqual(set(props), {"comparison_request_unit_id", "inputs", "formula", "display_unit", "display_format",
             "source_display", "source_display_reason", "compatibility_refs", "constants"})
         self.assertIn("source_display", result["required"])
         self.assertIn({"type": "null"}, props["source_display"]["anyOf"])

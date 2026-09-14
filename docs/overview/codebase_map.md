@@ -32,7 +32,7 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references and exact row cell partitions |
 | `src/agent/financial_candidate_matching.py` | factorized exposure ranking and diagnostics; free subject/metric differences are relevance, not source-use prohibitions |
 | `src/agent/financial_graph_calculation.py` | bundle exposure then hard-condition owner authority over the visible union; request-grounded islands, typed dispatch/targeted retry, verified dependency inputs and terminal admission propagation |
-| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2 schemas; selected-cell axes assembled once, one numeric context quote with declared uses and owner-exposed addresses; sole explicit lowering, no inferred repair or legacy production response |
+| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2 schemas; nullable comparison request ID with existing named inputs; selected-cell axes and one numeric context quote with declared uses; sole explicit lowering, no inferred repair or legacy production response |
 | `src/agent/financial_source_interpretation.py` | owned request to full cell-axis/attached-context correspondence; exact physical linkage, explicitly not semantic-equivalence proof |
 | `src/agent/financial_output_relationships.py` | explicit output sets with shared owned request excerpts; distinct from dependencies and physical-row constraints |
 | `src/agent/financial_compiler_presentation.py` | canonical addressed source layout and filing metadata projected to wire v9; owner permission and responsibility allowlists, no ranking-state instructions |
@@ -41,7 +41,7 @@
 | `src/agent/financial_program_projection.py` | explicit local subject references and one claim renderer; parent text/evidence/ID projection and description-only separation, no implicit inheritance or historical ID widening |
 | `src/agent/financial_narrative_claims.py` | separate exact subject/fact ranges, fact-local numbers and raw/rendered trace; unique whitespace-only subject witness with original span/provenance, shared with owner/requirement-filtered retry diagnostics; no source/model rewrite, range repair or semantic entailment |
 | `src/config/retrieval_policy.py` | declarative retrieval priors, compact kind-specific planner/compiler and retry instructions; not source or attribution authority |
-| `src/agent/financial_calculation_execution.py` | hard source conditions, units/AST/provenance and immutable execution; free interpretation scope stays on proofs, never overwrites source facts or becomes an expression equality gate |
+| `src/agent/financial_calculation_execution.py` | hard source conditions, units/AST/provenance and immutable execution; owned comparison request to reference/target trace, not direction certification; free scope stays on proofs, not source facts/equality gates |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_numeric_surface.py` | shared numeric surfaces plus catalog-only standalone scalar exposure; legacy identity order and evaluation extraction preserved |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |

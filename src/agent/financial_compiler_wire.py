@@ -227,6 +227,8 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
             display_id, display_interpretation, display_contexts = (numeric(content["source_display"], owner_id)
                 if content["source_display"] is not None else (None, None, []))
             result["expressions"].append({"obligation_id": owner_id, "variable_bindings": bindings,
+                "comparison_request_unit_id": (refs.resolve(content["comparison_request_unit_id"])
+                    if content["comparison_request_unit_id"] is not None else None),
                 **{key: content[key] for key in ("formula", "display_unit", "display_format", "source_display_reason", "constants")},
                 "source_display_candidate_id": display_id, "source_display_interpretation": display_interpretation,
                 "source_display_context_bindings": display_contexts,

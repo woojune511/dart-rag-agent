@@ -168,3 +168,21 @@ original responses replay without editing, with mock calls 10→8 / retries 2→
 the forward -10% now executable. Reverse direction and over-abstention remain wrong.
 All initial prompts/schemas/visible IDs and six unaffected programs/output bytes
 are identical. Full unittest 1,694 passed; no new model or paid/full-agent claim.
+
+### Explicit comparison request/input wiring
+
+The next seam adds only required nullable `comparison_request_unit_id` to calculation
+wire results, before inputs/formula. The model chooses an owned original request
+and names its endpoint inputs `reference` and `target`; no duplicate candidate role,
+request quote or source ID is generated. Code copies the exact request text/span and
+endpoint source/requirement IDs into `comparison_resolution`, then existing source,
+unit, AST/binding and immutable execution checks apply. Direct/narrative schemas
+remain unchanged. Missing/invalid links repair the same cohort within the existing
+one retry; accepted island/dependency program bytes remain intact.
+
+This is linkage, not a semantic direction gate: a null choice, consistently wrong
+endpoint assignment or reversed formula can still be semantically wrong. Frozen
+paired questions vary only direction on identical sources; authored responses test
+both correct wiring and those semantic negatives. No code reads period vocabulary
+to infer endpoints, edits formulas or reclassifies existing paid results. Model
+improvement needs a separately bounded successor, not a provider-free pass claim.

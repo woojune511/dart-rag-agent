@@ -21,6 +21,7 @@ from src.agent.financial_answer_slots import (
     build_operand_value_slot,
 )
 from src.agent.financial_formula_eval import safe_eval_formula
+from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
 from src.agent.financial_narrative_claims import validate_narrative_claims
@@ -1028,6 +1029,27 @@ def _resolve_source_context_bindings(
     return resolved, resolution
 
 
+def _resolve_comparison_request(expression, obligation, query):
+    """Check request/variable linkage only; never infer direction or edit a formula."""
+    unit_id = expression.get("comparison_request_unit_id")
+    if unit_id is None:
+        return None
+    if not isinstance(unit_id, str) or not unit_id.strip():
+        raise ValueError("invalid_comparison_request")
+    units = {unit.request_unit_id: unit for unit in build_request_units(query)}
+    if unit_id not in (obligation.get("request_unit_ids") or []) or unit_id not in units:
+        raise ValueError("comparison_request_not_owned")
+    unit = units[unit_id]
+    bindings = {str(row.get("variable") or "").strip(): row for row in expression["variable_bindings"]}
+    if not {"reference", "target"} <= bindings.keys():
+        raise ValueError("comparison_binding_mismatch")
+    return {"request_unit_id": unit_id, "requested_text": unit.text, "request_span": [unit.start, unit.end],
+        **{variable: {"variable": variable, "source_id": str(bindings[variable].get("source_id") or "").strip(),
+            "source_requirement_id": bindings[variable].get("source_requirement_id", "")}
+            for variable in ("reference", "target")},
+        "validation_scope": "request_binding_not_semantic_equivalence"}
+
+
 def validate_semantic_calculation_program(
     *,
     program: Mapping[str, Any],
@@ -1586,6 +1608,15 @@ def validate_semantic_calculation_program(
             if len(set(variables)) != len(variables):
                 error("duplicate_variable_binding", obligation_id)
                 invalid = True
+            expression.pop("comparison_resolution", None)
+            if not invalid:
+                try:
+                    comparison = _resolve_comparison_request(expression, obligation, query)
+                    if comparison is not None:
+                        expression["comparison_resolution"] = comparison
+                except ValueError as exc:
+                    error(str(exc), obligation_id, location="expression.comparison_request")
+                    invalid = True
             formula = str(expression.get("formula") or "").strip()
             try:
                 body = _formula_body(formula)
@@ -3563,6 +3594,8 @@ def execute_semantic_calculation_program(
             **({"source_display_interpretation_resolution": expression["source_display_interpretation_resolution"]}
                if expression.get("source_display_interpretation_resolution") else {}),
             "input_rows": input_rows,
+            **({"comparison_resolution": deepcopy(expression["comparison_resolution"])}
+               if expression.get("comparison_resolution") else {}),
         }
 
     for binding in validation["valid_narrative_bindings"]:

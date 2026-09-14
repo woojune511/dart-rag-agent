@@ -341,6 +341,9 @@ class SemanticProgramExpression(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     obligation_id: str
+    # Historical/internal formulas may have no explicit comparison declaration.
+    # The production wire independently requires the nullable choice.
+    comparison_request_unit_id: Optional[str] = None
     variable_bindings: List[SemanticProgramVariableBinding] = Field(default_factory=list)
     formula: str
     display_unit: str = Field(
@@ -741,6 +744,10 @@ def compiler_response_model(obligations, refs):
         elif kind == "derived_value":
             inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)
             result = create_model("Calculation_" + key, __base__=WireModel,
+                comparison_request_unit_id=(Optional[str], Field(description=(
+                    "For a directed comparison, select an owned request unit ID and name its endpoint inputs "
+                    "reference and target in both inputs and formula. Null for other calculations. "
+                    "The request, not source period labels, defines these endpoints."))),
                 inputs=(inputs, ...), formula=(str, ...), display_unit=(str, ""), display_format=(str, ""),
                 source_display=(Optional[numeric_model(owner["obligation_id"])], Field(description=(
                     "Primary source-stated display only when consistent with the linked request. "

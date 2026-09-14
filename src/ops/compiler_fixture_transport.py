@@ -98,6 +98,9 @@ def project_offline_program_to_wire(program, model):
                     return {**selection(binding["source_id"], binding), "variable": binding["variable"],
                         "scope_applicability_fields": binding.get("scope_applicability_fields") or []}
                 result = {"inputs": groups(key, "inputs", row.get("variable_bindings") or [], operand),
+                    # Explicit offline projection: absence stays null. Do not
+                    # infer comparison intent or rename historical variables.
+                    "comparison_request_unit_id": row.get("comparison_request_unit_id"),
                     "formula": row["formula"], "display_unit": row.get("display_unit", ""), "display_format": row.get("display_format", ""),
                     "source_display": selection(row["source_display_candidate_id"], row, display=True) if row.get("source_display_candidate_id") else None,
                     "source_display_reason": row.get("source_display_reason", ""),

@@ -18,10 +18,12 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
   request. Existing nullable choice/reason fields suffice; no intent classifier,
   keyword gate, extra field or call was added. The preserved synthetic display pair
   passes the bounded model successor below; broader accuracy is not established.
-- Numeric reading instructions distinguish requested comparison reference/target
-  from period labels/order, and reported-row lookup from unrequested aggregation.
-  Genuine ambiguity stays unanswered; no formula repair or forced answer/retry.
-  The bounded model probe below still exposes abstention, scope and direction errors.
+- Calculations now explicitly select nullable `comparison_request_unit_id` before
+  binding existing variables `reference`/`target`. Code copies the owned exact request
+  and source/requirement links into trace; no repeated model quote, new candidate role,
+  direction inference, formula repair or additional call. Other calculations choose null.
+  This wiring is locally tested, not new model accuracy; wrong meanings remain negatives.
+  Reported-row lookup versus aggregation and genuine abstention remain separate issues.
 - Existing Compiler calls interpret the selected source. Numeric selections requiring
   local subject/scope interpretation carry request-to-own-axis/attached-context
   correspondence; code checks source linkage, not semantic equivalence.
@@ -93,11 +95,13 @@ and [one-question continuation](benchmarks/results/request_source_boundary_remai
 retain their original results, including over-abstention, reverse comparison and a
 token-count 404 of unestablished cause. General bare-scalar admission preserves old
 candidate identities and evaluation extraction; no expected operands were injected.
-Current Python 3.13 scope-isolation gate: 141 focused, 24 import/topology/docs,
-domain audit 83, pycompile/diff passed. Full unittest **1,694 passed**, no skips
-(61.383s). Nine new contracts preserve raw/attached source scope, signed arithmetic,
-source display, known filing/consolidation conflicts and proof tamper rejection.
-Test-only authored controls and saved responses are not new model-accuracy evidence.
+Current comparison-binding gate: 190 focused, 24 import/topology/docs and domain audit 83 passed.
+Twelve new contracts cover direction-only pairs, signs/order, exact owned requests,
+null/schema/hidden-source/period checks, zero reference, dependency repair, accepted
+island bytes and V2 tampering. Full unittest **1,706/1,706**, no skips (71.314s);
+pycompile/diff checks passed. Authored replies are not model-accuracy evidence.
+One paired fixture grows prompt/schema by 298/387 UTF-8 bytes and response by 43;
+one mock call, no retry. These are local serializations, not SDK tokens or billing.
 
 [Exact scope-isolation replay](benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md)
 reuses all eight paid cases' original wire responses with blocked sockets. The forward
@@ -118,10 +122,10 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Scope isolation is locally verified. Remaining model issues are requested lookup
-   scope/abstention and comparison reference preservation, not the same execution
-   gate. Fix the next interpretation seam against fixed independent contrasts;
-   do not force a row, flip a formula, relabel criteria or repeat a failed prompt.
+1. Comparison request/input wiring is locally verified; its model effect remains
+   unmeasured. Next use fixed same-source direction pairs in a new bounded Compiler
+   probe before full-agent work. Requested lookup scope/over-abstention is separate;
+   do not force a row/formula, relabel criteria or treat structural checks as meaning.
 2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

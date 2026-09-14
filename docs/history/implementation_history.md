@@ -12815,3 +12815,37 @@ are complete. It remains only as an audit record, not an active priority.
 - Remaining work is request lookup scope/abstention and comparison direction as
   separate model interpretation problems, not another free-label gate or a forced
   row/formula correction. [Exact replay](../../benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md).
+
+## Request-local comparison endpoints (2026-09-15)
+
+- Baseline `f37c828f`; Compiler request/input representation seam. The preserved
+  paid reverse-direction error was not an arithmetic defect: a free explanation
+  and arbitrary input names did not retain a checkable request-to-endpoint link.
+- Production calculations now require one nullable `comparison_request_unit_id`,
+  before inputs/formula. Comparisons select an owned unit and use existing variable
+  names `reference`/`target`; code copies its exact text/Python span and the bound
+  source/requirement IDs. Reusing request addresses avoids a second model-written
+  quote, additional role enum, candidate classification or endpoint ID list.
+- Validator recomputes `comparison_resolution`; existing formula-name/source/unit
+  checks and V2 program/validation/content fingerprints remain authoritative.
+  Bad links repair only the failed output with the same cohort, within the existing
+  one retry. Independent accepted comparisons and accepted dependency bindings keep
+  identical program bytes. No formula editing, intent inference or extra call.
+- Twelve new contracts fix same-source direction/paraphrase pairs, values/signs/year
+  and candidate-order variations, copied Unicode request spans, null/omission rules,
+  source/period violations, zero reference and proof tampering. Wrong endpoint
+  assignment or reversed formula remains a structurally valid semantic negative;
+  explicit null is not proof that the request needs no comparison. Previous tests
+  retain their choices/criteria through explicit null offline projections only.
+- Test setup corrections concerned diagnostics keys and missing raw-input requirements
+  in a percentage-output fixture, not changes to runtime admission or old criteria.
+  No historical artifact or actual store/dataset was changed. Authored replies do
+  not establish model improvement or current full-agent acceptance.
+- One synthetic fixture versus baseline: local prompt UTF-8 bytes 18,242→18,540,
+  compact schema 4,463→4,850 and authored response 558→601; one mock call, zero retry.
+  These are serialization sizes, not measured SDK tokens, latency, bills or accuracy.
+- Python 3.13: focused 190/190, import/topology/docs 24/24, domain audit 83 reviewed
+  literals, pycompile/diff checks. Full unittest **1,706/1,706**, no skips (71.314s).
+  Provider/embedding/ingest/real store writes 0; no paid manifest/run prepared.
+  Next: a bounded model probe of fixed direction-only pairs, then the separate
+  reported-row over-abstention issue. Do not relabel predecessor outcomes.

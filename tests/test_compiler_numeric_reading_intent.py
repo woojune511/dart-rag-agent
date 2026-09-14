@@ -37,7 +37,8 @@ def calculation(catalog, formula, *, swap_source=False):
         return {"inputs": {
             "current": [{**selection(refs, previous if swap_source else current, "quantity"), "variable": "A"}],
             "previous": [{**selection(refs, previous, "quantity"), "variable": "B"}]},
-            "formula": formula, "display_unit": "%", "source_display": None,
+            # Legacy authored formula witness, not a new comparison interpretation.
+            "comparison_request_unit_id": None, "formula": formula, "display_unit": "%", "source_display": None,
             "source_display_reason": "The request asks for a calculated comparison."}
     return respond
 

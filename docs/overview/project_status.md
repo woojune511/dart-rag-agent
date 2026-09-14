@@ -17,7 +17,7 @@ checks. Baseline: `d9c36d8d`.
 | Model transport | CompilerResponseV2; selected-cell axes assembled by code, one outside-context quote with declared uses and owner-exposed addresses; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
-| Numeric reading | Request defines comparison reference/target; reported-row lookup differs from aggregation; genuine gaps remain unanswered, no semantic auto-repair |
+| Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
 | Execution | V2 fingerprints; interpretation scope stays on proofs, never overwrites source/context facts; no free-label expression gate; units/physical constraints/explicit output relations retained |
 
 Ranking factors and free subject/metric mismatch diagnostics no longer masquerade
@@ -33,10 +33,10 @@ The separately delegated compiler-only verification is recorded below.
 
 ## Local verification
 
-Python 3.13 scope-isolation focused tests **141/141**, import/topology/docs **24/24**,
-domain audit **83 reviewed literals**, pycompile and `git diff --check` passed.
-Full unittest **1,694/1,694**, no skips (61.383s). Nine new scope contracts use real
-normalization and preserve source/context facts, hard conflicts, displays and V2 proofs.
+Python 3.13 comparison-binding focused **190/190**, import/topology/docs **24/24**,
+domain audit **83 reviewed literals**, pycompile/diff passed. Full unittest
+**1,706/1,706**, no skips (71.314s). Twelve new contracts use actual normalization,
+direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
 byte-identical; test-only copies explicitly author new request/proof/transport fields.
 An authored response is an execution witness, not a sampled model answer.
@@ -54,8 +54,8 @@ positive/negative/equal values, direct precision and query/program tampering.
 One authored expression grows 16,474 → 17,062 prompt bytes and 4,151 → 4,454 schema
 bytes; candidate fingerprint/permissions and one mock call are unchanged.
 No new schema fields, classifier or semantic validator; no SDK-token/accuracy claim.
-Seven numeric-reading contracts cover both directions, signs, names/years/order,
-equal-valued parent/child axes, true gaps, unforced abstention and forbidden periods.
+Comparison wiring adds one nullable request ID, not a quote or candidate role. One
+fixture's local prompt/schema/response grows 298/387/43 UTF-8 bytes; one mock call, no retry.
 The [latest exact-response replay](../../benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md)
 uses eight saved cases with blocked sockets: numeric outputs 4→5, mock calls 10→8,
 retries 2→0. Forward -10% now executes unchanged; reverse -10% remains wrong.
@@ -135,10 +135,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Scope isolation is locally verified. Next inspect requested lookup scope and
-  comparison reference as separate interpretation problems; keep independent
-  contrasts and actual source conflicts, without forced row/formula choices.
-  Full-agent validation remains later work; new paid work needs a bounded successor.
+- Comparison request/input wiring is locally verified; model improvement is unmeasured.
+  Next use fixed same-source direction pairs in a bounded Compiler successor.
+  Requested lookup scope/over-abstention remains separate; do not force row/formula choices.
+  Full-agent validation remains later work; no paid execution in this implementation.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,
