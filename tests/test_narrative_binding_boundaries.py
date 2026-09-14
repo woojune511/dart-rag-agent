@@ -87,7 +87,7 @@ class NarrativeBindingBoundaryTests(unittest.TestCase):
         self.assertEqual(prompt_json(llm.prompts[1], marker), prompt_json(llm.prompts[2], marker))
         feedback = prompt_json(llm.prompts[2], "재시도 피드백(없으면 -):")
         self.assertEqual(feedback["repair_contract"]["target_obligation_ids"], ["activity"])
-        self.assertNotIn("size-cell", canonical(feedback["unvalidated_narrative_drafts"]).decode("utf-8"))
+        self.assertNotIn("size-cell", canonical(feedback.get("unvalidated_compiler_response", feedback.get("unvalidated_narrative_drafts"))).decode("utf-8"))
         return compiled, llm, feedback
 
     def test_inserted_list_newlines_fail_even_when_all_words_are_source_copied(self):
@@ -156,9 +156,14 @@ class NarrativeBindingBoundaryTests(unittest.TestCase):
                 attempts = compiled["compiler_attempts"]
                 self.assertEqual(len(attempts), 3)
                 for attempt in attempts[1:]:
-                    self.assertIn(code, {e["code"] for e in attempt["validation_errors"]})
-                self.assertEqual(len(feedback["unvalidated_narrative_drafts"][0]["claims"]),
-                    len(bad["narrative_bindings"][0]["claims"]))
+                    self.assertIn("unknown_compiler_reference" if code == "unknown_narrative_surface" else code,
+                                  {e["code"] for e in attempt["validation_errors"]})
+                if "unvalidated_compiler_response" in feedback:
+                    subjects = feedback["unvalidated_compiler_response"]["outputs"]["activity"]["result"]["subjects"]
+                    count = sum(len(subject["claims"]) for subject in subjects)
+                else:
+                    count = len(feedback["unvalidated_narrative_drafts"][0]["claims"])
+                self.assertEqual(count, len(bad["narrative_bindings"][0]["claims"]))
 
     def test_authored_binding_repair_succeeds_in_existing_single_retry(self):
         for fixture in (list_fixture, paragraph_fixture):

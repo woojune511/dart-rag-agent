@@ -31,8 +31,8 @@ def binding(owner_id, candidate_id, text):
 
 
 def prompt_json(prompt, heading):
-    content = prompt.to_messages()[0].content
-    return json.JSONDecoder().raw_decode(content.split(heading + "\n", 1)[1].lstrip())[0]
+    from tests.test_narrative_retry_context import prompt_json as read_authored_prompt
+    return read_authored_prompt(prompt, heading)
 
 
 class SemanticCompilationScopeTests(unittest.TestCase):
@@ -74,23 +74,23 @@ class SemanticCompilationScopeTests(unittest.TestCase):
         })
         self.assertEqual([row["obligation_id"] for row in prompt_json(prompt, "Answer obligations:")], active_ids)
 
-    def test_independent_islands_declare_only_their_active_output_and_id_space(self):
+    def test_independent_islands_keep_active_outputs_separate_and_share_same_scope_sources(self):
         result, prompts = self.compile([{"narrative_bindings": [row]} for row in self.bindings])
         self.assertEqual(result["semantic_program_validation"]["status"], "ready")
         self.assertEqual(len(prompts), 2)
         for prompt, owner, candidate in zip(prompts, self.owners, self.catalog):
             self.assert_scope(prompt, [owner["obligation_id"]])
             payload = prompt_json(prompt, "Source bundles, candidate cohorts, and candidates_by_id:")
-            self.assertEqual(set(payload["candidates_by_id"]), {candidate["candidate_id"]})
+            self.assertEqual(set(payload["candidates_by_id"]), {row["candidate_id"] for row in self.catalog})
 
     def test_retry_scope_drops_accepted_output_and_preserves_its_bytes(self):
         for row in self.catalog:
             row["segment"] = ""
         for owner in self.owners:
             owner["scope"]["segment"] = ""
-            owner["coupling_key"] = "same-basis"
+        self.owners[1]["depends_on"] = [self.owners[0]["obligation_id"]]
         bad = deepcopy(self.bindings[1])
-        bad["claims"][0]["text"] = ""
+        bad["claims"][0]["evidence_bindings"][0]["evidence_text"] = "Invented quote."
         result, prompts = self.compile([
             {"narrative_bindings": [self.bindings[0], bad]},
             {"narrative_bindings": [self.bindings[1]]},
@@ -123,16 +123,17 @@ class SemanticCompilationScopeTests(unittest.TestCase):
 
     def test_prompt_defines_owner_absence_local_subject_and_theme_boundaries(self):
         prompt = CALCULATION_PROMPT_POLICY["semantic_program_prompt_template"]
-        for rule in ("active_obligation_ids", "문서 전체의 부재", "공시 주체", "필수 주제", "다른 출력"):
+        for rule in ("active_obligation_ids", "전체 문서의 부재", "공시 회사", "주제", "출력"):
             self.assertIn(rule, prompt)
 
-    def test_known_foreign_subject_remains_invalid_even_with_narrative_scope_override(self):
+    def test_wrong_subject_reading_is_not_misreported_as_a_source_violation(self):
         program = {"narrative_bindings": [{**self.bindings[1], "obligation_id": "operations",
                                           "scope_applicability_fields": ["segment"]}]}
         result = validate_semantic_calculation_program(program=program, obligations=self.owners,
             candidate_catalog=self.catalog, query="Summarize the requested units.")
         self.assertNotEqual(result["status"], "ready")
-        self.assertTrue(any(error["obligation_id"] == "operations" for error in result["errors"]))
+        self.assertFalse(any(error["obligation_id"] == "operations" for error in result["errors"]))
+        self.assertEqual([row["obligation_id"] for row in result["valid_narrative_bindings"]], ["operations"])
 
 
 if __name__ == "__main__":

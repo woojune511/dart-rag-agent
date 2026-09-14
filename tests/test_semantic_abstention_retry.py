@@ -83,13 +83,14 @@ class SemanticAbstentionRetryTests(unittest.TestCase):
         self.assertEqual(compiled["semantic_program_validation"]["selected_candidate_ids"], [])
 
     def test_retry_of_same_island_peer_preserves_abstention(self):
-        obligations = [_obligation(owner, "direct_value", "quantity", coupling_key="shared") for owner in ("withheld", "repair")]
+        obligations = [_obligation("withheld", "direct_value", "quantity"),
+                       _obligation("repair", "direct_value", "quantity", depends_on=["withheld"])]
         for field in ("missing_obligation_ids", "ambiguous_obligation_ids"):
             with self.subTest(field=field):
                 first = {"status": "incomplete", field: ["withheld"],
                     "direct_bindings": [{"obligation_id": "repair", "candidate_id": "hidden"}]}
                 retry = {"status": "ready", "direct_bindings": [
-                    {"obligation_id": owner, "candidate_id": "source-value"} for owner in ("withheld", "repair")]}
+                    {"obligation_id": "repair", "candidate_id": "source-value"}]}
                 compiled, llm = compile_programs(obligations, first, retry)
                 self.assertEqual(len(llm.prompts), 2)
                 program = compiled["semantic_program"]

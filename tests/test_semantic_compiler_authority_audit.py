@@ -94,12 +94,12 @@ class DeclaredDependencyAuthorityTests(unittest.TestCase):
         )
         self.assertEqual(execution["outputs_by_obligation"]["computed"]["normalized_value"], 7)
 
-    def test_transitive_or_coupled_peer_is_not_an_implicit_direct_dependency(self):
+    def test_transitive_peer_is_not_an_implicit_direct_dependency(self):
         catalog = [_candidate("fact", 7)]
         obligations = [
-            _obligation("reported", "direct_value", "reported", coupling_key="shared"),
-            _obligation("middle", "derived_value", "middle", depends_on=["reported"], coupling_key="shared"),
-            _obligation("last", "derived_value", "last", depends_on=["middle"], coupling_key="shared"),
+            _obligation("reported", "direct_value", "reported"),
+            _obligation("middle", "derived_value", "middle", depends_on=["reported"]),
+            _obligation("last", "derived_value", "last", depends_on=["middle"]),
         ]
         program = {
             "status": "ready",
@@ -167,7 +167,7 @@ class TargetedAssertionAuthorityTests(unittest.TestCase):
             {**_candidate("fact_b", 13), "candidate_kind": "sentence_value", "table_source_id": "",
              "source_text": "The second source reports 13 items."},
         ]
-        self.obligations = [_obligation(owner, "direct_value", owner, coupling_key="shared")
+        self.obligations = [_obligation(owner, "direct_value", owner)
                             for owner in ("first", "second")]
         self.previous = _validate({
             "status": "incomplete",

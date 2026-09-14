@@ -568,7 +568,6 @@ def _scope_errors(
     candidate: Mapping[str, Any],
     obligation: Mapping[str, Any],
     *,
-    include_basis: bool = True,
     applicable_unknown_fields: Sequence[str] = (),
     conflicts_only: bool = False,
     row_description: bool = False,
@@ -579,13 +578,11 @@ def _scope_errors(
         for field in applicable_unknown_fields
         if str(field).strip() in _NARRATIVE_SCOPE_APPLICABILITY_FIELDS
     }
-    checks = ["company", "consolidation_scope", "segment"]
-    if include_basis:
-        checks.append("basis")
+    # Free subject/metric/segment/basis labels are reading targets, not source
+    # permissions. Numeric interpretation linkage is checked independently.
+    checks = ["company", "consolidation_scope"]
     errors: List[str] = []
     for field in checks:
-        if field in {"segment", "basis"} and candidate.get("source_interpretation_resolution"):
-            continue
         state = _scope_match_state(field, scope.get(field), candidate)
         if conflicts_only and state != "conflict":
             continue
@@ -708,6 +705,9 @@ def _scope_match_state(
         return "match"
     if field == "period":
         return _period_scope_state(wanted, candidate)
+    if field == "company":
+        actual = _normalise_spaces(str(candidate.get("document_company") or candidate.get("company") or "")).lower()
+        return ("match" if wanted == actual else "conflict") if actual and actual != "unknown" else "unknown"
 
     actual = _normalise_spaces(str(candidate.get(field) or "")).lower()
     if actual and actual != "unknown":
@@ -1145,6 +1145,7 @@ def validate_semantic_calculation_program(
                 declared_local_subjects(owner, parent)
                 or any(scope.get(field) not in (None, "", "unknown") for field in ("segment", "basis"))))
             if needs_interpretation or interpretation is not None:
+                location = location.rsplit('.', 1)[0] + '.source_interpretation'
                 proof = validate_source_interpretation(
                     candidate, interpretation, owner=owner, parent_owner=parent, query=query)
                 # These are the model's interpretations of semantic labels, never
@@ -1236,7 +1237,7 @@ def validate_semantic_calculation_program(
 
     match_cache: Dict[str, Dict[str, Any]] = {}
 
-    def candidate_has_semantic_conflict(
+    def candidate_has_source_conflict(
         candidate_id: str,
         owner_id: str,
     ) -> bool:
@@ -1341,11 +1342,11 @@ def validate_semantic_calculation_program(
             error("candidate_not_exposed_to_compiler", obligation_id, candidate_id,
                   candidate_id=candidate_id, location="direct_binding")
             invalid = True
-        if candidate and obligation and candidate_has_semantic_conflict(
+        if candidate and obligation and candidate_has_source_conflict(
             candidate_id,
             obligation_id,
         ):
-            error("candidate_semantic_target_mismatch", obligation_id, candidate_id,
+            error("candidate_source_condition_conflict", obligation_id, candidate_id,
                   candidate_id=candidate_id, location="direct_binding",
                   repair_action="replace_candidate")
             invalid = True
@@ -1409,7 +1410,7 @@ def validate_semantic_calculation_program(
             for witness in compatibility_candidates:
                 hard_errors = [
                     detail
-                    for detail in _scope_errors(witness, obligation, include_basis=False)
+                    for detail in _scope_errors(witness, obligation)
                     if detail.endswith(("company", "period"))
                 ]
                 if hard_errors:
@@ -1417,71 +1418,21 @@ def validate_semantic_calculation_program(
                         error("compatibility_scope_mismatch", obligation_id, detail,
                               candidate_id=str(witness.get("candidate_id") or ""),
                               location="compatibility_binding",
-                              repair_action="replace_candidate" if detail in _scope_errors(witness, obligation, include_basis=False, conflicts_only=True) else "repair_program")
+                              repair_action="replace_candidate" if detail in _scope_errors(witness, obligation, conflicts_only=True) else "repair_program")
                     invalid = True
                     compatibility_ready = False
                     break
         if obligation and candidate:
-            subject_checked = (
-                str(obligation.get("kind") or "") == "direct_value"
-                and str(candidate.get("kind") or "") == "numeric"
-                and _candidate_has_finite_numeric_value(candidate)
-            )
-            if subject_checked:
-                proof = binding.get("source_interpretation_resolution")
-                subject_resolution = ({"state": "match", "subject": proof["subject"],
-                    "source": "compiler_source_interpretation", "source_row_ids": [candidate_id]}
-                    if proof else _direct_subject_resolution(candidate, obligation))
-            subject_state = str(subject_resolution.get("state") or "unknown")
-            subject_bridge_ready = (
-                compatibility_ready
-                and subject_state == "unknown"
-                and any(
-                    _scope_match_state(
-                        "segment",
-                        (obligation.get("scope") or {}).get("segment"),
-                        witness,
-                    )
-                    == "match"
-                    for witness in compatibility_candidates
-                )
-            )
-            if subject_bridge_ready:
+            proof = binding.get("source_interpretation_resolution")
+            if proof:
                 subject_resolution = {
-                    "state": "match",
-                    "subject": _normalise_spaces(
-                        str((obligation.get("scope") or {}).get("segment") or "")
-                    ),
-                    "source": "compatibility_evidence",
-                    "source_row_ids": _clean_source_row_ids(
-                        [
-                            value
-                            for witness in compatibility_candidates
-                            for value in (
-                                witness.get("candidate_id"),
-                                witness.get("source_row_id"),
-                                witness.get("evidence_id"),
-                                witness.get("source_candidate_id"),
-                            )
-                        ]
-                    ),
+                    "state": "source_linked", "subject": proof["subject"],
+                    "source": "compiler_source_interpretation",
+                    "source_row_ids": [candidate_id],
                 }
-            explicit_cell_subject = bool(declared_local_subjects(obligation)) and (
-                candidate.get("physical_table_id")
-                or candidate.get("candidate_kind") in _ROW_LOCAL_NUMERIC_CANDIDATE_KINDS
-            )
-            if subject_checked and subject_state != "match" and not subject_bridge_ready and not explicit_cell_subject:
-                error("candidate_subject_mismatch", obligation_id, "segment",
-                      candidate_id=candidate_id, location="direct_binding",
-                      repair_action="replace_candidate" if _direct_subject_resolution(candidate_by_id[candidate_id], obligation)["state"] == "conflict" else "repair_program")
-                invalid = True
+            # No text-equality or unrelated compatibility witness can establish
+            # semantic equivalence. contextual_candidate owns source linkage.
             scope_details = _scope_errors(candidate, obligation)
-            if subject_checked and subject_state == "match":
-                scope_details = [
-                    detail
-                    for detail in scope_details
-                    if not detail.endswith("segment")
-                ]
             if compatibility_ready:
                 scope_details = [
                     detail
@@ -1745,12 +1696,12 @@ def validate_semantic_calculation_program(
                                     source_id,
                                 )
                                 invalid = True
-                            if candidate_has_semantic_conflict(
+                            if candidate_has_source_conflict(
                                 source_id,
                                 source_requirement_id,
                             ):
                                 error(
-                                    "candidate_semantic_target_mismatch",
+                                    "candidate_source_condition_conflict",
                                     obligation_id,
                                     f"{source_requirement_id}: {source_id}",
                                     owner_id=source_requirement_id, candidate_id=source_id,
@@ -1862,13 +1813,12 @@ def validate_semantic_calculation_program(
                 display_scope_errors = _scope_errors(
                     display_candidate,
                     obligation or {},
-                    include_basis=False,
                 )
                 if display_scope_errors:
                     for detail in display_scope_errors:
                         error("source_display_scope_mismatch", obligation_id, detail,
                               candidate_id=display_id, location="source_display",
-                              repair_action="replace_candidate" if detail in _scope_errors(candidate_by_id[display_id], obligation or {}, include_basis=False, conflicts_only=True) else "repair_program")
+                              repair_action="replace_candidate" if detail in _scope_errors(candidate_by_id[display_id], obligation or {}, conflicts_only=True) else "repair_program")
                     continue
                 display_dimension = _candidate_dimension(display_candidate)
                 compatible_display_dimensions = (
@@ -2054,13 +2004,13 @@ def validate_semantic_calculation_program(
                 candidate_id
                 for candidate_id in candidate_ids
                 if obligation
-                and candidate_has_semantic_conflict(candidate_id, obligation_id)
+                and candidate_has_source_conflict(candidate_id, obligation_id)
             ),
             "",
         )
         if semantic_conflict_id:
             error(
-                "candidate_semantic_target_mismatch",
+                "candidate_source_condition_conflict",
                 obligation_id,
                 semantic_conflict_id,
             )
@@ -2205,9 +2155,9 @@ def validate_semantic_calculation_program(
                     )
                     invalid = True
                     continue
-                if candidate_has_semantic_conflict(candidate_id, requirement_id):
+                if candidate_has_source_conflict(candidate_id, requirement_id):
                     error(
-                        "candidate_semantic_target_mismatch",
+                        "candidate_source_condition_conflict",
                         obligation_id,
                         f"{requirement_id}: {candidate_id}",
                         owner_id=requirement_id, candidate_id=candidate_id,
@@ -2451,6 +2401,17 @@ def validate_semantic_calculation_program(
     for relation_id, relation in relationships.items():
         obligation_ids = relation["output_ids"]
         if not all(owner_id in produced for owner_id in obligation_ids):
+            continue
+        consolidation_scopes = {
+            str(source.get("consolidation_scope") or "").lower()
+            for owner_id in obligation_ids
+            for source in resolved_sources_by_output.get(owner_id, [])
+        } - {"", "unknown"}
+        if len(consolidation_scopes) > 1:
+            for owner_id in obligation_ids:
+                error("relationship_source_scope_conflict", owner_id, relation_id,
+                      location="output_relationship.consolidation_scope", repair_action="repair_program")
+                invalid_coupled.add(owner_id)
             continue
         # The compiler's common-basis declaration is checked for consistency,
         # not equated with sharing a chunk/table. Physical same-row rules above

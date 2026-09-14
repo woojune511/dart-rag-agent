@@ -134,7 +134,7 @@ class PlannerSourceAxesTests(unittest.TestCase):
         self.assertEqual(result["unlocated_metadata_count"], 2)
         self.assertEqual(build_source_axis_inventory([], query="Birch")["axes"], [])
 
-    def test_inventory_never_rewrites_a_bad_authored_target_or_relaxes_identity(self):
+    def test_inventory_never_rewrites_request_targets_and_source_linkage_is_not_semantic_truth(self):
         for subject, source in (("Birch unit", "Birch"), ("Birch Services", "Birch"),
                                 ("Birch", "Birch and others")):
             with self.subTest(subject=subject):
@@ -147,7 +147,9 @@ class PlannerSourceAxesTests(unittest.TestCase):
                 owners = planned["answer_obligations"]
                 self.assertEqual(owners[0]["semantic_target"]["local_subjects"], [subject])
                 rejected = validate(query, owners, [cell(source)])
-                self.assertIn("candidate_subject_unresolved", {row["code"] for row in rejected["errors"]})
+                self.assertEqual(rejected["status"], "ready")
+                self.assertEqual(rejected["valid_direct_bindings"][0]["source_interpretation_resolution"]["validation_scope"],
+                                 "source_linkage_not_semantic_equivalence")
                 self.assertEqual(len(agent.llm.prompts), 1)
 
     def test_inventory_is_optional_reading_context_not_a_required_name_allowlist(self):

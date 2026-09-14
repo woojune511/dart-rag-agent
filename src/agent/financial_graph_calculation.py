@@ -40,7 +40,7 @@ from src.agent.financial_source_interpretation import interpretation_axis_source
 from src.agent.financial_output_relationships import output_relationships
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
-    project_prompt_cohort, project_prompt_match, project_prompt_retry_feedback, project_reading_payload,
+    project_prompt_cohort, project_prompt_retry_feedback, project_reading_payload,
 )
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
@@ -163,8 +163,8 @@ def build_semantic_compilation_islands(
     relationships, relationship_errors = output_relationships(rows, query)
     for issue in relationship_errors:
         errors_by_id[issue["obligation_id"]].append(issue)
-    coupling_groups = {key: row["output_ids"] for key, row in relationships.items()}
-    for obligation_ids in coupling_groups.values():
+    relationship_groups = {key: row["output_ids"] for key, row in relationships.items()}
+    for obligation_ids in relationship_groups.values():
         for left, right in zip(obligation_ids, obligation_ids[1:]):
             adjacency[left].add(right)
             adjacency[right].add(left)
@@ -245,9 +245,9 @@ def build_semantic_compilation_islands(
                     "detail": ",".join(component),
                 }
             )
-        island_coupling_keys = [
-            coupling_key
-            for coupling_key, obligation_ids in coupling_groups.items()
+        island_relationship_ids = [
+            relationship_id
+            for relationship_id, obligation_ids in relationship_groups.items()
             if len(set(obligation_ids) & component_set) >= 2
         ]
         island_bundle_ids = [
@@ -260,7 +260,7 @@ def build_semantic_compilation_islands(
                 "island_id": f"island_{island_index:03d}",
                 "obligation_ids": component,
                 "dependency_edges": [list(edge) for edge in local_edges],
-                "output_relationships": {key: relationships[key] for key in island_coupling_keys},
+                "output_relationships": {key: relationships[key] for key in island_relationship_ids},
                 "evidence_bundle_constraint_ids": island_bundle_ids,
                 "evidence_bundle_edges": [
                     list(edge)
@@ -1595,9 +1595,6 @@ class FinancialAgentCalculationMixin:
     @staticmethod
     def _semantic_program_prompt_rows(
         catalog: List[Dict[str, Any]],
-        candidate_match_by_id: Optional[
-            Mapping[str, Mapping[str, Mapping[str, Any]]]
-        ] = None,
         source_bundle_id_by_candidate: Optional[Mapping[str, str]] = None,
         source_value_span_by_candidate: Optional[
             Mapping[str, Sequence[int]]
@@ -1674,15 +1671,6 @@ class FinancialAgentCalculationMixin:
                    if item.get("source_body_coverage") else {}),
                 "aggregation_stage": str(item.get("aggregation_stage") or ""),
                 "aggregate_label": str(item.get("aggregate_label") or ""),
-                "match_by_owner": {
-                    str(owner_id): project_prompt_match(match)
-                    for owner_id, match in dict(
-                        (candidate_match_by_id or {}).get(
-                            str(item.get("candidate_id") or ""),
-                            {},
-                        )
-                    ).items()
-                },
             }
             for item in catalog
         ]
@@ -1724,9 +1712,6 @@ class FinancialAgentCalculationMixin:
         }
         prompt_rows = FinancialAgentCalculationMixin._semantic_program_prompt_rows(
             visible_catalog,
-            candidate_match_by_id=dict(
-                cohort_plan.get("candidate_match_by_id") or {}
-            ),
             source_bundle_id_by_candidate=bundle_id_by_candidate,
             source_value_span_by_candidate=value_span_by_candidate,
         )
@@ -2073,7 +2058,6 @@ class FinancialAgentCalculationMixin:
                         }
                     )
                     # The provider sees only the new per-output transport schema.
-                    prompt_value.messages[-1].content += CALCULATION_PROMPT_POLICY["compiler_wire_instructions"]
                     with diagnostic_location(attempt=attempt + 1):
                         if diagnostics_enabled():
                             messages = [{"type": message.type, "content": message.content}
@@ -2114,11 +2098,12 @@ class FinancialAgentCalculationMixin:
                 except Exception as exc:
                     invocation_failed = True
                     response_error_type = type(exc).__name__
-                    invocation_errors.append(str(exc))
+                    safe_error = f"{response_error_type}: compiler response unavailable or invalid"
+                    invocation_errors.append(safe_error)
                     for owner_id in retry_target_ids if attempt else required_ids:
                         transport_errors.append({"code": "compiler_response_schema_error" if isinstance(exc, ValueError) else "compiler_invocation_error",
                             "obligation_id": owner_id, "owner_id": owner_id, "candidate_id": "",
-                            "location": "compiler_response", "repair_action": "repair_program", "detail": str(exc)})
+                            "location": "compiler_response", "repair_action": "repair_program", "detail": safe_error})
                     failed_program = {
                         "status": "incomplete",
                         "direct_bindings": [],
@@ -2129,7 +2114,7 @@ class FinancialAgentCalculationMixin:
                             retry_target_ids if attempt else required_ids
                         ),
                         "ambiguous_obligation_ids": [],
-                        "rationale": str(exc),
+                        "rationale": safe_error,
                     }
                     program_data = (
                         _merge_targeted_program_retry(
@@ -2427,7 +2412,8 @@ class FinancialAgentCalculationMixin:
                                 if str(item.get("obligation_id") or "") in target_id_set
                             },
                             "dependency_input_invariant": (
-                                "Bind a dependency by its obligation ID with an empty source_requirement_id. "
+                                "Use a declared dependency output as source_ref in inputs.dependencies "
+                                "when requirements exist, otherwise in inputs.own. "
                                 "Read-only dependency values are execution values, not source displays. "
                                 "Their candidate IDs are provenance only, not additional candidate permissions. "
                                 "Do not re-emit or modify accepted dependency outputs."
@@ -2440,21 +2426,20 @@ class FinancialAgentCalculationMixin:
                             ),
                             "formula_variable_binding_invariant": (
                                 "The set of formula AST variable names must be "
-                                "exactly equal to the set of variable_bindings.variable values."
+                                "exactly equal to the set of variable values in the nested inputs."
                             ),
                             "candidate_requirement_binding_invariant": (
-                                "Every candidate source must bind one requirement ID "
-                                "declared for the same target obligation."
+                                "Place each candidate selection in its declared input requirement key. "
+                                "Do not repeat requirement IDs inside selections."
                             ),
                             "required_evidence_binding_invariant": (
                                 "Bind every required evidence requirement exactly once; "
                                 "do not invent candidate, obligation, or requirement IDs."
                             ),
                             "source_assertion_invariant": (
-                                "For every selected prose numeric source, bind the visible "
-                                "candidate ID to its source bundle and copy one byte-exact "
-                                "continuous evidence substring covering every referenced "
-                                "value span."
+                                "For each prose numeric selection, use its visible source_ref and "
+                                "copy a byte-exact continuous evidence_text from its own bundle "
+                                "covering the selected value span."
                             ),
                             "narrative_claim_invariant": CALCULATION_PROMPT_POLICY[
                                 "semantic_program_narrative_repair_invariant"

@@ -172,8 +172,9 @@ class AddressedNarrativeCompilerTests(unittest.TestCase):
         marker = "Source bundles, candidate cohorts, and candidates_by_id:"
         self.assertEqual(prompt_json(llm.prompts[1], marker), prompt_json(llm.prompts[2], marker))
         feedback = prompt_json(llm.prompts[2], "재시도 피드백(없으면 -):")
-        drafts = feedback["unvalidated_narrative_drafts"]
-        self.assertEqual(drafts[0]["subject_bindings"][0]["subject"], "Pine Workshop")
+        drafts = feedback["unvalidated_compiler_response"]["outputs"]
+        self.assertEqual(list(drafts), [self.owners[0]["obligation_id"]])
+        self.assertEqual(next(iter(drafts.values()))["result"]["subjects"][0]["subject"], "Pine Workshop")
         self.assertNotIn("source_selection_check", canonical(drafts).decode())
         self.assertNotIn("subject_selection_invariant", feedback["repair_contract"])
         self.assertNotIn("size-cell", canonical(drafts).decode())

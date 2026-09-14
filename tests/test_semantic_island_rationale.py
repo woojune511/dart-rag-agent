@@ -68,7 +68,7 @@ class SemanticIslandRationaleTests(unittest.TestCase):
 
     def test_other_island_missing_claim_is_not_the_global_explanation(self):
         stale = "The second requested output is unavailable."
-        first = direct("first", status="incomplete", missing_obligation_ids=["second"], rationale=stale)
+        first = direct("first", rationale=stale)
         second = direct("second", rationale="The second output is directly reported.")
         compiled, execution, agent, llm = self.compile(["first", "second"], [first, second])
         self.assertEqual(execution["status"], "ok")

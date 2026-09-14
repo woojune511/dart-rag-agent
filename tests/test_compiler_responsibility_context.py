@@ -57,6 +57,11 @@ def simple_fixture(*, shared=False, bad_quote=False, overlap=False, coupling='')
         if bad_quote:
             responses.append([(2, 1, 'Willow', bodies[1], bodies[1])])
     if coupling:
+        # An explicit, jointly owned request is required for a shared-basis relation.
+        query = 'Use the same reported basis for both outputs.\n' + query
+        owners = [(subject, label, ['request_001', *[
+            f'request_{int(ref.rsplit("_", 1)[1]) + 1:03d}' for ref in refs]])
+            for subject, label, refs in owners]
         responses = [[*responses[0], *responses[1]], *responses[2:]]
     return authored_pipeline(query, bodies, owners, responses, coupling=coupling)
 
@@ -223,12 +228,12 @@ class CompilerResponsibilityContextTests(unittest.TestCase):
                     payload = prompt_json(queue.prompts[0], 'Source bundles, candidate cohorts, and candidates_by_id:')
                     self.assertNotIn(hidden['candidate_id'], payload['candidates_by_id'])
 
-    def test_existing_company_surface_match_is_not_an_exact_filing_identity_check(self):
-        # Separate pre-existing limit discovered while constructing an explicit-conflict fixture.
-        # This is not evidence of a foreign filing passing scoped retrieval, which is not run here.
+    def test_filing_company_requires_metadata_identity_not_a_name_substring(self):
         owner = {'kind': 'narrative', 'scope': {'company': 'Issuer'}}
-        self.assertEqual(semantic_candidate_applicability({'company': 'OtherIssuer'}, owner)['state'], 'compatible')
+        self.assertEqual(semantic_candidate_applicability({'company': 'OtherIssuer'}, owner)['state'], 'explicit_conflict')
         self.assertEqual(semantic_candidate_applicability({'company': 'Elsewhere'}, owner)['state'], 'explicit_conflict')
+        self.assertEqual(semantic_candidate_applicability(
+            {'company': 'Elsewhere', 'document_company': 'Issuer'}, owner)['state'], 'compatible')
 
     def test_context_does_not_mechanically_remove_an_authored_semantic_overlap(self):
         original, _, programs = simple_fixture(overlap=True)
@@ -272,8 +277,8 @@ class CompilerResponsibilityContextTests(unittest.TestCase):
 
     def test_mixed_island_shares_context_only_while_a_narrative_output_is_active(self):
         body = 'Willow accepts requests only after consent.'
-        owners = [_obligation('activity', 'narrative', 'Activity', coupling_key='shared'),
-                  _obligation('quantity', 'direct_value', 'Quantity', coupling_key='shared')]
+        owners = [_obligation('activity', 'narrative', 'Activity', depends_on=['quantity']),
+                  _obligation('quantity', 'direct_value', 'Quantity')]
         good = {'narrative_bindings': [{'obligation_id': 'activity', 'claims': [claim('Willow', body, 'note', body)]}],
                 'direct_bindings': [{'obligation_id': 'quantity', 'candidate_id': 'number'}]}
         state = {'query': 'Describe activity and report the quantity.', 'answer_obligations': owners,
@@ -309,9 +314,8 @@ class CompilerResponsibilityContextTests(unittest.TestCase):
                 else:
                     self.assertNotIn(MARKER, queue.prompts[1].to_messages()[0].content)
                 accepted_key = 'direct_bindings' if repair == 'narrative' else 'narrative_bindings'
-                # Quote-location readings belong to validation, not program JSON.
-                expected = [{key: value for key, value in row.items() if key != 'claim_readings'}
-                            for row in merge.call_args.kwargs['previous_validation']['valid_' + accepted_key]]
+                # Preserve the actual accepted program, not validation-enriched rows.
+                expected = merge.call_args.kwargs['previous_program'][accepted_key]
                 self.assertEqual(json.dumps(result['semantic_program'][accepted_key], sort_keys=True), json.dumps(expected, sort_keys=True))
                 self.assert_context_diagnostics({'compilation': result}, queue.prompts)
 

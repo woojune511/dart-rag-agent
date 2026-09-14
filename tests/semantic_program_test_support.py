@@ -120,7 +120,7 @@ def _obligation(obligation_id, kind, label, **overrides):
         "concept_hints": [],
         "evidence_requirements": [],
         "depends_on": [],
-        "coupling_key": "",
+
         **overrides,
     }
 
@@ -283,14 +283,18 @@ class _StructuredQueueLLM:
     def __init__(self, *responses):
         self.responses = list(responses)
         self.models = []
+        self.model_instances = []
         self.prompts = []
 
     def with_structured_output(self, model):
         self.models.append(model.__name__)
+        self.model_instances.append(model)
         self.response_model = model
         return self
 
     def invoke(self, prompt):
+        if self.response_model.__name__ == "CompilerResponseV1":
+            object.__setattr__(prompt, "fixture_references", self.response_model.__compiler_references__)
         self.prompts.append(prompt)
         if not self.responses:
             raise AssertionError("unexpected structured invocation")

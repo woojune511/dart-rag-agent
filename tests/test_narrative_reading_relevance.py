@@ -1,7 +1,9 @@
 """Reading relevance is not literal issuer identity or a correctness oracle."""
 from copy import deepcopy
+import json
 import unittest
 
+from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import _semantic_candidate_cohorts
 from tests.test_narrative_candidate_selection import candidate
 from tests.test_narrative_reading_admission import target, select, row
@@ -48,9 +50,9 @@ class NarrativeReadingRelevanceTests(unittest.TestCase):
         scoped = {**sources()[0], "basis": "separate perimeter"}
         unscoped = candidate("z-topic", text="Continuity is maintained through rotating partners.")
         selected, _, matches, _ = select([unscoped, scoped], owner)
-        self.assertEqual(selected[0]["candidate_id"], scoped["candidate_id"])
-        self.assertEqual(matches["z-topic"]["reading_state"], "unknown_only")
-        foreign = {**unscoped, "candidate_id": "foreign", "company": "Another issuer"}
+        self.assertEqual(selected[0]["candidate_id"], "z-topic")
+        self.assertEqual(matches["z-topic"]["reading_state"], "compatible")
+        foreign = {**unscoped, "candidate_id": "foreign", "company": "Another issuer", "document_company": "Another issuer"}
         selected, _, matches, _ = select([scoped, foreign], owner)
         self.assertNotIn("foreign", [row["candidate_id"] for row in selected])
         self.assertEqual(matches["foreign"]["reading_state"], "explicit_conflict")
@@ -64,8 +66,8 @@ class NarrativeReadingRelevanceTests(unittest.TestCase):
         _, _, after, _ = select(catalog, owner)
         for field in ("state", "scope_state", "subject_state", "metric_state", "unit_state"):
             self.assertEqual(before["topic"][field], after["topic"][field])
-        from src.agent.financial_compiler_presentation import project_prompt_match
-        self.assertNotIn("reading_hint_state", project_prompt_match(after["topic"]))
+        payload = FinancialAgent._semantic_program_prompt_payload(catalog, _semantic_candidate_cohorts(catalog, [owner]))
+        self.assertNotIn('reading_hint_state', json.dumps(payload))
         owner["kind"] = without["kind"] = "direct_value"
         catalog = [{**row(), "source_text": "Continuity | 1", "source_bundle_text": "Continuity | 1"}]
         _, _, before, _ = select(catalog, without)
@@ -123,7 +125,7 @@ class NarrativeReadingRelevanceTests(unittest.TestCase):
         for owner_id, candidate_id in (("overview", "continuity"), ("delivery", "delivery")):
             for key in (owner_id, owner_id + ":input"):
                 self.assertEqual(plan["candidate_ids_by_owner"][key][0], candidate_id)
-                self.assertEqual(len(plan["candidate_ids_by_owner"][key]), 6)
+                self.assertEqual(len(plan["candidate_ids_by_owner"][key]), 7)
         self.assertEqual((catalog, owners), original)
 
 

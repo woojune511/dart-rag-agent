@@ -53,10 +53,12 @@ class CompilerAttemptDebugTests(unittest.TestCase):
         attempts = result["compiler_attempts"]
         self.assertEqual(len(attempts), len(llm.prompts))
         self.assertEqual([row["attempt"] for row in attempts], [1, 2])
-        for row in attempts:
+        for index, row in enumerate(attempts):
             self.assertEqual(row["schema_version"], "compiler_attempt_debug_v1")
             self.assertEqual(row["response_status"], "parsed")
-            self.assertEqual(json.loads(row["model_program_json"]), self.bad.model_dump())
+            from tests.compiler_wire_test_support import wire_fixture
+            model = llm.model_instances[index]
+            self.assertEqual(json.loads(row["model_program_json"]), model.model_validate(wire_fixture(self.bad, model)).model_dump())
             self.assertEqual(json.loads(row["validation_input_program_json"]), self.bad.model_dump())
             self.assertEqual(row["compile_valid_obligation_ids"], [])
             self.assertTrue(row["island_id"])
@@ -65,7 +67,7 @@ class CompilerAttemptDebugTests(unittest.TestCase):
                 self.assertEqual(row[key + "_sha256"],
                     hashlib.sha256(row[key + "_json"].encode("utf-8")).hexdigest())
         self.assertEqual(attempts[0]["retry_feedback_text"], "-")
-        self.assertEqual(json.loads(attempts[1]["retry_feedback_text"]),
+        self.assertEqual(llm.prompts[1].fixture_references.project(json.loads(attempts[1]["retry_feedback_text"]), reverse=True),
             prompt_json(llm.prompts[1], "재시도 피드백(없으면 -):"))
 
     def test_debug_toggle_changes_no_prompt_validation_or_accepted_island(self):
@@ -99,14 +101,16 @@ class CompilerAttemptDebugTests(unittest.TestCase):
             claim("Cedar", "Cedar uses direct delivery.", "reference-note", "Cedar uses direct delivery.")]}
         initial = model_program({"narrative_bindings": [accepted, *self.bad.model_dump()["narrative_bindings"]]},
             [source("reference-note", "Cedar uses direct delivery."), *self.catalog])
-        owners = [_obligation("reference", "narrative", "Reference", coupling_key="shared-reading"),
-            {**self.owner, "coupling_key": "shared-reading"}]
-        result, _ = self.compile([initial, self.good], owners=owners,
+        owners = [_obligation("reference", "narrative", "Reference"),
+            {**self.owner, "depends_on": ["reference"]}]
+        result, llm = self.compile([initial, self.good], owners=owners,
             catalog=[source("reference-note", "Cedar uses direct delivery."), *self.catalog])
         first, retry = result["compiler_attempts"]
         self.assertEqual(first["compile_valid_obligation_ids"], ["reference"])
         self.assertEqual(retry["active_obligation_ids"], ["activity"])
-        self.assertEqual(json.loads(retry["model_program_json"]), self.good.model_dump())
+        from tests.compiler_wire_test_support import wire_fixture
+        model = llm.model_instances[1]
+        self.assertEqual(json.loads(retry["model_program_json"]), model.model_validate(wire_fixture(self.good, model)).model_dump())
         merged = json.loads(retry["validation_input_program_json"])
         original = initial.model_dump()["narrative_bindings"][0]
         self.assertEqual(merged["narrative_bindings"][0], original)

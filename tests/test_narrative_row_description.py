@@ -82,8 +82,7 @@ class NarrativeRowDescriptionTests(unittest.TestCase):
                 self.assertNotEqual(self.validate(catalog=catalog)["status"], "ready")
 
     def test_explicit_scope_conflicts_are_not_bridged_by_description(self):
-        for change in ({"year": 2033}, {"period": "2033"}, {"company": "Other issuer"},
-                       {"segment": "Other division"}):
+        for change in ({"year": 2033}, {"period": "2033"}, {"company": "Other issuer", "document_company": "Other issuer"}):
             with self.subTest(change=change):
                 catalog, owners = deepcopy(self.catalog), deepcopy(self.owners)
                 catalog[0].update(change)

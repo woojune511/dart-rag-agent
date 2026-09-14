@@ -39,6 +39,14 @@ class OutputRelationshipTests(unittest.TestCase):
         self.assertEqual(plan["status"], "invalid")
         self.assertEqual(plan["islands"][0]["errors"][0]["repair_action"], "repair_requirements")
 
+    def test_relation_cannot_borrow_a_request_unit_not_owned_by_every_member(self):
+        owners = relate([_obligation('a', 'direct_value', 'first'), _obligation('b', 'direct_value', 'second')])
+        owners[1]['request_unit_ids'] = ['request_002']
+        plan = build_semantic_compilation_islands(owners, query='Use a common basis.\nReport another value.')
+        self.assertEqual(plan['status'], 'invalid')
+        self.assertTrue(any(error['code'] == 'ungrounded_output_relationship'
+            for island in plan['islands'] for error in island['errors']))
+
     def test_basis_interpretation_is_distinct_from_physical_table_identity(self):
         owners = relate([_obligation("a", "direct_value", "first"), _obligation("b", "direct_value", "second")])
         catalog = [_candidate("ca", 9, context="table-a"), _candidate("cb", 9, context="table-b")]

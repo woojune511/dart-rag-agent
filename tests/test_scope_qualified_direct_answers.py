@@ -6,6 +6,7 @@ the other assertions retain the current fail-closed contracts.
 """
 
 from __future__ import annotations
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 
 import json
 import unittest
@@ -46,6 +47,7 @@ class _FixedCompiler:
 
     def with_structured_output(self, model):
         self.models.append(model.__name__)
+        self.model = model
         return self
 
     def invoke(self, prompt):
@@ -101,7 +103,8 @@ class _FixedCompiler:
             and not response["ambiguous_obligation_ids"]
             else "incomplete"
         )
-        return SemanticCalculationProgram.model_validate(response)
+        from tests.compiler_wire_test_support import wire_fixture
+        return self.model.model_validate(wire_fixture(response, self.model))
 
 
 class _FixedCompletenessJudge:
@@ -207,7 +210,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         return rows
 
     def _obligations(self, scope="unknown", coupling_key=""):
-        return [AnswerObligation.model_validate({"request_unit_ids": ["request_001"],
+        rows = [AnswerObligation.model_validate({"request_unit_ids": ["request_001"],
             "obligation_id": output["obligation_id"],
             "kind": "direct_value",
             "label": output["label"],
@@ -220,8 +223,11 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
                 "segment": self.fixture["subject"],
                 "basis": "",
             },
-            "coupling_key": coupling_key,
         }).model_dump() for output in self.fixture["outputs"]]
+        if coupling_key:
+            from tests.source_interpretation_fixture_support import authored_relationships
+            rows = authored_relationships([{**row, "coupling_key": coupling_key} for row in rows], self.fixture["query"])
+        return rows
 
     def _program(self, name):
         return SemanticCalculationProgram.model_validate(
@@ -236,7 +242,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
             "query": self.fixture["query"] if query is None else query,
         }
         before = deepcopy(inputs)
-        result = execute_semantic_calculation_program(**inputs)
+        result = execute_authored_fixture(**inputs)
         self.assertEqual(inputs, before, "execution must not mutate fixed evidence or plans")
         return result
 
@@ -254,6 +260,8 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         program = self._program(name)
         expected_calls = 2 if name == "wrong_subject" else 1
         obligations = self._obligations()
+        from tests.source_interpretation_fixture_support import authored_source_program
+        program = authored_source_program(program, obligations, self.catalog, self.fixture["query"])
         llm = _FixedCompiler(
             program,
             expected_calls,
@@ -284,7 +292,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         }
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=deepcopy(self.catalog)):
             state.update(agent._compile_semantic_calculation_program(state))
-        self.assertEqual(llm.models, ["SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["CompilerResponseV1"] * expected_calls)
         self.assertEqual(len(llm.prompts), expected_calls)
         self.assertEqual(state["semantic_program_retry_count"], expected_calls - 1)
         state.update(execute_compiled_fixture(agent, state, state["semantic_candidate_catalog"]))
@@ -418,13 +426,11 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
                 self.assertEqual(rejected["outputs"], [])
                 self.assertIn("candidate_scope_mismatch", {row["code"] for row in rejected["validation"]["errors"]})
 
-    def test_explicit_company_period_and_measurement_basis_still_fail_closed(self):
-        for field, conflicting_value in (("company", "Other issuer"), ("period", "2023"), ("basis", "gross")):
+    def test_explicit_company_and_period_still_fail_closed(self):
+        for field, conflicting_value in (("company", "Other issuer"), ("period", "2023")):
             with self.subTest(field=field):
                 catalog = deepcopy(self.catalog)
                 obligations = self._obligations()
-                if field == "basis":
-                    obligations[1]["scope"]["basis"] = "net"
                 catalog[1][field] = conflicting_value
                 if field == "period":
                     catalog[1]["column_headers"] = [conflicting_value]
@@ -441,7 +447,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
             "program_validation_history"
         ]
         self.assertIn(
-            "candidate_subject_mismatch",
+            "candidate_not_authorized_for_output_input",
             {
                 error["code"]
                 for attempt in validation_history
@@ -456,9 +462,11 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         equal_value_catalog[-1].update({"raw_value": "40", "normalized_value": 40.0})
         equal_value_catalog[-1]["source_text"] = "Unit Beta 2024 40%. Elsewhere: Unit Alpha 40%."
         equal_value = self._execute("wrong_subject", catalog=equal_value_catalog)
-        self.assertEqual(equal_value["status"], "partial")
-        self.assertEqual(equal_value["missing_obligation_ids"], ["ob_share"])
-        self.assertNotIn("40%", equal_value["answer"])
+        # No compiled physical-row permission was supplied to this standalone
+        # fixture: wrong meaning with its own source proof is model-evaluated.
+        self.assertEqual(equal_value["status"], "ok")
+        self.assertEqual(equal_value["outputs_by_obligation"]["ob_share"]["candidate_ids"],
+                         ["cand-other-subject"])
 
     def test_missing_required_output_is_partial_even_with_valid_ledger(self):
         state = self._graph("missing_share")
@@ -483,7 +491,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
         self.assertEqual(execution["status"], "incomplete")
         self.assertEqual(
             {row["code"] for row in execution["validation"]["errors"]},
-            {"coupled_context_mismatch"},
+            {"relationship_source_scope_conflict"},
         )
 
     def test_missing_unit_is_not_recovered_from_a_lookalike_basis(self):

@@ -100,9 +100,9 @@ class SemanticComparisonContrastTests(unittest.TestCase):
             self.assertNotIn('"expected_normalized_value"', prompt)
             self.assertNotIn('"expected"', prompt)
             self.assertEqual(prompt.count("Synthetic balance table"), 1)
-            self.assertIn("계산 해석 순서", prompt)
-            self.assertIn("크기의 상대 변화", prompt)
-            self.assertIn("부호 있는 차이를 이전 크기로", prompt)
+            self.assertIn("원문 부호/배율을 유지", prompt)
+            self.assertIn('(abs(A)-abs(B))/abs(B)*100', prompt)
+            self.assertIn('(A-B)/abs(B)*100', prompt)
 
     def test_valid_math_with_wrong_meaning_fails_only_the_numeric_oracle(self):
         program = deepcopy(self.corpus["cases"][0]["program"])

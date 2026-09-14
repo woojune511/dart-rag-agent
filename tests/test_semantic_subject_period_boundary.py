@@ -1,5 +1,6 @@
 """Period labels are source context, not inferred value-subject authority."""
 
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 from copy import deepcopy
 import unittest
 
@@ -135,8 +136,8 @@ class SemanticSubjectPeriodBoundaryTests(unittest.TestCase):
                         self.assertEqual(match["subject_state"], "match")
                         self.assertIn(candidate["candidate_id"], plan["candidate_ids_by_owner"]["measure"])
                     else:
-                        self.assertEqual(match["state"], "explicit_conflict")
-                        self.assertNotIn(candidate["candidate_id"], plan["candidate_ids_by_owner"]["measure"])
+                        self.assertEqual(match["state"], "unknown_only")
+                        self.assertIn(candidate["candidate_id"], plan["candidate_ids_by_owner"]["measure"])
 
 
 if __name__ == "__main__":

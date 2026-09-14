@@ -34,7 +34,8 @@ def output_relationships(obligations: Sequence[Mapping[str, Any]], query: str):
                 error("invalid_output_relationship")
                 continue
             if (not isinstance(ref, str) or ref not in units or not isinstance(quote, str)
-                    or not quote.strip() or quote not in units[ref].text):
+                    or not quote.strip() or quote not in units[ref].text
+                    or any(ref not in obligations[order[member]].get("request_unit_ids", []) for member in members)):
                 error("ungrounded_output_relationship")
                 continue
             row = {"kind": "shared_basis", "output_ids": sorted(members, key=order.__getitem__),

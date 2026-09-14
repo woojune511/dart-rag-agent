@@ -13,11 +13,6 @@ from src.agent.financial_evidence_addresses import build_evidence_surface
 from src.utils.source_segments import project_source_surface
 
 
-PROMPT_MATCH_FIELDS = (
-    "state", "scope_state", "subject_state",
-    "owner_kind_state", "metric_state", "unit_state", "target_concept_keys",
-    "target_local_subjects", "selection_mode", "reading_metric_state", "context_metric_state",
-)
 PROMPT_COHORT_FIELDS = (
     "cohort_id", "owner_id", "parent_obligation_id", "owner_type", "candidate_kind",
     "candidate_ids", "candidate_id_fingerprint", "limit",
@@ -58,10 +53,6 @@ def project_output_responsibility_context(
         } for row in obligations],
         "request_units_by_id": project_request_units(build_request_units(query), obligations),
     }
-
-
-def project_prompt_match(match: Mapping[str, Any]) -> dict[str, Any]:
-    return {key: deepcopy(match[key]) for key in PROMPT_MATCH_FIELDS if key in match}
 
 
 def project_prompt_cohort(cohort: Mapping[str, Any]) -> dict[str, Any]:

@@ -257,11 +257,11 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         compiler = CALCULATION_PROMPT_POLICY["semantic_program_prompt_template"]
         self.assertIn("evidence_mode를 source_defined_group", planner)
         self.assertIn("evidence_requirements는 비워", planner)
-        self.assertIn("같은 질문·회사·보고서에 속한다는 이유만으로 묶지", planner)
-        self.assertIn("evidence_mode가 source_defined_group", compiler)
-        self.assertIn("구조화된 표의 숫자 셀", compiler)
-        self.assertIn("원문에 기재된 항목 이름과 값을 보존", compiler)
-        self.assertIn("호환성을 명시하는 narrative candidate ID", compiler)
+        self.assertIn("output_relationships", planner)
+        self.assertIn("source_defined_group_selection", compiler)
+        self.assertIn("numeric 셀을 행 설명으로만", compiler)
+        self.assertIn("원문의 항목 이름과 값을 빠뜨리지", compiler)
+        self.assertIn("compatibility_refs는 실제 호환성 근거", compiler)
 
     def test_semantic_prompts_require_relation_grounded_narrative_evidence(self) -> None:
         planner_prompt = str(
@@ -277,9 +277,9 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         self.assertIn("표준 항목을 추정", planner_prompt)
         self.assertIn("인과", compiler_prompt)
         self.assertIn("직접 연결", compiler_prompt)
-        self.assertIn("일반적 맥락", compiler_prompt)
-        self.assertIn("required evidence_requirements", compiler_prompt)
-        self.assertIn("variable binding의 scope_applicability_fields", compiler_prompt)
+        self.assertIn("일반 배경이나 동시 변화로 원인을 만들지", compiler_prompt)
+        self.assertIn("필수 requirement", compiler_prompt)
+        self.assertIn("scope_applicability_fields", compiler_prompt)
 
     def test_cagr_and_time_series_outputs_share_the_restricted_program(self) -> None:
         obligations = [

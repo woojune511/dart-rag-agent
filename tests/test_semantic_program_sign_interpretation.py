@@ -123,13 +123,14 @@ class SemanticProgramSignInterpretationTests(unittest.TestCase):
         payload = json.JSONDecoder().raw_decode(prompt.split(
             "Source bundles, candidate cohorts, and candidates_by_id:\n", 1
         )[1].lstrip())[0]
-        self.assertEqual(payload["candidates_by_id"]["cand-current"]["raw_value"], "(150)")
+        from src.ops.compiler_fixture_transport import short_ref
+        self.assertEqual(payload["candidates_by_id"][short_ref('cand-current', 'c')]["raw_value"], "(150)")
         self.assertEqual(prompt.count("balance | 2024: (150) USD | 2023: (100) USD"), 1)
         for guidance in (
-            "계산 해석 순서",
-            "원문 부호는 유지하고 필요한 변환은 formula에만",
-            "rationale에 비교 대상",
-            "분모가 0인 비율",
+            "원문 부호/배율을 유지",
+            "필요한 의미 변환은 formula에 표현",
+            "비교 대상과 분모를 rationale에 설명",
+            "분모 0을 작은 상수로 보정하지",
         ):
             self.assertTrue(guidance in prompt, f"Compiler is missing sign guidance: {guidance}")
         self.assertNotIn(rationale, prompt)  # Stub output must not leak into input.

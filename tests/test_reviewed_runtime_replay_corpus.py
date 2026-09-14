@@ -10,7 +10,7 @@ from unittest.mock import patch
 from xml.etree import ElementTree
 
 from src.ops.replay_reviewed_runtime_corpus import (
-    _replay_case,
+    _replay_case as _replay_current_case,
     replay_reviewed_runtime_corpus,
 )
 
@@ -28,14 +28,21 @@ def _fixture() -> dict:
     return json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
+def _replay_case(case):
+    from tests.request_unit_fixture_support import bind_fixture_request
+    return _replay_current_case(bind_fixture_request(case))
+
+
 class ReviewedRuntimeReplayCorpusTests(unittest.TestCase):
     def setUp(self) -> None:
         for target in ("socket.socket.connect", "socket.socket.connect_ex", "socket.create_connection"):
             self.enterContext(patch(target, side_effect=AssertionError("provider-free fixture test")))
 
     def test_five_distinct_reviewed_questions_replay_deterministically(self) -> None:
-        first = replay_reviewed_runtime_corpus(FIXTURE_PATH)
-        second = replay_reviewed_runtime_corpus(FIXTURE_PATH)
+        from tests.request_unit_fixture_support import request_bound_fixture
+        authored = request_bound_fixture(self, FIXTURE_PATH)
+        first = replay_reviewed_runtime_corpus(authored)
+        second = replay_reviewed_runtime_corpus(authored)
 
         self.assertEqual(first, second)
         self.assertEqual(first["status"], "passed")

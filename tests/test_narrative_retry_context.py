@@ -14,7 +14,9 @@ from tests.test_narrative_claim_grounding import claim, source
 
 def prompt_json(prompt, marker):
     text = prompt.to_messages()[0].content.split(marker + "\n", 1)[1]
-    return json.JSONDecoder().raw_decode(text.lstrip())[0]
+    parsed = json.JSONDecoder().raw_decode(text.lstrip())[0]
+    refs = getattr(prompt, "fixture_references", None)
+    return refs.project(parsed, reverse=True) if refs else parsed
 
 
 class NarrativeRetryContextTests(unittest.TestCase):
@@ -137,8 +139,8 @@ class NarrativeRetryContextTests(unittest.TestCase):
         initial = model_program({"narrative_bindings": [accepted, *self.bad["narrative_bindings"]]},
             [source("reference-note", "Cedar uses direct delivery."), *self.catalog])
         llm = _StructuredQueueLLM(initial, model_program(self.good, self.catalog))
-        owners = [_obligation("reference", "narrative", "Reference", coupling_key="shared-reading"),
-            {**self.owners[0], "coupling_key": "shared-reading"}]
+        owners = [_obligation("reference", "narrative", "Reference"),
+            {**self.owners[0], "depends_on": ["reference"]}]
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(_case_state({
             "question": self.question, "obligations": owners},
             [source("reference-note", "Cedar uses direct delivery."), *self.catalog]))

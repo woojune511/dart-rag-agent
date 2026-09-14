@@ -6,7 +6,7 @@ import unittest
 
 from src.agent.financial_calculation_execution import validate_semantic_calculation_program
 from src.agent.financial_candidate_matching import structured_subject_evidence
-from src.agent.financial_compiler_presentation import project_prompt_match
+from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import _rank_applicable_owner_candidates, _semantic_candidate_cohorts
 from src.agent.financial_reconciliation_candidates import semantic_candidate_catalog_fingerprint
 from tests.test_narrative_candidate_selection import candidate, owner
@@ -50,7 +50,10 @@ class NarrativeReadingAdmissionTests(unittest.TestCase):
                 self.assertEqual(selected, reverse)
 
     def test_reading_tier_does_not_upgrade_existing_identity_or_applicability(self):
-        _, _, matches, diagnostics = select([row(), reading()])
+        catalog = [row(), reading()]
+        _, _, matches, diagnostics = select(catalog)
+        payload = json.dumps(FinancialAgent._semantic_program_prompt_payload(
+            catalog, _semantic_candidate_cohorts(catalog, [target()])))
         self.assertEqual(matches["row"]["subject_state"], "match")
         self.assertEqual(matches["explanation"]["subject_state"], "unknown")
         self.assertEqual(matches["explanation"]["state"], "unknown_only")
@@ -59,8 +62,8 @@ class NarrativeReadingAdmissionTests(unittest.TestCase):
             self.assertEqual(match["reading_state"], "compatible")
             # Exposure scores/hints are diagnostics, not model guidance or a
             # new self-authored way to satisfy a validation obligation.
-            self.assertNotIn("reading_state", project_prompt_match(match))
-            self.assertNotIn("reading_subject_state", project_prompt_match(match))
+            self.assertNotIn("reading_state", payload)
+            self.assertNotIn("reading_subject_state", payload)
         self.assertEqual(diagnostics["top_two_relation"], "tie")
 
     def test_reading_relevance_precedes_a_bare_exact_subject_axis(self):
@@ -80,7 +83,7 @@ class NarrativeReadingAdmissionTests(unittest.TestCase):
         required["scope"]["basis"] = "excluding transfers"
         selected, _, matches, _ = select([row(), reading()], required)
         self.assertEqual(len(selected), 2)
-        self.assertEqual(matches["row"]["reading_state"], "unknown_only")
+        self.assertEqual(matches["row"]["reading_state"], "compatible")
         self.assertEqual(matches["row"]["rank_vector"], matches["explanation"]["rank_vector"])
 
     def test_mention_does_not_borrow_metadata_hidden_tails_or_joined_surfaces(self):
@@ -118,7 +121,7 @@ class NarrativeReadingAdmissionTests(unittest.TestCase):
                 rejected = validate_semantic_calculation_program(program={"direct_bindings": [
                     {"obligation_id": "overview", "candidate_id": "row"}]}, obligations=[required],
                     candidate_catalog=[source], query="Return the quantity for Elm.")
-                self.assertIn("candidate_subject_unresolved", {error["code"] for error in rejected["errors"]})
+                self.assertIn("missing_source_interpretation", {error["code"] for error in rejected["errors"]})
 
     def test_explicit_conflicts_and_section_restrictions_still_block_good_reading_hints(self):
         good = row()
@@ -127,11 +130,11 @@ class NarrativeReadingAdmissionTests(unittest.TestCase):
         other_subject = row("other", name="Birch")
         other_subject.update(physical_table_id=good["physical_table_id"], physical_row_id="other",
             source_contexts=[{"relation": "ancestor_heading", "source_text": "Elm network reach"}])
-        sources = [good, other_subject, {**reading("foreign"), "company": "Other issuer"},
+        sources = [good, other_subject, {**reading("foreign"), "company": "Other issuer", "document_company": "Other issuer"},
             {**reading("period"), "period": "2039"}, reading("outside", section="Other note")]
         selected, _, matches, _ = select(sources, required)
-        self.assertEqual([item["candidate_id"] for item in selected], ["row"])
-        for key in ("other", "foreign", "period"):
+        self.assertEqual({item["candidate_id"] for item in selected}, {"row", "other"})
+        for key in ("foreign", "period"):
             self.assertEqual(matches[key]["state"], "explicit_conflict")
             self.assertEqual(matches[key]["reading_state"], "explicit_conflict")
         self.assertNotIn("outside", matches)

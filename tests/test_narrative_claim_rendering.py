@@ -132,7 +132,7 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
         history = compiled["planner_debug_trace"]["program_validation_history"]
         self.assertEqual([row["attempt"] for row in history], [1, 2])
         for observation in history:
-            error = next(row for row in observation["errors"] if row["code"] == "unknown_narrative_surface")
+            error = next(row for row in observation["errors"] if row["code"] == "unknown_compiler_reference")
             self.assertEqual(error["candidate_id"], "note")
             self.assertTrue(error["detail"])
             self.assertEqual(error["repair_action"], "repair_program")

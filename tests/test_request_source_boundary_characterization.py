@@ -92,7 +92,7 @@ class RequestSourceBoundaryCharacterizationTests(unittest.TestCase):
         # Rejected bindings are pruned from the final program; original errors
         # remain in per-attempt history, not necessarily in final validation.
         attempts = compiled["resolved_calculation_trace"]["calculation_plan"]["program_validation_history"]
-        self.assertTrue(all("candidate_subject_unresolved" in {error["code"] for error in attempt["errors"]}
+        self.assertTrue(all("missing_source_interpretation" in {error["code"] for error in attempt["errors"]}
                             for attempt in attempts))
         self.assertEqual(attempts[0]["visible_candidate_ids"], attempts[1]["visible_candidate_ids"])
         self.assertEqual((catalog, obligations), before)

@@ -85,13 +85,15 @@ class CompilerReferencesV1:
     def project(self, value, *, reverse=False, field=""):
         """Only address fields/indices change; raw text, numbers and axes never do."""
         refs = dict(self.entries) if not reverse else {short: original for original, short in self.entries}
-        indices = {"candidates_by_id", "source_bundles_by_id", "source_contexts_by_id",
-                   "request_units_by_id", "candidate_ids_by_owner", "match_by_owner",
-                   "interpretation_axis_sources", "source_rows_by_id", "read_only_dependency_outputs", "context_relations"}
+        permission_indices = {"candidate_ids_by_owner", "allowed_candidate_ids_by_owner"}
+        indices = {"candidates_by_id", "source_bundles_by_id", "source_contexts_by_id", "bundles_by_id",
+                   "request_units_by_id", "candidate_ids_by_owner",
+                   "interpretation_axis_sources", "source_rows_by_id", "read_only_dependency_outputs", "context_relations", *permission_indices}
 
         def visit(node, key):
             if isinstance(node, dict):
-                return {refs.get(k, k) if key in indices else k: visit(v, k) for k, v in node.items()}
+                return {refs.get(k, k) if key in indices else k: visit(v, "candidate_ids" if key in permission_indices else k)
+                        for k, v in node.items()}
             if isinstance(node, (list, tuple)):
                 return [visit(v, key) for v in node]
             if isinstance(node, str) and (key.endswith(("_id", "_ids", "_ref", "_refs")) or key == "depends_on"):
@@ -139,6 +141,8 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
         for key, selections in rows.items():
             requirement_id = requirement_ids.get(key, "")
             for selection in selections:
+                if key == "dependencies" and refs.resolve(selection.get("source_ref")) not in (owner.get("depends_on") or []):
+                    raise CompilerReferenceError("nondependency_in_dependency_input", owner["obligation_id"])
                 yield requirement_id, selection
 
     def readings(rows, owner):
@@ -150,7 +154,11 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                                     ("first_piece_ref", "first_piece_id"), ("last_piece_ref", "last_piece_id")):
                 value = selection.get(short)
                 if value is not None:
-                    row[internal] = value if short == "row_description_quote" else refs.resolve(value)
+                    try:
+                        row[internal] = value if short == "row_description_quote" else refs.resolve(value)
+                    except ValueError as exc:
+                        raise CompilerReferenceError("unknown_compiler_reference",
+                            requirement_id or owner["obligation_id"], candidate_id) from exc
             lowered.append(row)
         return lowered
 
@@ -175,7 +183,7 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
             bindings = []
             for requirement_id, selection in groups(content["inputs"], owner):
                 source_id, interpretation, contexts = numeric(selection, requirement_id or owner_id,
-                    dependencies=owner.get("depends_on") or [])
+                    dependencies=(owner.get("depends_on") or []) if not requirement_id else ())
                 bindings.append({"variable": selection["variable"], "source_id": source_id,
                     "source_requirement_id": requirement_id, "source_interpretation": interpretation,
                     "context_bindings": contexts, "scope_applicability_fields": selection["scope_applicability_fields"]})

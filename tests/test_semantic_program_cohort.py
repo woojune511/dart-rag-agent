@@ -118,7 +118,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         rows = FinancialAgent._semantic_program_prompt_rows(catalog)
         self.assertIn(prose["candidate_id"], {item["candidate_id"] for item in rows})
 
-    def test_owner_cohort_prefers_local_match_and_excludes_conflicting_row(self) -> None:
+    def test_owner_exposure_prefers_local_match_without_using_it_as_source_authority(self) -> None:
         obligation = _obligation(
             "ob_share",
             "direct_value",
@@ -186,7 +186,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         self.assertEqual(output_cohort["candidate_ids"], ["target", "unknown"])
         self.assertEqual(
             output_cohort["match_counts"],
-            {"compatible": 1, "unknown_only": 1, "explicit_conflict": 1},
+            {"compatible": 1, "unknown_only": 2, "explicit_conflict": 0},
         )
         payload = FinancialAgent._semantic_program_prompt_payload(
             [unknown, conflicting, target],
@@ -197,10 +197,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         self.assertEqual(payload["document_provenance"]["candidates_by_id"]["target"]["document_company"], "document company")
         self.assertEqual(target_row["row_headers"], ["region", "target entity"])
         self.assertEqual(target_row["physical_row_id"], "row-target")
-        self.assertEqual(
-            target_row["match_by_owner"]["ob_share"]["state"],
-            "compatible",
-        )
+        self.assertNotIn('match_by_owner', target_row)
 
     def test_source_defined_group_cohort_admits_structured_items_with_shared_cap(self) -> None:
         scope = _scope(
@@ -268,7 +265,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         cohort_plan = _semantic_candidate_cohorts(catalog, [obligation])
 
         self.assertEqual(cohort_plan["status"], "ok")
-        self.assertEqual(cohort_plan["reservation"]["numeric"], 2)
+        self.assertEqual(cohort_plan["reservation"]["numeric"], 3)
         self.assertEqual(cohort_plan["reservation"]["narrative"], 1)
         for cohort in cohort_plan["cohorts"]:
             self.assertEqual(cohort["candidate_kind"], "evidence")
@@ -276,7 +273,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             self.assertIn("target-revenue", cohort["candidate_ids"])
             self.assertIn("target-result", cohort["candidate_ids"])
             self.assertIn("target-context", cohort["candidate_ids"])
-            self.assertNotIn("other-result", cohort["candidate_ids"])
+            self.assertIn("other-result", cohort["candidate_ids"])
 
         bounded_plan = _semantic_candidate_cohorts(
             [
@@ -348,7 +345,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             "ob_summary",
             "narrative",
             "target unit operating strategy",
-            scope=_scope(segment="target unit"),
+            scope=_scope(company="target unit"),
             evidence_mode="source_defined_group",
         )
         compatible_numeric = [
@@ -358,7 +355,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
                     index + 1,
                     row_label="target unit",
                 ),
-                "segment": "target unit",
+                "company": "target unit",
             }
             for index in range(3)
         ]
@@ -391,7 +388,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
             "candidate_id": "compatible-prose",
             "source_candidate_id": "source-compatible-prose",
             "evidence_id": "evidence-compatible-prose",
-            "segment": "target unit",
+            "company": "target unit",
             "source_text": "A separate target unit overview is also relevant.",
         }
 
@@ -429,7 +426,7 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
                             index + 20,
                             row_label="target unit",
                         ),
-                        "segment": "target unit",
+                        "company": "target unit",
                     }
                     for index in range(3)
                 ],
@@ -627,7 +624,9 @@ class SemanticCalculationProgramCohortTests(unittest.TestCase):
         )
         self.assertEqual(accepted["status"], "ready")
 
-        conflicting = {**context, "segment": "another segment"}
+        # A different interpretation is not a source condition. A different
+        # consolidation basis is and must still fail the physical-scope gate.
+        conflicting = {**context, "consolidation_scope": "separate"}
         rejected = validate_semantic_calculation_program(
             program=program,
             obligations=[obligation],

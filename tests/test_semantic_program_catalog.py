@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 
 from tests.semantic_program_test_support import *
 
@@ -436,7 +437,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
                 for item in numeric
             )
         )
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -804,7 +805,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
             ["ownership share", "carrying amount"],
         )
 
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -843,7 +844,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         self.assertEqual(operands[share["candidate_id"]]["subject"], expected["subject"])
         self.assertEqual(
             operands[share["candidate_id"]]["subject_source"],
-            "candidate_row_identity",
+            "compiler_source_interpretation",
         )
 
     def test_pipe_table_rows_preserve_local_value_association_without_structured_metadata(self) -> None:
@@ -973,7 +974,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         expected = fixture["same_row_expected"]
 
         self.assertEqual(candidate.get("row_headers"), expected["row_headers"])
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [

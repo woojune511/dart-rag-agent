@@ -18,7 +18,7 @@ def owner(label="service portfolio", *, kind="narrative", year="2042"):
         "required": True, "display_unit": "",
         "scope": {"company": "Example issuer", "period": year},
         "semantic_target": {"metric_surfaces": [label], "local_subjects": [], "concept_keys": []},
-        "evidence_requirements": [], "depends_on": [], "coupling_key": "",
+        "evidence_requirements": [], "depends_on": [],
     }
 
 
@@ -122,11 +122,11 @@ class NarrativeCandidateSelectionTests(unittest.TestCase):
         correct.update(row_label="Alpha Unit", row_headers=["Alpha Unit"])
         different = candidate("other", table="table", row="other", heading="Service portfolio")
         different.update(row_label="Beta Unit", row_headers=["Beta Unit"])
-        wrong_company = {**correct, "candidate_id": "wrong-company", "company": "Other issuer"}
+        wrong_company = {**correct, "candidate_id": "wrong-company", "company": "Other issuer", "document_company": "Other issuer"}
         wrong_period = {**correct, "candidate_id": "wrong-period", "period": "2039"}
         selected, _, matches, _ = self.select([correct, different, wrong_company, wrong_period], target)
-        self.assertEqual([row["candidate_id"] for row in selected], ["correct"])
-        for cid in ("other", "wrong-company", "wrong-period"):
+        self.assertEqual([row["candidate_id"] for row in selected], ["correct", "other"])
+        for cid in ("wrong-company", "wrong-period"):
             self.assertEqual(matches[cid]["state"], "explicit_conflict")
         target["display_unit"] = "USD"
         selected, _, matches, _ = self.select([correct], target)

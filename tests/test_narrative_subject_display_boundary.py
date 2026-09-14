@@ -226,6 +226,10 @@ class NarrativeSubjectDisplayBoundaryTests(unittest.TestCase):
         body = raw + " records inspections. " + raw + " stores samples."
         catalog, exact = fixture(raw, text=body)
         good = changed_subject(exact, "Cypress Workshop")
+        # These IDs are assigned by lowering, not repeated in the model schema.
+        good['narrative_bindings'][0]['subject_bindings'][0]['subject_binding_id'] = 's1'
+        for claim in good['narrative_bindings'][0]['claims']:
+            claim['subject_binding_id'] = 's1'
         bad = deepcopy(good)
         bad["narrative_bindings"][0]["subject_bindings"][0]["evidence_selections"] = [selection(catalog, "note", body)]
         accepted = SemanticCalculationProgram(direct_bindings=[{"obligation_id": "size", "candidate_id": "cell"}])

@@ -1,5 +1,6 @@
 """Arithmetic inputs retain immediate references and transitive source provenance."""
 
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 from copy import deepcopy
 import unittest
 
@@ -53,7 +54,7 @@ def _difference_case(sources):
 class SemanticDependencyProvenanceTests(unittest.TestCase):
     def execute(self, case):
         before = deepcopy(case)
-        result = execute_semantic_calculation_program(**case)
+        result = execute_authored_fixture(**case)
         self.assertEqual(case, before)
         self.assertEqual(result["status"], "ok", result["validation"]["errors"])
         return result
@@ -170,7 +171,7 @@ class SemanticDependencyProvenanceTests(unittest.TestCase):
         case["program"]["expressions"][0]["formula"] = "OPEN / (CLOSE - CLOSE) * 100"
         case["obligations"].append(_obligation("next", "derived_value", "next", depends_on=["ob_change"]))
         case["program"]["expressions"].append(_expression("next", [_binding("X", "ob_change")], "X + X"))
-        result = execute_semantic_calculation_program(**case)
+        result = execute_authored_fixture(**case)
         self.assertEqual(result["validation"]["status"], "ready")
         self.assertEqual(result["outputs_by_obligation"], {})
         self.assertEqual({error["code"] for error in result["execution_errors"]},
@@ -207,11 +208,13 @@ class SemanticDependencyProvenanceTests(unittest.TestCase):
         }
         visibility = _semantic_candidate_visibility(catalog, visible_candidate_ids=[selected["candidate_id"]],
             candidate_ids_by_owner={"reported": [selected["candidate_id"]], "twice": []})
-        validation = validate_semantic_calculation_program(**case, candidate_visibility=visibility)
+        from tests.source_interpretation_fixture_support import _authored_inputs
+        case = _authored_inputs(case)
+        validation = validate_authored_fixture(**case, candidate_visibility=visibility)
         self.assertEqual(validation["status"], "ready", validation["errors"])
         envelope = CompilationEnvelopeV2.create(visibility=visibility, validation=validation, **case)
         before = deepcopy(case)
-        result = execute_semantic_calculation_program(**case, compilation_envelope=envelope,
+        result = execute_authored_fixture(**case, compilation_envelope=envelope,
                                                       require_compilation_envelope=True)
         self.assertEqual(case, before)
         row = result["outputs_by_obligation"]["twice"]["input_rows"][0]

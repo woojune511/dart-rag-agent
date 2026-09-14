@@ -36,7 +36,7 @@ def narrative_owner() -> dict:
         "obligation_id": "ob_summary", "kind": "narrative", "label": "service policy",
         "required": True, "scope": {}, "display_unit": "",
         "semantic_target": {"local_subjects": [], "concept_keys": [], "metric_surfaces": ["service policy"]},
-        "evidence_requirements": [], "depends_on": [], "coupling_key": "",
+        "evidence_requirements": [], "depends_on": [],
     }
 
 

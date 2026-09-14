@@ -19,6 +19,8 @@ from src.ops.replay_reviewed_compiler_selection import (
     _write_new_json, build_admission_manifest, main,
 )
 from tests.semantic_program_test_support import _candidate, _obligation
+from tests.compiler_wire_test_support import wire_fixture
+from src.agent.financial_graph_model_loaders import compiler_response_model
 
 
 RUNTIME = {"git_commit": "synthetic", "file_count": 1, "sha256": "synthetic"}
@@ -90,13 +92,23 @@ class CompilerPartialResultTests(unittest.TestCase):
         if malformed_second:
             texts.insert(1, INVALID_PROGRAM)
         invoked = []
+        active_schema = None
+        def capture_schema(*args, **kwargs):
+            nonlocal active_schema
+            active_schema = compiler_response_model(*args, **kwargs)
+            return active_schema
         def transport(_client, *, model, contents, config=None):
             invoked.append(model)
             if len(invoked) == fail_at:
                 raise errors.ServerError(503, {"error": {"status": "UNAVAILABLE", "message": PRIVATE,
                     "details": {"headers": {"Authorization": PRIVATE}, "url": PRIVATE}}})
-            return _response(texts[len(invoked) - 1])
-        with patch.object(Models, "generate_content", transport), guarded_providers({**POLICY, "cap_usd": cap}, []) as budget:
+            text = texts[len(invoked) - 1]
+            if text != INVALID_PROGRAM:
+                text = json.dumps(wire_fixture(json.loads(text), active_schema))
+            return _response(text)
+        with patch('src.agent.financial_graph_calculation.compiler_response_model', side_effect=capture_schema), \
+                patch.object(Models, "generate_content", transport), \
+                guarded_providers({**POLICY, "cap_usd": cap}, []) as budget:
             with redirect_stdout(StringIO()):
                 exit_code = main(["run", "--manifest", str(manifest_path),
                     "--approved-manifest-sha256", _sha256_file(manifest_path), "--output", str(output_path)])

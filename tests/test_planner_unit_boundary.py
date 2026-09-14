@@ -69,7 +69,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual([item["retry_count"] for item in islands], [0, 0])
         self.assertEqual(islands[0]["preflight_errors"], planned["semantic_plan"]["requirement_errors"])
         self.assertEqual(islands[1]["preflight_errors"], [])
-        self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["RequirementPlannerOutput", "CompilerResponseV1"])
         self.assertEqual(compiled["semantic_program"]["missing_obligation_ids"], ["ob_001"])
         self.assertEqual([row["obligation_id"] for row in compiled["semantic_program"]["direct_bindings"]], ["ob_002"])
 
@@ -82,14 +82,12 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
                     "label": "requested rate",
                     "display_unit": "%",
                     "display_format": "null",
-                    "coupling_key": "rate-basis",
                 },
                 {"request_unit_ids": ["request_001"],
                     "kind": "narrative",
                     "label": "requested context",
                     "display_unit": "null",
                     "display_format": "None",
-                    "coupling_key": "null",
                     "evidence_mode": "source_defined_group",
                 },
             ],
@@ -110,7 +108,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual(obligations[0]["display_format"], "")
         self.assertEqual(obligations[1]["display_unit"], "")
         self.assertEqual(obligations[1]["display_format"], "")
-        self.assertEqual(obligations[1]["coupling_key"], "")
+        self.assertNotIn("coupling_key", obligations[1])
         self.assertEqual(planned["semantic_plan"]["requirement_errors"], [])
         islands = build_semantic_compilation_islands(obligations)
         self.assertEqual(
@@ -169,7 +167,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
         self.assertEqual(compiled["planner_debug_trace"]["program_compiler_call_count"], 2)
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
-        self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["RequirementPlannerOutput", "CompilerResponseV1", "CompilerResponseV1"])
         self.assertEqual(len(llm.prompts), 3)
 
     def test_planner_preserves_unknown_and_self_dependencies_for_preflight(self):
@@ -193,7 +191,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         }])
         self.assertEqual(compiled["semantic_program"]["missing_obligation_ids"], ["ob_001", "ob_002"])
         self.assertEqual([row["obligation_id"] for row in compiled["semantic_program"]["direct_bindings"]], ["ob_003"])
-        self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["RequirementPlannerOutput", "CompilerResponseV1"])
 
     def test_planner_drops_own_evidence_requirements_from_obligation_dependencies(self):
         planner = RequirementPlannerOutput.model_validate({

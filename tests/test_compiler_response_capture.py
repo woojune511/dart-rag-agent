@@ -10,6 +10,8 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 from tests.request_unit_fixture_support import request_bound_fixture
+from tests.compiler_wire_test_support import wire_fixture
+from src.agent.financial_graph_model_loaders import compiler_response_model
 
 from google.genai import _api_client, errors, types
 from langchain_core.exceptions import OutputParserException
@@ -90,6 +92,25 @@ class CompilerResponseCaptureTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.assertEqual(self.external_connections, [])
+
+    def mock_current_wire(self, responses):
+        """Authored AST fixtures cross the real SDK as the current wire schema."""
+        active = None
+        emitted = []
+        pending = iter(responses)
+        def capture_model(*args, **kwargs):
+            nonlocal active
+            active = compiler_response_model(*args, **kwargs)
+            return active
+        def generate(**kwargs):
+            response = next(pending)
+            if isinstance(response, SemanticCalculationProgram):
+                response = _response(json.dumps(wire_fixture(response.model_dump(), active)))
+            emitted.append(response.candidates[0].content.parts[-1].text)
+            return response
+        self.enterContext(patch('src.agent.financial_graph_calculation.compiler_response_model', side_effect=capture_model))
+        self.generate.side_effect = generate
+        return emitted
 
     def test_success_captures_final_text_finish_and_real_sdk_usage(self) -> None:
         text = '{"status":"ready","rationale":"synthetic"}'
@@ -204,12 +225,12 @@ class CompilerResponseCaptureTests(unittest.TestCase):
 
     def test_failed_island_response_and_retry_both_survive_in_result(self) -> None:
         reviewed = _reviewed_response_queue(_load_corpus(self.fixture_path))
-        self.generate.side_effect = [
-            _response(reviewed[0].model_dump_json()),
+        emitted = self.mock_current_wire([
+            reviewed[0],
             _response('{"status":"ready","expressions":[{"obligation_id":"',
                       finish_reason=types.FinishReason.MAX_TOKENS),
-            *[_response(program.model_dump_json()) for program in reviewed[1:]],
-        ]
+            *reviewed[1:],
+        ])
 
         result = evaluate_reviewed_compiler_selection(
             self.fixture_path, self.llm, run_mode="provider", usage_callback=self.callback,
@@ -221,7 +242,7 @@ class CompilerResponseCaptureTests(unittest.TestCase):
         self.assertEqual(result["cases"][0]["compiler_call_count"], 1)
         self.assertEqual(result["cases"][1]["compiler_call_count"], 2)
         first_response = result["cases"][0]["prompt_records"][0]["response"]
-        self.assertEqual(first_response["final_text"], reviewed[0].model_dump_json())
+        self.assertEqual(first_response["final_text"], emitted[0])
         failed_response = result["cases"][1]["prompt_records"][0]["response"]
         self.assertEqual(failed_response["finish_reason"], "MAX_TOKENS")
         self.assertIsNotNone(failed_response["parsing_error"])
@@ -229,7 +250,7 @@ class CompilerResponseCaptureTests(unittest.TestCase):
 
     def test_manifest_runner_counts_sdk_worker_usage_and_preserves_prompt_hash(self) -> None:
         reviewed = _reviewed_response_queue(_load_corpus(self.fixture_path))
-        self.generate.side_effect = [_response(program.model_dump_json()) for program in reviewed]
+        self.mock_current_wire(reviewed)
         runtime_build = {"git_commit": "test", "file_count": 1, "sha256": "test"}
         with TemporaryDirectory(dir=Path.cwd()) as temp_dir:
             manifest_path = Path(temp_dir) / "manifest.json"

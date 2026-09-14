@@ -82,10 +82,10 @@ class SemanticNumericBoundaryTests(unittest.TestCase):
     def test_explicit_candidate_conflict_has_exact_replacement_target(self):
         program = {"status": "ready", "direct_bindings": [{"obligation_id": "value", "candidate_id": "candidate"}]}
         validation = validate_semantic_calculation_program(
-            program=program, obligations=[_obligation("value", "direct_value", "quantity", scope=_scope(segment="target entity"))],
-            candidate_catalog=[_candidate("candidate", 1, row_label="other entity")], query="Report target entity quantity.",
+            program=program, obligations=[_obligation("value", "direct_value", "quantity", scope=_scope(period="2042"))],
+            candidate_catalog=[_candidate("candidate", 1, period="2041")], query="Report the 2042 quantity.",
         )
-        error = next(e for e in validation["errors"] if e["code"] == "candidate_subject_mismatch")
+        error = next(e for e in validation["errors"] if e["code"] == "candidate_scope_mismatch")
         self.assertEqual((error["owner_id"], error["candidate_id"], error["location"]), ("value", "candidate", "direct_binding"))
         self.assertEqual(_retry_candidate_exclusions(program=program, validation_errors=validation["errors"], target_obligation_ids=["value"]), {"value": ["candidate"]})
 

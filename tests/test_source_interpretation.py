@@ -1,7 +1,9 @@
 from copy import deepcopy
 import unittest
 
-from src.agent.financial_calculation_execution import validate_semantic_calculation_program
+from src.agent.financial_calculation_execution import validate_semantic_calculation_program, execute_semantic_calculation_program
+from src.agent.financial_graph_calculation import _semantic_candidate_visibility
+from src.agent.financial_runtime_contracts import CompilationEnvelopeV2
 from src.agent.financial_source_interpretation import interpretation_axis_sources, validate_source_interpretation
 from tests.test_numeric_subject_authority import numeric, owner, direct
 
@@ -81,6 +83,22 @@ class SourceInterpretationTests(unittest.TestCase):
         result = validate_source_interpretation(candidate, interpreted(candidate, subject="Maple division"),
             owner=owner("Maple division"), query="Maple division")
         self.assertEqual(result["validation_scope"], "source_linkage_not_semantic_equivalence")
+
+    def test_validated_correspondence_cannot_be_rewritten_before_execution(self):
+        candidate, obligation = numeric(subject='Maple'), owner('Maple division')
+        program = direct(candidate['candidate_id'])
+        program['direct_bindings'][0]['source_interpretation'] = interpreted(candidate)
+        visibility = _semantic_candidate_visibility([candidate], visible_candidate_ids=[candidate['candidate_id']],
+            candidate_ids_by_owner={'answer': [candidate['candidate_id']]})
+        inputs = dict(program=program, obligations=[obligation], candidate_catalog=[candidate], query='Return Maple division quantity.')
+        validation = validate_semantic_calculation_program(**inputs, candidate_visibility=visibility)
+        self.assertEqual(validation['status'], 'ready', validation['errors'])
+        envelope = CompilationEnvelopeV2.create(**inputs, visibility=visibility, validation=validation)
+        altered = deepcopy(program)
+        altered['direct_bindings'][0]['source_interpretation']['subject'] = 'Maple Group'
+        result = execute_semantic_calculation_program(**{**inputs, 'program': altered}, compilation_envelope=envelope)
+        self.assertEqual(result['outputs'], [])
+        self.assertIn('validation_drift', [error['code'] for error in result['validation']['errors']])
 
 
 if __name__ == "__main__":

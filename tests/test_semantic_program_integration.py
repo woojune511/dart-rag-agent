@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from tests.semantic_program_test_support import *
 from tests.narrative_address_test_support import model_program
+from tests.source_interpretation_fixture_support import authored_source_program, authored_relationships
+from src.ops.compiler_fixture_transport import short_ref
 
 
 class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
     @staticmethod
     def _prompt_json(prompt, heading):
         content = prompt.to_messages()[0].content
-        return json.JSONDecoder().raw_decode(content.split(heading + "\n", 1)[1].lstrip())[0]
+        result = json.JSONDecoder().raw_decode(content.split(heading + "\n", 1)[1].lstrip())[0]
+        refs = getattr(prompt, 'fixture_references', None)
+        return refs.project(result, reverse=True) if refs else result
 
     def _agent(self, llm):
         agent = object.__new__(FinancialAgent)
@@ -100,7 +104,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         planned = agent._plan_answer_obligation_program(initial_state)
         self.assertEqual(len(planned["calc_subtasks"]), 1)
         obligations = planned["answer_obligations"]
-        self.assertEqual([item["coupling_key"] for item in obligations], ["", "", ""])
+        self.assertTrue(all("coupling_key" not in item for item in obligations))
         summary = obligations[2]
         self.assertEqual(summary["evidence_mode"], "source_defined_group")
         self.assertEqual(len(summary["evidence_requirements"]), 1)
@@ -108,7 +112,9 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(requirement["requirement_id"], "ob_003:req_001")
         self.assertEqual(requirement["label"], summary["label"])
         self.assertEqual(requirement["scope"], summary["scope"])
-        self.assertEqual(AnswerObligation.model_validate(summary).model_dump(), summary)
+        self.assertEqual(AnswerObligation.model_validate({k: v for k, v in summary.items()
+            if k != 'output_relationships'}).model_dump(),
+            {k: v for k, v in summary.items() if k != 'output_relationships'})
         task = planned["calc_subtasks"][0]
         self.assertEqual(
             [item["role"] for item in task["required_evidence"]],
@@ -137,15 +143,20 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             "evidence_items": [], "retrieved_docs": [], "seed_retrieved_docs": [],
             "planner_debug_trace": {}, "resolved_calculation_trace": {},
         }
+        # Explicitly authored current-contract proofs; not inferred by the runtime.
+        agent.llm = llm = _StructuredQueueLLM(*[
+            SemanticCalculationProgram.model_validate(authored_source_program(
+                row.model_dump(), obligations, catalog, state['query']))
+            for row in compiler_responses])
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=catalog):
             compiled = agent._compile_semantic_calculation_program(state)
         self.assertEqual(compiled["semantic_program_retry_count"], 0)
         self.assertEqual(
             llm.models,
-            ["RequirementPlannerOutput", *["SemanticCalculationProgram"] * 3],
+            ["CompilerResponseV1"] * 3,
         )
-        self.assertEqual(len(llm.prompts), 4)
-        visible_obligations = self._prompt_json(llm.prompts[3], "Answer obligations:")
+        self.assertEqual(len(llm.prompts), 3)
+        visible_obligations = self._prompt_json(llm.prompts[2], "Answer obligations:")
         self.assertEqual(visible_obligations[0]["evidence_mode"], "source_defined_group")
         self.assertEqual(visible_obligations[0]["evidence_requirements"][0]["requirement_id"], "ob_003:req_001")
         compile_validation_bytes = json.dumps(
@@ -330,23 +341,13 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertTrue(result["semantic_plan"]["program_required"])
         self.assertEqual(len(result["answer_obligations"]), 2)
 
-    def test_requirement_planner_bounds_runaway_coupling_key(self) -> None:
-        oversized = "shared-context-" * 1000
-        response = RequirementPlannerOutput.model_validate(
-            {
-                "obligations": [
-                    {"request_unit_ids": ["request_001"],
-                        "obligation_id": "value",
-                        "kind": "direct_value",
-                        "label": "reported value",
-                        "coupling_key": oversized,
-                    }
-                ]
-            }
-        )
-
-        self.assertLessEqual(len(response.obligations[0].coupling_key), 128)
-        self.assertNotEqual(response.obligations[0].coupling_key, oversized)
+    def test_requirement_planner_rejects_arbitrary_coupling_keys(self) -> None:
+        for key in ("shared-context", "shared-context-" * 1000):
+            with self.subTest(key_length=len(key)), self.assertRaises(ValueError):
+                RequirementPlannerOutput.model_validate({"obligations": [{
+                    "request_unit_ids": ["request_001"], "obligation_id": "value",
+                    "kind": "direct_value", "label": "reported value", "coupling_key": key,
+                }]})
 
     def test_requirement_planner_uses_authoritative_company_and_removes_scope_placeholders(self) -> None:
         response = RequirementPlannerOutput.model_validate(
@@ -723,7 +724,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         }
         with patch.object(agent, "_semantic_candidate_catalog_for_state", return_value=catalog):
             compiled = agent._compile_semantic_calculation_program(state)
-        self.assertEqual(llm.models, ["SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["CompilerResponseV1"] * 2)
         visible_payload = self._prompt_json(
             llm.prompts[0], "Source bundles, candidate cohorts, and candidates_by_id:"
         )
@@ -733,8 +734,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertEqual(len(llm.prompts), 2)
         retry_prompt = str(llm.prompts[1])
         self.assertIn("allowed_candidate_ids", retry_prompt)
-        self.assertIn(opening_id, retry_prompt)
-        self.assertIn(closing_id, retry_prompt)
+        self.assertIn(short_ref(opening_id, 'c'), retry_prompt)
+        self.assertIn(short_ref(closing_id, 'c'), retry_prompt)
         self.assertIn("declared_evidence_requirement_ids", retry_prompt)
         self.assertIn("ob_001:req_opening", retry_prompt)
         self.assertIn("ob_001:req_closing", retry_prompt)
@@ -751,7 +752,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         stage_diagnostics = trace["calculation_plan"]["candidate_stage_diagnostics"]
         self.assertEqual(
             stage_diagnostics["schema"],
-            "semantic_candidate_stage_diagnostics_v9",
+            "semantic_candidate_stage_diagnostics_v10",
         )
         self.assertEqual(stage_diagnostics["catalog_candidate_count"], 2)
         self.assertEqual(stage_diagnostics["prompt_candidate_count"], 2)
@@ -1353,6 +1354,8 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         from src.ops.evaluator import EvalExample, RAGEvaluator
 
         fixture = _source_display_program_fixture()
+        fixture['program'] = authored_source_program(fixture['program'], fixture['obligations'],
+            fixture['candidate_catalog'], fixture['query'])
         llm = _StructuredQueueLLM(SemanticCalculationProgram.model_validate(fixture["program"]))
         agent = self._agent(llm)
         state = {
@@ -1373,7 +1376,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         ):
             compiled = agent._compile_semantic_calculation_program(state)
         self.assertEqual(compiled["semantic_program_retry_count"], 0)
-        self.assertEqual(llm.models, ["SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["CompilerResponseV1"])
         self.assertEqual(len(llm.prompts), 1)
         executed = execute_compiled_fixture(agent, {**state, **compiled}, fixture["candidate_catalog"])
         self.assertEqual(executed["structured_result"]["status"], "ok")
@@ -1503,7 +1506,6 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 "direct_bindings": [
                     {"obligation_id": "ob_001", "candidate_id": "cand-first"}
                 ],
-                "missing_obligation_ids": ["ob_002"],
             }
         )
         second = SemanticCalculationProgram.model_validate(
@@ -1565,10 +1567,10 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         }
         self.assertEqual(
             bindings,
-            {"ob_001": "cand-first", "ob_002": "cand-missing"},
+            {"ob_001": "cand-first"},
         )
-        self.assertEqual(compiled["semantic_program_retry_count"], 0)
-        self.assertEqual(len(llm.prompts), 2)
+        self.assertEqual(compiled["semantic_program_retry_count"], 1)
+        self.assertEqual(len(llm.prompts), 3)
         second_island_prompt = str(llm.prompts[1])
         self.assertIn("ob_002", second_island_prompt)
         self.assertNotIn(
@@ -1576,7 +1578,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             second_island_prompt.split("Candidate catalog:", 1)[0],
         )
 
-    def test_compilation_islands_follow_only_dependency_and_coupling_edges(self) -> None:
+    def test_compilation_islands_follow_only_dependency_and_request_relationship_edges(self) -> None:
         obligations = [
             _obligation("ob_a", "direct_value", "a"),
             _obligation(
@@ -1600,7 +1602,9 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             _obligation("ob_e", "direct_value", "e"),
         ]
 
-        plan = build_semantic_compilation_islands(obligations)
+        query = 'Return these values on the same reported basis.'
+        obligations = authored_relationships(obligations, query)
+        plan = build_semantic_compilation_islands(obligations, query=query)
 
         self.assertEqual(plan["status"], "ok")
         self.assertEqual(
@@ -1783,18 +1787,18 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 "ob_a",
                 "direct_value",
                 "alpha value",
-                scope=_scope(segment="alpha"),
+                scope=_scope(company="alpha"),
             ),
             _obligation(
                 "ob_b",
                 "direct_value",
                 "beta value",
-                scope=_scope(segment="beta"),
+                scope=_scope(company="beta"),
             ),
         ]
         catalog = [
-            {**_candidate("cand-a", 10, row_label="alpha value"), "segment": "alpha"},
-            {**_candidate("cand-b", 20, row_label="beta value"), "segment": "beta"},
+            {**_candidate("cand-a", 10, row_label="alpha value"), "company": "alpha"},
+            {**_candidate("cand-b", 20, row_label="beta value"), "company": "beta"},
         ]
         llm = _StructuredQueueLLM(
             SemanticCalculationProgram.model_validate(
@@ -1834,10 +1838,10 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             compiled = agent._compile_semantic_calculation_program(state)
 
         self.assertEqual(len(llm.prompts), 2)
-        self.assertIn("cand-a", str(llm.prompts[0]))
-        self.assertNotIn("cand-b", str(llm.prompts[0]))
-        self.assertIn("cand-b", str(llm.prompts[1]))
-        self.assertNotIn("cand-a", str(llm.prompts[1]))
+        self.assertIn(short_ref('cand-a', 'c'), str(llm.prompts[0]))
+        self.assertNotIn(short_ref('cand-b', 'c'), str(llm.prompts[0]))
+        self.assertIn(short_ref('cand-b', 'c'), str(llm.prompts[1]))
+        self.assertNotIn(short_ref('cand-a', 'c'), str(llm.prompts[1]))
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
 
     def test_graph_routes_program_path_without_operation_family_branching(self) -> None:

@@ -45,7 +45,7 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
             require_narrative_claims=True)
         return result, visibility
 
-    def test_initial_narrative_and_mixed_prompts_carry_an_executable_separate_quote_example(self):
+    def test_initial_narrative_and_mixed_use_separate_support_and_fact_schema(self):
         for mixed in (False, True):
             with self.subTest(mixed=mixed):
                 program, owners, catalog = deepcopy((self.program, self.owners, self.catalog))
@@ -60,25 +60,16 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                 compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
                 self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
                 self.assertEqual(len(llm.prompts), 1)
-                self.assertEqual(llm.models, ["SemanticCalculationProgram"])
+                self.assertEqual(llm.models, ["CompilerResponseV1"])
                 prompt = llm.prompts[0].to_messages()[0].content
-                marker = "구간 선택 narrative 예시:\n"
-                self.assertTrue(marker in prompt, "Missing separate-quote construction example")
-                example = json.JSONDecoder().raw_decode(prompt.split(marker, 1)[1])[0]
-                links = [*example["claims"][0]["fact_evidence_selections"],
-                    *example["subject_bindings"][0]["evidence_selections"]]
-                self.assertEqual(len(links), 2)
-                # Instruction IDs are not members of the live candidate payload.
-                payload = prompt_json(llm.prompts[0], "Source bundles, candidate cohorts, and candidates_by_id:")
-                self.assertTrue(all(link["candidate_id"] not in payload["candidates_by_id"] for link in links))
-                unbound = {"narrative_bindings": [{"obligation_id": "activity", **example}]}
-                self.assertIn("unknown_narrative_candidate", {e["code"] for e in self.validate(unbound)[0]["errors"]})
-                for link in links:
-                    heading = link["surface_id"] == "EXAMPLE_HEADING"
-                    link.update(selection(catalog, "note", "Birch" if heading else self.body,
-                        context_id="heading" if heading else ""))
-                rebound = {"narrative_bindings": [{"obligation_id": "activity", **example}]}
-                self.assertEqual(self.validate(rebound)[0]["status"], "ready")
+                schema = json.dumps(llm.model_instances[0].model_json_schema())
+                for field in ("subjects", "support", "claims", "evidence", "source_ref", "surface_ref"):
+                    self.assertIn(field, schema)
+                self.assertIn("support와 fact evidence는 독립 선택", prompt)
+                self.assertNotIn("구간 선택 narrative 예시:", prompt)
+                # The actual authored response, not an unbound flat example,
+                # exercises the per-output schema and exact source validator.
+                self.assertEqual(compiled["semantic_program"]["narrative_bindings"][0]["subject_bindings"][0]["subject"], "Birch")
                 self.assertEqual(state, before)
 
     def test_exact_separate_quotes_preserve_context_body_spans_and_display(self):
@@ -132,16 +123,21 @@ class NarrativeQuoteConstructionTests(unittest.TestCase):
                 feedback = prompt_json(llm.prompts[2], "재시도 피드백(없으면 -):")
                 contract = feedback["repair_contract"]
                 self.assertEqual(contract["target_obligation_ids"], ["activity"])
-                self.assertIn("subject_bindings", contract["narrative_claim_invariant"])
+                self.assertIn("Nest each claim under its subject", contract["narrative_claim_invariant"])
                 self.assertIn("do not recopy", contract["narrative_claim_invariant"])
                 self.assertEqual(contract["narrative_claim_invariant"],
                     CALCULATION_PROMPT_POLICY["semantic_program_narrative_repair_invariant"])
-                drafts = feedback["unvalidated_narrative_drafts"]
-                self.assertEqual(drafts[0]["claims"][0]["fact_evidence_selections"],
-                    modeled.model_dump()["narrative_bindings"][0]["claims"][0]["fact_evidence_selections"])
+                if "unvalidated_compiler_response" in feedback:
+                    drafts = feedback["unvalidated_compiler_response"]["outputs"]
+                    self.assertEqual(list(drafts), ["activity"])
+                    self.assertEqual(drafts["activity"]["result"]["subjects"][0]["subject"], "Birch")
+                else:
+                    drafts = feedback["unvalidated_narrative_drafts"]
+                    self.assertEqual(drafts[0]["claims"][0]["fact_evidence_selections"],
+                        modeled.model_dump()["narrative_bindings"][0]["claims"][0]["fact_evidence_selections"])
                 self.assertNotIn("size-cell", json.dumps(drafts))
                 for error in feedback["validation_errors"]:
-                    self.assertTrue(error["location"].startswith(("narrative_claims[0]", "subject_bindings[0]")))
+                    self.assertTrue(error["location"].startswith(("narrative_claims[0]", "subject_bindings[0]", "compiler_response.outputs")))
                     self.assertEqual(error["repair_action"], "repair_program")
                     if error["code"] in {"ungrounded_narrative_subject", "unknown_narrative_surface"}:
                         self.assertTrue(error["detail"])

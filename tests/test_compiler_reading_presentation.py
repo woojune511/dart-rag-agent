@@ -80,7 +80,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
         self.assertFalse({"rank_vector", "ranking_diagnostics", "future_diagnostic", "match_counts"} & all_keys(payload))
         self.assertEqual((self.catalog, plan), before)
         self.assertIn("ranking_diagnostics", plan["cohorts"][0])
-        self.assertEqual(payload["candidates_by_id"]["paragraph"]["match_by_owner"]["routes"]["state"], match["state"])
+        self.assertNotIn('match_by_owner', payload['candidates_by_id']['paragraph'])
 
     def test_projection_preserves_catalog_bundle_and_owner_authority(self):
         before = deepcopy(self.catalog)
@@ -226,11 +226,11 @@ class CompilerReadingPresentationTests(unittest.TestCase):
         self.assertEqual(result["semantic_program_validation"]["status"], "ready")
         self.assertEqual(len(prompts), 1)
         text = prompts[0].to_messages()[0].content
-        for numeric in ("formula AST", "source_display_reason", "(abs(A) - abs(B))", "deterministic_cardinality"):
+        for numeric in ("source_display_reason", "deterministic_cardinality"):
             self.assertNotIn(numeric, text)
             self.assertIn(numeric, CALCULATION_PROMPT_POLICY["semantic_program_prompt_template"])
         self.assertNotIn("row_description_quote_options", text)
-        self.assertEqual(prompt_json(prompts[0], MARKER)["schema"], "semantic_program_candidate_payload_v8")
+        self.assertEqual(prompt_json(prompts[0], MARKER)["schema"], "semantic_program_candidate_payload_v9")
         self.assertIn("source_display_reason", SemanticCalculationProgram.model_json_schema()["$defs"]["SemanticProgramExpression"]["properties"])
 
     def test_special_row_permission_requires_real_scalar_axes_and_provenance(self):
@@ -250,8 +250,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
 
     def test_retry_switches_mixed_to_narrative_view_and_preserves_accepted_bytes(self):
         owners = [*self.owners, _obligation("size", "direct_value", "Size")]
-        for owner in owners:
-            owner["coupling_key"] = "same-basis"
+        owners[0]['depends_on'] = ['size']
         accepted = {"obligation_id": "size", "candidate_id": "cell"}
         bad = self.program()
         bad["narrative_bindings"][0]["claims"][0]["evidence_bindings"][0]["context_id"] = "z-heading"
@@ -260,10 +259,10 @@ class CompilerReadingPresentationTests(unittest.TestCase):
                 owners=owners, catalog=[*self.catalog, _candidate("cell", 12)])
         self.assertEqual(result["semantic_program_validation"]["status"], "ready")
         self.assertEqual(len(prompts), 2)
-        self.assertIn("formula AST", prompts[0].to_messages()[0].content)
-        self.assertNotIn("formula AST", prompts[1].to_messages()[0].content)
+        self.assertIn("source_display_reason", prompts[0].to_messages()[0].content)
+        self.assertNotIn("source_display_reason", prompts[1].to_messages()[0].content)
         self.assertEqual(prompt_json(prompts[1], "Answer obligations:"), [owners[0]])
-        expected = merge.call_args.kwargs["previous_validation"]["valid_direct_bindings"]
+        expected = merge.call_args.kwargs["previous_program"]["direct_bindings"]
         self.assertEqual(json.dumps(result["semantic_program"]["direct_bindings"], sort_keys=True), json.dumps(expected, sort_keys=True))
 
 

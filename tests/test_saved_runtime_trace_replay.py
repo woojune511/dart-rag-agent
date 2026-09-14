@@ -41,7 +41,7 @@ def _obligation() -> dict:
         "concept_hints": [],
         "evidence_requirements": [],
         "depends_on": [],
-        "coupling_key": "",
+
     }
 
 

@@ -1,5 +1,6 @@
 """Relative-period and cross-source calculation regressions; no providers/stores."""
 
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 from copy import deepcopy
 
 from tests.semantic_program_test_support import *
@@ -116,7 +117,7 @@ class ExpressionSourceContextContractTests(unittest.TestCase):
         }
         for owners in ([direct, derived], [derived, direct]):
             with self.subTest(order=[o["obligation_id"] for o in owners]):
-                validation = validate_semantic_calculation_program(program=program,
+                validation = validate_authored_fixture(program=program,
                     obligations=owners, candidate_catalog=catalog, query="Copy the reported quantity.")
                 self.assertEqual(validation["status"], "ready", validation["errors"])
                 self.assertEqual(validation["valid_source_assertions"][0]["covered_obligation_ids"],
@@ -124,7 +125,7 @@ class ExpressionSourceContextContractTests(unittest.TestCase):
 
     def test_same_period_statement_and_note_inputs_are_compatible(self):
         case = _contract_residual_fixture()["expression_compatibility"]["cases"][1]
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program=case["program"], obligations=case["obligations"],
             candidate_catalog=case["candidate_catalog"], query=case["query"],
         )
@@ -145,7 +146,7 @@ class ExpressionSourceContextContractTests(unittest.TestCase):
             "expressions": [{"obligation_id": "net", "variable_bindings": [
                 _binding("A", "reported"), _binding("B", "component")], "formula": "A - B",
                 "source_display_candidate_id": None, "source_display_reason": "No stated result."}]}
-        result = execute_semantic_calculation_program(program=program, obligations=obligations,
+        result = execute_authored_fixture(program=program, obligations=obligations,
             candidate_catalog=catalog, query="Subtract the disclosed component from the reported result.")
         self.assertEqual(result["status"], "ok", result["validation"]["errors"])
         self.assertEqual(result["outputs_by_obligation"]["net"]["normalized_value"], 100)
@@ -154,22 +155,20 @@ class ExpressionSourceContextContractTests(unittest.TestCase):
         fixture = _source_display_program_fixture()
         for candidate, source in zip(fixture["candidate_catalog"], ("prior-table", "current-table", "summary-table")):
             candidate.update(context_fingerprint=source, table_source_id=source)
-        result = execute_semantic_calculation_program(**fixture)
+        result = execute_authored_fixture(**fixture)
         self.assertEqual(result["status"], "ok", result["validation"]["errors"])
         self.assertTrue(result["outputs_by_obligation"]["ob_change"]["source_stated_result_used"])
 
     def test_cross_source_permission_does_not_bypass_explicit_scope_conflicts(self):
         for field, conflicting in (("company", "other"), ("consolidation_scope", "separate"),
-                                   ("segment", "other"), ("basis", "adjusted"), ("period", "2020")):
+                                   ("period", "2020")):
             with self.subTest(field=field):
                 case = deepcopy(_contract_residual_fixture()["expression_compatibility"]["cases"][1])
-                if field == "segment":
-                    case["obligations"][0]["evidence_requirements"][1]["scope"][field] = "service"
                 candidate = case["candidate_catalog"][1]
                 candidate[field] = conflicting
                 if field == "period":
                     candidate.update(column_headers=[conflicting], value_year=int(conflicting))
-                validation = validate_semantic_calculation_program(program=case["program"],
+                validation = validate_authored_fixture(program=case["program"],
                     obligations=case["obligations"], candidate_catalog=case["candidate_catalog"], query=case["query"])
                 self.assertNotEqual(validation["status"], "ready")
                 self.assertIn("candidate_requirement_scope_mismatch", {e["code"] for e in validation["errors"]})

@@ -84,7 +84,7 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
         rejected = self.validate(candidate)
         issue = next(error for error in rejected["errors"] if error["code"] == "missing_source_interpretation")
         self.assertEqual((issue["candidate_id"], issue["owner_id"], issue["location"], issue["repair_action"]),
-            ("group", "answer", "direct_binding.context_bindings", "repair_program"))
+            ("group", "answer", "direct_binding.source_interpretation", "repair_program"))
         self.assertEqual(_retry_candidate_exclusions(program=direct("group"),
             validation_errors=rejected["errors"], target_obligation_ids=["answer"]), {})
         self.assertEqual(candidate, before)
@@ -160,7 +160,7 @@ class NumericSubjectAuthorityTests(unittest.TestCase):
                 "source_interpretation": authored_interpretation(exact, "Alpha Cells")}],
             "source_display_candidate_id": "group", "source_display_reason": "Selected display."}]}
         result = validate_semantic_calculation_program(program=program, obligations=[obligation], candidate_catalog=[exact, group], query="Return the amount.")
-        self.assertTrue(any(error["code"] == "missing_source_interpretation" and error["location"] == "source_display.context_bindings"
+        self.assertTrue(any(error["code"] == "missing_source_interpretation" and error["location"] == "source_display.source_interpretation"
             for error in result["errors"]))
 
     def test_unknown_subject_retries_same_cohort_and_preserves_accepted_island(self):

@@ -25,6 +25,7 @@ def _reviewed_case():
 
 
 def _compile(case, first, retry):
+    from tests.source_interpretation_fixture_support import authored_source_program
     captured = []
 
     def prompt_factory(template):
@@ -37,13 +38,19 @@ def _compile(case, first, retry):
         return SimpleNamespace(invoke=invoke)
 
     llm = _StructuredQueueLLM(*[
-        SemanticCalculationProgram.model_validate(program) for program in (first, retry)
+        SemanticCalculationProgram.model_validate(authored_source_program(program, case["obligations"], case["candidate_catalog"], case["question"]))
+        for program in (first, retry)
     ])
     state = _case_state(case, case["candidate_catalog"])
     before = deepcopy(state)
     with patch("src.agent.financial_graph_calculation.chat_prompt_template_from_template", side_effect=prompt_factory):
         compiled = _CompilerOnlyAgent(llm)._compile_semantic_calculation_program(state)
     assert state == before, "compilation must not mutate its inputs"
+    # Tests compare canonical provenance; provider prompts retain short refs.
+    for values, model in zip(captured, llm.model_instances):
+        for key in ("candidate_catalog", "retry_feedback"):
+            if values.get(key) and values[key] != "-":
+                values[key] = json.dumps(model.__compiler_references__.project(json.loads(values[key]), reverse=True))
     return compiled, captured
 
 
@@ -108,7 +115,9 @@ class SemanticRetryDependencyTests(unittest.TestCase):
         compiled, prompts = _compile(case, first, malicious)
         self.assertIn("read_only_dependency_outputs", json.loads(prompts[1]["retry_feedback"]))
         self.assertEqual(prompts[1]["retry_feedback"].encode(), clean_prompts[1]["retry_feedback"].encode())
-        self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
+        # Extra output keys are rejected by the new schema; accepted owners
+        # still survive, but an invalid retry cannot claim the target succeeded.
+        self.assertEqual(compiled["semantic_program_validation"]["status"], "partial")
         self.assertEqual(
             json.dumps(compiled["semantic_program"]["direct_bindings"], ensure_ascii=False).encode(),
             json.dumps(clean["semantic_program"]["direct_bindings"], ensure_ascii=False).encode(),
@@ -128,7 +137,7 @@ class SemanticRetryDependencyTests(unittest.TestCase):
                 self.assertNotEqual(compiled["semantic_program_validation"]["status"], "ready")
                 self.assertNotIn("nim_change", _execute(case, compiled)["outputs_by_obligation"])
                 history = compiled["resolved_calculation_trace"]["calculation_plan"]["program_validation_history"]
-                expected = "candidate_not_exposed_to_compiler" if hidden.startswith("reviewed_") else "unknown_expression_source"
+                expected = "candidate_not_authorized_for_output_input" if hidden.startswith("reviewed_") else "unknown_compiler_reference"
                 self.assertIn(expected, {error["code"] for error in history[1]["errors"]})
 
     def test_failed_dependency_stays_editable_not_read_only(self):

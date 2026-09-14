@@ -44,7 +44,7 @@ def _obligation(obligation_id: str) -> dict:
         "concept_hints": [],
         "evidence_requirements": [],
         "depends_on": [],
-        "coupling_key": "",
+
     }
 
 
@@ -219,12 +219,11 @@ class FinancialRuntimeContractTests(unittest.TestCase):
         )
         fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
         case = fixture["expression_compatibility"]["cases"][0]
-        obligations = [
-            {**dict(case["obligations"][0]), "coupling_key": "reported-series"}
-        ]
+        from tests.source_interpretation_fixture_support import authored_relationships, authored_source_program
+        obligations = authored_relationships(case['obligations'], case['query'])
 
         validation = validate_semantic_calculation_program(
-            program=case["program"],
+            program=authored_source_program(case['program'], obligations, case['candidate_catalog'], case['query']),
             obligations=obligations,
             candidate_catalog=case["candidate_catalog"],
             query=case["query"],

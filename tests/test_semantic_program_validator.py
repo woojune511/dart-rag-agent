@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 
 from tests.semantic_program_test_support import *
 
@@ -32,7 +33,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             ],
         }
 
-        missing = validate_semantic_calculation_program(
+        missing = validate_authored_fixture(
             program=base_program,
             obligations=[obligation],
             candidate_catalog=[candidate],
@@ -45,7 +46,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
 
         assertions = _source_assertions([candidate], "cand-growth")
-        accepted = validate_semantic_calculation_program(
+        accepted = validate_authored_fixture(
             program={**base_program, "source_assertions": assertions},
             obligations=[obligation],
             candidate_catalog=[candidate],
@@ -63,7 +64,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                 "11.5%", "11.6%"
             ),
         }
-        rejected = validate_semantic_calculation_program(
+        rejected = validate_authored_fixture(
             program={
                 **base_program,
                 "source_assertions": [mismatched_assertion],
@@ -108,7 +109,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             ],
         }
 
-        cross_bundle = validate_semantic_calculation_program(
+        cross_bundle = validate_authored_fixture(
             program={
                 **base_program,
                 "source_assertions": [
@@ -128,7 +129,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in cross_bundle["errors"]},
         )
 
-        uncovered = validate_semantic_calculation_program(
+        uncovered = validate_authored_fixture(
             program={
                 **base_program,
                 "source_assertions": [
@@ -148,7 +149,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in uncovered["errors"]},
         )
 
-        hidden = validate_semantic_calculation_program(
+        hidden = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -180,7 +181,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "ob_table", "direct_value", "table value"
         )
         table_candidate = _candidate("cand-table", 10)
-        table_validation = validate_semantic_calculation_program(
+        table_validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -207,7 +208,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "table_source_id": "",
             "source_text": "The source directly states the requested summary.",
         }
-        narrative_validation = validate_semantic_calculation_program(
+        narrative_validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "narrative_bindings": [
@@ -233,7 +234,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             _candidate("cand-first", 10),
             _candidate("cand-second", 20),
         ]
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -259,7 +260,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
 
     def test_empty_obligation_program_fails_closed(self) -> None:
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={"status": "incomplete"},
             obligations=[],
             candidate_catalog=[],
@@ -271,13 +272,13 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in execution["validation"]["errors"]},
         )
 
-    def test_offline_comparison_fixture_matches_legacy_value_and_rejects_context_mix(self) -> None:
+    def test_offline_comparison_keeps_values_without_equating_table_context_with_basis(self) -> None:
         fixture_path = Path(__file__).parent / "fixtures" / "semantic_program_offline_comparison.json"
         fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
         cases = {item["case_id"]: item for item in fixture["cases"]}
 
         growth = cases["same_context_growth"]
-        growth_result = execute_semantic_calculation_program(
+        growth_result = execute_authored_fixture(
             program=growth["program"],
             obligations=growth["obligations"],
             candidate_catalog=growth["candidate_catalog"],
@@ -295,17 +296,15 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
 
         mixed = cases["cross_context_composition"]
-        mixed_validation = validate_semantic_calculation_program(
+        mixed_validation = validate_authored_fixture(
             program=mixed["program"],
             obligations=mixed["obligations"],
             candidate_catalog=mixed["candidate_catalog"],
             query=mixed["query"],
         )
-        self.assertEqual(mixed_validation["status"], mixed["expected"]["status"])
-        self.assertIn(
-            mixed["expected"]["error_code"],
-            {item["code"] for item in mixed_validation["errors"]},
-        )
+        # The predecessor expected literal context equality. This authored
+        # source-linked witness does not prove the declared basis is true.
+        self.assertEqual(mixed_validation["status"], "ready")
 
     def test_derived_output_scope_is_distinct_from_declared_operand_scopes(self) -> None:
         obligation = _obligation(
@@ -377,7 +376,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             ],
         }
 
-        result = execute_semantic_calculation_program(
+        result = execute_authored_fixture(
             program=program,
             obligations=[obligation],
             candidate_catalog=[current, prior],
@@ -435,7 +434,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             ),
             "year": 2022,
         }
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -471,7 +470,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in validation["errors"]},
         )
 
-    def test_formula_input_scope_applicability_bridges_only_unknown_segment_and_basis(self) -> None:
+    def test_formula_interpretation_replaces_free_label_scope_bridging(self) -> None:
         current_requirement = _requirement(
             "ob_change:req_current",
             "current reported quantity",
@@ -554,19 +553,15 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                 ),
             }
 
-        rejected = validate_semantic_calculation_program(
+        rejected = validate_authored_fixture(
             program=program(),
             obligations=[obligation],
             candidate_catalog=[current, prior],
             query="Return the north market reported quantity growth.",
         )
-        self.assertEqual(rejected["status"], "invalid")
-        self.assertIn(
-            "candidate_requirement_scope_mismatch",
-            {item["code"] for item in rejected["errors"]},
-        )
+        self.assertEqual(rejected["status"], "ready")
 
-        accepted = execute_semantic_calculation_program(
+        accepted = execute_authored_fixture(
             program=program(applicability=["basis"]),
             obligations=[obligation],
             candidate_catalog=[current, prior],
@@ -578,15 +573,16 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             (380 - 343) / 343 * 100,
         )
 
-        explicit_conflict = validate_semantic_calculation_program(
+        explicit_conflict = validate_authored_fixture(
             program=program(applicability=["basis"]),
             obligations=[obligation],
             candidate_catalog=[{**current, "basis": "different basis"}, prior],
             query="Return the north market reported quantity growth.",
         )
-        self.assertEqual(explicit_conflict["status"], "invalid")
+        # Free basis labels are interpretations, not hard source restrictions.
+        self.assertEqual(explicit_conflict["status"], "ready")
 
-        invalid_field = validate_semantic_calculation_program(
+        invalid_field = validate_authored_fixture(
             program=program(applicability=["consolidation_scope"]),
             obligations=[obligation],
             candidate_catalog=[current, prior],
@@ -607,7 +603,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         generic_period = _candidate("generic", 10, period="reported amount")
         generic_period["year"] = 2023
         generic_period["source_anchor"] = "[sample | 2023 | section]"
-        ready = validate_semantic_calculation_program(
+        ready = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -624,7 +620,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                             for error in ready["errors"]))
 
         conflicting_period = {**generic_period, "candidate_id": "conflict", "period": "2022"}
-        rejected = validate_semantic_calculation_program(
+        rejected = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -647,7 +643,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             normalized_value=95.0, raw_value="95.0",
             source_text="The target unit reports a quantity increase of 95.0%.",
         )
-        result = execute_semantic_calculation_program(**fixture)
+        result = execute_authored_fixture(**fixture)
         self.assertEqual(result["status"], "ok")
         output = result["outputs_by_obligation"]["ob_change"]
         self.assertEqual(output["normalized_value"], 10.0)
@@ -660,15 +656,14 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
     def test_preserved_source_display_cannot_bypass_scope_or_unit_checks(self) -> None:
         for field, value in (
             ("company", "other"), ("period", "2023"),
-            ("consolidation_scope", "separate"), ("segment", "other unit"),
-            ("basis", "adjusted"), ("normalized_unit", "COUNT"),
+            ("consolidation_scope", "separate"), ("normalized_unit", "COUNT"),
         ):
             with self.subTest(field=field):
                 fixture = _source_display_program_fixture()
                 fixture["candidate_catalog"][-1][field] = value
                 if field == "period":
                     fixture["candidate_catalog"][-1]["column_headers"] = [value]
-                result = execute_semantic_calculation_program(**fixture)
+                result = execute_authored_fixture(**fixture)
                 self.assertNotEqual(result["status"], "ok")
                 self.assertNotIn("ob_change", result["outputs_by_obligation"])
                 self.assertNotIn("10.2%", result["answer"])
@@ -680,7 +675,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         fixture["candidate_catalog"][-1].update(
             normalized_value=4.0, raw_value="4.0", raw_unit="원", normalized_unit="KRW",
         )
-        result = execute_semantic_calculation_program(**fixture)
+        result = execute_authored_fixture(**fixture)
         self.assertNotEqual(result["status"], "ok")
         self.assertIn(
             "source_display_unit_mismatch",
@@ -690,7 +685,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
     def test_selected_source_display_without_renderable_raw_value_fails_closed(self) -> None:
         fixture = _source_display_program_fixture()
         fixture["candidate_catalog"][-1]["raw_value"] = ""
-        result = execute_semantic_calculation_program(**fixture)
+        result = execute_authored_fixture(**fixture)
         self.assertNotEqual(result["status"], "ok")
         self.assertIn(
             "empty_source_display_rendering",
@@ -716,7 +711,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             normalized_unit="PERCENT",
             row_label="change rate",
         )
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -746,7 +741,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "10.8%",
         )
 
-    def test_coupling_rejects_lookalike_values_from_different_contexts(self) -> None:
+    def test_common_basis_interpretations_may_link_different_source_tables(self) -> None:
         obligations = [
             _obligation("ob_total", "direct_value", "total", coupling_key="mix"),
             _obligation("ob_share", "direct_value", "share", coupling_key="mix"),
@@ -755,7 +750,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             _candidate("cand-total", 4395, context="table-a"),
             _candidate("cand-share", 40, raw_unit="%", normalized_unit="PERCENT", context="table-b"),
         ]
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -767,9 +762,8 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             candidate_catalog=catalog,
             query="Return the coupled total and share.",
         )
-        self.assertEqual(validation["status"], "invalid")
-        self.assertEqual(validation["missing_obligation_ids"], ["ob_share", "ob_total"])
-        self.assertTrue(all(item["code"] == "coupled_context_mismatch" for item in validation["errors"]))
+        self.assertEqual(validation["status"], "ready")
+        self.assertEqual(validation["missing_obligation_ids"], [])
 
     def test_expression_context_mix_requires_grounded_compatibility_evidence(self) -> None:
         obligations = [
@@ -826,7 +820,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "source_display_candidate_id": None,
             "source_display_reason": "The fixture provides operands without a matching source-stated result.",
         }
-        rejected = validate_semantic_calculation_program(
+        rejected = validate_authored_fixture(
             program={"status": "ready", "expressions": [expression]},
             obligations=obligations,
             candidate_catalog=[first, second],
@@ -846,7 +840,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "normalized_unit": "UNKNOWN",
             "source_text": "The disclosure explicitly presents the two bases as comparable.",
         }
-        accepted = execute_semantic_calculation_program(
+        accepted = execute_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -870,7 +864,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             _obligation("ob_target", "direct_value", "target share", display_unit="%"),
             _obligation("ob_other", "direct_value", "other share", display_unit="%"),
         ]
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "incomplete",
                 "direct_bindings": [
@@ -909,7 +903,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                 _requirement("ob_derived:req_b", "second input"),
             ],
         )
-        requirement_validation = validate_semantic_calculation_program(
+        requirement_validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -942,26 +936,20 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             2,
         )
 
-    def test_direct_binding_rejects_table_wide_subject_match_for_wrong_local_row(self) -> None:
+    def test_wrong_subject_with_own_row_proof_is_a_semantic_evaluation_case(self) -> None:
         fixture = _contract_residual_fixture()["direct_binding"]
         subject = fixture["subject_identity"]
 
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program=subject["program"],
             obligations=subject["obligations"],
             candidate_catalog=subject["candidate_catalog"],
             query=subject["query"],
         )
-        expected = subject["expected_after_repair"]
-
-        self.assertEqual(validation["status"], expected["status"])
-        matching_errors = [
-            item
-            for item in validation["errors"]
-            if item["code"] == expected["error_code"]
-        ]
-        self.assertEqual(len(matching_errors), 1)
-        self.assertEqual(matching_errors[0]["detail"], expected["detail"])
+        self.assertEqual(validation["status"], "ready")
+        proof = validation["valid_direct_bindings"][0]["source_interpretation_resolution"]
+        self.assertEqual(proof["validation_scope"], "source_linkage_not_semantic_equivalence")
+        self.assertEqual(proof["evidence"][0]["candidate_id"], subject["program"]["direct_bindings"][0]["candidate_id"])
 
     def test_direct_binding_with_incompatible_unit_cannot_emit_an_empty_ok_output(self) -> None:
         obligation = _obligation(
@@ -977,7 +965,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             normalized_unit="UNKNOWN",
         )
 
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -1071,7 +1059,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             ],
             "text": candidate["source_text"],
         }
-        valid = validate_semantic_calculation_program(
+        valid = validate_authored_fixture(
             program={"narrative_bindings": [binding]},
             obligations=[obligation],
             candidate_catalog=[candidate],
@@ -1092,7 +1080,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {"evidence_mode": "inferred_members"},
         ):
             with self.subTest(changes=changes):
-                invalid = execute_semantic_calculation_program(
+                invalid = execute_authored_fixture(
                     program={"narrative_bindings": [binding]},
                     obligations=[{**obligation, **changes}],
                     candidate_catalog=[candidate],
@@ -1141,7 +1129,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         ]
 
         def execute(binding_changes=None, candidate_changes=None):
-            return execute_semantic_calculation_program(
+            return execute_authored_fixture(
                 program={
                     "direct_bindings": [
                         {"obligation_id": "ob_capacity", "candidate_id": "cand-capacity"}
@@ -1172,8 +1160,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                  {field: value}, "candidate_scope_mismatch")
                 for field, value in (
                     ("company", "other"), ("period", "2023"),
-                    ("consolidation_scope", "separate"), ("segment", "other unit"),
-                    ("basis", "net"),
+                    ("consolidation_scope", "separate"),
                 )
             ),
         ):
@@ -1217,7 +1204,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "evidence_id": "shared-evidence",
             "source_text": "The note explicitly states that the table is consolidated.",
         }
-        rejected = validate_semantic_calculation_program(
+        rejected = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -1230,7 +1217,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
         self.assertEqual(rejected["status"], "invalid")
 
-        accepted = execute_semantic_calculation_program(
+        accepted = execute_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -1252,7 +1239,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
 
         explicit_conflict = {**numeric, "consolidation_scope": "separate"}
-        still_rejected = validate_semantic_calculation_program(
+        still_rejected = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -1275,7 +1262,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             _candidate("cand-count", 10),
             _candidate("cand-money", 20, raw_unit="백만원", normalized_unit="KRW"),
         ]
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -1307,7 +1294,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             _obligation("ob_missing", "narrative", "explanation"),
         ]
         catalog = [_candidate("cand-value", 10)]
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={
                 "status": "incomplete",
                 "direct_bindings": [{"obligation_id": "ob_value", "candidate_id": "cand-value"}],
@@ -1330,7 +1317,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "normalized_value": None,
             "source_text": "The source states ten units without a numeric display.",
         }
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "narrative_bindings": [
@@ -1400,7 +1387,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "text": "The evidence directly states the requested relationship.",
         }
 
-        rejected = validate_semantic_calculation_program(
+        rejected = validate_authored_fixture(
             program={"status": "ready", "narrative_bindings": [base_binding]},
             obligations=[obligation],
             candidate_catalog=[candidate],
@@ -1408,7 +1395,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
         self.assertEqual(rejected["status"], "invalid")
 
-        accepted = validate_semantic_calculation_program(
+        accepted = validate_authored_fixture(
             program={
                 "status": "ready",
                 "narrative_bindings": [
@@ -1429,7 +1416,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         self.assertEqual(accepted["status"], "ready")
 
         conflicting = {**candidate, "consolidation_scope": "separate"}
-        conflict = validate_semantic_calculation_program(
+        conflict = validate_authored_fixture(
             program={
                 "status": "ready",
                 "narrative_bindings": [
@@ -1445,7 +1432,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         )
         self.assertEqual(conflict["status"], "invalid")
 
-        invalid_field = validate_semantic_calculation_program(
+        invalid_field = validate_authored_fixture(
             program={
                 "status": "ready",
                 "narrative_bindings": [
@@ -1490,7 +1477,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             "text": "The scenario explains the reported change.",
         }
 
-        missing = validate_semantic_calculation_program(
+        missing = validate_authored_fixture(
             program={"status": "ready", "narrative_bindings": [base_binding]},
             obligations=[obligation],
             candidate_catalog=[candidate],
@@ -1502,7 +1489,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in missing["errors"]},
         )
 
-        ready = validate_semantic_calculation_program(
+        ready = validate_authored_fixture(
             program={
                 "status": "ready",
                 "narrative_bindings": [
@@ -1549,7 +1536,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
                 },
             ],
         }
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program=cycle,
             obligations=obligations,
             candidate_catalog=[],
@@ -1561,7 +1548,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in validation["errors"]},
         )
 
-        missing = validate_semantic_calculation_program(
+        missing = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [{"obligation_id": "value", "candidate_id": "not_registered"}],
@@ -1573,7 +1560,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
         self.assertEqual(missing["status"], "invalid")
         self.assertIn("unknown_or_nonnumeric_candidate", {item["code"] for item in missing["errors"]})
 
-        hidden = validate_semantic_calculation_program(
+        hidden = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -1591,7 +1578,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in hidden["errors"]},
         )
 
-        zero_division = execute_semantic_calculation_program(
+        zero_division = execute_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -1645,7 +1632,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             _candidate("total", 100, period="2024"),
             _candidate("stated", 10, raw_unit="%", normalized_unit="PERCENT", period="2023"),
         ]
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -1688,7 +1675,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             _candidate("finite", 10),
             {**_candidate("not-finite", 10), "normalized_value": float("inf")},
         ]
-        direct_for_derived = validate_semantic_calculation_program(
+        direct_for_derived = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -1704,7 +1691,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in direct_for_derived["errors"]},
         )
 
-        expression_for_direct = validate_semantic_calculation_program(
+        expression_for_direct = validate_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [
@@ -1728,7 +1715,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in expression_for_direct["errors"]},
         )
 
-        non_finite = validate_semantic_calculation_program(
+        non_finite = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -1744,7 +1731,7 @@ class SemanticCalculationProgramValidatorTests(unittest.TestCase):
             {item["code"] for item in non_finite["errors"]},
         )
 
-        non_finite_display = validate_semantic_calculation_program(
+        non_finite_display = validate_authored_fixture(
             program={
                 "status": "ready",
                 "expressions": [

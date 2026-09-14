@@ -31,6 +31,8 @@ def _table_bundle(prefix: str, count: int, *, segment: str = "") -> list[dict]:
             "physical_cell_id": f"cell-{index}",
             "source_bundle_text": source_text,
             "segment": segment,
+            "company": segment,
+            "document_company": segment,
         }
         for index in range(count)
     ]
@@ -126,8 +128,8 @@ class SemanticCapacityContractTests(unittest.TestCase):
             *_table_bundle("retry-z", 2, segment="retry"),
         ]
         obligations = [
-            _obligation("ob-stable", "direct_value", "quantity", scope=_scope(segment="stable")),
-            _obligation("ob-retry", "direct_value", "quantity", scope=_scope(segment="retry")),
+            _obligation("ob-stable", "direct_value", "quantity", scope=_scope(company="stable")),
+            _obligation("ob-retry", "direct_value", "quantity", scope=_scope(company="retry")),
         ]
         initial = _semantic_candidate_cohorts(catalog, obligations)
         self.assertEqual(initial["reservation"]["numeric"], 96)
@@ -177,8 +179,8 @@ class SemanticCapacityContractTests(unittest.TestCase):
             *_table_bundle("second-z", 2, segment="second"),
         ]
         obligations = [
-            _obligation("ob-first", "direct_value", "quantity", scope=_scope(segment="first")),
-            _obligation("ob-second", "direct_value", "quantity", scope=_scope(segment="second")),
+            _obligation("ob-first", "direct_value", "quantity", scope=_scope(company="first")),
+            _obligation("ob-second", "direct_value", "quantity", scope=_scope(company="second")),
         ]
         self.assertEqual(_semantic_candidate_cohorts(catalog, obligations)["reservation"]["numeric"], 4)
         accepted = SemanticCalculationProgram.model_validate({

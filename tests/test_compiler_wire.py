@@ -48,7 +48,7 @@ class CompilerWireTests(unittest.TestCase):
         schema = json.dumps(model.model_json_schema())
         self.assertNotIn('"formula"', schema)
         self.assertNotIn('"variable_bindings"', schema)
-        raw = {"outputs": {refs.ref("note"): {"status": "ready", "result": {"formula": "1"}, "reason": "wrong kind"}}}
+        raw = {"outputs": {refs.ref("note"): {"status": "ready", "result": {"formula": "1"}}}}
         with self.assertRaises(ValueError):
             lower_compiler_response(raw, model=model, refs=refs, obligations=owners, catalog=catalog, visibility=visibility)
 
@@ -87,6 +87,38 @@ class CompilerWireTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             lower_compiler_response({"direct_bindings": [{"obligation_id": "value", "candidate_id": "number"}]},
                 model=model, refs=refs, obligations=owners, catalog=catalog, visibility=visibility)
+
+    def test_permission_values_and_bundle_metadata_use_the_same_short_refs(self):
+        owners, catalog = [_obligation('value', 'direct_value', 'quantity')], [_candidate('long-candidate-address', 7)]
+        refs, _, visibility, payload = self.setup_wire(owners, catalog)
+        original = {'allowed_candidate_ids_by_owner': visibility.candidate_ids_by_owner(),
+            'bundles_by_id': payload['document_provenance']['bundles_by_id']}
+        projected = refs.project(original)
+        self.assertEqual(projected['allowed_candidate_ids_by_owner']['value'], [refs.ref('long-candidate-address')])
+        self.assertEqual(set(projected['bundles_by_id']), {refs.ref(key) for key in original['bundles_by_id']})
+        self.assertEqual(refs.project(projected, reverse=True), original)
+
+    def test_required_inputs_and_dependency_have_distinct_nested_positions(self):
+        owners = [_obligation('base', 'direct_value', 'quantity'),
+            _obligation('total', 'derived_value', 'total', depends_on=['base'],
+                evidence_requirements=[_requirement('additional', 'quantity')])]
+        catalog = [_candidate('value', 7)]
+        refs, model, visibility, _ = self.setup_wire(owners, catalog)
+        program = {'direct_bindings': [{'obligation_id': 'base', 'candidate_id': 'value'}],
+            'expressions': [{'obligation_id': 'total', 'formula': 'A+B', 'variable_bindings': [
+                {'variable': 'A', 'source_id': 'value', 'source_requirement_id': 'additional'},
+                {'variable': 'B', 'source_id': 'base'}],
+                'source_display_candidate_id': None, 'source_display_reason': 'No display'}]}
+        raw = wire_fixture(program, model)
+        inputs = raw['outputs']['total']['result']['inputs']
+        self.assertEqual(inputs['dependencies'][0]['source_ref'], 'base')
+        lowered = lower_compiler_response(raw, model=model, refs=refs, obligations=owners, catalog=catalog, visibility=visibility)
+        result = validate_semantic_calculation_program(program=lowered, obligations=owners,
+            candidate_catalog=catalog, query='Return the outputs.', candidate_visibility=visibility)
+        self.assertEqual(result['status'], 'ready', result['errors'])
+        inputs['dependencies'][0]['source_ref'] = refs.ref('value')
+        with self.assertRaisesRegex(ValueError, 'nondependency_in_dependency_input'):
+            lower_compiler_response(raw, model=model, refs=refs, obligations=owners, catalog=catalog, visibility=visibility)
 
 
 if __name__ == "__main__":

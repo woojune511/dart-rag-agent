@@ -90,7 +90,7 @@ def _obligation() -> dict:
         },
         "evidence_requirements": [],
         "depends_on": [],
-        "coupling_key": "",
+
     }
 
 
@@ -138,10 +138,10 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
             row for row in plan["cohorts"] if row["cohort_id"] == "ob_amount:output"
         )
 
-        self.assertEqual(output["candidate_ids"], ["amount-target"])
+        self.assertEqual(output["candidate_ids"], ["amount-target", "amount-other"])
         self.assertEqual(
             output["match_counts"],
-            {"compatible": 1, "unknown_only": 0, "explicit_conflict": 2},
+            {"compatible": 1, "unknown_only": 1, "explicit_conflict": 1},
         )
         amount_match = plan["candidate_match_by_id"]["amount-target"]["ob_amount"]
         self.assertEqual(amount_match["subject_state"], "match")
@@ -400,7 +400,7 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         output = next(
             row for row in plan["cohorts"] if row["cohort_id"] == "ob_amount:output"
         )
-        self.assertEqual(output["candidate_ids"], ["amount-target"])
+        self.assertEqual(output["candidate_ids"], ["amount-target", "amount-other"])
         match = plan["candidate_match_by_id"]["amount-target"]["ob_amount"]
         self.assertEqual(match["target_local_subjects"], ["Motional"])
         self.assertEqual(
@@ -422,7 +422,7 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         self.assertIn("26%", bundle_text(payload, bundle["source_bundle_id"]))
         self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v7")
 
-    def test_validator_rejects_visible_but_conflicting_row(self) -> None:
+    def test_numeric_subject_selection_requires_explicit_source_interpretation(self) -> None:
         obligation = _obligation()
         result = validate_semantic_calculation_program(
             program={
@@ -443,7 +443,7 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "invalid")
         self.assertIn(
-            "candidate_semantic_target_mismatch",
+            "missing_source_interpretation",
             {error["code"] for error in result["errors"]},
         )
 

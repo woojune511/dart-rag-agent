@@ -234,7 +234,8 @@ class RequestedSourceSectionTests(unittest.TestCase):
         for prompt, expected in zip(llm.prompts, (["right"], ["wrong"], ["wrong"])):
             content = prompt.to_messages()[0].content.split("Source bundles, candidate cohorts, and candidates_by_id:\n", 1)[1]
             payload = json.JSONDecoder().raw_decode(content.lstrip())[0]
-            self.assertEqual(sorted(payload["candidates_by_id"]), expected)
+            from tests.compiler_wire_test_support import short_ref
+            self.assertEqual(sorted(payload["candidates_by_id"]), sorted(short_ref(value, "c") for value in expected))
 
     def test_planner_preserves_source_sections_and_blocks_invented_constraints_only(self):
         planned_response = RequirementPlannerOutput.model_validate({"topic": "services", "obligations": [

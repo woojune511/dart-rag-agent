@@ -18,6 +18,8 @@ def authored_relationships(owners, query):
         if key:
             groups.setdefault(key, []).append(row["obligation_id"])
     units = build_request_units(query)
+    for row in rows:
+        row.setdefault("request_unit_ids", [unit.request_unit_id for unit in units])
     for members in groups.values():
         if len(members) < 2:
             continue
@@ -65,3 +67,26 @@ def authored_source_program(program, owners, catalog, query):
             elif owner.get("output_relationships"):
                 row["basis_interpretation"] = "authored fixture common basis"
     return result
+
+
+def _authored_inputs(inputs):
+    # Compiled envelopes already bind exact source/program bytes. Never rewrite
+    # their inputs, including tampering fixtures testing validation drift.
+    if inputs.get("compilation_envelope") is not None:
+        return inputs
+    copied = dict(inputs)
+    query = copied.get("query", "")
+    owners = authored_relationships(copied["obligations"], query)
+    copied["obligations"] = owners
+    copied["program"] = authored_source_program(copied["program"], owners, copied["candidate_catalog"], query)
+    return copied
+
+
+def validate_authored_fixture(**inputs):
+    from src.agent.financial_calculation_execution import validate_semantic_calculation_program
+    return validate_semantic_calculation_program(**_authored_inputs(inputs))
+
+
+def execute_authored_fixture(**inputs):
+    from tests.semantic_program_test_support import execute_semantic_calculation_program
+    return execute_semantic_calculation_program(**_authored_inputs(inputs))

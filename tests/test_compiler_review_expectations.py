@@ -21,7 +21,7 @@ class CompilerReviewExpectationTests(unittest.TestCase):
         corpus = bind_fixture_requests(json.loads(FIXTURE.read_text(encoding="utf-8")))
         case = deepcopy(corpus["cases"][1])
         case["obligations"] = [case["obligations"][1]]
-        case["obligations"][0]["coupling_key"] = ""
+        case["obligations"][0].pop("output_relationships", None)
         case["program"]["expressions"] = []
         case["expected"] = {
             "selection_policy": "runtime_validated_narrative",

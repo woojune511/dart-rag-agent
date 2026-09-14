@@ -208,10 +208,10 @@ class NarrativeOutputPartitionTests(unittest.TestCase):
         self.assertNotIn(detail, broad)
         self.assertNotEqual(broad, detail)
 
-    def test_declared_coupling_reduces_calls_but_does_not_mechanically_resolve_overlap(self):
+    def test_requested_shared_basis_reduces_calls_but_does_not_resolve_semantic_overlap(self):
         full, limit = 'Aspen receives requests. Aspen waits for consent.', 'Aspen waits for consent.'
-        state, llm, _ = authored_pipeline('Describe Aspen role.\nState its condition.', [full],
-            [('Aspen', 'Role', ['request_001']), ('Aspen', 'Condition', ['request_002'])],
+        state, llm, _ = authored_pipeline('Use a common reported basis.\nDescribe Aspen role.\nState its condition.', [full],
+            [('Aspen', 'Role', ['request_001', 'request_002']), ('Aspen', 'Condition', ['request_001', 'request_003'])],
             [[(1, 0, 'Aspen', full, full), (2, 0, 'Aspen', limit, limit)]], coupling='declared-link')
         self.assertEqual(self.assert_ready(state), full + ' ' + limit)
         self.assertEqual(len(llm.prompts), 2)

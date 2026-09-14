@@ -686,8 +686,10 @@ class ReadingSelection(WireModel):
 def _input_groups(owner, refs, item_type, name):
     requirements = owner.get("evidence_requirements") or []
     fields = {refs.ref(row["requirement_id"]): (list[item_type], ...) for row in requirements}
-    if not requirements:
+    if not requirements or item_type is ReadingSelection:
         fields["own"] = (list[item_type], ...)
+    elif item_type is NumericInput and owner.get("depends_on"):
+        fields["dependencies"] = (list[item_type], ...)
     return create_model(name, __base__=WireModel, **fields)
 
 
@@ -718,7 +720,7 @@ def compiler_response_model(obligations, refs):
         else:
             raise ValueError("unknown_output_kind")
         reply = create_model("Reply_" + key, __base__=WireModel,
-            status=(Literal["ready", "missing", "ambiguous"], ...), result=(Optional[result], ...), reason=(str, ...))
+            status=(Literal["ready", "missing", "ambiguous"], ...), result=(Optional[result], ...))
         output_fields[key] = (reply, ...)
     outputs = create_model("CompilerOutputs", __base__=WireModel, **output_fields)
     model = create_model("CompilerResponseV1", __base__=WireModel, outputs=(outputs, ...), rationale=(str, ""))

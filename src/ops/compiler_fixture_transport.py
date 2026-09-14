@@ -17,7 +17,6 @@ def project_offline_program_to_wire(program, model):
     output_type = model.model_fields["outputs"].annotation
     outputs = {}
     assertions = {candidate_id: row["evidence_text"] for row in program.get("source_assertions") or [] for candidate_id in row["candidate_ids"]}
-    output_ids = {row["obligation_id"] for field in ("direct_bindings", "expressions", "narrative_bindings") for row in program.get(field) or []}
 
     def addresses(node):
         if isinstance(node, list):
@@ -65,6 +64,8 @@ def project_offline_program_to_wire(program, model):
         grouped = {key: [] for key in group_type.model_fields}
         for row in rows:
             key = short_ref(row["source_requirement_id"], "r") if row.get("source_requirement_id") else "own"
+            if key == "own" and "dependencies" in grouped:
+                key = "dependencies"
             grouped.setdefault(key, []).append(transform(row))
         return grouped
 
@@ -72,7 +73,7 @@ def project_offline_program_to_wire(program, model):
         for row in program.get(field) or []:
             key = short_ref(row["obligation_id"], "o")
             if key not in output_type.model_fields:
-                outputs[key] = {"status": "ready", "result": {}, "reason": "Wrong owner fixture."}
+                outputs[key] = {"status": "ready", "result": {}}
                 continue
             if field == "direct_bindings":
                 result = {"selection": selection(row["candidate_id"], row),
@@ -95,9 +96,11 @@ def project_offline_program_to_wire(program, model):
                             for claim in row.get("claims") or [] if claim["subject_binding_id"] == subject["subject_binding_id"]]})
                 result = {"subjects": subjects, "scope_applicability_fields": row.get("scope_applicability_fields") or [],
                     "basis_interpretation": row.get("basis_interpretation", "")}
-            outputs[key] = {"status": "ready", "result": result, "reason": "Explicit test fixture."}
+            outputs[key] = {"status": "ready", "result": result}
     for source_field, status in (("missing_obligation_ids", "missing"), ("ambiguous_obligation_ids", "ambiguous")):
         for owner_id in program.get(source_field) or []:
+            key = short_ref(owner_id, "o")
+            previous_content = outputs.get(key, {}).get("result")
             outputs[short_ref(owner_id, "o")] = {"status": "ready" if program.get("status") == "ready" else status,
-                "result": None, "reason": program.get("rationale", "")}
+                "result": previous_content}
     return {"outputs": outputs, "rationale": program.get("rationale", "")}
