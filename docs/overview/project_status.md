@@ -30,10 +30,10 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 integration gate: **1,650/1,650 unittest tests passed**, no skips
-(58.540s). Focused boundary tests **118/118**, reading/presentation cleanup **20/20**,
-import/topology/docs **24/24**, domain audit **83 reviewed literals**, pycompile
-**70 changed Python files**, checked topology and `git diff --check` passed.
+Python 3.13 integration gate: **1,660/1,660 unittest tests passed**, no skips
+(63.278s). Bare-value/source/compiler/admission focused tests **71/71**,
+import/topology/docs **24/24**, domain audit **83 reviewed literals**, pycompile,
+checked topology and `git diff --check` passed.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
 byte-identical; test-only copies explicitly author new request/proof/transport fields.
 An authored response is an execution witness, not a sampled model answer.
@@ -75,6 +75,21 @@ only `11.5%` was registered. No operands, expected answers or runtime fixes were
 injected. Manifest `aa88c29e...ccb163` is consumed. Two real-SDK socket-blocked
 rehearsals were byte-identical, and the 32 focused source/wire/admission tests passed.
 
+The [one-question continuation](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
+ran on unchanged `2f80217e` runtime/input bytes. The exact previously failing count
+body succeeded; provider error 0, generation/count calls 2/2. The correct separate
+row was selected in both drafts, but an invented context ID and schema-invalid retry
+prevented acceptance. Generation estimate USD 0.03393625, count contingency USD 0.12
+(not billing), cap USD 0.25. Manifest `4cea0e53...5c055d` is consumed, without auto-rerun.
+
+The subsequent general catalog fix exposes bare scalars independently of digit count;
+existing candidate indices/IDs, table records and evaluation extraction stay intact.
+Standalone tokens retain signs/spans and exact bundle/assertion/capacity checks,
+without borrowing another value's unit. Obvious date/time/address/list fragments
+are not newly admitted. All original 12 control catalogs retain old member identity,
+value and physical provenance. The source-display pair now passes authored local
+compiler/execution witnesses; there is still no actual model result for those two.
+
 ## Historical evidence, not current-build acceptance
 
 - Latest [subject-grounding full-agent run](../../benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
@@ -95,7 +110,8 @@ rehearsals were byte-identical, and the 32 focused source/wire/admission tests p
 - Reduce duplicate axis/context reference choices through the actual available
   source kinds, without bypassing provenance validation. Treat over-abstention and
   comparison direction as separate model-reading errors, not string/alias rules.
-- Characterize bare-value extraction generally; retain the unattempted contrasts.
+- Verify actual model selection for the remaining source-display pair after transport
+  cleanup; bare-value coverage is now locally verified, not paid-model accuracy.
   Any further provider work needs a new bounded successor; no automatic paid rerun.
   Store-fixed full-agent validation remains later work, not established by this probe.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add

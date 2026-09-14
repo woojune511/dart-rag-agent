@@ -58,6 +58,16 @@ comparison direction in a source-invalid draft. Question 10 stopped at Google
 5 internal retries, estimated generation USD 0.257575 plus USD 0.90 count contingency
 (not billing). Manifest `aa88c29e...ccb163` is consumed; no automatic rerun occurred.
 
+The user-requested [one-question continuation](benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
+used unchanged runtime/input bytes on `2f80217e`. The identical token-count request
+succeeded, but invented context links/schema-invalid retry still prevented acceptance.
+Generation/count calls 2/2; generation estimate USD 0.03393625 plus USD 0.12 count
+contingency, under USD 0.25. Manifest `4cea0e53...5c055d` is consumed.
+Subsequent catalog-only bare-scalar projection preserves old candidate identities
+and evaluation behavior. The two source-display cases now execute with authored,
+provider-free programs (source 11.5%, calculation 10%); model selection is unmeasured.
+Current local gate: 1,660 tests passed, focused 71, import/topology/docs 24, domain audit 83.
+
 The latest historical [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
 remains 2/3 complete, 3/5 outputs accepted on `054c6b22`; its admission
 `af784682...a8f0` is consumed. The [fixed-plan compiler result](benchmarks/results/narrative_address_compiler_2026-09-14/RESULTS.md)
@@ -72,10 +82,9 @@ older fixture/source/result limitations.
    for invalid context IDs; preserve source checks while reducing invalid choices
    in model transport. Separately address comparison direction and over-abstention
    through general instructions/independent contrasts, not query-specific rules.
-2. Bare prose quantities `110`/`100` were absent from the current candidate projection
-   before the run; do not inject them to claim source-display coverage. Unattempted
-   questions and the opposite consolidation variant remain unmeasured. Further
-   provider work needs a new bounded successor, never reuse the consumed manifest.
+2. Bare-value candidate coverage is repaired, not model-validated. The two remaining
+   source-display questions need a new bounded successor after transport cleanup;
+   never reuse consumed manifests or inject expected operands/answers.
    Only then consider a store-fixed full-agent follow-up. No automatic paid retry,
    fresh ingest, store adoption/mutation, answer-key/tolerance change, or artifact commit.
 3. Default `data/chroma_dart` remains a separate incomplete store, not repaired by

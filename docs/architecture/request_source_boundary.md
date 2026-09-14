@@ -93,9 +93,14 @@ A Google token-count 404 interrupted question ten; two were unattempted. Five
 questions required repair of redundant invalid context references. This shows
 remaining transport and semantic errors; it does not justify relaxing source checks.
 The unattempted source-display pair also lacked bare-quantity candidates before
-the run. No operand injection, runtime change, paid rerun or release claim followed.
+the run. The [user-requested interrupted-question successor](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
+then completed count/generation on unchanged source bytes, but invalid context fields
+still prevented acceptance. This was one bounded continuation, not an automatic retry.
+Subsequent catalog-only bare-scalar exposure preserves old member identities and
+shared evaluation behavior. Source-display local witnesses now execute the actually
+extracted operands without injection; they are not sampled model answers.
 
-Local integration gate: Python 3.13, 1,650 tests passed without skips; focused
-118 + reading cleanup 20, import/topology/docs 24, domain audit 83 reviewed
-literals, pycompile 70 changed Python files and clean diff check. No provider
+Local integration gate: Python 3.13, 1,660 tests passed without skips; focused
+source/compiler/admission 71, import/topology/docs 24, domain audit 83 reviewed
+literals, pycompile and clean diff check. No provider
 execution or release acceptance is claimed by these gates.

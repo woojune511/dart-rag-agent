@@ -8207,3 +8207,30 @@ References:
   source/authority/wire/server-count tests 32/32. Runtime, fixed inputs and old
   artifacts stayed unchanged. No complete-pair, full-agent, ledger, or release claim.
 - [Local result/source review](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md).
+
+## 2026-09-14 — Interrupted question continuation and bare-scalar coverage
+
+- User requested proceeding with only the 404-interrupted question and local
+  candidate repair. Under the prior no-additional-approval delegation, the successor
+  manifest `4cea0e537fcb645ede929c0ae628a56e0deaa8a70609a3cc9ae2ed46285c055d`
+  fixed one question, a USD 0.25 cap and at most two counts/two generations.
+- `CONTROL_05_B` ran on unchanged `2f80217e` source/input bytes. The identical
+  initial count request succeeded; the prior 404's exact provider-side cause remains
+  unknown. The model selected the correct separate row, but invented context links
+  and a schema-invalid retry prevented an accepted answer. No accepted output was
+  reconstructed, and no completed predecessor question was called again.
+- Generation 2 / count 2, generation estimate USD 0.03393625, separate count
+  contingency USD 0.12 (not billing). Both server input counts matched observed
+  generation usage. No SDK/runner automatic retry, embedding, store mutation or judge.
+- The subsequent catalog-only extraction change preserves legacy surface indices
+  and admits standalone unitless scalars independently of digit count. Existing
+  calendar exclusions and evaluation extraction remain unchanged; new values do not
+  inherit neighboring currencies. Source signs/spans, assertions and atomic budgets
+  remain enforced. No fixture-specific vocabulary or operand insertion.
+- All 12 control catalogs retain their old members' IDs, values, spans and physical
+  provenance. The source-display pair now passes authored, socket-blocked compiler
+  and V2 execution witnesses (source 11.5%, calculated 10%); model accuracy for the
+  two questions remains unmeasured. Frozen inputs/results/criteria were not rewritten.
+- Python 3.13 full unittest 1,660/1,660 (63.278s, no skips), focused 71,
+  import/topology/docs 24, domain audit 83 reviewed literals, pycompile/diff checks.
+- [Paid result and local coverage](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md).

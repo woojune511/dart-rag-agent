@@ -8,7 +8,7 @@ import re
 from collections import Counter
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+from src.agent.financial_numeric_surface import extract_source_numeric_surface_candidates
 from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
 from src.agent.financial_scope_policies import (
     annual_period_evidence, explicit_period_years, relative_period_offsets,
@@ -1494,7 +1494,7 @@ def _narrative_numeric_rows(
 
     rows: List[Dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
-    for index, surface in enumerate(extract_numeric_surface_candidates(source_text)):
+    for index, surface in enumerate(extract_source_numeric_surface_candidates(source_text)):
         try:
             normalized_value = float(surface.get("value"))
         except (TypeError, ValueError):

@@ -43,6 +43,7 @@
 | `src/config/retrieval_policy.py` | declarative retrieval priors, compact kind-specific planner/compiler and retry instructions; not source or attribution authority |
 | `src/agent/financial_calculation_execution.py` | hard source conditions and binding-local interpretation validation, units/AST/provenance and immutable execution; no Planner/source name-equivalence gate |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
+| `src/agent/financial_numeric_surface.py` | shared numeric surfaces plus catalog-only standalone scalar exposure; legacy identity order and evaluation extraction preserved |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |
 | `src/agent/financial_task_artifacts.py` | artifact/ledger projection; aggregate status follows finalized public result |
