@@ -2024,7 +2024,11 @@ def validate_semantic_calculation_program(
             {**binding, "candidate_ids": candidate_ids}, candidate_by_id,
             number_check=_ungrounded_narrative_numbers,
             visible_candidate_ids=None if selectable_ids is None else sorted(selectable_ids),
-            require_addressed=require_narrative_claims)
+            require_addressed=require_narrative_claims,
+            selection_is_permitted=lambda link: candidate_is_exposed(link["candidate_id"], obligation_id)
+                and (not link.get("source_requirement_id") or (
+                    requirement_owner_by_id.get(link["source_requirement_id"]) == obligation_id
+                    and candidate_is_exposed(link["candidate_id"], link["source_requirement_id"]))))
         for claim_error in claim_errors:
             error(obligation_id=obligation_id, **claim_error)
             invalid = True

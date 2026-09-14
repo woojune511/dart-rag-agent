@@ -1,11 +1,56 @@
 """Claim-local quote/subject provenance checks, not semantic entailment judging."""
 
+from copy import deepcopy
 from typing import Any, Callable, Mapping, Sequence
 
 from src.agent.financial_program_projection import render_narrative_claim
 from src.agent.financial_source_bundles import build_semantic_source_bundles
 from src.agent.financial_evidence_addresses import build_narrative_address_book, resolve_narrative_selection
 from src.utils.source_segments import source_quote_is_contiguous
+
+
+def _subject_grounding(subject: str, evidence: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Match only resolved, permitted ranges; offsets are source-surface characters.
+
+    Exact containment keeps its historical behavior. A display-only match needs
+    one physical occurrence, even when overlapping selections expose it twice.
+    This proves a literal correspondence, not complete entity scope or attribution.
+    """
+    if subject and any(subject in row.get("evidence_text", "") for row in evidence):
+        return {"match_kind": "exact"}
+    target = " ".join(subject.split())
+    if not target:
+        return {"match_kind": "missing"}
+    occurrences = {}
+    for index, row in enumerate(evidence):
+        quote = row.get("evidence_text", "")
+        if not quote:
+            continue
+        chars, offsets = [], []
+        for at, char in enumerate(quote):
+            if char.isspace():
+                if chars and chars[-1] == " ":
+                    offsets[-1] = (offsets[-1][0], at + 1)
+                    continue
+                char = " "
+            chars.append(char)
+            offsets.append((at, at + 1))
+        folded = "".join(chars)
+        at = folded.find(target)
+        while at >= 0:
+            start, end = offsets[at][0], offsets[at + len(target) - 1][1]
+            span = (row["source_span"][0] + start, row["source_span"][0] + end)
+            # Surface identity already binds source text, provenance and partitions;
+            # candidate attachments to the same location do not multiply it.
+            occurrences.setdefault((row["surface_id"], *span), {
+                "match_kind": "whitespace_layout", "model_subject": subject,
+                "source_subject": quote[start:end], "source_subject_span": list(span),
+                "evidence_index": index,
+            })
+            at = folded.find(target, at + 1)
+    if len(occurrences) == 1:
+        return next(iter(occurrences.values()))
+    return {"match_kind": "ambiguous", "occurrence_count": len(occurrences)} if occurrences else {"match_kind": "missing"}
 
 
 def project_narrative_retry_drafts(
@@ -31,7 +76,8 @@ def project_narrative_retry_drafts(
     }
     selectable = {owner: set(ids) for owner, ids in candidate_ids_by_owner.items()}
     failed_subjects = {(error.get("obligation_id"), error.get("location"))
-        for error in validation_errors if error.get("code") == "ungrounded_narrative_subject"}
+        for error in validation_errors if error.get("code") in {
+            "ungrounded_narrative_subject", "ambiguous_narrative_subject"}}
     book = None
     drafts = []
     for owner_id, requirement_ids in owners.items():
@@ -77,6 +123,10 @@ def project_narrative_retry_drafts(
                                     source_span=list(span), contains_declared_subject=subject["subject"] in quote)
                             checks.append(check)
                         draft["source_selection_check"] = {"declared_subject": subject["subject"], "selections": checks}
+                        grounding = _subject_grounding(subject["subject"], [
+                            {**row, "evidence_text": row.get("selected_text", "")} for row in checks])
+                        if grounding["match_kind"] in {"whitespace_layout", "ambiguous"}:
+                            draft["source_selection_check"]["subject_grounding"] = grounding
                     subjects.append(draft)
                 drafts.append({"obligation_id": owner_id, "subject_bindings": subjects, "claims": claims,
                     "scope_applicability_fields": list(binding.get("scope_applicability_fields") or [])})
@@ -109,13 +159,14 @@ def validate_narrative_claims(
     number_check: Callable[[str, Sequence[Mapping[str, Any]]], list[str]],
     visible_candidate_ids: Sequence[str] | None = None,
     require_addressed: bool = False,
+    selection_is_permitted: Callable[[Mapping[str, Any]], bool] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     claims = binding.get("claims") or []
     if not claims:
         return [], []
     if binding.get("subject_bindings"):
         return _validate_addressed_claims(binding, candidate_by_id, number_check=number_check,
-            visible_candidate_ids=visible_candidate_ids)
+            visible_candidate_ids=visible_candidate_ids, selection_is_permitted=selection_is_permitted)
     if require_addressed:
         return [], [{"code": "missing_narrative_subject_bindings", "location": "subject_bindings",
             "detail": "Use explicit subject_bindings and source-addressed fact selections; raw quote claims are historical only.",
@@ -203,7 +254,7 @@ def validate_narrative_claims(
     return readings, errors
 
 
-def _validate_addressed_claims(binding, candidate_by_id, *, number_check, visible_candidate_ids):
+def _validate_addressed_claims(binding, candidate_by_id, *, number_check, visible_candidate_ids, selection_is_permitted):
     """Resolve explicit references, preserving subject/fact authority separately."""
     visible = set(candidate_by_id if visible_candidate_ids is None else visible_candidate_ids)
     book = build_narrative_address_book([candidate_by_id[key] for key in visible if key in candidate_by_id])
@@ -225,6 +276,10 @@ def _validate_addressed_claims(binding, candidate_by_id, *, number_check, visibl
             candidate_id = str(link.get("candidate_id") or "")
             if candidate_id not in selected:
                 fail("narrative_requirement_candidate_not_selected", at, link, detail="Select only bound candidate IDs.")
+                continue
+            if selection_is_permitted is not None and not selection_is_permitted(link):
+                # The outer validator reports owner/requirement permission errors.
+                # Such a link must not supply subject or fact grounding first.
                 continue
             try:
                 surface, quote, span = resolve_narrative_selection(link, book)
@@ -258,13 +313,17 @@ def _validate_addressed_claims(binding, candidate_by_id, *, number_check, visibl
             fail("unused_narrative_subject_binding", location,
                 detail="Declare subject support only for referenced claims in this output.")
         evidence = resolve(subject.get("evidence_selections") or [], location + ".evidence_selections")
-        if not any(subject["subject"] in row["evidence_text"] for row in evidence):
+        grounding = _subject_grounding(subject["subject"], evidence)
+        if grounding["match_kind"] == "missing":
             fail("ungrounded_narrative_subject", location,
                 detail="Select source support containing the declared subject. Interpretation of its relation to each fact remains your responsibility.")
-        subjects[key] = (subject["subject"], evidence)
+        elif grounding["match_kind"] == "ambiguous":
+            fail("ambiguous_narrative_subject", location,
+                detail="Whitespace-only subject support occurs at multiple selected source locations. Select one unambiguous permitted range or abstain; do not change the source or join ranges.")
+        subjects[key] = (subject["subject"], evidence, grounding)
     for index, claim in enumerate(binding["claims"]):
         location = f"narrative_claims[{index}]"
-        subject, support = subjects[claim["subject_binding_id"]]
+        subject, support, grounding = subjects[claim["subject_binding_id"]]
         text = claim.get("text")
         if not isinstance(text, str) or not text.strip():
             fail("invalid_narrative_claim", location, detail="Provide a nonblank source-supported statement.")
@@ -279,5 +338,6 @@ def _validate_addressed_claims(binding, candidate_by_id, *, number_check, visibl
         readings.append({"claim_index": index, "subject_binding_id": claim["subject_binding_id"],
             "subject": subject, "text": text, "evidence": evidence,
             "subject_evidence": [dict(row) for row in support],
+            **({"subject_grounding": deepcopy(grounding)} if grounding["match_kind"] == "whitespace_layout" else {}),
             **({"rendered_text": rendered} if rendered != text else {})})
     return readings, errors

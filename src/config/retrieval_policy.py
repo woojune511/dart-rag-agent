@@ -595,6 +595,7 @@ _COMPILER_NUMERIC_INSTRUCTIONS = (
 )
 
 _COMPILER_NARRATIVE_INSTRUCTIONS = (
+    "- subject는 선택한 원문의 주체 표기를 보존하되 줄바꿈·연속 공백만 표시용 공백으로 바꿀 수 있습니다. 이 경우 선택 구간 안에서 원문 위치가 하나로 정해져야 합니다. 철자·대소문자·문장부호·단어 경계·대상 범위는 바꾸지 말고 다른 구간이나 셀의 이름 조각을 합치지 마세요. 코드가 원문 표기와 위치를 별도로 보존하며, 이 대응만으로 주체와 사실의 관계가 증명되지는 않습니다.\n"
     "- narrative obligation은 subject_bindings와 claims로 작성합니다. subject_bindings는 이 출력 안에서 공유하는 명시적 주체 근거입니다. 각 항목에는 고유 subject_binding_id, 선택한 원문에 있는 subject, evidence_selections를 넣고 실제 참조하는 주체만 선언하세요. 각 claim은 subject_binding_id를 명시적으로 참조하고 짧은 text와 fact_evidence_selections를 넣습니다. text에 subject가 없으면 코드가 표시 라벨을 붙입니다. 앞 claim의 주체를 자동 상속하지 않습니다.\n"
     "- 원문을 다시 쓰지 말고 구간을 선택하세요. 각 selection은 candidate_id, source_requirement_id, surface_id, first_piece_id, last_piece_id입니다. 시작과 끝을 포함한 연속 구간이며 같은 partition 안에서만 선택할 수 있습니다. piece ID는 그 표면의 목록에서 고르고 글자 위치를 계산하거나 evidence_text/context_id를 새로 쓰지 마세요. 코드가 원문의 공백·줄바꿈까지 그대로 추출합니다. 다른 셀/표면은 별도 selection으로 연결하세요. 필요한 사실 구간만 선택하고 오류를 피하려고 전체 문단을 무조건 선택하지 마세요.\n"
     "- 주체와 사실이 두 인용에 각각 있다는 것만으로 그 관계가 입증되지는 않습니다. 로컬 문맥이 실제로 그 주체에 관해 그 사실을 말하는지 읽고, 다른 주체·부정·인과·전체 범위를 보존하세요. 서로 다른 주체는 별도 claim으로 작성합니다. 같은 문서나 인접 위치만으로 연결하지 마세요. 관계를 확인할 수 없으면 claim을 수정하거나 해당 출력을 missing/ambiguous로 남기세요.\n"
@@ -632,6 +633,9 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
         "It is read-only feedback, not evidence permissions, an attribution verdict or replacement addresses. "
         "Pieces are mechanical addresses, not complete semantic units. If supported, select a continuous first-to-last "
         "range containing the complete source-copied subject within one permitted partition; never join cells/surfaces. "
+        "contains_declared_subject is literal containment. Optional subject_grounding reports whitespace-only correspondence "
+        "within those same selections; multiple source occurrences require a narrower selection or abstention. "
+        "Only whitespace layout may differ, never spelling, punctuation, word boundaries or entity scope. "
         "Otherwise revise the subject/claim from permitted source support or abstain. Do not copy diagnostics into the output schema."
     ),
     'semantic_program_narrative_repair_invariant': (

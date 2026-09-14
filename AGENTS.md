@@ -35,6 +35,7 @@
 3. **Evidence-first.**
    - 답변 품질 개선은 먼저 retrieval/evidence coverage를 확인한 뒤 진행한다.
    - answer composer는 evidence에 없는 claim을 추가하지 않는다.
+   - Narrative 주체의 표시 공백 차이는 선택된 원문의 유일한 위치와 별도 witness로 연결한다. 모델 진술·원문을 수정하거나 단어/셀을 합치지 않으며, 문자열 대응을 의미·대상 범위 검증으로 주장하지 않는다.
    - numeric answer는 `structured_result`, `resolved_calculation_trace`, `evidence_items`의 계약을 우선한다.
    - seed retrieval에 있던 근거가 expansion/rerank 과정에서 최종 window 밖으로 밀린 경우, required operand와 provenance 계약을 만족하는지 먼저 확인하고 evidence로 승격한다.
    - 원문에 보이는 값/단위/파생 비율 표기는 answer slot의 display로 보존하고, 필요하면 deterministic formula 결과는 trace에 별도로 남긴다.

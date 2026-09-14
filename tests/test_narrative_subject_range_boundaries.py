@@ -158,9 +158,9 @@ class NarrativeSubjectRangeBoundaryTests(unittest.TestCase):
         self.assertIn("candidate_not_exposed_to_compiler", {e["code"] for e in validation["errors"]})
         self.assertEqual(result["outputs"], [])
 
-    def test_unmentioned_suffix_and_normalized_newline_cannot_be_invented(self):
+    def test_unmentioned_suffix_and_changed_punctuation_cannot_be_invented(self):
         for actual, claimed in (("Aster Labs, Inc.", "Aster Labs, Inc. and its affiliates"),
-                                ("Maple\nWorkshop", "Maple Workshop")):
+                                ("Maple,\nWorkshop", "Maple Workshop")):
             catalog, program = fixture(actual)
             binding = program["narrative_bindings"][0]
             binding["subject_bindings"][0]["subject"] = claimed

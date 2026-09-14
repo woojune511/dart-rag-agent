@@ -411,7 +411,7 @@ class SemanticProgramNarrativeSubjectBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     subject_binding_id: str = Field(min_length=1, description="Unique local reference within this narrative obligation.")
-    subject: str = Field(min_length=1, description="Source-local subject copied from selected subject support, not filing metadata.")
+    subject: str = Field(min_length=1, description="Source-local subject from selected support, not filing metadata. Only whitespace layout may differ, with one unambiguous source occurrence; preserve spelling, punctuation, word boundaries and scope.")
     evidence_selections: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
 
 

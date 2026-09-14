@@ -153,10 +153,16 @@ class NarrativeSubjectRetryDiagnosticsTests(unittest.TestCase):
         subject = binding["subject_bindings"][0]
         subject["subject"] = "Maple Workshop"
         subject["evidence_selections"] = [selection(catalog, "note", context["source_text"], context_id="heading")]
-        row = self.project(program=program, catalog=catalog)[0]["subject_bindings"][0]["source_selection_check"]["selections"][0]
+        # A stored error may describe the predecessor validator. Reproject the
+        # same permitted selections without rewriting its model statement.
+        errors = [{"code": "ungrounded_narrative_subject", "obligation_id": "activity", "location": "subject_bindings[0]"}]
+        check = self.project(program=program, catalog=catalog, errors=errors)[0]["subject_bindings"][0]["source_selection_check"]
+        row = check["selections"][0]
         self.assertEqual(row["source_field"], "source_context")
         self.assertEqual(row["selected_text"], context["source_text"])
         self.assertFalse(row["contains_declared_subject"])
+        self.assertEqual(check["subject_grounding"]["match_kind"], "whitespace_layout")
+        self.assertEqual(check["subject_grounding"]["source_subject"], context["source_text"])
         foreign = selection(catalog, "other", "Not this candidate's context.", context_id="other-heading")
         subject["evidence_selections"] = [{**foreign, "candidate_id": "note"}]
         row = self.project(program=program, catalog=catalog)[0]["subject_bindings"][0]["source_selection_check"]["selections"][0]
