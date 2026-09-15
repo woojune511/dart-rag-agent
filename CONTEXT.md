@@ -130,11 +130,11 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Numeric source-choice local full suite: 1,724/1,724. [Mixed-source contracts](tests/test_mixed_numeric_source_integration.py)
-   pass four authored cases, not model accuracy. Missing `만원` extraction/scale/display policy is fixed.
-   [Six paid controls](benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md) remain runtime 6/6 and independent meaning 6/6, no retries.
-   One sample/case; manifest `55029ef1...3000e0` consumed. Prior temporal error remains.
-   [Mixed-source probe](benchmarks/results/mixed_source_compiler_2026-09-16/review.html) prepared: four first responses, USD 0.60 proposed cap; separate approval pending.
+1. Numeric source-choice local full suite remains 1,724/1,724 on unchanged runtime source.
+   [Mixed-source model results](benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md): first-response runtime 3/4; source/formula diagnostics 8/8, not general accuracy.
+   Final `double` output uses `calculated_rate * 2` without a declaration; digit-only query constants also reject a declaration grounded in the word `double`.
+   Generation estimate USD 0.0890825 + count allowance 0.24 < 0.60; `97ac73c7...a2751f` consumed, no retries or runtime edits.
+   Next: provider-free request-grounded constant contract, not a word-specific multiplier rule. Prior temporal error remains.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

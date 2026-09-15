@@ -12,6 +12,34 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Mixed-source first-response model run (2026-09-16)
+
+- Explicitly approved `97ac73c7944df143768537471ff0891f9e57f3ec76bfb4d55304ee7cd0a2751f`,
+  consumed once on clean `dc8b7c79`. Gemini 2.5 Pro, four authored synthetic inputs,
+  one initial response each; no internal/SDK/automatic retry or runtime change.
+- Wire schema 4/4, complete runtime acceptance 3/4. Frozen source/requirement/
+  dependency matches 8/8, finite formula probes 8/8, source-display choices 8/8.
+  Completed cases preserve scale 120000/128000, format-swapped sources 120/128,
+  and parenthesized negative 76/82; ledger 3/3 ok. Not symbolic or general accuracy.
+- Last case selected source 21% and generated the correct current/previous formula;
+  the actual pre-retry read-only dependency contains calculated 20%. Its dependent
+  `calculated_rate * 2` fails `undeclared_formula_constant` on owner `double`.
+  No retry was sampled; the frozen first-response reviewer leaves its values null.
+- Unchanged-response diagnostic confirms only that validation error. The sampled
+  response omitted constant declarations, but even a query-origin declaration for
+  `double` would fail: `_query_constants` extracts only digit-form literals and
+  returns `[]`; cardinality 2 also differs from its one dependency binding.
+  Prior authored `X+X` did not exercise this boundary. This is a request-to-constant
+  contract gap, not observed wrong source selection or a paid repaired answer.
+- Four count/generation pairs, provider/JSON/schema errors 0. Input counts match
+  generation usage: 25,322 input / 5,743 output including thinking. Generation
+  estimate USD 0.0890825 + count contingency 0.24 = 0.3290825 < 0.60. Invoice unknown.
+  Mean completed count+generation 12.97s; extra diagnosis is provider-free.
+- Live body hashes/field orders and call order match both SDK no-call receipts.
+  Frozen source/dependency files and all four raw-response hashes were verified
+  unchanged after review. No planner/OpenAI/embedding/store calls or artifact commit.
+  [Full result and claim limits](../../benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md).
+
 ## Source-choice six-control model run (2026-09-15)
 
 - User requested execution of the prepared manifest

@@ -136,10 +136,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- [Mixed-source contracts](../../tests/test_mixed_numeric_source_integration.py): four authored cases pass; full unittest 1,724/1,724, no model claim.
-  Missing `만원` extraction/scale/display policy fixed. Prose quotes, signed values, calculated dependencies, retry and ledger preserved.
-  [Six paid controls](../../benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md) remain 6/6 structural and separate meaning, one sample/case; manifest consumed.
-  Temporal error unchanged. [Mixed-source probe](../../benchmarks/results/mixed_source_compiler_2026-09-16/review.html) prepared: four first responses, proposed USD 0.60; approval pending, not full-agent evidence.
+- [Mixed-source model run](../../benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md): runtime 3/4, source/formula diagnostics 8/8; one sample/case, no general-accuracy claim.
+  `double` became `calculated_rate * 2` without a constant declaration; query-origin validation also only recognizes digit-form literals. Prior authored `X+X` bypassed this boundary.
+  Four counts/generations, no retries; USD 0.0890825 + allowance 0.24 < 0.60. Manifest consumed; unchanged source retains prior 1,724/1,724 local gate.
+  Next: provider-free request-grounded constant contract, no word/company-specific rule. Earlier temporal error and current full-agent acceptance remain unresolved.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,
