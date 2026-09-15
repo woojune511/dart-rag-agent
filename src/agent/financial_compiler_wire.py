@@ -190,11 +190,17 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                     "candidate_ids": [source_id], "evidence_text": bundle.source_text[span[0]:span[1]]})
         return source_id, interpretation, contexts
 
-    def constants(items, owner):
-        declarations = refs.project(items, reverse=True)
+    def request_inputs(items, owner):
+        # Only addresses are dereferenced; scalar names and interpretation text
+        # are model content, not reference IDs.
+        declarations = []
+        for item in items:
+            try:
+                unit_id = refs.resolve(item["request_unit_id"])
+            except ValueError as exc:
+                raise CompilerReferenceError("constant_request_not_owned", owner["obligation_id"]) from exc
+            declarations.append(dict(item, request_unit_id=unit_id))
         for declaration in declarations:
-            if declaration["origin"] != "query":
-                continue
             unit_id = declaration["request_unit_id"]
             if unit_id not in request_units or unit_id not in (owner.get("request_unit_ids") or []):
                 raise CompilerReferenceError("constant_request_not_owned", owner["obligation_id"])
@@ -260,7 +266,8 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                 "comparison_request_unit_id": (refs.resolve(content["comparison_request_unit_id"])
                     if content["comparison_request_unit_id"] is not None else None),
                 **{key: content[key] for key in ("formula", "display_unit", "display_format", "source_display_reason")},
-                "constants": constants(content["constants"], owner),
+                "request_inputs": request_inputs(content["request_inputs"], owner),
+                "binding_count_variable": content["binding_count_variable"],
                 "source_display_candidate_id": display_id, "source_display_interpretation": display_interpretation,
                 "source_display_context_bindings": display_contexts,
                 "compatibility_candidate_ids": [selected(ref, owner_id) for ref in content["compatibility_refs"]]})

@@ -36,21 +36,21 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
                 model.model_validate(raw)
         self.assertEqual(raw, before)
 
-    def test_every_calculation_explicitly_declares_its_constant_list(self):
+    def test_every_calculation_explicitly_declares_its_request_input_list(self):
         case, program = witness()
         model, _ = capture_initial(case)
         raw = project_offline_program_to_wire(program, model)
         self.assert_wire(model, raw)
         for owner in ("growth", "double"):
             definition = model.model_json_schema()["$defs"]["Calculation_" + owner]
-            self.assertIn("constants", definition["required"])
+            self.assertIn("request_inputs", definition["required"])
             for change in ("omit", "null"):
                 altered = deepcopy(raw)
                 result = altered["outputs"][owner]["result"]
-                result.pop("constants") if change == "omit" else result.update(constants=None)
+                result.pop("request_inputs") if change == "omit" else result.update(request_inputs=None)
                 with self.subTest(owner=owner, change=change):
                     self.assert_wire(model, altered, valid=False)
-        self.assertEqual(raw["outputs"]["growth"]["result"]["constants"], [])
+        self.assertEqual(raw["outputs"]["growth"]["result"]["request_inputs"], [])
 
     def test_prose_interpretation_quote_is_required_for_direct_input_and_display(self):
         case, program = witness()
@@ -68,7 +68,7 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
             else:
                 payload = {"outputs": {"answer": {"status": "ready", "result": {
                     "inputs": {"own": [{**deepcopy(selected), "variable": "x"}]},
-                    "formula": "x", "constants": [], "comparison_request_unit_id": None,
+                    "formula": "x", "request_inputs": [], "comparison_request_unit_id": None,
                     "source_display": selected if kind == "display" else None,
                     "source_display_reason": "Authored display choice."}}}}
                 if kind == "input":
@@ -90,11 +90,11 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
         selected = selection(refs, candidate)
         self.assert_wire(model, direct(selected))
         self.assertNotIn('"source_evidence_text"', json.dumps(model.model_json_schema()))
-        self.assertNotIn('"constants"', json.dumps(model.model_json_schema()))
+        self.assertNotIn('"request_inputs"', json.dumps(model.model_json_schema()))
         selected["interpretation"]["source_evidence_text"] = "23"
         self.assert_wire(model, direct(selected), valid=False)
         _, narrative, _, _ = wire([candidate], [{**owner, "kind": "narrative"}])
-        for field in ("source_evidence_text", "constants", "formula"):
+        for field in ("source_evidence_text", "request_inputs", "binding_count_variable", "formula"):
             self.assertNotIn('"' + field + '"', json.dumps(narrative.model_json_schema()))
 
     def test_attached_context_can_explicitly_replace_the_prose_body_quote(self):
@@ -126,13 +126,13 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
         case, good = witness()
         model, _ = capture_initial(case)
         raw = project_offline_program_to_wire(good, model)
-        raw["outputs"]["double"]["result"]["constants"] = []
+        raw["outputs"]["double"]["result"]["request_inputs"] = []
         self.assert_wire(model, raw)  # JSON schema cannot prove AST semantics.
         program = lower_compiler_response(raw, model=model, refs=model.__compiler_references__,
             obligations=case["obligations"], catalog=case["candidate_catalog"], visibility=model.__compiler_visibility__)
         result = validate_semantic_calculation_program(program=program, obligations=case["obligations"],
             candidate_catalog=case["candidate_catalog"], query=case["question"])
-        self.assertIn("undeclared_formula_constant", {e["code"] for e in result["errors"]})
+        self.assertIn("formula_binding_mismatch", {e["code"] for e in result["errors"]})
 
     def test_schema_retry_preserves_an_already_accepted_independent_island(self):
         case, good = witness()
@@ -150,7 +150,7 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
         clean, _, _ = compile_case(case, [first, good])
         def omit(raw, attempt, model):
             if attempt == 1:
-                raw["outputs"]["double"]["result"].pop("constants")
+                raw["outputs"]["double"]["result"].pop("request_inputs")
         compiled, queue, prompts = compile_case(case, [first, good, good], mutate=omit)
         self.assertEqual((len(queue.wires), compiled["semantic_program_retry_count"]), (3, 1))
         self.assertEqual(execute(case, compiled)["status"], "ok")

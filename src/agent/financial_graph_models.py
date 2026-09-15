@@ -341,6 +341,16 @@ class SemanticProgramConstant(_DeferredBaseModel):
     interpretation: str = ""
 
 
+class SemanticRequestInput(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    variable: str
+    value: float = Field(strict=True, allow_inf_nan=False)
+    request_unit_id: str
+    source_text: str
+    interpretation: str = Field(min_length=1)
+
+
 class SemanticProgramExpression(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
@@ -378,6 +388,9 @@ class SemanticProgramExpression(_DeferredBaseModel):
             "the selected numeric sources use different semantic contexts"
         ),
     )
+    request_inputs: List[SemanticRequestInput] = Field(default_factory=list)
+    binding_count_variable: Optional[str] = None
+    # Explicit offline historical programs only; absent from the production wire.
     constants: List[SemanticProgramConstant] = Field(default_factory=list)
 
     @model_validator(mode="before")
@@ -706,12 +719,6 @@ class NumericInput(NumericSelection):
     scope_applicability_fields: list[Literal["segment", "basis"]] = Field(default_factory=list)
 
 
-class CardinalityConstant(WireModel):
-    value: float = Field(strict=True, allow_inf_nan=False)
-    origin: Literal["deterministic_cardinality"]
-    source_text: str = ""  # Diagnostic only; runtime counts the actual bindings.
-
-
 class ReadingSelection(WireModel):
     source_ref: str
     row_description_quote: Optional[str] = None
@@ -802,8 +809,9 @@ def compiler_response_model(obligations, refs, visibility):
                 if selection is not None else type(None))
         elif kind == "derived_value":
             inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)
-            request_constant = create_model("RequestConstant_" + key, __base__=WireModel,
-                value=(float, Field(strict=True, allow_inf_nan=False)), origin=(Literal["query"], ...),
+            request_input = create_model("RequestInput_" + key, __base__=WireModel,
+                variable=(str, Field(min_length=1, description="Unique scalar input name used in the formula.")),
+                value=(float, Field(strict=True, allow_inf_nan=False)),
                 request_unit_id=(str, Field(json_schema_extra={"enum": list(dict.fromkeys(
                     refs.ref(unit_id) for unit_id in owner.get("request_unit_ids") or []))}, description=(
                     "Select the owned instruction interpreting this scalar. Code preserves its complete exact text; "
@@ -822,9 +830,12 @@ def compiler_response_model(obligations, refs, visibility):
                 source_display_reason=(str, Field(min_length=1, description=(
                     "Explain selection or null from the request's display intent, not merely the presence of a reported value."))),
                 compatibility_refs=(list[str], Field(default_factory=list)),
-                constants=(list[Union[request_constant, CardinalityConstant]], Field(description=(
-                    "Explicit declarations for every non-neutral formula scalar. "
-                    "Use [] only when no declaration is needed; never omit this field."))))
+                request_inputs=(list[request_input], Field(description=(
+                    "Name each request-specified scalar once and use its name in the formula, not its literal value. "
+                    "Use [] when no request scalar is needed. Source and dependency values belong in inputs."))),
+                binding_count_variable=(Optional[str], Field(default=None, min_length=1, description=(
+                    "Optional formula variable for the number of source/dependency input bindings. "
+                    "Code computes the count; request inputs do not count. Omit when unused."))))
         elif kind == "narrative":
             evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)
             claim = create_model("Claim_" + key, __base__=WireModel, text=(str, Field(min_length=1)), evidence=(evidence, ...))

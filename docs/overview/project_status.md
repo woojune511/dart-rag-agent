@@ -14,7 +14,7 @@ checks. Baseline: `d9c36d8d`.
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
 | Exposure / authority | Ranking selects bounded bundles; actual source conditions govern use of their visible union |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | CompilerResponseV2; owner-allowed source/request addresses; code copies exact value spans and whole instructions; constant/scalar interpretation and prose subject/metric support remain explicit; no narrative expressions |
+| Model transport | CompilerResponseV2; exact source/request addresses; named request scalars without origin or duplicate literals, code-computed optional binding count; separate prose subject/metric support; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
@@ -32,7 +32,7 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 addressed-proof local suite **1,753/1,753**, no skips; ten new contracts, focused 99 and import/topology/docs 24 pass. Domain audit 83 and pycompile/diff pass; not model accuracy.
+Python 3.13 named-input full unittest **1,764/1,764**, no skips (56.833s); 11 new contracts, focused 91 + 103, narrative/input 25, import/topology/docs 24, audit 83 and pycompile/diff pass. Local tests do not measure model accuracy.
 Earlier source-choice tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
 stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
@@ -135,10 +135,10 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-- [Addressed numeric proofs](../../tests/test_compiler_addressed_numeric_proofs.py) copy the selected candidate's full value span and a query scalar's owned whole request unit; no retyping, word multiplier rule, missing-address guess or unique quantity-occurrence claim.
-  Explicit constants/scalar interpretations and separate prose interpretation quotes/context remain required. Old invalid/missing proofs remain invalid in offline projection; same-cohort retry, accepted bytes and V2 checks pass. No parser/store/ID/arithmetic redesign.
+- [Named request inputs](../../tests/test_named_request_inputs.py) declare a scalar name/value/owned request/interpretation once; formula uses the name. Optional source/dependency binding count is code-computed. No origin enum, inferred scalar, rewritten formula or additional call.
+  Exact source spans, whole request text and separate prose interpretations remain required. Old invalid proofs stay invalid offline; source/dependency authority, accepted retry bytes and V2 checks remain. No parser/store/ID/arithmetic redesign or paid execution in this change.
   [Addressed-proof first responses](../../benchmarks/results/addressed_numeric_proofs_compiler_2026-09-16/RESULTS.md): schema 5/6, runtime 4/6 (same total as predecessor), ledger 4/4. Raw source/formula/display probes 12/12; eight finalized outputs match. Known synthetic diagnostics, not general accuracy or current full-agent evidence.
-  Sign now passes (76/82 KRW); double omits scalar 2, half invents `origin=deterministic_calculation` for neutral 100 despite writing `/2` and the query declaration. Half never reaches grounding/execution; failed final outputs stay empty. Next: general constant-declaration contract review, not weakening or automatic rerun. Older results stay immutable.
+  Historical failures: double omitted scalar 2; half invented `origin=deterministic_calculation` for neutral 100 and never reached execution. Original bytes/results remain unchanged; the new named-input contract has no sampled-model result yet. Next: bounded successor after local gates, no automatic rerun.
   Manifest `7c9742d9...8c0b746` consumed once on `b17db852`: six count/generation pairs, API errors/retries 0; estimated generation USD 0.133410 + count contingency 0.36 = 0.493410/0.80, not billing. Eight exact converted value assertions; non-neutral declarations present 2/3, grounded 1, missing 1, schema-blocked 1. Local preparation 19+63+24 checks passed; whole-request linkage is not quantity meaning.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.

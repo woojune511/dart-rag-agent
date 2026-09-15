@@ -2422,7 +2422,9 @@ class FinancialAgentCalculationMixin:
                             ),
                             "formula_variable_binding_invariant": (
                                 "The set of formula AST variable names must be "
-                                "exactly equal to the set of variable values in the nested inputs."
+                                "exactly equal to source/dependency input variables plus request_inputs.variable "
+                                "and the optional binding_count_variable. Declare request scalars once, "
+                                "use their names in formula, and never copy source or dependency values into them."
                             ),
                             "candidate_requirement_binding_invariant": (
                                 "Place each candidate selection in its declared input requirement key. "

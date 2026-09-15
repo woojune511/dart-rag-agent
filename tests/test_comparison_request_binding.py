@@ -38,7 +38,7 @@ def comparison_reply(catalog, query, reference="previous", *, unit="request_001"
                 for name, source in zip(("current", "previous"), catalog)},
             "formula": formula, "display_unit": "%", "source_display": None,
             "source_display_reason": "The request asks for a calculation, not a reported display.",
-            "constants": [],
+            "request_inputs": [],
         }
     return respond
 
@@ -224,7 +224,7 @@ class ComparisonRequestBindingTests(unittest.TestCase):
                 result = {"comparison_request_unit_id": unit_id,
                     "inputs": {owner_id + "_" + period: [{"source_ref": model.__compiler_references__.ref(source["candidate_id"]), "variable": variable}]
                         for period, source, variable in zip(("current", "previous"), catalog, endpoints)},
-                    "formula": FORMULA, "display_unit": "%", "source_display": None, "source_display_reason": "Calculated only.", "constants": []}
+                    "formula": FORMULA, "display_unit": "%", "source_display": None, "source_display_reason": "Calculated only.", "request_inputs": []}
                 raw = {"outputs": {owner_id: {"status": "ready", "result": result}}}
                 self.raw.append(deepcopy(raw))
                 return model.model_validate(raw)

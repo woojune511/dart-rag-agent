@@ -21,7 +21,9 @@ from src.agent.financial_answer_slots import (
     build_operand_value_slot,
 )
 from src.agent.financial_formula_eval import safe_eval_formula
-from src.agent.financial_formula_constants import FormulaConstantError, resolve_formula_constants
+from src.agent.financial_formula_constants import (
+    FormulaConstantError, resolve_formula_constants, resolve_request_inputs,
+)
 from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
@@ -1586,22 +1588,33 @@ def validate_semantic_calculation_program(
             if not invalid and not _formula_ast_allowed(body):
                 error("unsupported_formula_ast", obligation_id)
                 invalid = True
-            if not invalid and _formula_names(body) != set(variables):
-                error("formula_binding_mismatch", obligation_id)
-                invalid = True
             expression.pop("constant_resolutions", None)
+            named_inputs: List[Dict[str, Any]] = []
+            if not invalid:
+                try:
+                    named_inputs = resolve_request_inputs(
+                        expression.get("request_inputs", []), expression.get("binding_count_variable"),
+                        source_variables=variables, obligation=obligation, query=query)
+                    if named_inputs and expression.get("constants"):
+                        raise FormulaConstantError("mixed_scalar_contracts")
+                except FormulaConstantError as exc:
+                    error(str(exc), obligation_id, exc.detail, location="expression.request_inputs")
+                    invalid = True
+            if not invalid and _formula_names(body) != set(variables) | {row["variable"] for row in named_inputs}:
+                error("formula_binding_mismatch", obligation_id, location="expression.formula")
+                invalid = True
             if not invalid:
                 try:
                     constants = resolve_formula_constants(
                         expression.get("constants", []), _formula_constants(body),
                         obligation=obligation, query=query, binding_count=len(bindings))
-                    if constants:
-                        expression["constant_resolutions"] = constants
+                    if constants or named_inputs:
+                        expression["constant_resolutions"] = constants + named_inputs
                 except FormulaConstantError as exc:
                     error(str(exc), obligation_id, exc.detail, location="expression.constants")
                     invalid = True
 
-            variable_units: Dict[str, str] = {}
+            variable_units: Dict[str, str] = {row["variable"]: "SCALAR" for row in named_inputs}
             source_candidates: List[str] = []
             resolved_expression_sources: List[Mapping[str, Any]] = []
             bound_requirement_ids: set[str] = set()
@@ -3439,6 +3452,9 @@ def execute_semantic_calculation_program(
             source_anchors.append(
                 str(compatibility_candidate.get("source_anchor") or "")
             )
+        for scalar in expression.get("constant_resolutions") or []:
+            if "variable" in scalar:
+                env[scalar["variable"]] = scalar["value"]
         formula = str(expression.get("formula") or "")
         try:
             value = float(safe_eval_formula(formula, env))

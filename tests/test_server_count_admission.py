@@ -220,7 +220,7 @@ class ServerCountAdmissionTests(unittest.TestCase):
         for omission in (None, "constant_list", "prose_quote"):
             raw = deepcopy(original)
             if omission == "constant_list":
-                raw["outputs"]["double"]["result"].pop("constants")
+                raw["outputs"]["double"]["result"].pop("request_inputs")
             elif omission == "prose_quote":
                 raw["outputs"]["growth"]["result"]["source_display"]["interpretation"].pop("source_evidence_text")
             self.requests.clear()
@@ -244,7 +244,7 @@ class ServerCountAdmissionTests(unittest.TestCase):
                 self.assertEqual(len(self.requests), 2)
                 sent_schema = self.requests[1][1]["generationConfig"]["responseJsonSchema"]
                 self.assertEqual(sent_schema, model.model_json_schema())
-                self.assertIn("constants", sent_schema["$defs"]["Calculation_double"]["required"])
+                self.assertIn("request_inputs", sent_schema["$defs"]["Calculation_double"]["required"])
                 self.assertIn("source_evidence_text", sent_schema["$defs"]["ProseInterpretation"]["required"])
                 self.assertEqual(self.requests[0][1]["generateContentRequest"]["generationConfig"]["responseJsonSchema"], sent_schema)
 

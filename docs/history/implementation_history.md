@@ -5,6 +5,36 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Named request inputs instead of duplicated scalar declarations (2026-09-16)
+
+- Baseline clean `42e398aa`; compiler output/execution-input contract seam.
+  The two prior sampled failures (missing scalar declaration and invented origin)
+  remain byte-identical and are not translated into corrected model answers.
+- Derived production outputs require `request_inputs`: variable, finite value,
+  owned request address and interpretation. Formula uses the name; no model-written
+  origin, repeated numeric literal, or request-text quote. Lowering copies the whole
+  owned instruction and preserves the formula. No inferred quantity or extra call.
+- Optional `binding_count_variable` selects a name only. Code counts actual source/
+  dependency bindings, excluding request scalars. Scalars have dimension SCALAR and
+  are separate from physical input rows, required evidence and dependency authority.
+  Neutral literals 0/1/100 remain legal; unknown/unused/colliding names are rejected.
+- The validator recomputes named constant resolutions and the existing executor
+  uses them without changing its arithmetic engine. Same-cohort retry preserves
+  accepted outputs/assertions; V2 rejects changed names, quantities, request proofs
+  and validation resolutions. Source signs, units, display and ledger stay intact.
+- Production rejects the old constants field. Explicit offline authored-fixture
+  transport alone converts already-proved literal declarations to named inputs;
+  missing, malformed or ungrounded declarations remain invalid. Historical internal
+  validation remains available, not an old model-wire production fallback.
+- Eleven new provider-free contracts plus migrated transport expectations pass.
+  Full unittest **1,764/1,764**, no skips, 56.833s on Python 3.13; focused 91 + 103,
+  narrative/input 25, import/topology/docs 24, domain audit 83, pycompile/diff pass.
+  The first full pass exposed one stale old-origin prompt assertion; its replacement
+  checks that both new numeric fields remain absent from narrative instructions.
+- No provider call, store/parser/ID/dataset change or artifact commit. The historical
+  paid result stays schema 5/6, runtime 4/6. Named-input model performance is unmeasured;
+  any successor needs its own bounded manifest and cost/approval boundary.
+
 ## Addressed numeric and request proof assembly (2026-09-16)
 
 - Baseline `ac33fc49`; classified as a compiler transport/evidence-schema seam.

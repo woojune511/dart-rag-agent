@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import keyword
 from typing import Any, Mapping, Sequence
 
 from src.agent.financial_request_units import build_request_units
@@ -15,6 +16,48 @@ class FormulaConstantError(ValueError):
     def __init__(self, code: str, detail: str = ""):
         super().__init__(code)
         self.detail = detail
+
+
+def resolve_request_inputs(
+    declarations: Any, count_variable: Any, *, source_variables: Sequence[str],
+    obligation: Mapping[str, Any], query: str,
+) -> list[dict[str, Any]]:
+    """Resolve named dimensionless inputs without reading or rewriting a formula."""
+    if not isinstance(declarations, list):
+        raise FormulaConstantError("invalid_request_input")
+    units = {unit.request_unit_id: unit for unit in build_request_units(query)}
+    names, resolved = set(source_variables), []
+
+    def claim_name(value):
+        if not isinstance(value, str) or not value.isidentifier() or keyword.iskeyword(value):
+            raise FormulaConstantError("invalid_request_input_variable")
+        if value in names:
+            raise FormulaConstantError("duplicate_variable_binding", value)
+        names.add(value)
+        return value
+
+    for item in declarations:
+        if not isinstance(item, Mapping) or set(item) != {
+                "variable", "value", "request_unit_id", "source_text", "interpretation"}:
+            raise FormulaConstantError("invalid_request_input")
+        variable = claim_name(item["variable"])
+        unit = units.get(item["request_unit_id"]) if isinstance(item["request_unit_id"], str) else None
+        if unit is None or unit.request_unit_id not in (obligation.get("request_unit_ids") or []):
+            raise FormulaConstantError("constant_request_not_owned")
+        if item["source_text"] != unit.text:
+            raise FormulaConstantError("constant_request_quote_invalid")
+        # Reuse the exact request/finite-scalar checks, one named value at a time.
+        # Equal scalar values with different names are not duplicate declarations.
+        proof = resolve_formula_constants(
+            [{**{key: value for key, value in item.items() if key != "variable"}, "origin": "query"}],
+            [item["value"]], obligation=obligation, query=query, binding_count=len(source_variables))[0]
+        resolved.append({"variable": variable, **proof})
+    if count_variable is not None:
+        variable = claim_name(count_variable)
+        resolved.append({"variable": variable, "value": float(len(source_variables)),
+            "origin": "deterministic_cardinality", "binding_count": len(source_variables),
+            "validation_scope": "binding_cardinality"})
+    return resolved
 
 
 def resolve_formula_constants(

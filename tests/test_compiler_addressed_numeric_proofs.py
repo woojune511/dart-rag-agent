@@ -31,9 +31,6 @@ def addressed_wire(program, model):
         for selection in selections:
             if selection is not None:
                 selection.pop("evidence_text", None)
-        for constant in result.get("constants", []):
-            if constant["origin"] == "query":
-                constant.pop("source_text", None)
     return raw
 
 
@@ -67,7 +64,7 @@ class AddressedNumericProofTests(unittest.TestCase):
         case, program = witness(request, "half the calculated rate", 0.5)
         model, _ = capture_initial(case)
         lowered = lower(case, addressed_wire(program, model), model)
-        declaration = lowered["expressions"][-1]["constants"][0]
+        declaration = lowered["expressions"][-1]["request_inputs"][0]
         self.assertEqual(declaration["source_text"], request)
         validation = validate(case, lowered)
         self.assertEqual(validation["status"], "ready", validation["errors"])
@@ -88,7 +85,7 @@ class AddressedNumericProofTests(unittest.TestCase):
             if location == "display":
                 target = changed["outputs"]["growth"]["result"]["source_display"]
             else:
-                target = changed["outputs"]["double"]["result"]["constants"][0]
+                target = changed["outputs"]["double"]["result"]["request_inputs"][0]
             target[field] = value
             with self.subTest(location=location), self.assertRaises(ValidationError):
                 model.model_validate(changed)
@@ -99,7 +96,7 @@ class AddressedNumericProofTests(unittest.TestCase):
         raw = addressed_wire(program, model)
         for field in ("value", "request_unit_id", "interpretation"):
             altered = deepcopy(raw)
-            altered["outputs"]["double"]["result"]["constants"][0].pop(field)
+            altered["outputs"]["double"]["result"]["request_inputs"][0].pop(field)
             with self.subTest(field=field), self.assertRaises(ValidationError):
                 model.model_validate(altered)
         altered = deepcopy(raw)
@@ -111,8 +108,8 @@ class AddressedNumericProofTests(unittest.TestCase):
             altered["outputs"]["growth"]["result"]["source_display"]["source_ref"] = ref
             with self.subTest(source_ref=ref), self.assertRaises(ValidationError):
                 model.model_validate(altered)
-        raw["outputs"]["double"]["result"]["constants"] = []
-        self.assertIn("undeclared_formula_constant", {
+        raw["outputs"]["double"]["result"]["request_inputs"] = []
+        self.assertIn("formula_binding_mismatch", {
             error["code"] for error in validate(case, lower(case, raw, model))["errors"]})
 
     def test_foreign_request_addresses_fail_locally_without_affecting_other_output(self):
@@ -120,7 +117,7 @@ class AddressedNumericProofTests(unittest.TestCase):
         model, _ = capture_initial(case)
         for unit_id in ("request_001", "request_999"):
             raw = addressed_wire(program, model)
-            raw["outputs"]["double"]["result"]["constants"][0]["request_unit_id"] = unit_id
+            raw["outputs"]["double"]["result"]["request_inputs"][0]["request_unit_id"] = unit_id
             errors = []
             lowered = lower_compiler_response(raw, model=model, refs=model.__compiler_references__,
                 obligations=case["obligations"], catalog=case["candidate_catalog"],
@@ -191,7 +188,7 @@ class AddressedNumericProofTests(unittest.TestCase):
         clean, _, _ = compile_case(case, [good])
         def bad_reference(raw, attempt, model):
             if attempt == 0:
-                raw["outputs"]["double"]["result"]["constants"][0]["request_unit_id"] = "request_001"
+                raw["outputs"]["double"]["result"]["request_inputs"][0]["request_unit_id"] = "request_001"
         repair = {**deepcopy(good), "expressions": [deepcopy(good["expressions"][-1])], "source_assertions": []}
         compiled, queue, _ = compile_case(case, [good, repair], mutate=bad_reference)
         self.assertEqual((len(queue.wires), compiled["semantic_program_retry_count"]), (2, 1))

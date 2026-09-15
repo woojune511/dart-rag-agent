@@ -14,7 +14,7 @@ from tests.semantic_program_test_support import _obligation, _requirement, _scop
 def calculation(inputs, **extra):
     return {'outputs': {'answer': {'status': 'ready', 'result': {
         'inputs': inputs, 'formula': 'target-reference', 'comparison_request_unit_id': 'request_001',
-        'source_display': None, 'source_display_reason': 'Calculation requested.', 'constants': [], **extra}}}}
+        'source_display': None, 'source_display_reason': 'Calculation requested.', 'request_inputs': [], **extra}}}}
 
 
 def direct(selection):

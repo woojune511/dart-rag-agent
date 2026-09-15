@@ -49,7 +49,7 @@ class AuthoredDisplayLLM:
             "source_display": selection("reported") if self.use_display else None,
             "source_display_reason": ("The request includes the reported figure alongside calculation."
                 if self.use_display else "The request asks for calculation from the quantities only."),
-            "constants": [],
+            "request_inputs": [],
         }
         if self.omit_first_decision and len(self.prompts) == 1:
             result.pop("source_display")
@@ -85,7 +85,7 @@ class CompilerDisplayIntentTests(unittest.TestCase):
         result = agent.llm.models[0].model_json_schema()["$defs"]["Calculation_answer"]
         props = result["properties"]
         self.assertEqual(set(props), {"comparison_request_unit_id", "inputs", "formula", "display_unit", "display_format",
-            "source_display", "source_display_reason", "compatibility_refs", "constants"})
+            "source_display", "source_display_reason", "compatibility_refs", "request_inputs", "binding_count_variable"})
         self.assertIn("source_display", result["required"])
         self.assertIn({"type": "null"}, props["source_display"]["anyOf"])
         self.assertIn("calculation-only", props["source_display"].get("description", ""))

@@ -5,7 +5,9 @@ repair bad choices, or model semantic accuracy; it only expresses test choices i
 the production wire layout so existing arithmetic/validator tests stay useful.
 """
 from copy import deepcopy
+import ast
 import hashlib
+import math
 
 
 def short_ref(value, prefix):
@@ -21,23 +23,83 @@ def project_offline_program_to_wire(program, model):
     units = {unit.request_unit_id: unit for unit in refs.request_units}
     prose_bundles = {candidate_id: bundle for bundle in refs.prose_bundles for candidate_id in bundle.candidate_ids}
 
-    def constant(row):
-        result = deepcopy(row)
-        if result.get("origin") == "query":
-            unit, quote = units.get(result.get("request_unit_id")), result.get("source_text")
-            # Only an already valid historical quote can be represented by the
-            # whole-unit wire address. Invalid/missing proof stays schema-invalid.
-            if (unit is not None and isinstance(quote, str) and quote.strip()
-                    and (at := unit.text.find(quote)) >= 0 and unit.text.find(quote, at + 1) < 0):
-                result.pop("source_text")
+    def scalar_inputs(row):
+        result = {"formula": row["formula"], "request_inputs": deepcopy(row.get("request_inputs", [])),
+            "binding_count_variable": row.get("binding_count_variable")}
+        for item in result["request_inputs"]:
+            unit = units.get(item.get("request_unit_id"))
+            if unit is not None and item.get("source_text") == unit.text:
+                item.pop("source_text")
             else:
-                result["source_text"] = quote
-        if result.get("origin") == "deterministic_cardinality":
-            # Internal optional request fields are absent in this wire variant.
-            # Preserve any non-default value so invalid fixtures still fail.
-            for key, default in (("request_unit_id", None), ("interpretation", "")):
-                if result.get(key) == default:
-                    result.pop(key, None)
+                item["source_text"] = item.get("source_text")  # Invalid proof stays schema-invalid.
+        declarations = row.get("constants") or []
+        if not declarations:
+            return result
+        # This explicit OFFLINE migration is for authored legacy fixtures only.
+        # Production lowering never substitutes formula literals or invents inputs.
+        invalid = {**result, "constants": deepcopy(declarations)}
+        if result["request_inputs"] or result["binding_count_variable"] is not None:
+            return invalid
+        try:
+            body = ast.parse(row["formula"], mode="eval")
+        except (ValueError, SyntaxError):
+            return invalid
+
+        def literal(node):
+            try:
+                value = ast.literal_eval(node)
+                return float(value) if type(value) in (int, float) and math.isfinite(value) else None
+            except (ValueError, TypeError, OverflowError):
+                return None
+
+        values, names = set(), {node.id for node in ast.walk(body) if isinstance(node, ast.Name)}
+        class Literals(ast.NodeVisitor):
+            def generic_visit(self, node):
+                if (value := literal(node)) is not None:
+                    values.add(value)
+                else:
+                    super().generic_visit(node)
+        Literals().visit(body)
+        replacements = {}
+        for index, item in enumerate(declarations, 1):
+            if (not isinstance(item, dict) or set(item) - {
+                    "value", "origin", "request_unit_id", "source_text", "interpretation"}
+                    or ("source_text" in item and not isinstance(item["source_text"], str))):
+                return invalid
+            value = item.get("value")
+            try:
+                if type(value) not in (int, float) or not math.isfinite(value) or value not in values or value in replacements:
+                    return invalid
+            except OverflowError:
+                return invalid
+            variable = f"request_input_{index}"
+            while variable in names:
+                variable += "_"
+            names.add(variable)
+            if item.get("origin") == "query":
+                unit, quote = units.get(item.get("request_unit_id")), item.get("source_text")
+                interpretation = item.get("interpretation")
+                if (unit is None or not isinstance(quote, str) or not quote.strip()
+                        or (at := unit.text.find(quote)) < 0 or unit.text.find(quote, at + 1) >= 0
+                        or not isinstance(interpretation, str) or not interpretation.strip()):
+                    return invalid
+                result["request_inputs"].append({"variable": variable, "value": value,
+                    "request_unit_id": item["request_unit_id"], "interpretation": interpretation})
+            elif item.get("origin") == "deterministic_cardinality":
+                if (value != len(row.get("variable_bindings") or []) or item.get("request_unit_id") is not None
+                        or item.get("interpretation") or result["binding_count_variable"] is not None):
+                    return invalid
+                result["binding_count_variable"] = variable
+            else:
+                return invalid
+            replacements[value] = variable
+
+        class Names(ast.NodeTransformer):
+            def generic_visit(self, node):
+                value = literal(node)
+                return (ast.copy_location(ast.Name(id=replacements[value], ctx=ast.Load()), node)
+                    if value in replacements else super().generic_visit(node))
+        result["formula"] = ast.unparse(Names().visit(body))
         return result
 
     def addresses(node):
@@ -145,11 +207,10 @@ def project_offline_program_to_wire(program, model):
                     # Explicit offline projection: absence stays null. Do not
                     # infer comparison intent or rename historical variables.
                     "comparison_request_unit_id": row.get("comparison_request_unit_id"),
-                    "formula": row["formula"], "display_unit": row.get("display_unit", ""), "display_format": row.get("display_format", ""),
+                    **scalar_inputs(row), "display_unit": row.get("display_unit", ""), "display_format": row.get("display_format", ""),
                     "source_display": selection(row["source_display_candidate_id"], row, display=True) if row.get("source_display_candidate_id") else None,
                     "source_display_reason": row.get("source_display_reason", ""),
-                    "compatibility_refs": [short_ref(item, "c") for item in row.get("compatibility_candidate_ids") or []],
-                    "constants": [constant(item) for item in row.get("constants") or []]}
+                    "compatibility_refs": [short_ref(item, "c") for item in row.get("compatibility_candidate_ids") or []]}
             else:
                 subjects = []
                 for subject in row.get("subject_bindings") or []:

@@ -141,15 +141,15 @@ class RequestFormulaConstantTests(unittest.TestCase):
         case, program = witness()
         model, _ = capture_initial(case)
         schema = model.model_json_schema()
-        constant = schema["$defs"]["RequestConstant_double"]
-        self.assertEqual(set(constant["required"]), {"value", "origin", "request_unit_id", "interpretation"})
+        constant = schema["$defs"]["RequestInput_double"]
+        self.assertEqual(set(constant["required"]), {"variable", "value", "request_unit_id", "interpretation"})
         self.assertNotIn("source_text", constant["properties"])
         self.assertEqual(constant["properties"]["request_unit_id"]["enum"], ["request_002"])
         _, queue, _ = compile_case(case, [program])
         Draft202012Validator(schema).validate(queue.wires[0])
         for field in ("request_unit_id", "interpretation"):
             raw = deepcopy(queue.wires[0])
-            raw["outputs"]["double"]["result"]["constants"][0].pop(field)
+            raw["outputs"]["double"]["result"]["request_inputs"][0].pop(field)
             with self.subTest(field=field), self.assertRaises(ValidationError):
                 model.model_validate(raw)
 
@@ -161,7 +161,8 @@ class RequestFormulaConstantTests(unittest.TestCase):
         parsed = SemanticCalculationProgram.model_validate(program).model_dump()
         compiled, queue, _ = compile_case(case, [parsed])
         self.assertEqual(execute(case, compiled)["status"], "ok")
-        self.assertNotIn("request_unit_id", queue.wires[0]["outputs"]["double"]["result"]["constants"][0])
+        self.assertEqual(queue.wires[0]["outputs"]["double"]["result"]["request_inputs"], [])
+        self.assertIsNotNone(queue.wires[0]["outputs"]["double"]["result"]["binding_count_variable"])
 
     def test_retry_repairs_only_failed_output_with_same_sources_and_calculated_dependency(self):
         case, good = witness()
@@ -182,7 +183,7 @@ class RequestFormulaConstantTests(unittest.TestCase):
         self.assertEqual(clean["semantic_compilation_envelope"].visibility,
                          compiled["semantic_compilation_envelope"].visibility)
         for prompt in queue.messages:
-            self.assertIn("constants", canonical(prompt).decode())
+            self.assertIn("request_inputs", canonical(prompt).decode())
             self.assertIn("request_unit_id", canonical(prompt).decode())
         self.assertEqual(execute(case, compiled)["outputs_by_obligation"]["double"]["calculated_value"], 40)
 
@@ -194,7 +195,7 @@ class RequestFormulaConstantTests(unittest.TestCase):
             if target == "query":
                 changed_case["question"] += " "
             elif target == "declaration":
-                changed["semantic_program"]["expressions"][-1]["constants"][0]["source_text"] = "wrong"
+                changed["semantic_program"]["expressions"][-1]["request_inputs"][0]["source_text"] = "wrong"
             else:
                 envelope = changed["semantic_compilation_envelope"]
                 validation = envelope.validation_projection()
