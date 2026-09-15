@@ -14,7 +14,7 @@ checks. Baseline: `d9c36d8d`.
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
 | Exposure / authority | Ranking selects bounded bundles; actual source conditions govern use of their visible union |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | CompilerResponseV2; numeric owner-allowed source enums and cell/prose/dependency fields; full cell axes assembled by code, exposed context only; no narrative expressions |
+| Model transport | CompilerResponseV2; owner-allowed cell/prose/dependency choices, explicit constant lists and prose interpretation quotes/context choice; cell axes assembled by code; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
@@ -32,7 +32,7 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 request-constant local suite **1,735/1,735**, no skips (47.642s); 11 new request/constant tests. Not model accuracy.
+Python 3.13 required-evidence local suite **1,743/1,743**, no skips (68.814s); eight new omission/SDK tests, focused 104 and related 58 pass. Not model accuracy.
 Earlier source-choice tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
 stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
@@ -137,9 +137,9 @@ it does not inject answers or change shared evaluation extraction.
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
 - [Request constants](../../tests/test_request_formula_constants.py) now bind a finite scalar to an owned exact request excerpt and explicit Compiler interpretation; no numeral allowlist or word multiplier rule.
-  Code records exact spans and validates scalar use/cardinality, not quantity semantics. Same-cohort retry, accepted bytes, calculated dependencies, display/ledger and V2 checks pass.
+  Every calculation now explicitly supplies constants (including []); supplied prose interpretation requires a body quote or explicit null with attached support. Missing evidence is not filled; same-cohort retry, accepted bytes and V2 checks pass.
   [Six-case paid successor](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md): runtime 4/6, fixed input/formula probes 12/12, grounded constants 2/3. Original four pass; new two omit prose interpretation quotes, half also omits its constant. No response repair.
-  `b72b2038...4220bc` consumed, six counts/generations, retries 0; USD 0.4929225 including contingency < 0.80, invoice unknown. Next: provider-free conditional prose/constant schema-contract review; prior 3/4/temporal errors unchanged, no general/full-agent claim.
+  `b72b2038...4220bc` consumed, six counts/generations, retries 0; USD 0.4929225 including contingency < 0.80, invoice unknown. No new paid calls. Next: bounded model validation of required fields; historical failures and temporal errors unchanged, no general/full-agent claim.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

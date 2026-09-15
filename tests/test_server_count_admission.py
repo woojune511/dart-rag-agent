@@ -207,6 +207,47 @@ class ServerCountAdmissionTests(unittest.TestCase):
                          self.requests[1][1]["generationConfig"]["responseJsonSchema"])
         self.assertEqual(budget.records[0]["input_token_reservation"], 37)
 
+    def test_current_compiler_required_fields_reach_sdk_and_parser_without_inference(self):
+        from src.agent.financial_graph import FinancialAgent
+        from src.ops.compiler_fixture_transport import project_offline_program_to_wire
+        from src.utils.gemini_usage import GeminiUsageCallbackHandler
+        from tests.mixed_numeric_source_test_support import capture_initial
+        from tests.test_request_formula_constants import witness
+
+        case, program = witness()
+        model, _ = capture_initial(case)
+        original = project_offline_program_to_wire(program, model)
+        for omission in (None, "constant_list", "prose_quote"):
+            raw = deepcopy(original)
+            if omission == "constant_list":
+                raw["outputs"]["double"]["result"].pop("constants")
+            elif omission == "prose_quote":
+                raw["outputs"]["growth"]["result"]["source_display"]["interpretation"].pop("source_evidence_text")
+            self.requests.clear()
+            def handle(request, **kwargs):
+                self.requests.append((str(request.url), json.loads(request.content)))
+                response = self.response()
+                response["candidates"][0]["content"]["parts"][0]["text"] = json.dumps(raw)
+                return httpx.Response(200, request=request,
+                    json={"totalTokens": 37} if request.url.path.endswith(":countTokens") else response)
+            agent = FinancialAgent.__new__(FinancialAgent)
+            agent.llm_usage_callback = GeminiUsageCallbackHandler()
+            llm = agent._create_chat_model({"provider": "google", "model": "gemini-2.5-pro", "temperature": 0,
+                "max_output_tokens": 4096, "thinking_budget": 1024, "provider_client_retries": 0,
+                "include_thoughts": False}, phase="program_compilation")
+            with self.subTest(omission=omission), patch.object(httpx.Client, "send", side_effect=handle), \
+                    guarded_providers(COUNT_POLICY, []):
+                result = llm.with_structured_output(model, include_raw=True).invoke(case["question"])
+                self.assertEqual(result["parsing_error"] is None, omission is None)
+                self.assertEqual(result["parsed"] is not None, omission is None)
+                self.assertEqual(json.loads(result["raw"].content), raw)
+                self.assertEqual(len(self.requests), 2)
+                sent_schema = self.requests[1][1]["generationConfig"]["responseJsonSchema"]
+                self.assertEqual(sent_schema, model.model_json_schema())
+                self.assertIn("constants", sent_schema["$defs"]["Calculation_double"]["required"])
+                self.assertIn("source_evidence_text", sent_schema["$defs"]["ProseInterpretation"]["required"])
+                self.assertEqual(self.requests[0][1]["generateContentRequest"]["generationConfig"]["responseJsonSchema"], sent_schema)
+
     def test_numeric_context_schema_round_trips_through_real_sdk_without_network(self):
         from src.agent.financial_graph import FinancialAgent
         from src.utils.gemini_usage import GeminiUsageCallbackHandler

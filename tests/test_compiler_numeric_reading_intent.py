@@ -39,7 +39,7 @@ def calculation(catalog, formula, *, swap_source=False):
             "previous": [{**selection(refs, previous, "quantity"), "variable": "B"}]},
             # Legacy authored formula witness, not a new comparison interpretation.
             "comparison_request_unit_id": None, "formula": formula, "display_unit": "%", "source_display": None,
-            "source_display_reason": "The request asks for a calculated comparison."}
+            "source_display_reason": "The request asks for a calculated comparison.", "constants": []}
     return respond
 
 

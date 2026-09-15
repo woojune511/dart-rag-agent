@@ -5,6 +5,35 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Compiler required evidence fields (2026-09-16)
+
+- Baseline `59cc3977`. The preceding six-case paid run retained two prose
+  interpretation-quote omissions and one missing scalar declaration. New
+  provider-free regressions reproduced optional generation fields that runtime
+  validation later required. Paid responses and criteria were not repaired.
+- A supplied prose interpretation now requires nonempty own-body evidence when
+  no numeric context is exposed. With exposed context the field is required but
+  nullable; existing validation still requires actual attached interpretation
+  support for null. Value-span evidence remains separate. Cells and dependencies
+  do not gain prose-only fields, and interpretation applicability is unchanged.
+- Every calculation requires an explicit constant list, including `[]` when no
+  declaration is needed. An empty list cannot authorize an undeclared AST scalar.
+  No copied quote, inferred scalar, new quantity vocabulary or additional call.
+- Offline fixture transport drops only absent cell-body defaults; supplied
+  invalid cell quotes and missing prose proof still fail. Four existing authored
+  response test files explicitly declare empty lists; formulas, sources, expected
+  answers and all validator/executor rules remain unchanged.
+- Eight new tests cover direct/input/display omissions, attached context,
+  non-neutral constants, schema retry preserving an accepted independent island,
+  invalid offline projection and real SDK count/generation/parsing with mocked
+  HTTP and blocked sockets. They do not establish model accuracy or omission rate.
+- Python 3.13 full unittest **1,743/1,743**, no skips (68.814s); focused 104 and
+  related 58, import/topology/docs 24, domain audit 83, pycompile/diff pass.
+  Non-failing Windows event-loop cleanup and Chroma warnings remain separate.
+- No provider call or store mutation. All 17 protected manifest/input/raw-response
+  hashes remain identical. The paid 4/6 result stays 4/6; any actual improvement
+  needs a new bounded model run, not replay-time response reconstruction.
+
 ## Request-grounded formula constants (2026-09-16)
 
 - Baseline `fd565be6`. The paid mixed-source response omitted a scalar declaration,

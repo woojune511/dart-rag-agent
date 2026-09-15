@@ -677,7 +677,18 @@ class NumericInterpretation(WireModel):
     subject: str = Field(min_length=1)
     metric: str = Field(min_length=1)
     scope: InterpretedScopeV1 = Field(default_factory=InterpretedScopeV1)
-    source_evidence_text: Optional[str] = None
+
+
+class ContextualProseInterpretation(NumericInterpretation):
+    source_evidence_text: Optional[str] = Field(min_length=1, description=(
+        "Exact own-body quote supporting the interpretation, or explicit null only when "
+        "selection.context_evidence supplies attached interpretation support."))
+
+
+class ProseInterpretation(NumericInterpretation):
+    source_evidence_text: str = Field(min_length=1, description=(
+        "Exact own-body quote supporting subject and metric interpretation; "
+        "selection.evidence_text separately covers the chosen numeric value."))
 
 
 class ContextScopeValue(WireModel):
@@ -757,6 +768,8 @@ def compiler_response_model(obligations, refs, visibility):
                     fields.update(variable=(str, ...), scope_applicability_fields=(
                         list[Literal["segment", "basis"]], Field(default_factory=list)))
                 if kind == "prose":
+                    interpretation_type = ContextualProseInterpretation if contexts else ProseInterpretation
+                    fields["interpretation"] = (Optional[interpretation_type], None)
                     fields["evidence_text"] = (str, Field(min_length=1,
                         description="Exact bundle substring covering the selected prose number."))
                 if contexts:
@@ -799,7 +812,9 @@ def compiler_response_model(obligations, refs, visibility):
                 source_display_reason=(str, Field(min_length=1, description=(
                     "Explain selection or null from the request's display intent, not merely the presence of a reported value."))),
                 compatibility_refs=(list[str], Field(default_factory=list)),
-                constants=(list[Union[request_constant, CardinalityConstant]], Field(default_factory=list)))
+                constants=(list[Union[request_constant, CardinalityConstant]], Field(description=(
+                    "Explicit declarations for every non-neutral formula scalar. "
+                    "Use [] only when no declaration is needed; never omit this field."))))
         elif kind == "narrative":
             evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)
             claim = create_model("Claim_" + key, __base__=WireModel, text=(str, Field(min_length=1)), evidence=(evidence, ...))

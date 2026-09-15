@@ -55,6 +55,11 @@ def project_offline_program_to_wire(program, model):
             return evidence[key]
 
         if interpretation is not None:
+            if (dict(model.__compiler_references__.numeric_source_kinds).get(source_id) == "cell"
+                    and interpretation.get("source_evidence_text") is None):
+                # Internal default, absent from the cell wire. Non-null invalid
+                # quotes and missing prose proofs must never be repaired here.
+                interpretation.pop("source_evidence_text", None)
             own_axes = model.__compiler_references__.axis_refs_for_candidate(source_id)
             if any(axis not in own_axes for axis in interpretation.pop("axis_refs", [])):
                 raise ValueError("offline_fixture_has_foreign_axis")

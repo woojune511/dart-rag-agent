@@ -50,6 +50,7 @@ class AuthoredDisplayLLM:
             "source_display": selection("reported") if self.use_display else None,
             "source_display_reason": ("The request includes the reported figure alongside calculation."
                 if self.use_display else "The request asks for calculation from the quantities only."),
+            "constants": [],
         }
         if self.omit_first_decision and len(self.prompts) == 1:
             result.pop("source_display")
