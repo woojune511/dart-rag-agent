@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from pydantic.json_schema import SkipJsonSchema
 
 from src.agent.financial_program_projection import narrative_candidate_ids, project_narrative_claims
+from src.agent.financial_formula_wire import FORMULA_SYMBOLS
 
 
 def _normalise_optional_planner_text(value: Any) -> str:
@@ -809,33 +810,34 @@ def compiler_response_model(obligations, refs, visibility):
                 if selection is not None else type(None))
         elif kind == "derived_value":
             inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)
-            request_input = create_model("RequestInput_" + key, __base__=WireModel,
-                variable=(str, Field(min_length=1, description="Unique scalar input name used in the formula.")),
+            request_input = create_model("RequestOperand_" + key, __base__=WireModel,
                 value=(float, Field(strict=True, allow_inf_nan=False)),
                 request_unit_id=(str, Field(json_schema_extra={"enum": list(dict.fromkeys(
                     refs.ref(unit_id) for unit_id in owner.get("request_unit_ids") or []))}, description=(
                     "Select the owned instruction interpreting this scalar. Code preserves its complete exact text; "
                     "this is not a claim that it identifies a unique quantity occurrence."))),
                 interpretation=(str, Field(min_length=1,
-                    description="Explain how that request specifies this formula scalar; not a source value or an answer.")))
+                    description="Explain how that request specifies this scalar at this formula position; not a source value or answer.")))
+            variable = create_model("FormulaVariable_" + key, __base__=WireModel,
+                variable=(str, Field(min_length=1, description="An existing source/dependency input variable.")))
+            formula_token = Union[Literal[FORMULA_SYMBOLS], variable, request_input]
             result = create_model("Calculation_" + key, __base__=WireModel,
                 comparison_request_unit_id=(Optional[str], Field(description=(
                     "For a directed comparison, select an owned request unit ID and name its endpoint inputs "
                     "reference and target in both inputs and formula. Null for other calculations. "
                     "The request, not source period labels, defines these endpoints."))),
-                inputs=(inputs, ...), formula=(str, ...), display_unit=(str, ""), display_format=(str, ""),
+                inputs=(inputs, ...), formula=(list[formula_token], Field(min_length=1, description=(
+                    "Infix tokens in order: operator/function/parenthesis or neutral 0/1/100 strings; "
+                    "{variable: input name}; or an inline {value, request_unit_id, interpretation} operand. "
+                    "Put each requested quantity directly where it is used, not in a separate declaration. "
+                    "binding_count is a code-computed count of source/dependency inputs."))),
+                display_unit=(str, ""), display_format=(str, ""),
                 source_display=(Optional[numeric_model(owner["obligation_id"]) or type(None)], Field(description=(
                     "Primary source-stated display only when consistent with the linked request. "
                     "Use null for calculation-only requests; explicit intent overrides source-first defaults."))),
                 source_display_reason=(str, Field(min_length=1, description=(
                     "Explain selection or null from the request's display intent, not merely the presence of a reported value."))),
-                compatibility_refs=(list[str], Field(default_factory=list)),
-                request_inputs=(list[request_input], Field(description=(
-                    "Name each request-specified scalar once and use its name in the formula, not its literal value. "
-                    "Use [] when no request scalar is needed. Source and dependency values belong in inputs."))),
-                binding_count_variable=(Optional[str], Field(default=None, min_length=1, description=(
-                    "Optional formula variable for the number of source/dependency input bindings. "
-                    "Code computes the count; request inputs do not count. Omit when unused."))))
+                compatibility_refs=(list[str], Field(default_factory=list)))
         elif kind == "narrative":
             evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)
             claim = create_model("Claim_" + key, __base__=WireModel, text=(str, Field(min_length=1)), evidence=(evidence, ...))

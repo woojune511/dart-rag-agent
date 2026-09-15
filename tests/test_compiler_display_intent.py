@@ -7,6 +7,7 @@ from src.agent.financial_calculation_execution import execute_semantic_calculati
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_reconciliation_candidates import build_semantic_candidate_catalog
 from tests.semantic_program_test_support import _obligation, _requirement, execute_compiled_fixture
+from tests.formula_wire_test_support import formula_tokens
 
 
 def fixture(initial="70", final="84", reported="19.8", name="Atlas", year="2043"):
@@ -45,11 +46,10 @@ class AuthoredDisplayLLM:
         result = {"selection": selection("reported")} if self.direct else {
             "inputs": {"initial": [{**selection("initial"), "variable": "P"}],
                        "final": [{**selection("final"), "variable": "Q"}]},
-            "comparison_request_unit_id": None, "formula": "(Q - P) / P * 100", "display_unit": "%",
+            "comparison_request_unit_id": None, "formula": formula_tokens("(Q - P) / P * 100"), "display_unit": "%",
             "source_display": selection("reported") if self.use_display else None,
             "source_display_reason": ("The request includes the reported figure alongside calculation."
                 if self.use_display else "The request asks for calculation from the quantities only."),
-            "request_inputs": [],
         }
         if self.omit_first_decision and len(self.prompts) == 1:
             result.pop("source_display")
@@ -85,7 +85,7 @@ class CompilerDisplayIntentTests(unittest.TestCase):
         result = agent.llm.models[0].model_json_schema()["$defs"]["Calculation_answer"]
         props = result["properties"]
         self.assertEqual(set(props), {"comparison_request_unit_id", "inputs", "formula", "display_unit", "display_format",
-            "source_display", "source_display_reason", "compatibility_refs", "request_inputs", "binding_count_variable"})
+            "source_display", "source_display_reason", "compatibility_refs"})
         self.assertIn("source_display", result["required"])
         self.assertIn({"type": "null"}, props["source_display"]["anyOf"])
         self.assertIn("calculation-only", props["source_display"].get("description", ""))

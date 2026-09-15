@@ -8,6 +8,47 @@ from copy import deepcopy
 import ast
 import hashlib
 import math
+import io
+import tokenize
+
+
+def project_offline_formula_tokens(formula, *, request_inputs=(), binding_count_variable=None):
+    """Explicit authored-fixture conversion, never a production reply adapter.
+
+    Only already-declared quantities can become request operands. Undeclared
+    numeric literals, malformed/unused/duplicate proofs stay schema-invalid.
+    """
+    invalid = [{"invalid_offline_formula": formula}]
+    try:
+        declarations = {item["variable"]: item for item in request_inputs}
+        if len(declarations) != len(request_inputs) or binding_count_variable in declarations:
+            return invalid
+        lexemes = [t for t in tokenize.generate_tokens(io.StringIO(formula).readline)
+                   if t.type not in (tokenize.ENDMARKER, tokenize.NEWLINE, tokenize.NL,
+                                     tokenize.INDENT, tokenize.DEDENT)]
+        tokens, used, count_used = [], set(), False
+        for index, token in enumerate(lexemes):
+            text = token.string
+            if token.type == tokenize.NAME:
+                call = index + 1 < len(lexemes) and lexemes[index + 1].string == "("
+                if text in declarations and not call:
+                    tokens.append({k: deepcopy(v) for k, v in declarations[text].items() if k != "variable"})
+                    used.add(text)
+                elif text == binding_count_variable and not call:
+                    tokens.append("binding_count")
+                    count_used = True
+                else:
+                    tokens.append(text if call else {"variable": text})
+            elif token.type == tokenize.NUMBER:
+                value = ast.literal_eval(text)
+                tokens.append(str(int(value)) if value in (0, 1, 100) else value)
+            else:
+                tokens.append(text)
+        if used != set(declarations) or (binding_count_variable is not None and not count_used):
+            return invalid
+        return tokens
+    except (ValueError, TypeError, SyntaxError, KeyError, tokenize.TokenError):
+        return invalid
 
 
 def short_ref(value, prefix):
@@ -23,7 +64,7 @@ def project_offline_program_to_wire(program, model):
     units = {unit.request_unit_id: unit for unit in refs.request_units}
     prose_bundles = {candidate_id: bundle for bundle in refs.prose_bundles for candidate_id in bundle.candidate_ids}
 
-    def scalar_inputs(row):
+    def named_scalar_inputs(row):
         result = {"formula": row["formula"], "request_inputs": deepcopy(row.get("request_inputs", [])),
             "binding_count_variable": row.get("binding_count_variable")}
         for item in result["request_inputs"]:
@@ -101,6 +142,15 @@ def project_offline_program_to_wire(program, model):
                     if value in replacements else super().generic_visit(node))
         result["formula"] = ast.unparse(Names().visit(body))
         return result
+
+    def scalar_inputs(row):
+        named = named_scalar_inputs(row)
+        if "constants" in named:
+            return named  # Invalid legacy proof remains forbidden; no migration repair.
+        source_names = {b["variable"] for b in row.get("variable_bindings") or []}
+        if any(item.get("variable") in source_names for item in named["request_inputs"]):
+            return {"formula": [{"invalid_offline_formula": row["formula"]}]}
+        return {"formula": project_offline_formula_tokens(**named)}
 
     def addresses(node):
         if isinstance(node, list):

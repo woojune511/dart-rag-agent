@@ -5,6 +5,37 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Inline request operands in typed infix formulas (2026-09-16)
+
+- Baseline clean `593ef2f7`; compiler formula/proof transport seam. The paid
+  named-input result remains 4/6. Correct `*2` / `/2` with empty declarations
+  showed that naming alone still required two independently authored fields to agree.
+- Production formula is a nonrecursive typed infix token array. Each request
+  quantity carries value, owned request address and interpretation exactly where
+  it is used. Operators/functions/parentheses and neutral 0/1/100 retain their
+  arithmetic roles; source/dependency variables remain explicit references.
+  There is no separate model request-input list or old free-string fallback.
+- A small deterministic lowerer preserves operator/parenthesis order and creates
+  position-derived internal names without capturing source or unbound variables.
+  Existing internal named proofs, AST/units/sign/display, dependency values, owner
+  visibility and V2 checks remain; binding_count still counts actual source inputs.
+  No inferred quantity, expression repair, semantic auto-validation or extra call.
+- Twelve new contracts cover bare/missing/foreign proof, nonfinite quantity,
+  injection, precedence/functions, equal quantities, collision-free names, source
+  substitution, wrong-but-linked semantic negatives and accepted retry bytes.
+  Python 3.13 full unittest **1,776/1,776**, no skips (63.499s); focused 100,
+  import/topology/docs 24, audit 83, pycompile/diff pass. An obsolete prompt-wording
+  assertion was updated after the first full run; its narrative isolation remains.
+- Six explicitly authored local witnesses pass 12 output checks and six ledgers,
+  one mock call/no retry each. All 11 pinned prior files are byte-identical; old
+  sampled replies are rejected by the new schema, not rewritten into successes.
+  Prompt/schema totals 153,126/67,097 -> 152,490/68,399 UTF-8 bytes: combined input
+  grows 666 bytes. Response witnesses shrink 9,844 -> 9,589 bytes, not model output
+  or SDK-token/cost measurements. [Local report](../../benchmarks/results/inline_request_operands_local_2026-09-16/RESULTS.md).
+- Model behavior under this schema remains unmeasured; structural admission does
+  not certify the right request quantity/operator or semantic proof completeness.
+  No provider call, store/parser/ID/dataset change or experiment artifact commit.
+
 ## Named request inputs instead of duplicated scalar declarations (2026-09-16)
 
 - Baseline clean `42e398aa`; compiler output/execution-input contract seam.

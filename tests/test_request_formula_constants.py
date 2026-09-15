@@ -1,5 +1,6 @@
 """Authored request/constant witnesses, not sampled-model semantic accuracy."""
 from copy import deepcopy
+from tests.formula_wire_test_support import request_operand
 import json
 import socket
 import unittest
@@ -141,15 +142,15 @@ class RequestFormulaConstantTests(unittest.TestCase):
         case, program = witness()
         model, _ = capture_initial(case)
         schema = model.model_json_schema()
-        constant = schema["$defs"]["RequestInput_double"]
-        self.assertEqual(set(constant["required"]), {"variable", "value", "request_unit_id", "interpretation"})
+        constant = schema["$defs"]["RequestOperand_double"]
+        self.assertEqual(set(constant["required"]), {"value", "request_unit_id", "interpretation"})
         self.assertNotIn("source_text", constant["properties"])
         self.assertEqual(constant["properties"]["request_unit_id"]["enum"], ["request_002"])
         _, queue, _ = compile_case(case, [program])
         Draft202012Validator(schema).validate(queue.wires[0])
         for field in ("request_unit_id", "interpretation"):
             raw = deepcopy(queue.wires[0])
-            raw["outputs"]["double"]["result"]["request_inputs"][0].pop(field)
+            request_operand(raw["outputs"]["double"]["result"]).pop(field)
             with self.subTest(field=field), self.assertRaises(ValidationError):
                 model.model_validate(raw)
 
@@ -161,16 +162,18 @@ class RequestFormulaConstantTests(unittest.TestCase):
         parsed = SemanticCalculationProgram.model_validate(program).model_dump()
         compiled, queue, _ = compile_case(case, [parsed])
         self.assertEqual(execute(case, compiled)["status"], "ok")
-        self.assertEqual(queue.wires[0]["outputs"]["double"]["result"]["request_inputs"], [])
-        self.assertIsNotNone(queue.wires[0]["outputs"]["double"]["result"]["binding_count_variable"])
+        self.assertIn("binding_count", queue.wires[0]["outputs"]["double"]["result"]["formula"])
+        self.assertFalse(any(isinstance(t, dict) and "value" in t
+            for t in queue.wires[0]["outputs"]["double"]["result"]["formula"]))
 
     def test_retry_repairs_only_failed_output_with_same_sources_and_calculated_dependency(self):
         case, good = witness()
         clean, _, _ = compile_case(case, [good])
-        first = deepcopy(good)
-        first["expressions"][-1]["constants"] = []
+        def foreign_request(raw, attempt, model):
+            if attempt == 0:
+                request_operand(raw["outputs"]["double"]["result"])["request_unit_id"] = "request_001"
         repair = {**deepcopy(good), "expressions": [deepcopy(good["expressions"][-1])], "source_assertions": []}
-        compiled, queue, prompts = compile_case(case, [first, repair])
+        compiled, queue, prompts = compile_case(case, [good, repair], mutate=foreign_request)
         self.assertEqual(len(queue.wires), 2)
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
         feedback = json.loads(prompts[1]["retry_feedback"])

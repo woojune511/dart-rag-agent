@@ -12,6 +12,7 @@ from src.agent.financial_runtime_contracts import CompilationEnvelopeV2
 from src.ops.compiler_fixture_transport import project_offline_program_to_wire
 from tests.mixed_numeric_source_test_support import canonical, capture_initial, compile_case, execute
 from tests.test_request_formula_constants import validate, witness
+from tests.formula_wire_test_support import formula_ast, request_operand
 
 
 def named_witness(value=2, variable="factor"):
@@ -34,27 +35,30 @@ class NamedRequestInputTests(unittest.TestCase):
             blocker.start()
             self.addCleanup(blocker.stop)
 
-    def test_production_schema_has_names_not_origin_or_legacy_constants(self):
+    def test_production_schema_inlines_proofs_without_named_declaration_list(self):
         case, program = named_witness()
         model, _ = capture_initial(case)
         schema = model.model_json_schema()
         calculation = schema["$defs"]["Calculation_double"]
-        self.assertIn("request_inputs", calculation["required"])
+        self.assertIn("formula", calculation["required"])
+        self.assertNotIn("request_inputs", calculation["properties"])
+        self.assertNotIn("binding_count_variable", calculation["properties"])
         self.assertNotIn("constants", calculation["properties"])
         self.assertNotIn('"origin"', json.dumps(schema))
         raw = project_offline_program_to_wire(program, model)
         model.model_validate(raw)
         result = raw["outputs"]["double"]["result"]
-        self.assertEqual(result["formula"], program["expressions"][-1]["formula"])
-        self.assertNotIn("source_text", result["request_inputs"][0])
-        for field in ("variable", "value", "request_unit_id", "interpretation"):
+        self.assertIsInstance(result["formula"], list)
+        self.assertNotIn("source_text", request_operand(result))
+        self.assertNotIn("variable", request_operand(result))
+        for field in ("value", "request_unit_id", "interpretation"):
             bad = deepcopy(raw)
-            bad["outputs"]["double"]["result"]["request_inputs"][0].pop(field)
+            request_operand(bad["outputs"]["double"]["result"]).pop(field)
             with self.subTest(field=field), self.assertRaises(ValidationError):
                 model.model_validate(bad)
         for field, value in (("origin", "query"), ("source_text", "Double")):
             bad = deepcopy(raw)
-            bad["outputs"]["double"]["result"]["request_inputs"][0][field] = value
+            request_operand(bad["outputs"]["double"]["result"])[field] = value
             with self.subTest(field=field), self.assertRaises(ValidationError):
                 model.model_validate(bad)
 
@@ -68,9 +72,10 @@ class NamedRequestInputTests(unittest.TestCase):
                 self.assertEqual(result["status"], "ok", result)
                 output = result["outputs_by_obligation"]["double"]
                 self.assertEqual(output["calculated_value"], 20 * value)
-                self.assertEqual(output["formula"], program["expressions"][-1]["formula"])
                 proof = output["constant_resolutions"][0]
-                self.assertEqual((proof["variable"], proof["value"], proof["origin"]), (variable, value, "query"))
+                expected = program["expressions"][-1]["variable_bindings"][0]["variable"] + " * " + proof["variable"]
+                self.assertEqual(formula_ast(output["formula"]), formula_ast(expected))
+                self.assertEqual((proof["value"], proof["origin"]), (value, "query"))
                 self.assertEqual(case["question"][slice(*proof["request_span"])], proof["source_text"])
                 self.assertEqual(len(output["input_rows"]), 1)
                 self.assertEqual(len(queue.wires), 1)
@@ -130,10 +135,11 @@ class NamedRequestInputTests(unittest.TestCase):
         output = execute(case, compiled)["outputs_by_obligation"]["double"]
         self.assertEqual(output["calculated_value"], 40)
         count = next(row for row in output["constant_resolutions"] if row["origin"] == "deterministic_cardinality")
-        self.assertEqual((count["variable"], count["value"], count["binding_count"]), ("input_count", 1, 1))
+        self.assertEqual((count["value"], count["binding_count"]), (1, 1))
+        self.assertIn(count["variable"], output["formula"])
         wire = queue.wires[0]["outputs"]["double"]["result"]
-        self.assertEqual(wire["binding_count_variable"], "input_count")
-        self.assertEqual(len(wire["request_inputs"]), 1)
+        self.assertIn("binding_count", wire["formula"])
+        self.assertEqual(len([t for t in wire["formula"] if isinstance(t, dict) and "value" in t]), 1)
 
     def test_count_names_cannot_collide_be_unused_or_supply_their_own_value(self):
         for name in ("factor", "unused", "", "not a name"):
@@ -168,7 +174,7 @@ class NamedRequestInputTests(unittest.TestCase):
         case, program = named_witness()
         model, _ = capture_initial(case)
         raw = project_offline_program_to_wire(program, model)
-        self.assertEqual(raw["outputs"]["growth"]["result"]["request_inputs"], [])
+        self.assertFalse(any(isinstance(t, dict) and "value" in t for t in raw["outputs"]["growth"]["result"]["formula"]))
         self.assertIn("100", raw["outputs"]["growth"]["result"]["formula"])
         for value in ([], [{"value": 100, "origin": "deterministic_calculation"}]):
             changed = deepcopy(raw)
@@ -202,7 +208,7 @@ class NamedRequestInputTests(unittest.TestCase):
         clean, _, _ = compile_case(case, [good])
         def missing(raw, attempt, model):
             if attempt == 0:
-                raw["outputs"]["double"]["result"]["request_inputs"] = []
+                request_operand(raw["outputs"]["double"]["result"])["request_unit_id"] = "request_001"
         repair = {**deepcopy(good), "expressions": [deepcopy(good["expressions"][-1])], "source_assertions": []}
         compiled, queue, _ = compile_case(case, [good, repair], mutate=missing)
         self.assertEqual((len(queue.wires), compiled["semantic_program_retry_count"]), (2, 1))

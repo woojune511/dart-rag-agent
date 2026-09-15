@@ -1,5 +1,6 @@
 """Authored address-only transport witnesses; not sampled model accuracy."""
 from copy import deepcopy
+from tests.formula_wire_test_support import request_operand
 import socket
 import unittest
 from unittest.mock import patch
@@ -85,7 +86,7 @@ class AddressedNumericProofTests(unittest.TestCase):
             if location == "display":
                 target = changed["outputs"]["growth"]["result"]["source_display"]
             else:
-                target = changed["outputs"]["double"]["result"]["request_inputs"][0]
+                target = request_operand(changed["outputs"]["double"]["result"])
             target[field] = value
             with self.subTest(location=location), self.assertRaises(ValidationError):
                 model.model_validate(changed)
@@ -96,7 +97,7 @@ class AddressedNumericProofTests(unittest.TestCase):
         raw = addressed_wire(program, model)
         for field in ("value", "request_unit_id", "interpretation"):
             altered = deepcopy(raw)
-            altered["outputs"]["double"]["result"]["request_inputs"][0].pop(field)
+            request_operand(altered["outputs"]["double"]["result"]).pop(field)
             with self.subTest(field=field), self.assertRaises(ValidationError):
                 model.model_validate(altered)
         altered = deepcopy(raw)
@@ -108,16 +109,16 @@ class AddressedNumericProofTests(unittest.TestCase):
             altered["outputs"]["growth"]["result"]["source_display"]["source_ref"] = ref
             with self.subTest(source_ref=ref), self.assertRaises(ValidationError):
                 model.model_validate(altered)
-        raw["outputs"]["double"]["result"]["request_inputs"] = []
-        self.assertIn("formula_binding_mismatch", {
-            error["code"] for error in validate(case, lower(case, raw, model))["errors"]})
+        raw["outputs"]["double"]["result"]["formula"][-1] = 2
+        with self.assertRaises(ValidationError):
+            model.model_validate(raw)  # A quantity without its proof has no valid token shape.
 
     def test_foreign_request_addresses_fail_locally_without_affecting_other_output(self):
         case, program = witness()
         model, _ = capture_initial(case)
         for unit_id in ("request_001", "request_999"):
             raw = addressed_wire(program, model)
-            raw["outputs"]["double"]["result"]["request_inputs"][0]["request_unit_id"] = unit_id
+            request_operand(raw["outputs"]["double"]["result"])["request_unit_id"] = unit_id
             errors = []
             lowered = lower_compiler_response(raw, model=model, refs=model.__compiler_references__,
                 obligations=case["obligations"], catalog=case["candidate_catalog"],
@@ -188,7 +189,7 @@ class AddressedNumericProofTests(unittest.TestCase):
         clean, _, _ = compile_case(case, [good])
         def bad_reference(raw, attempt, model):
             if attempt == 0:
-                raw["outputs"]["double"]["result"]["request_inputs"][0]["request_unit_id"] = "request_001"
+                request_operand(raw["outputs"]["double"]["result"])["request_unit_id"] = "request_001"
         repair = {**deepcopy(good), "expressions": [deepcopy(good["expressions"][-1])], "source_assertions": []}
         compiled, queue, _ = compile_case(case, [good, repair], mutate=bad_reference)
         self.assertEqual((len(queue.wires), compiled["semantic_program_retry_count"]), (2, 1))

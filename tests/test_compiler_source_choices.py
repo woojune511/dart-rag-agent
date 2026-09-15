@@ -9,12 +9,13 @@ from src.agent.financial_compiler_wire import lower_compiler_response
 from src.agent.financial_reconciliation_candidates import build_semantic_candidate_catalog
 from tests.test_numeric_compiler_grounding import wire, source, output
 from tests.semantic_program_test_support import _obligation, _requirement, _scope
+from tests.formula_wire_test_support import formula_tokens
 
 
 def calculation(inputs, **extra):
     return {'outputs': {'answer': {'status': 'ready', 'result': {
-        'inputs': inputs, 'formula': 'target-reference', 'comparison_request_unit_id': 'request_001',
-        'source_display': None, 'source_display_reason': 'Calculation requested.', 'request_inputs': [], **extra}}}}
+        'inputs': inputs, 'formula': formula_tokens('target-reference'), 'comparison_request_unit_id': 'request_001',
+        'source_display': None, 'source_display_reason': 'Calculation requested.', **extra}}}}
 
 
 def direct(selection):

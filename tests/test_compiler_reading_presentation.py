@@ -226,7 +226,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
         self.assertEqual(result["semantic_program_validation"]["status"], "ready")
         self.assertEqual(len(prompts), 1)
         text = prompts[0].to_messages()[0].content
-        for numeric in ("source_display_reason", "request_inputs", "binding_count_variable"):
+        for numeric in ("source_display_reason", "request_inputs", "binding_count"):
             self.assertNotIn(numeric, text)
             self.assertIn(numeric, CALCULATION_PROMPT_POLICY["semantic_program_prompt_template"])
         self.assertNotIn("row_description_quote_options", text)

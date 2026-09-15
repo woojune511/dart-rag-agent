@@ -1,6 +1,7 @@
 """Free reading labels are not source facts or a numeric execution gate."""
 
 from copy import deepcopy
+from tests.formula_wire_test_support import formula_ast
 import unittest
 from unittest.mock import patch
 
@@ -42,7 +43,7 @@ class NumericInterpretationScopeBoundaryTests(unittest.TestCase):
                         self.assertEqual(len(llm.prompts), 1)
                         output = result["outputs_by_obligation"]["answer"]
                         self.assertAlmostEqual(output["calculated_value"], (current - previous) / abs(previous) * 100)
-                        self.assertEqual(output["formula"], formula)
+                        self.assertEqual(formula_ast(output["formula"]), formula_ast(formula))
                         self.assertEqual([r["source_interpretation_resolution"]["scope"] for r in output["input_rows"]],
                                          [{"segment": "", "basis": "", **scope} for scope in scopes])
                         self.assertEqual((sources, owner), before)

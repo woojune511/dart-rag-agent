@@ -32,7 +32,8 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references and exact row cell partitions |
 | `src/agent/financial_candidate_matching.py` | factorized exposure ranking and diagnostics; free subject/metric differences are relevance, not source-use prohibitions |
 | `src/agent/financial_graph_calculation.py` | bundle exposure then hard-condition owner authority over the visible union; request-grounded islands, typed dispatch/targeted retry, verified dependency inputs and terminal admission propagation |
-| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2; owner-authorized source/request choices, exact value-span and whole-request copying; named request inputs without model origin or duplicate literal declarations; separate prose interpretation evidence, cell axes/attached context; lossless lowering |
+| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2; owner-authorized source/request choices, exact value-span and whole-request copying; typed infix formula with inline request proofs; separate prose interpretation evidence, cell axes/attached context; explicit lowering |
+| `src/agent/financial_formula_wire.py` | order/parenthesis-preserving token lowering to existing AST formulas and position-named scalar proofs; collision-free names, no quantity inference or formula repair |
 | `src/agent/financial_source_interpretation.py` | owned request to full cell-axis/attached-context correspondence; exact physical linkage, explicitly not semantic-equivalence proof |
 | `src/agent/financial_output_relationships.py` | explicit output sets with shared owned request excerpts; distinct from dependencies and physical-row constraints |
 | `src/agent/financial_compiler_presentation.py` | canonical addressed source layout and filing metadata projected to wire v9; owner permission and responsibility allowlists, no ranking-state instructions |
@@ -42,7 +43,7 @@
 | `src/agent/financial_narrative_claims.py` | separate exact subject/fact ranges, fact-local numbers and raw/rendered trace; unique whitespace-only subject witness with original span/provenance, shared with owner/requirement-filtered retry diagnostics; no source/model rewrite, range repair or semantic entailment |
 | `src/config/retrieval_policy.py` | declarative retrieval priors, compact kind-specific planner/compiler and retry instructions; not source or attribution authority |
 | `src/agent/financial_calculation_execution.py` | hard source conditions, units/AST/provenance and immutable execution; owned comparison request to reference/target trace, not direction certification; free scope stays on proofs, not source facts/equality gates |
-| `src/agent/financial_formula_constants.py` | named dimensionless request inputs, code-computed source/dependency binding count and exact owned request proofs; offline legacy scalar validation; no numeral rules, inferred inputs, formula rewriting or semantic certification |
+| `src/agent/financial_formula_constants.py` | internal named dimensionless request inputs, code-computed source/dependency binding count and exact owned request proofs; offline legacy scalar validation; no numeral rules, inferred inputs, formula rewriting or semantic certification |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_numeric_surface.py` | shared numeric surfaces plus catalog-only standalone scalar exposure; legacy identity order and evaluation extraction preserved |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |
@@ -83,7 +84,7 @@
 | `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
 | `src/ops/replay_reviewed_runtime_corpus.py` | provider-free fixture replay with V2 fingerprints; legacy flat narrative explicitly marks claim enforcement off, not current compiler/semantic acceptance |
 | `src/ops/replay_reviewed_compiler_selection.py` | explicit Flash/Pro admissions; source-bound selection checks; terminal stops retain completed cases and interrupted raw responses without executing that case, continuing models or inventing usage; narrative semantic review stays separate; no retrieval/evaluator/embedding/store access |
-| `src/ops/compiler_fixture_transport.py` | explicit offline authored-program transport; valid prior proofs map to source/request addresses, bad/missing proofs remain invalid; no provider-response repair or core import |
+| `src/ops/compiler_fixture_transport.py` | explicit offline authored-program transport; valid prior proofs map to addresses/inline formula operands, bad/missing/unused proofs remain invalid; no provider-response repair or core import |
 | `src/utils/gemini_usage_counts.py` | dependency-light answer/thinking/cache normalization and cost accounting; no double-counted reasoning |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 

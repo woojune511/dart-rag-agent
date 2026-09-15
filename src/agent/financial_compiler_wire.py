@@ -12,6 +12,7 @@ import hashlib
 from typing import Any, Literal, Mapping, Optional, Sequence
 
 from src.agent.financial_graph_model_loaders import compiler_response_model, semantic_calculation_program_model
+from src.agent.financial_formula_wire import lower_formula_tokens
 from src.agent.financial_request_units import RequestUnitV1, build_request_units
 from src.agent.financial_source_interpretation import interpretation_axis_sources
 from src.agent.financial_source_bundles import SourceBundleV1, build_semantic_source_bundles
@@ -190,24 +191,15 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                     "candidate_ids": [source_id], "evidence_text": bundle.source_text[span[0]:span[1]]})
         return source_id, interpretation, contexts
 
-    def request_inputs(items, owner):
-        # Only addresses are dereferenced; scalar names and interpretation text
-        # are model content, not reference IDs.
-        declarations = []
-        for item in items:
-            try:
-                unit_id = refs.resolve(item["request_unit_id"])
-            except ValueError as exc:
-                raise CompilerReferenceError("constant_request_not_owned", owner["obligation_id"]) from exc
-            declarations.append(dict(item, request_unit_id=unit_id))
-        for declaration in declarations:
-            unit_id = declaration["request_unit_id"]
-            if unit_id not in request_units or unit_id not in (owner.get("request_unit_ids") or []):
-                raise CompilerReferenceError("constant_request_not_owned", owner["obligation_id"])
-            # This proves linkage to the chosen whole instruction, not a unique
-            # quantity occurrence or correctness of the model's interpretation.
-            declaration["source_text"] = request_units[unit_id].text
-        return declarations
+    def request_operand(item, owner):
+        try:
+            unit_id = refs.resolve(item["request_unit_id"])
+        except ValueError as exc:
+            raise CompilerReferenceError("constant_request_not_owned", owner["obligation_id"]) from exc
+        if unit_id not in request_units or unit_id not in (owner.get("request_unit_ids") or []):
+            raise CompilerReferenceError("constant_request_not_owned", owner["obligation_id"])
+        # Whole instruction linkage, not unique quantity occurrence or meaning.
+        return dict(item, request_unit_id=unit_id, source_text=request_units[unit_id].text)
 
     def groups(rows, owner):
         requirement_ids = {refs.ref(row["requirement_id"]): row["requirement_id"] for row in owner.get("evidence_requirements") or []}
@@ -265,9 +257,9 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
             result["expressions"].append({"obligation_id": owner_id, "variable_bindings": bindings,
                 "comparison_request_unit_id": (refs.resolve(content["comparison_request_unit_id"])
                     if content["comparison_request_unit_id"] is not None else None),
-                **{key: content[key] for key in ("formula", "display_unit", "display_format", "source_display_reason")},
-                "request_inputs": request_inputs(content["request_inputs"], owner),
-                "binding_count_variable": content["binding_count_variable"],
+                **{key: content[key] for key in ("display_unit", "display_format", "source_display_reason")},
+                **lower_formula_tokens(content["formula"], source_variables=[b["variable"] for b in bindings],
+                    resolve_request=lambda item: request_operand(item, owner)),
                 "source_display_candidate_id": display_id, "source_display_interpretation": display_interpretation,
                 "source_display_context_bindings": display_contexts,
                 "compatibility_candidate_ids": [selected(ref, owner_id) for ref in content["compatibility_refs"]]})
@@ -293,7 +285,7 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
             owner_id = owner["obligation_id"]
             errors.append({"code": str(exc), "obligation_id": owner_id,
                 "owner_id": getattr(exc, "owner_id", "") or owner_id,
-                "candidate_id": getattr(exc, "candidate_id", ""), "location": "compiler_response.outputs",
+                "candidate_id": getattr(exc, "candidate_id", ""), "location": getattr(exc, "location", "compiler_response.outputs"),
                 "repair_action": "repair_program", "detail": "Reference conversion failed; no inferred repair."})
             result["missing_obligation_ids"].append(owner_id)
     if result["missing_obligation_ids"] or result["ambiguous_obligation_ids"]:

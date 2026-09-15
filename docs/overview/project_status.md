@@ -14,7 +14,7 @@ checks. Baseline: `d9c36d8d`.
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
 | Exposure / authority | Ranking selects bounded bundles; actual source conditions govern use of their visible union |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | CompilerResponseV2; exact source/request addresses; named request scalars without origin or duplicate literals, code-computed optional binding count; separate prose subject/metric support; no narrative expressions |
+| Model transport | CompilerResponseV2; exact source/request addresses; typed infix formula with request quantity/proof at its use position, code-computed binding_count; separate prose subject/metric support; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
@@ -32,7 +32,7 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 named-input full unittest **1,764/1,764**, no skips (56.833s); 11 new contracts, focused 91 + 103, narrative/input 25, import/topology/docs 24, audit 83 and pycompile/diff pass. Local tests do not measure model accuracy.
+Python 3.13 inline-operand full unittest **1,776/1,776**, no skips (63.499s); 12 new contracts, focused 100, import/topology/docs 24, audit 83 and pycompile/diff pass. Local tests do not measure model accuracy.
 Earlier source-choice tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
 stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
@@ -135,11 +135,11 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-- [Named request inputs](../../tests/test_named_request_inputs.py) declare a scalar name/value/owned request/interpretation once; formula uses the name. Optional source/dependency binding count is code-computed. No origin enum, inferred scalar, rewritten formula or additional call.
-  Exact source spans, whole request text and separate prose interpretations remain required. Old invalid proofs stay invalid offline; source/dependency authority, accepted retry bytes and V2 checks remain. No parser/store/ID/arithmetic redesign; separately approved model evidence follows.
-  [Named-input first responses](../../benchmarks/results/named_request_inputs_compiler_2026-09-16/RESULTS.md) on clean `1b66b44f`: schema 6/6 versus [predecessor](../../benchmarks/results/addressed_numeric_proofs_compiler_2026-09-16/RESULTS.md) 5/6, runtime still 4/6, ledger 4/4. Raw source/formula/display probes 12/12; eight finalized outputs match. Known synthetic diagnostics, not general accuracy or full-agent evidence.
-  Double and half emit correct `*2` / `/2` with empty request_inputs: both fail `undeclared_formula_constant`. -3 is named and grounded; quantity linkage 1/3, not 3/3. No sampled reply or missing final output is repaired. Naming alone did not fix omission; inspect this general formula/proof boundary offline before another paid mechanism, without relaxing provenance or inventing quantities.
-  Approved `76f0581f...80536b` consumed once: six Pro counts/generations, provider/schema errors and all retries 0. Generation estimate USD 0.1427825 + count contingency 0.36 = 0.5027825 < 0.80, not invoice. Exact SDK bodies, 38 pinned dependencies, 166 runtime files and original responses verified unchanged; no runtime/store edits. Prior `7c9742d9...8c0b746` stays consumed and unchanged.
+- [Inline formula operands](../../tests/test_inline_formula_operands.py) put value/owned request/interpretation directly in a typed infix formula position. No separate model request-input list or free-string fallback. Code preserves operators/parentheses, assigns collision-free internal names and retains the existing scalar proof/AST engine; no inferred quantity, semantic repair or extra call.
+  [Six authored local witnesses](../../benchmarks/results/inline_request_operands_local_2026-09-16/RESULTS.md) pass with 12 expected outputs and six intact ledgers, one mock call/no retry each; provider/store writes 0. Source/dependency authority, exact proofs, units/sign/display, accepted retry bytes and V2 checks remain. All 11 pinned predecessor files are unchanged; no sampled response migration.
+  Prompt/schema/response UTF-8 totals: 153,126/67,097/9,844 -> 152,490/68,399/9,589; combined input grows 666 bytes. Not SDK-token, latency, billing or model-accuracy evidence. A linked but wrong quantity remains a semantic negative; algebraically equivalent formulas do not necessarily expose a request scalar.
+  Immutable [named-input paid run](../../benchmarks/results/named_request_inputs_compiler_2026-09-16/RESULTS.md) remains schema 6/6, runtime 4/6, ledger 4/4: correct `*2` / `/2` but empty declarations; -3 alone is grounded (1/3). Its raw 12/12 probes and eight finalized outputs are unchanged. `76f0581f...80536b` is consumed, USD 0.5027825 estimate including count contingency, not invoice.
+  Next model check needs a new bounded successor with separate formula/proof and semantic criteria. Current inline-operand model performance is unmeasured; no automatic retry, fresh ingest, source mutation, criterion relaxation or artifact commit.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,
