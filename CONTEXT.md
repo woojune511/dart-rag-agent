@@ -134,7 +134,7 @@ older fixture/source/result limitations.
    Python 3.13 full unittest 1,735/1,735 (47.642s); 11 new provider-free tests, domain/import/topology/pycompile/diff pass. No new model sample.
    [Prior mixed-source model result](benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md) remains 3/4; its undeclared `2` is still rejected, never inferred or repaired.
    Source 21% / computed 20% / dependent 40% succeeds with an authored declaration; exact request spans, same-cohort repair, accepted bytes and V2 fingerprints are retained.
-   Next: bounded model validation of declaration completion and separate quantity semantics; new manifest needed. `97ac73c7...a2751f` stays consumed; prior temporal error remains.
+   [Successor packet](benchmarks/results/request_constants_compiler_2026-09-16/DESIGN.md): previous four plus half/negative-multiplier controls, first drafts only; USD 0.80 proposed, separate approval pending. Prior manifest consumed; temporal error remains.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

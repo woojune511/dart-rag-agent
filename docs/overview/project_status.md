@@ -139,7 +139,7 @@ it does not inject answers or change shared evaluation extraction.
 - [Request constants](../../tests/test_request_formula_constants.py) now bind a finite scalar to an owned exact request excerpt and explicit Compiler interpretation; no numeral allowlist or word multiplier rule.
   Code records exact spans and validates scalar use/cardinality, not quantity semantics. Same-cohort retry, accepted bytes, calculated dependencies, display/ledger and V2 checks pass.
   [Prior paid mixed-source result](../../benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md) remains 3/4 and its undeclared constant remains invalid; no response or manifest rewrite.
-  Next: new bounded model validation of declaration completion and separate meaning. No new paid run; previous temporal error/current full-agent acceptance remain unresolved.
+  [Successor packet](../../benchmarks/results/request_constants_compiler_2026-09-16/DESIGN.md): previous four plus half/negative-multiplier controls, six first drafts, proposed USD 0.80; approval pending. Declaration/meaning/execution judged separately; no new model sample or full-agent claim.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,
