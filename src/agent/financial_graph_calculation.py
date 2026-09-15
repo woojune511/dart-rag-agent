@@ -2013,7 +2013,11 @@ class FinancialAgentCalculationMixin:
                 }
                 try:
                     references = CompilerReferencesV1.build(catalog, obligations, query, active_prompt_payload)
-                    response_model = compiler_response_model(prompt_obligations, references)
+                    attempt_visibility = _semantic_candidate_visibility(catalog,
+                        visible_candidate_ids=active_prompt_candidate_ids,
+                        candidate_ids_by_owner=active_cohort_plan["candidate_ids_by_owner"],
+                        evidence_bundle_constraints=active_cohort_plan.get("evidence_bundle_constraints") or [])
+                    response_model = compiler_response_model(prompt_obligations, references, attempt_visibility)
                     serialized_schema_bytes = len(_compiler_json(response_model.model_json_schema()).encode("utf-8"))
                     structured_llm = self._llm_for_phase("program_compilation").with_structured_output(response_model)
                     wire_payload = references.project(active_prompt_payload)
@@ -2072,10 +2076,7 @@ class FinancialAgentCalculationMixin:
                     compiled_program = lower_compiler_response(
                         compiled, model=response_model, refs=references, obligations=prompt_obligations,
                         errors=transport_errors,
-                        catalog=catalog, visibility=_semantic_candidate_visibility(catalog,
-                            visible_candidate_ids=active_prompt_candidate_ids,
-                            candidate_ids_by_owner=active_cohort_plan["candidate_ids_by_owner"],
-                            evidence_bundle_constraints=active_cohort_plan.get("evidence_bundle_constraints") or []))
+                        catalog=catalog, visibility=attempt_visibility)
                     program_data = (
                         _merge_targeted_program_retry(
                             previous_validation=previous_validation,

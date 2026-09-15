@@ -28,6 +28,7 @@ class CompilerReferencesV1:
     entries: tuple[tuple[str, str], ...]
     numeric_axes: tuple[tuple[str, tuple[str, ...]], ...]
     owner_context_refs: tuple[tuple[str, tuple[str, ...]], ...]
+    numeric_source_kinds: tuple[tuple[str, str], ...]
 
     @classmethod
     def build(cls, catalog, obligations, query, payload):
@@ -47,7 +48,8 @@ class CompilerReferencesV1:
                 add(axis, "a")
             for context in candidate.get("source_contexts") or []:
                 add(context.get("context_id"), "x")
-        for bundle in build_semantic_source_bundles(catalog):
+        bundles = build_semantic_source_bundles(catalog)
+        for bundle in bundles:
             add(bundle.source_bundle_id, "b")
         for owner in obligations:
             add(owner["obligation_id"], "o")
@@ -82,9 +84,13 @@ class CompilerReferencesV1:
                 permitted.update(entries[context["context_id"]]
                     for context in numeric[candidate_id].get("source_contexts") or []
                     if context.get("context_id") in exposed)
+        prose_ids = {candidate_id for bundle in bundles if bundle.source_kind == "prose_sentence"
+                     for candidate_id in bundle.candidate_ids}
         return cls(tuple(sorted(entries.items())),
             tuple(sorted((key, tuple(interpretation_axis_sources(row))) for key, row in numeric.items())),
-            tuple(sorted((key, tuple(sorted(values))) for key, values in contexts_by_owner.items())))
+            tuple(sorted((key, tuple(sorted(values))) for key, values in contexts_by_owner.items())),
+            tuple(sorted((key, "prose" if row.get("candidate_kind") == "sentence_value" and key in prose_ids
+                          else "cell") for key, row in numeric.items())))
 
     def context_refs_for_owner(self, owner_id):
         return dict(self.owner_context_refs).get(owner_id, ())

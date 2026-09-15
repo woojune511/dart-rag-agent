@@ -32,7 +32,7 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references and exact row cell partitions |
 | `src/agent/financial_candidate_matching.py` | factorized exposure ranking and diagnostics; free subject/metric differences are relevance, not source-use prohibitions |
 | `src/agent/financial_graph_calculation.py` | bundle exposure then hard-condition owner authority over the visible union; request-grounded islands, typed dispatch/targeted retry, verified dependency inputs and terminal admission propagation |
-| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2 schemas; nullable comparison request ID with existing named inputs; selected-cell axes and one numeric context quote with declared uses; sole explicit lowering, no inferred repair or legacy production response |
+| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2; numeric owner-authorized source choices and cell/prose/dependency fields; comparison request ID, selected-cell axes and attached context; sole lossless lowering and independent authority checks |
 | `src/agent/financial_source_interpretation.py` | owned request to full cell-axis/attached-context correspondence; exact physical linkage, explicitly not semantic-equivalence proof |
 | `src/agent/financial_output_relationships.py` | explicit output sets with shared owned request excerpts; distinct from dependencies and physical-row constraints |
 | `src/agent/financial_compiler_presentation.py` | canonical addressed source layout and filing metadata projected to wire v9; owner permission and responsibility allowlists, no ranking-state instructions |

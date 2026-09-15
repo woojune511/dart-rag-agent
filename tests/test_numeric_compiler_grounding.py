@@ -42,7 +42,7 @@ def wire(catalog, owners):
     refs = CompilerReferencesV1.build(catalog, owners, QUERY, payload)
     visibility = _semantic_candidate_visibility(catalog, visible_candidate_ids=plan["visible_candidate_ids"],
         candidate_ids_by_owner=plan["candidate_ids_by_owner"])
-    model = compiler_response_model(owners, refs)
+    model = compiler_response_model(owners, refs, visibility)
     return refs, model, visibility, payload
 
 

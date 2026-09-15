@@ -52,8 +52,11 @@ def project_offline_program_to_wire(program, model):
                 context(row)["supports_interpretation"] = True
         for row in binding.get("source_display_context_bindings" if display else "context_bindings") or []:
             context(row)["resolves"].append({"field": row["field"], "value": row["value"]})
-        result = {"source_ref": references.get(source_id, short_ref(source_id, "c")),
-            "interpretation": addresses(interpretation), "evidence_text": assertions.get(source_id)}
+        result = {"source_ref": references.get(source_id, short_ref(source_id, "c"))}
+        if interpretation is not None:
+            result["interpretation"] = addresses(interpretation)
+        if source_id in assertions:
+            result["evidence_text"] = assertions[source_id]
         if evidence:
             result["context_evidence"] = list(evidence.values())
         return result

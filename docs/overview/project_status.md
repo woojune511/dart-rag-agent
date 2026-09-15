@@ -14,7 +14,7 @@ checks. Baseline: `d9c36d8d`.
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
 | Exposure / authority | Ranking selects bounded bundles; actual source conditions govern use of their visible union |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | CompilerResponseV2; selected-cell axes assembled by code, one outside-context quote with declared uses and owner-exposed addresses; no narrative expressions |
+| Model transport | CompilerResponseV2; numeric owner-allowed source enums and cell/prose/dependency fields; full cell axes assembled by code, exposed context only; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
@@ -32,9 +32,9 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 comparison-binding focused **190/190**, import/topology/docs **24/24**,
-domain audit **83 reviewed literals**, pycompile/diff passed. Full unittest
-**1,706/1,706**, no skips (71.314s). Twelve new contracts use actual normalization,
+Python 3.13 source-choice local suite **1,716/1,716**, no skips (58.824s).
+Ten new tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
+stable references and unchanged runtime authority. Earlier comparison contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
 byte-identical; test-only copies explicitly author new request/proof/transport fields.
@@ -136,8 +136,8 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Next review owner-allowed source choices and source-kind-specific schema fields
-  provider-free, preserving legal mixed/dependency programs. No neutral-ID promotion.
+- Compare implemented numeric source-choice schemas against their frozen predecessor;
+  preserve legal mixed/dependency programs and separate meaning. No neutral-ID promotion.
   [Baseline controls](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
   retain untested row-mirror/equal-value/Korean model cases. No partial-run resume or promotion.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add

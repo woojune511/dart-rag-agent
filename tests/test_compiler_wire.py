@@ -40,7 +40,7 @@ class CompilerWireTests(unittest.TestCase):
         refs = CompilerReferencesV1.build(catalog, owners, "Return the outputs.", payload)
         visibility = _semantic_candidate_visibility(catalog, visible_candidate_ids=plan["visible_candidate_ids"],
             candidate_ids_by_owner=plan["candidate_ids_by_owner"], evidence_bundle_constraints=[])
-        return refs, compiler_response_model(owners, refs), visibility, payload
+        return refs, compiler_response_model(owners, refs, visibility), visibility, payload
 
     def test_per_output_schema_has_no_narrative_expression(self):
         owners, catalog = [_obligation("note", "narrative", "note")], [_candidate("value", 1)]

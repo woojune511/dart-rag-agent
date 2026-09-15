@@ -36,8 +36,8 @@ Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_
   can share evidence, but hidden/foreign-period/section/filing sources remain barred.
   Ranking matches stay in diagnostics, not the Compiler payload.
 - Production accepts only nested `CompilerResponseV2`: kind-specific output schemas,
-  short source references, nested input/requirement ownership, separate narrative
-  subject support and fact evidence. `lower_compiler_response` resolves references
+  numeric owner-allowed source enums, cell/prose/dependency-specific fields, and
+  separate narrative subject/fact support. `lower_compiler_response` resolves refs
   without guessing or repairing choices, then the execution program is revalidated.
   Code attaches the selected cell's complete axes. Outside context is quoted once
   with declared interpretation/scope uses; its field/addresses exist only for inputs
@@ -130,9 +130,9 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Do not promote neutral IDs or repeat naming-only paid experiments. Next review
-   owner-allowed source choices and source-kind-specific fields in schema provider-free,
-   preserving legal table/prose/dependency programs without auto-binding or direction repair.
+1. Numeric source-choice schemas are implemented; local full suite 1,716/1,716 passed.
+   Compare frozen pre-edit versus current schemas with unchanged questions/prompts,
+   tracking construction errors separately from meaning. No auto-binding/direction repair.
    The [baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
    retains untested row-mirror/equal-value/Korean model controls and authored contracts.
 2. Structural output constraints are not a remedy for semantic direction errors.

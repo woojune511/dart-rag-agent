@@ -5,6 +5,23 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Numeric source-choice generation schema (2026-09-15)
+
+- Baseline `a9b7f792`. Six generation-contract regressions reproduced owner-crossing
+  references, table-as-prose quotes, missing prose quotes, dependency grounding and
+  empty authority spaces. No benchmark/domain keyword rule or changed candidate ID.
+- Schema construction and lowering share the same attempt visibility. Numeric
+  source enums are partitioned by cell/prose/dependency, with reusable field sets;
+  mixed sources and multiple members remain possible. Ref parsing stays lossless
+  so forbidden addresses receive existing target-local lowering errors; enums do
+  not replace runtime authorization. There is no automatic input/quote repair.
+- Offline authored transport omits absent proofs only. Supplied invalid proofs,
+  provider responses, stored sources and past results remain unchanged.
+- Python 3.13 full unittest 1,716/1,716, no skips (58.824s); new contract tests 10/10,
+  numeric grounding/wire 18/18 and broader compiler/execution/retry 143/143 passed.
+  Import/topology/docs 24/24, domain audit 83, pycompile and diff checks pass. Paid semantic evidence is
+  separate; no direction interpretation is certified by schema/source validation.
+
 ## Numeric axis/context transport consolidation (2026-09-15)
 
 - Baseline `dd61e466`. Reproduced context-free schemas exposing redundant axis/context
