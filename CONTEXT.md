@@ -130,11 +130,11 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Numeric source-choice local full suite remains 1,724/1,724 on unchanged runtime source.
-   [Mixed-source model results](benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md): first-response runtime 3/4; source/formula diagnostics 8/8, not general accuracy.
-   Final `double` output uses `calculated_rate * 2` without a declaration; digit-only query constants also reject a declaration grounded in the word `double`.
-   Generation estimate USD 0.0890825 + count allowance 0.24 < 0.60; `97ac73c7...a2751f` consumed, no retries or runtime edits.
-   Next: provider-free request-grounded constant contract, not a word-specific multiplier rule. Prior temporal error remains.
+1. [Request-constant contracts](tests/test_request_formula_constants.py) implemented: owned exact query quote and explicit quantity interpretation, not numeral/word rules.
+   Python 3.13 full unittest 1,735/1,735 (47.642s); 11 new provider-free tests, domain/import/topology/pycompile/diff pass. No new model sample.
+   [Prior mixed-source model result](benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md) remains 3/4; its undeclared `2` is still rejected, never inferred or repaired.
+   Source 21% / computed 20% / dependent 40% succeeds with an authored declaration; exact request spans, same-cohort repair, accepted bytes and V2 fingerprints are retained.
+   Next: bounded model validation of declaration completion and separate quantity semantics; new manifest needed. `97ac73c7...a2751f` stays consumed; prior temporal error remains.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

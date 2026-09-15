@@ -5,6 +5,35 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Request-grounded formula constants (2026-09-16)
+
+- Baseline `fd565be6`. The paid mixed-source response omitted a scalar declaration,
+  and the previous query-wide numeral allowlist could not accept worded quantities
+  even with a declaration. Provider-free tests reproduced that boundary first.
+- Query constants now carry an owned request ID, unique exact excerpt and explicit
+  Compiler interpretation. Validation resolves Python query spans and requires
+  finite, exactly used, unique scalars; cardinality equals the actual binding count.
+  No word-to-number vocabulary, inferred declaration or additional LLM call.
+- The wire requires query evidence per declaration and exposes owner-only request
+  IDs. Lowering resolves addresses without guessing. Historical internal parsing
+  has no missing-evidence execution fallback; offline cardinality transport removes
+  only empty internal defaults, not malformed evidence or wrong choices.
+- Eleven new tests cover natural-language multipliers, fractions, signs, decimal
+  literals, invalid/foreign/repeated quotes, missing declarations, schema, finite
+  exact values, cardinality, targeted retry, ledger and V2 program/content/proof
+  tampering. Authored source 21% / computed 20% / dependent 40% stays separate.
+  A linked but wrong interpretation intentionally remains a semantic negative.
+- Updated one authored literal declaration with its existing exact query evidence;
+  removed an unnecessary neutral-1 declaration that wrongly claimed one binding
+  for a two-input formula. No formula, source or expected answer was changed.
+- Python 3.13 full unittest **1,735/1,735**, no skips, 47.642s. Focused gates,
+  import/DAG/topology, domain audit (83 reviewed literals), pycompile/diff passed.
+  Non-failing Windows event-loop cleanup and Chroma deprecation warnings appeared
+  in the full suite; no unrelated cleanup was included.
+- Provider calls 0. Previous manifest and four raw-response SHA-256 values remain
+  identical. The paid 3/4 result is not upgraded: its missing declaration still
+  fails. New model declaration/semantic accuracy requires a bounded successor run.
+
 ## Mixed numeric source contracts and unit policy (2026-09-16)
 
 - Baseline `ff9b6641`. Fixed four anonymous source/plan cases and separate offline

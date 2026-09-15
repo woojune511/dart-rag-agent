@@ -32,8 +32,8 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 source-choice local suite **1,716/1,716**, no skips (58.824s).
-Ten new tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
+Python 3.13 request-constant local suite **1,735/1,735**, no skips (47.642s); 11 new request/constant tests. Not model accuracy.
+Earlier source-choice tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
 stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
@@ -136,10 +136,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- [Mixed-source model run](../../benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md): runtime 3/4, source/formula diagnostics 8/8; one sample/case, no general-accuracy claim.
-  `double` became `calculated_rate * 2` without a constant declaration; query-origin validation also only recognizes digit-form literals. Prior authored `X+X` bypassed this boundary.
-  Four counts/generations, no retries; USD 0.0890825 + allowance 0.24 < 0.60. Manifest consumed; unchanged source retains prior 1,724/1,724 local gate.
-  Next: provider-free request-grounded constant contract, no word/company-specific rule. Earlier temporal error and current full-agent acceptance remain unresolved.
+- [Request constants](../../tests/test_request_formula_constants.py) now bind a finite scalar to an owned exact request excerpt and explicit Compiler interpretation; no numeral allowlist or word multiplier rule.
+  Code records exact spans and validates scalar use/cardinality, not quantity semantics. Same-cohort retry, accepted bytes, calculated dependencies, display/ledger and V2 checks pass.
+  [Prior paid mixed-source result](../../benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md) remains 3/4 and its undeclared constant remains invalid; no response or manifest rewrite.
+  Next: new bounded model validation of declaration completion and separate meaning. No new paid run; previous temporal error/current full-agent acceptance remain unresolved.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

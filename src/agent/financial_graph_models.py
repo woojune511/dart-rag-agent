@@ -332,9 +332,13 @@ class SemanticProgramVariableBinding(_DeferredBaseModel):
 class SemanticProgramConstant(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
-    value: float
+    value: float = Field(strict=True, allow_inf_nan=False)
     origin: Literal["query", "deterministic_cardinality"]
     source_text: str = ""
+    # Historical internal programs can still be parsed, but missing request
+    # evidence is rejected by validation; production requires it in its schema.
+    request_unit_id: Optional[str] = None
+    interpretation: str = ""
 
 
 class SemanticProgramExpression(_DeferredBaseModel):
@@ -691,6 +695,12 @@ class NumericInput(NumericSelection):
     scope_applicability_fields: list[Literal["segment", "basis"]] = Field(default_factory=list)
 
 
+class CardinalityConstant(WireModel):
+    value: float = Field(strict=True, allow_inf_nan=False)
+    origin: Literal["deterministic_cardinality"]
+    source_text: str = ""  # Diagnostic only; runtime counts the actual bindings.
+
+
 class ReadingSelection(WireModel):
     source_ref: str
     row_description_quote: Optional[str] = None
@@ -770,6 +780,13 @@ def compiler_response_model(obligations, refs, visibility):
                 if selection is not None else type(None))
         elif kind == "derived_value":
             inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)
+            request_constant = create_model("RequestConstant_" + key, __base__=WireModel,
+                value=(float, Field(strict=True, allow_inf_nan=False)), origin=(Literal["query"], ...),
+                request_unit_id=(str, Field(json_schema_extra={"enum": list(dict.fromkeys(
+                    refs.ref(unit_id) for unit_id in owner.get("request_unit_ids") or []))})),
+                source_text=(str, Field(min_length=1, description="Unique exact substring of the owned request unit.")),
+                interpretation=(str, Field(min_length=1,
+                    description="Explain how that request specifies this formula scalar; not a source value or an answer.")))
             result = create_model("Calculation_" + key, __base__=WireModel,
                 comparison_request_unit_id=(Optional[str], Field(description=(
                     "For a directed comparison, select an owned request unit ID and name its endpoint inputs "
@@ -781,7 +798,8 @@ def compiler_response_model(obligations, refs, visibility):
                     "Use null for calculation-only requests; explicit intent overrides source-first defaults."))),
                 source_display_reason=(str, Field(min_length=1, description=(
                     "Explain selection or null from the request's display intent, not merely the presence of a reported value."))),
-                compatibility_refs=(list[str], Field(default_factory=list)), constants=(list[SemanticProgramConstant], Field(default_factory=list)))
+                compatibility_refs=(list[str], Field(default_factory=list)),
+                constants=(list[Union[request_constant, CardinalityConstant]], Field(default_factory=list)))
         elif kind == "narrative":
             evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)
             claim = create_model("Claim_" + key, __base__=WireModel, text=(str, Field(min_length=1)), evidence=(evidence, ...))

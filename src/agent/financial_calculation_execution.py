@@ -21,6 +21,7 @@ from src.agent.financial_answer_slots import (
     build_operand_value_slot,
 )
 from src.agent.financial_formula_eval import safe_eval_formula
+from src.agent.financial_formula_constants import FormulaConstantError, resolve_formula_constants
 from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
@@ -61,7 +62,6 @@ from src.utils.source_segments import source_quote_is_contiguous
 
 
 _ALLOWED_FUNCTIONS = {"min", "max", "abs", "round", "log", "exp"}
-_NEUTRAL_CONSTANTS = {0.0, 1.0, 100.0}
 _NARRATIVE_SCOPE_APPLICABILITY_FIELDS = {
     "consolidation_scope",
     "segment",
@@ -201,46 +201,6 @@ def derive_operation_family_from_formula(expression: str) -> str:
     if isinstance(body, ast.BinOp) and add_only(body):
         return "sum"
     return "formula"
-
-
-def _query_constants(query: str) -> List[float]:
-    values: List[float] = []
-    for token in re.findall(r"[-+]?\d[\d,]*(?:\.\d+)?", str(query or "")):
-        try:
-            values.append(float(token.replace(",", "")))
-        except ValueError:
-            continue
-    return values
-
-
-def _constant_allowed(
-    value: float,
-    declarations: Sequence[Mapping[str, Any]],
-    *,
-    query_values: Sequence[float],
-    binding_count: int,
-) -> bool:
-    if float(value) in _NEUTRAL_CONSTANTS:
-        return True
-    for declaration in declarations:
-        try:
-            declared = float(declaration.get("value"))
-        except (TypeError, ValueError):
-            continue
-        if abs(declared - float(value)) > 1e-12:
-            continue
-        origin = str(declaration.get("origin") or "").strip().lower()
-        if origin == "query" and any(
-            abs(candidate - value) <= 1e-12 for candidate in query_values
-        ):
-            return True
-        if (
-            origin == "deterministic_cardinality"
-            and float(value).is_integer()
-            and int(value) == int(binding_count)
-        ):
-            return True
-    return False
 
 
 def _candidate_dimension(candidate: Mapping[str, Any]) -> str:
@@ -1535,7 +1495,6 @@ def validate_semantic_calculation_program(
             error("duplicate_expression_output", obligation_id)
         seen_expression_ids.add(obligation_id)
 
-    query_values = _query_constants(query)
     unresolved = list(pending)
     while unresolved:
         progressed = False
@@ -1630,18 +1589,17 @@ def validate_semantic_calculation_program(
             if not invalid and _formula_names(body) != set(variables):
                 error("formula_binding_mismatch", obligation_id)
                 invalid = True
-            declarations = [dict(item or {}) for item in expression.get("constants") or []]
+            expression.pop("constant_resolutions", None)
             if not invalid:
-                for value in _formula_constants(body):
-                    if not _constant_allowed(
-                        value,
-                        declarations,
-                        query_values=query_values,
-                        binding_count=len(bindings),
-                    ):
-                        error("undeclared_formula_constant", obligation_id, repr(value))
-                        invalid = True
-                        break
+                try:
+                    constants = resolve_formula_constants(
+                        expression.get("constants", []), _formula_constants(body),
+                        obligation=obligation, query=query, binding_count=len(bindings))
+                    if constants:
+                        expression["constant_resolutions"] = constants
+                except FormulaConstantError as exc:
+                    error(str(exc), obligation_id, exc.detail, location="expression.constants")
+                    invalid = True
 
             variable_units: Dict[str, str] = {}
             source_candidates: List[str] = []
@@ -3596,6 +3554,8 @@ def execute_semantic_calculation_program(
             "input_rows": input_rows,
             **({"comparison_resolution": deepcopy(expression["comparison_resolution"])}
                if expression.get("comparison_resolution") else {}),
+            **({"constant_resolutions": deepcopy(expression["constant_resolutions"])}
+               if expression.get("constant_resolutions") else {}),
         }
 
     for binding in validation["valid_narrative_bindings"]:

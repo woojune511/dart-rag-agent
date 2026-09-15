@@ -15,14 +15,12 @@ Company names, benchmark IDs, expected answers, report-specific phrases, and met
 Evidence is authoritative over generated text. Numeric answers require registered candidates and validated program bindings. Source and calculated displays may
 coexist, but their provenance must remain distinct.
 
-Normalization and rendering share `UnitSpecV1`: source numbers multiply by its scale;
-calculated displays divide by it. Direct values preserve source units/signs/precision;
+Normalization and rendering share `UnitSpecV1`: source numbers multiply by its scale; calculated displays divide by it. Direct values preserve source units/signs/precision;
 non-finite values cannot yield slots, and precision comparisons use base units. Formula literals exclude booleans/overflow; scalar function arity is validated, with variable names independent of function positions.
 Table-unit projection preserves inline and explicit column/annotated-row units (not bare row categories); conflicting axes stay unknown. Otherwise policy column labels select only among units declared in attached preceding/caption context.
 Ambiguous mixed-unit cells never inherit the first table unit. `source_unit_hint` stays in identity/provenance; exact declarations/header evidence reach prompt and operands as `source_unit_provenance`. Original row quotes stay intact; synthesized row text uses effective units within the existing bound.
 Corrected effective units change catalog-content fingerprints, not candidate IDs or hash algorithms; V2 binds the complete projection. Store/parser payloads and historical artifacts are not rewritten.
-Compiler emits formula and `display_unit`, not `result_unit`; code infers dimensions.
-Display priority: expression -> obligation -> inferred canonical unit (count: unitless).
+Compiler emits formula and `display_unit`, not `result_unit`; code infers dimensions. Display priority: expression -> obligation -> inferred canonical unit (count: unitless).
 Legacy `result_unit` is an offline/internal projection concern, not a production Compiler field.
 
 Source signs stay intact. Compiler explains comparison target, transformations and formula in diagnostic `rationale`, using generic contrasts rather than a role enum.
@@ -30,10 +28,12 @@ Production calculations require nullable `comparison_request_unit_id`. A directe
 Input period labels, chronological order and listing order do not set direction. The selected request unit, endpoint assignment, transformations and formula remain model interpretations: `request_binding_not_semantic_equivalence` validates linkage, not correct meaning. Consistently reversed assignments/formulas remain semantic negatives; null does not certify non-comparison intent. For direct lookup, distinguish a reported row from unrequested aggregation using full axes/context; related/equal-valued rows alone establish neither ambiguity nor inclusion. Genuine uncertainty stays unanswered, with no forced row or retry.
 Code never flips signs; undefined/uncertain comparisons stay unanswered. Offline oracles never drive retries or prove model accuracy.
 
-Unsupported planner units remain recorded and block the affected island. Errors identify owner, candidate, location, and repair action. Compiler format errors keep the cohort; only
-explicit dimension/source-condition conflicts replace candidates, never free subject wording, unknowns or diagnostic prose.
-Typed validation normalizes `null`/`none` only for optional planner text
-(`display_unit`, `display_format`); real unsupported units still block their island. Free-string coupling keys are not planner fields.
+Formula constants other than the unchanged neutral literals 0, 1 and 100 require explicit declarations. `origin=query` carries a finite numeric `value`, an owned `request_unit_id`, a unique exact `source_text` substring of that unit and a nonblank `interpretation`. Digit-written and natural-language quantities use the same request interpretation contract; there is no query-wide numeral allowlist or word-to-number rule. Code checks exact scalar use, request ownership and quote location, not whether the interpreted number is semantically correct. Missing declarations are never inferred from a formula, dependency value, source value or request. Structurally linked wrong interpretations remain separate semantic negatives.
+`origin=deterministic_cardinality` must equal the actual expression binding count; it cannot borrow a dependency's value or claim request interpretation. Every supplied declaration must be finite, unique by numeric value and used exactly by the AST; malformed/unused declarations fail even for neutral literals. Missing/invalid declarations are owner-local `expression.constants` errors with same-cohort `repair_program`, not candidate exclusion.
+The derived-output wire exposes only that owner's request addresses and requires all query declaration fields. Internal historical programs remain parseable, but missing evidence has no production validation fallback. Validation recomputes `constant_resolutions` with exact Python query spans and `request_binding_not_semantic_equivalence` (or structural `binding_cardinality`); execution copies them to its numeric trace. Existing V2 program/content/validation fingerprints bind the declarations, request and resolutions. Lowering resolves references only; retry retains accepted programs, assertions and calculated dependencies without adding a model call.
+
+Unsupported planner units remain recorded and block the affected island. Errors identify owner, candidate, location, and repair action. Compiler format errors keep the cohort; only explicit dimension/source-condition conflicts replace candidates, never free subject wording, unknowns or diagnostic prose.
+Typed validation normalizes `null`/`none` only for optional planner text (`display_unit`, `display_format`); real unsupported units still block their island. Free-string coupling keys are not planner fields.
 
 ## 2. Public result v1
 

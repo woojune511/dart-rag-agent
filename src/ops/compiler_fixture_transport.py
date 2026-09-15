@@ -18,6 +18,16 @@ def project_offline_program_to_wire(program, model):
     outputs = {}
     assertions = {candidate_id: row["evidence_text"] for row in program.get("source_assertions") or [] for candidate_id in row["candidate_ids"]}
 
+    def constant(row):
+        result = deepcopy(row)
+        if result.get("origin") == "deterministic_cardinality":
+            # Internal optional request fields are absent in this wire variant.
+            # Preserve any non-default value so invalid fixtures still fail.
+            for key, default in (("request_unit_id", None), ("interpretation", "")):
+                if result.get(key) == default:
+                    result.pop(key, None)
+        return result
+
     def addresses(node):
         if isinstance(node, list):
             return [addresses(item) for item in node]
@@ -107,7 +117,8 @@ def project_offline_program_to_wire(program, model):
                     "formula": row["formula"], "display_unit": row.get("display_unit", ""), "display_format": row.get("display_format", ""),
                     "source_display": selection(row["source_display_candidate_id"], row, display=True) if row.get("source_display_candidate_id") else None,
                     "source_display_reason": row.get("source_display_reason", ""),
-                    "compatibility_refs": [short_ref(item, "c") for item in row.get("compatibility_candidate_ids") or []], "constants": row.get("constants") or []}
+                    "compatibility_refs": [short_ref(item, "c") for item in row.get("compatibility_candidate_ids") or []],
+                    "constants": [constant(item) for item in row.get("constants") or []]}
             else:
                 subjects = []
                 for subject in row.get("subject_bindings") or []:

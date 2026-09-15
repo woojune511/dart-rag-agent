@@ -42,6 +42,7 @@
 | `src/agent/financial_narrative_claims.py` | separate exact subject/fact ranges, fact-local numbers and raw/rendered trace; unique whitespace-only subject witness with original span/provenance, shared with owner/requirement-filtered retry diagnostics; no source/model rewrite, range repair or semantic entailment |
 | `src/config/retrieval_policy.py` | declarative retrieval priors, compact kind-specific planner/compiler and retry instructions; not source or attribution authority |
 | `src/agent/financial_calculation_execution.py` | hard source conditions, units/AST/provenance and immutable execution; owned comparison request to reference/target trace, not direction certification; free scope stays on proofs, not source facts/equality gates |
+| `src/agent/financial_formula_constants.py` | owned exact request quotes and declared formula scalars, structural binding cardinality and execution provenance; no numeral allowlist, word multiplier rules or semantic certification |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_numeric_surface.py` | shared numeric surfaces plus catalog-only standalone scalar exposure; legacy identity order and evaluation extraction preserved |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |

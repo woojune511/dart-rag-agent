@@ -235,7 +235,8 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
             result["expressions"].append({"obligation_id": owner_id, "variable_bindings": bindings,
                 "comparison_request_unit_id": (refs.resolve(content["comparison_request_unit_id"])
                     if content["comparison_request_unit_id"] is not None else None),
-                **{key: content[key] for key in ("formula", "display_unit", "display_format", "source_display_reason", "constants")},
+                **{key: content[key] for key in ("formula", "display_unit", "display_format", "source_display_reason")},
+                "constants": refs.project(content["constants"], reverse=True),
                 "source_display_candidate_id": display_id, "source_display_interpretation": display_interpretation,
                 "source_display_context_bindings": display_contexts,
                 "compatibility_candidate_ids": [selected(ref, owner_id) for ref in content["compatibility_refs"]]})

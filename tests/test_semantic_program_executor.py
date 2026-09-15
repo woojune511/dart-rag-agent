@@ -944,9 +944,8 @@ class SemanticCalculationProgramExecutorTests(unittest.TestCase):
                         ],
                         "formula": "round(exp(log(abs(A / B))), 1)",
                         "result_unit": "",
-                        "constants": [
-                            {"value": 1, "origin": "deterministic_cardinality", "source_text": "one binding"}
-                        ],
+                        # 1 is neutral; there are two bindings, not one.
+                        "constants": [],
                         "source_display_candidate_id": None,
                         "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                     }
