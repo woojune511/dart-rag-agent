@@ -12,6 +12,40 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Named request inputs: approved first-response run (2026-09-16)
+
+- Approved `76f0581f591b4c658b946973d85a248c05b5cf3334538ff6b95efd12fe80536b`,
+  consumed once on clean `1b66b44f` (runtime `f8d59110`). Same six synthetic
+  questions, plans, sources, order and criteria; six Gemini 2.5 Pro count/generation
+  pairs, API/JSON/schema errors 0, internal/SDK/automatic retries 0.
+- [Result](../../benchmarks/results/named_request_inputs_compiler_2026-09-16/RESULTS.md):
+  schema 6/6 versus preceding 5/6; runtime unchanged 4/6; ledger 4/4. Raw source,
+  finite formula and display probes 12/12 each; eight finalized values/units match.
+  Original sampled replies replayed offline through production execution, not a
+  full-agent run. Raw-selection checks do not imply runtime acceptance.
+- Double and half select the correct dependency and write `*2` / `/2`, but leave
+  request_inputs empty; both fail `undeclared_formula_constant`. The old half's
+  invented origin enum no longer occurs, but declaration omission remains. -3
+  alone has a named value/request/interpretation and formula use: 1/3 quantity
+  expressions grounded. Empty lists are not proof coverage. Naming alone did not
+  resolve the failures; no missing values or final answers were reconstructed.
+- Read-only dependency calculations 20/30 were retained in offline targeted
+  feedback; no repair was sampled. Sign keeps 76/82 KRW, and the accepted negative
+  multiplier keeps source -9%, calculated -10% and dependent 30%.
+- Lists 12/12, exact prose interpretation quotes 9/9, value-recopy fields 0, exact
+  converted value assertions 9. Whole-request linkage is not semantic proof.
+- 39,866 input / 9,295 output-including-thinking tokens; completed count/generation
+  time 84.37s. Generation estimate USD 0.1427825 + count contingency 0.36 =
+  0.5027825 < 0.80; no pending reservation, not observed billing.
+- SDK sends equal rehearsals; 38 dependencies, 11 packet files and 166 runtime
+  files verified; original responses unchanged after review. No runtime, planner,
+  retrieval, embedding, ingest or store changes. An offline reporting list/set
+  error was corrected without a provider retry or criteria change.
+- One historical/new sample per known synthetic case, not randomized A/B,
+  causal isolation, unseen accuracy or release evidence. Next work is offline
+  formula/request-proof interface inspection; no automatic paid repeat or relaxed
+  undeclared-value gate. Artifacts stay ignored; predecessor bytes remain intact.
+
 ## Addressed numeric proofs: approved first-response run (2026-09-16)
 
 - Approved `7c9742d9661ac5b3f7baf3b243716882fcd6766d1cea8605ea3b022c88c0b746`,
