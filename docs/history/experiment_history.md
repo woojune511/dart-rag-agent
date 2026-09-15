@@ -12,6 +12,37 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Request-constant six-case first-response run (2026-09-16)
+
+- Explicitly approved `b72b2038fcf728f8d29f399952f7312cf7bd0d801b0cc4f9043435ef8b4220bc`,
+  consumed once on clean `b4a065b5` (source `f990f3ab`). Gemini 2.5 Pro, previous four
+  unchanged synthetic cases plus two authored half/negative-multiplier controls.
+  Six counts/generations, first responses only, internal/SDK/automatic retries 0.
+- Schema 6/6, full runtime acceptance 4/6, ledger 4/4 ok on complete cases. Fixed
+  source/requirement/dependency and finite formula/display-choice probes 12/12;
+  executed eight calculated/display values and units match. Not general meaning proof.
+- Original four now pass, including source 21%, calculated 20%, dependent 40% with
+  model-declared `double -> 2`. The old 3/4 artifact remains immutable, not repaired.
+  Non-neutral scalar declarations are grounded 2/3: `double -> 2` and `음의 세 배 -> -3`.
+  Half uses the correct `/ 2` formula but omits constants. Nine other outputs do
+  not exercise this contract and are excluded from its coverage denominator.
+- Both new cases omit `source_display.interpretation.source_evidence_text` despite
+  selecting/quoting the correct reported numeric source. First failure is
+  `source_interpretation_evidence_mismatch`; dependency/assertion errors follow.
+  Half's missing declaration is established by independent original-wire inspection,
+  not its first runtime feedback, which stops on the failed predecessor. Failed
+  values remain null; no reconstructed 15%/30%, mocked repair or extra provider call.
+- Generation schema permits these omissions while conditional runtime checks need
+  the missing information. Next step is a provider-free contract review, not another
+  paid trial or automatic source/constant inference. Nullable comparison intent and
+  negative-reference denominator semantics are not separate frozen scorer gates.
+- Input counts agree across count/generation: 39,002 input / 8,417 output incl. thinking.
+  Generation estimate USD 0.1329225 + count contingency 0.36 = 0.4929225 < 0.80;
+  invoice unknown. Mean completed count+generation 15.56 seconds, total 93.35 seconds.
+  All live bodies/property orders match rehearsals; raw responses and manifest/
+  runtime/dependency hashes verified unchanged after review. Runtime/store changes 0.
+  [Results and claim limits](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md).
+
 ## Mixed-source first-response model run (2026-09-16)
 
 - Explicitly approved `97ac73c7944df143768537471ff0891f9e57f3ec76bfb4d55304ee7cd0a2751f`,

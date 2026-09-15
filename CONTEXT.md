@@ -131,10 +131,10 @@ older fixture/source/result limitations.
 ## Next work and hard stops
 
 1. [Request-constant contracts](tests/test_request_formula_constants.py) implemented: owned exact query quote and explicit quantity interpretation, not numeral/word rules.
-   Python 3.13 full unittest 1,735/1,735 (47.642s); 11 new provider-free tests, domain/import/topology/pycompile/diff pass. No new model sample.
-   [Prior mixed-source model result](benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md) remains 3/4; its undeclared `2` is still rejected, never inferred or repaired.
-   Source 21% / computed 20% / dependent 40% succeeds with an authored declaration; exact request spans, same-cohort repair, accepted bytes and V2 fingerprints are retained.
-   [Successor packet](benchmarks/results/request_constants_compiler_2026-09-16/DESIGN.md): previous four plus half/negative-multiplier controls, first drafts only; USD 0.80 proposed, separate approval pending. Prior manifest consumed; temporal error remains.
+   Python 3.13 full unittest 1,735/1,735 (47.642s); 11 new provider-free tests, domain/import/topology/pycompile/diff pass. Authored tests are not model-accuracy evidence.
+   [Six-case model result](benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md): runtime 4/6, fixed input/formula probes 12/12, constant declarations grounded 2/3. Single first drafts, not general accuracy.
+   Original four now execute, including source 21% / computed 20% / doubled 40%. Both new cases omit prose interpretation quotes; half also omits its constant. No repaired/reconstructed outputs.
+   `b72b2038...4220bc` consumed; six counts/generations, retries 0, accounted USD 0.4929225 < 0.80, not invoice. Next: conditional prose/constant schema-contract omissions, provider-free first; temporal error remains.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
