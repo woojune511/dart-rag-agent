@@ -67,19 +67,20 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [reading/formula factorial](benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
-ran on clean `ff36d19e`: four synthetic questions x four conditions x three samples.
-Semantic correct: current **9/12**, current+formula **9/12**, minimum **12/12**,
-minimum+formula **10/12**. All eight errors reverse the requested temporal direction;
-all 48 formulas pass positive-input contrasts. Current runtime accepts 10/12 and 12/12;
-minimum checks confer no V2 authority. Two current drafts also violate input ownership.
-Wrong rationales explicitly prefer conventional chronology to the requested direction.
-Formula addition shows no benefit; minimum is promising but jointly changes prompt,
-plan exposure and schema. Four questions, not 48 independent questions or general proof.
-Generation/count 48/48, live retries/errors 0; estimate USD 0.74502 + count contingency
-2.88 = accounted 3.62502 < 4.00, not invoice. User delegated this bounded experiment.
-Manifest `2f4535a1...75cb3` consumed; 51 pre-call and six offline-review tests passed.
-Two identical SDK rehearsals match actual requests; runtime/bound predecessors unchanged.
+The [fixed-schema input deletion](benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
+on clean `b7807573` stopped at generation 15 on Google **503 UNAVAILABLE**: 14 responses,
+one API failure, nine not run; automatic retry 0. Same seven paired samples per arm.
+Current and trimmed input both score **5/7** semantically; reverse temporal **0/2** each.
+Both pass schema/source/execution 7/7; formulas pass 14/14. Wrong outputs recognize the
+requested reversal but bind previous=reference/current=target and compute -20%, not +25%.
+Deleting plan descriptions and existing instructions, with schema/source payload fixed,
+reduces input tokens 26.9% but shows no correctness gain in this incomplete small comparison.
+Manifest `056572ba...7f504` consumed; 45 pre-call tests and paired SDK captures match all 15 request pairs.
+Usage estimate USD 0.2764125 + failed reservation 0.05616375 + count contingency 0.90 = 1.23257625 < 2.20, not invoice.
+Runtime/predecessors unchanged. Four questions, not independent/general/full-agent evidence.
+The [preceding factorial](benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
+retains current/current+formula/minimum/minimum+formula 9/12, 9/12, 12/12, 10/12.
+No formula benefit was observed; minimum jointly changes input and schema, not V2 authority.
 The earlier [plan-hint A/B](benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
 retains structural 4/4, original/neutral semantic 2/2 and 1/2; no hint clearing.
 Its consumed `045a3eb5...dfe53` and historical same-input response variation stay preserved.
@@ -129,12 +130,12 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Separate plan/instruction exposure from output-schema burden in provider-free
-   intermediate inputs, keeping one factor fixed. Do not replace production V2 or
-   force a formula based on the bounded factorial. No extra paid expansion was run.
+1. The tested deletion-only input does not resolve temporal direction. Next isolate
+   temporal meaning in model-facing requirement IDs provider-free, preserving source,
+   periods, schema structure and authority without assigning reference/target for the model.
    The [baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
    retains untested row-mirror/equal-value/Korean model controls and authored contracts.
-2. No arithmetic defect or general instruction-only remedy was established.
+2. Do not resume the consumed partial run or promote this input deletion to production.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
    No automatic paid retry, fresh ingest, store adoption/mutation,

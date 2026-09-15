@@ -8500,3 +8500,43 @@ References:
   warning on exit 0; live calls did not fail. Runtime and predecessor hashes verified
   before docs. Store/dataset/embedding/Planner/retrieval/OpenAI/judge mutations/calls 0.
 - [Results, interpretation and raw responses](../../benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md).
+
+## 2026-09-15 — Fixed-schema plan/instruction deletion, partial delegated run
+
+- Latest "진행해줘" continues the user's delegated comparison design/execution without
+  another approval. New manifest `056572ba969e7ffe3aecc764d242953a05ea84a220eca5469438d1a3cdb7f504`,
+  clean `b7807573`, Gemini 2.5 Pro, USD 2.20 cap; no predecessor approval/run reuse.
+- Four frozen temporal/named direction cases, current versus deletion-only input,
+  three repeats intended: 24 generations/counts maximum, balanced AB/BA order.
+  Canonical plan, question/scope, source payload, owner authority and output schema
+  unchanged. Existing prefix lines and plan descriptions alone deleted; no new guidance,
+  equation, direction assignment or hint-based runtime branch. Joint deletion treatment.
+- Generation 15 (`R2_TEMPORAL_A_B_trimmed`) returned Google 503 UNAVAILABLE after its
+  count succeeded. Stop policy worked: 14 responses, one API failure, nine not run,
+  no compiler/SDK/runner retry or subsequent paid execution. Provider internal cause unknown.
+  Completed responses are the same seven question/repeat pairs in both arms. The API
+  failure is excluded from semantic denominators and separately preserved.
+- Current/trimmed semantic correct **5/7 each**. Temporal forward 1/1, temporal reverse
+  0/2, named forward 2/2, named reverse 2/2 in both. Paired outcomes: five both-correct,
+  two both-wrong. Schema, visible source, formula contrasts and current runtime pass
+  14/14; these do not prove requested-direction correctness. All four wrong responses
+  set previous=reference/current=target and produce -20% instead of requested +25%.
+- Final rationales restate the reverse request, then prefer conventional earlier-to-later
+  change. This is final-output evidence, not observation of hidden reasoning. Deleting
+  this subset alone shows no gain; it does not establish equivalence, a schema cause,
+  model inability or general performance. No production change or validation relaxation.
+- Server input tokens average 5,449.29 current versus 3,983.00 trimmed (26.9% lower).
+  Mean completed count+generation latency 13.74s/13.35s; no general speedup claim.
+- Successful generation estimate USD 0.27641250; failed unknown-usage reservation
+  0.05616375 retained; count contingency 0.90; accounted 1.23257625 < 2.20, not invoice.
+- 4 design + 6 frozen-review + 35 focused tests precede calls. Separate SDK no-call
+  processes are byte-identical (`2411e32f0882735dba434482cee1cdf08d3047e42898d9cb96e900b274f10b3b`).
+  All 15 count/generation bodies match captured hashes; successful input usage matches counts.
+  Rehearsal socket-teardown warnings exited 0; the actual stop is live Google HTTP 503.
+- Bound evaluator/criteria/report/runner and predecessors unchanged. A presentation-only
+  partial-review wrapper calls the frozen assessor and separates API failures from answers;
+  the original report's HTML path assumed a final rationale on every row. No scoring repair.
+  Runtime/store/dataset/candidate/embedding/Planner/retrieval/OpenAI changes/calls 0.
+- Next candidate: provider-free opaque requirement-ID projection while retaining periods,
+  sources, schema structure and authority. Do not preassign endpoints or resume this manifest.
+- [Partial results, interpretation and raw responses](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md).
