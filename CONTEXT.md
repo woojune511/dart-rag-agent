@@ -134,7 +134,7 @@ older fixture/source/result limitations.
    pass four authored cases, not model accuracy. Missing `만원` extraction/scale/display policy is fixed.
    [Six paid controls](benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md) remain runtime 6/6 and independent meaning 6/6, no retries.
    One sample/case; manifest `55029ef1...3000e0` consumed. Prior temporal error remains.
-   Next: bounded mixed-source model probe using the frozen synthetic inputs and separate criteria.
+   [Mixed-source probe](benchmarks/results/mixed_source_compiler_2026-09-16/review.html) prepared: four first responses, USD 0.60 proposed cap; separate approval pending.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

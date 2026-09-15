@@ -139,7 +139,7 @@ it does not inject answers or change shared evaluation extraction.
 - [Mixed-source contracts](../../tests/test_mixed_numeric_source_integration.py): four authored cases pass; full unittest 1,724/1,724, no model claim.
   Missing `만원` extraction/scale/display policy fixed. Prose quotes, signed values, calculated dependencies, retry and ledger preserved.
   [Six paid controls](../../benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md) remain 6/6 structural and separate meaning, one sample/case; manifest consumed.
-  The prior temporal error is unchanged. Next: a bounded mixed-source model probe, not a full-agent or general-accuracy claim.
+  Temporal error unchanged. [Mixed-source probe](../../benchmarks/results/mixed_source_compiler_2026-09-16/review.html) prepared: four first responses, proposed USD 0.60; approval pending, not full-agent evidence.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,
