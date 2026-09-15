@@ -68,10 +68,10 @@ class RequestFormulaConstantTests(unittest.TestCase):
                 self.assertEqual(result["outputs_by_obligation"]["growth"]["answer_slot"]["normalized_value"], 21)
                 proof = output["constant_resolutions"][0]
                 self.assertEqual(proof["value"], multiplier)
-                self.assertEqual(proof["source_text"], quote)
+                self.assertEqual(proof["source_text"], request)
                 self.assertEqual(proof["request_unit_id"], "request_002")
                 start, end = proof["request_span"]
-                self.assertEqual(case["question"][start:end], quote)
+                self.assertEqual(case["question"][start:end], request)
                 self.assertEqual(proof["validation_scope"], "request_binding_not_semantic_equivalence")
                 self.assertEqual((case, program), before)
                 self.assertEqual(len(queue.wires), 1)
@@ -142,11 +142,12 @@ class RequestFormulaConstantTests(unittest.TestCase):
         model, _ = capture_initial(case)
         schema = model.model_json_schema()
         constant = schema["$defs"]["RequestConstant_double"]
-        self.assertEqual(set(constant["required"]), {"value", "origin", "request_unit_id", "source_text", "interpretation"})
+        self.assertEqual(set(constant["required"]), {"value", "origin", "request_unit_id", "interpretation"})
+        self.assertNotIn("source_text", constant["properties"])
         self.assertEqual(constant["properties"]["request_unit_id"]["enum"], ["request_002"])
         _, queue, _ = compile_case(case, [program])
         Draft202012Validator(schema).validate(queue.wires[0])
-        for field in ("request_unit_id", "source_text", "interpretation"):
+        for field in ("request_unit_id", "interpretation"):
             raw = deepcopy(queue.wires[0])
             raw["outputs"]["double"]["result"]["constants"][0].pop(field)
             with self.subTest(field=field), self.assertRaises(ValidationError):

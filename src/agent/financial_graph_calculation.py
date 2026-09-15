@@ -2434,8 +2434,8 @@ class FinancialAgentCalculationMixin:
                             ),
                             "source_assertion_invariant": (
                                 "For each prose numeric selection, use its visible source_ref and "
-                                "copy a byte-exact continuous evidence_text from its own bundle "
-                                "covering the selected value span."
+                                "code preserves that candidate's complete exact value span. "
+                                "Do not emit selection.evidence_text; interpretation support remains separate."
                             ),
                             "numeric_context_invariant": (
                                 "Code attaches the selected cell's complete axes. Do not emit axis_refs or context_bindings. "

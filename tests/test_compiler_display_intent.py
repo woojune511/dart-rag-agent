@@ -40,8 +40,7 @@ class AuthoredDisplayLLM:
 
         def selection(key):
             candidate = self.case[key]
-            return {"source_ref": refs.ref(candidate["candidate_id"]),
-                    "evidence_text": candidate["raw_value"] + candidate["raw_unit"]}
+            return {"source_ref": refs.ref(candidate["candidate_id"])}
 
         result = {"selection": selection("reported")} if self.direct else {
             "inputs": {"initial": [{**selection("initial"), "variable": "P"}],

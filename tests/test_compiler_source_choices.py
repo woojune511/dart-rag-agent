@@ -69,13 +69,13 @@ class CompilerSourceChoiceTests(unittest.TestCase):
             self.assert_schema(model, direct({'source_ref': refs.ref('cell'), 'evidence_text': quote}), valid=False)
         self.assertNotIn('"evidence_text"', json.dumps(model.model_json_schema()))
 
-    def test_prose_selection_requires_quote_and_mixed_sources_keep_both_shapes(self):
+    def test_prose_selection_uses_its_address_and_mixed_sources_keep_both_shapes(self):
         sentence = prose()
         for catalog in ([sentence], [source(context=False), sentence]):
             refs, model, visibility, _ = wire(catalog, [output()])
-            quote = {'source_ref': refs.ref(sentence['candidate_id']), 'evidence_text': '23%'}
+            quote = {'source_ref': refs.ref(sentence['candidate_id'])}
             self.assert_schema(model, direct(quote))
-            for invalid in ({'source_ref': quote['source_ref']}, {**quote, 'evidence_text': None}):
+            for invalid in ({**quote, 'evidence_text': '23%'}, {**quote, 'evidence_text': None}):
                 self.assert_schema(model, direct(invalid), valid=False)
             program = lower_compiler_response(direct(quote), model=model, refs=refs, obligations=[output()],
                                              catalog=catalog, visibility=visibility)

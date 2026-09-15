@@ -5,6 +5,35 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Addressed numeric and request proof assembly (2026-09-16)
+
+- Baseline `ac33fc49`; classified as a compiler transport/evidence-schema seam.
+  The prior paid 4/6 exposed unit-inclusive value-quote undercoverage and repeated
+  request-quote ambiguity. Its original responses and criteria remain immutable.
+- Production numeric selections no longer recopy `evidence_text`: the selected
+  source_ref addresses the existing complete bundle-local value span. Lowering
+  copies it, preserving source signs/units; absent spans fail. Subject/metric
+  interpretation and attached context still require their separate model evidence.
+- Query-origin constants retain explicit value, owned request_unit_id and
+  interpretation, but no source_text field. Code copies the whole selected unit,
+  including negation/contrast. This is whole-instruction linkage, not unique quantity
+  occurrence or meaning certification. No scalar inference, word rules or new call.
+- Cell/prose parsing cannot use another known source kind's shape to bypass its
+  interpretation requirements. Independent owner authority remains in lowering.
+  Old internal quote validators are unchanged; invalid/missing historical proofs
+  stay invalid in explicit offline transport, never repaired provider responses.
+- Ten new contracts cover signs/units, repeated quantities/equal values, owner
+  isolation, malformed refs, old proof violations, missing locations, explicit
+  semantics, and same-cohort retry preserving accepted program/assertion bytes.
+  Existing authored fixtures move to the new wire without changing expected values.
+- Python 3.13 full unittest **1,753/1,753**, no skips (55.438s); focused 99,
+  import/topology/docs 24, domain audit 83, pycompile and diff checks passed.
+- Same-six initial no-call projection preserves inputs/candidate IDs and 22 old
+  artifact hashes. Local prompt bytes 150,810 -> 152,160; schema 66,143 -> 64,559.
+  No SDK-token, latency or model-accuracy claim; paid acceptance is still 4/6.
+  No parser/store/ID/arithmetic redesign, provider call, store mutation or artifact commit.
+  [Local scope and measurements](../../benchmarks/results/addressed_numeric_proofs_local_2026-09-16/RESULTS.md).
+
 ## Compiler required evidence fields (2026-09-16)
 
 - Baseline `59cc3977`. The preceding six-case paid run retained two prose

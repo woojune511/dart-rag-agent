@@ -688,7 +688,7 @@ class ContextualProseInterpretation(NumericInterpretation):
 class ProseInterpretation(NumericInterpretation):
     source_evidence_text: str = Field(min_length=1, description=(
         "Exact own-body quote supporting subject and metric interpretation; "
-        "selection.evidence_text separately covers the chosen numeric value."))
+        "code separately preserves the value span addressed by source_ref."))
 
 
 class ContextScopeValue(WireModel):
@@ -745,6 +745,16 @@ def compiler_response_model(obligations, refs, visibility):
     numeric_types = {}
     allowed = visibility.candidate_ids_by_owner()
     source_kinds = dict(refs.numeric_source_kinds)
+    source_kinds_by_ref = {refs.ref(key): kind for key, kind in source_kinds.items()}
+
+    def source_variant(expected_kind):
+        def check(value):
+            source_ref = value.get("source_ref") if isinstance(value, dict) else None
+            actual = source_kinds_by_ref.get(source_ref) if isinstance(source_ref, str) else None
+            if expected_kind != "dependency" and actual is not None and actual != expected_kind:
+                raise ValueError("numeric_source_variant_mismatch")
+            return value
+        return model_validator(mode="before")(check)
 
     def numeric_model(owner_id, *, input=False, dependencies=(), only_dependencies=False):
         alternatives = []
@@ -770,15 +780,14 @@ def compiler_response_model(obligations, refs, visibility):
                 if kind == "prose":
                     interpretation_type = ContextualProseInterpretation if contexts else ProseInterpretation
                     fields["interpretation"] = (Optional[interpretation_type], None)
-                    fields["evidence_text"] = (str, Field(min_length=1,
-                        description="Exact bundle substring covering the selected prose number."))
                 if contexts:
                     context_type = create_model("ContextEvidence_" + name, __base__=WireModel,
                         context_ref=(Literal[contexts], ...), evidence_text=(str, Field(min_length=1)),
                         supports_interpretation=(bool, False),
                         resolves=(list[ContextScopeValue], Field(default_factory=list)))
                     fields["context_evidence"] = (list[context_type], Field(default_factory=list))
-                numeric_types[key] = create_model(name, __base__=base, **fields)
+                numeric_types[key] = create_model(name, __base__=base,
+                    __validators__={"source_variant": source_variant(kind)}, **fields)
             alternatives.append(numeric_types[key])
         return Union[tuple(alternatives)] if alternatives else None
 
@@ -796,8 +805,9 @@ def compiler_response_model(obligations, refs, visibility):
             request_constant = create_model("RequestConstant_" + key, __base__=WireModel,
                 value=(float, Field(strict=True, allow_inf_nan=False)), origin=(Literal["query"], ...),
                 request_unit_id=(str, Field(json_schema_extra={"enum": list(dict.fromkeys(
-                    refs.ref(unit_id) for unit_id in owner.get("request_unit_ids") or []))})),
-                source_text=(str, Field(min_length=1, description="Unique exact substring of the owned request unit.")),
+                    refs.ref(unit_id) for unit_id in owner.get("request_unit_ids") or []))}, description=(
+                    "Select the owned instruction interpreting this scalar. Code preserves its complete exact text; "
+                    "this is not a claim that it identifies a unique quantity occurrence."))),
                 interpretation=(str, Field(min_length=1,
                     description="Explain how that request specifies this formula scalar; not a source value or an answer.")))
             result = create_model("Calculation_" + key, __base__=WireModel,

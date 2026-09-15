@@ -32,7 +32,7 @@
 | `src/agent/financial_source_bundles.py` | deterministic prose-sentence/physical-row bundles with shared located context references and exact row cell partitions |
 | `src/agent/financial_candidate_matching.py` | factorized exposure ranking and diagnostics; free subject/metric differences are relevance, not source-use prohibitions |
 | `src/agent/financial_graph_calculation.py` | bundle exposure then hard-condition owner authority over the visible union; request-grounded islands, typed dispatch/targeted retry, verified dependency inputs and terminal admission propagation |
-| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2; owner-authorized cell/prose/dependency choices, explicit constants and prose interpretation evidence; comparison request ID, selected-cell axes/attached context; lossless lowering and independent authority checks |
+| `src/agent/financial_compiler_wire.py`, `financial_graph_models.py` | nested CompilerResponseV2; owner-authorized source/request choices, exact value-span and whole-request copying; explicit constants and separate prose interpretation evidence, cell axes/attached context; lossless lowering and independent authority checks |
 | `src/agent/financial_source_interpretation.py` | owned request to full cell-axis/attached-context correspondence; exact physical linkage, explicitly not semantic-equivalence proof |
 | `src/agent/financial_output_relationships.py` | explicit output sets with shared owned request excerpts; distinct from dependencies and physical-row constraints |
 | `src/agent/financial_compiler_presentation.py` | canonical addressed source layout and filing metadata projected to wire v9; owner permission and responsibility allowlists, no ranking-state instructions |
@@ -83,7 +83,7 @@
 | `src/ops/replay_saved_runtime_traces.py` | generic exact saved-program replay through current catalog/visibility/validator/executor contracts |
 | `src/ops/replay_reviewed_runtime_corpus.py` | provider-free fixture replay with V2 fingerprints; legacy flat narrative explicitly marks claim enforcement off, not current compiler/semantic acceptance |
 | `src/ops/replay_reviewed_compiler_selection.py` | explicit Flash/Pro admissions; source-bound selection checks; terminal stops retain completed cases and interrupted raw responses without executing that case, continuing models or inventing usage; narrative semantic review stays separate; no retrieval/evaluator/embedding/store access |
-| `src/ops/compiler_fixture_transport.py` | explicit offline authored-program transport, never imported by the production Compiler; no choice/proof inference |
+| `src/ops/compiler_fixture_transport.py` | explicit offline authored-program transport; valid prior proofs map to source/request addresses, bad/missing proofs remain invalid; no provider-response repair or core import |
 | `src/utils/gemini_usage_counts.py` | dependency-light answer/thinking/cache normalization and cost accounting; no double-counted reasoning |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 

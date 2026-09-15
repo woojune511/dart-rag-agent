@@ -12,9 +12,9 @@ import hashlib
 from typing import Any, Literal, Mapping, Optional, Sequence
 
 from src.agent.financial_graph_model_loaders import compiler_response_model, semantic_calculation_program_model
-from src.agent.financial_request_units import build_request_units
+from src.agent.financial_request_units import RequestUnitV1, build_request_units
 from src.agent.financial_source_interpretation import interpretation_axis_sources
-from src.agent.financial_source_bundles import build_semantic_source_bundles, source_bundle_id_by_candidate_id
+from src.agent.financial_source_bundles import SourceBundleV1, build_semantic_source_bundles
 
 
 class CompilerReferenceError(ValueError):
@@ -29,6 +29,8 @@ class CompilerReferencesV1:
     numeric_axes: tuple[tuple[str, tuple[str, ...]], ...]
     owner_context_refs: tuple[tuple[str, tuple[str, ...]], ...]
     numeric_source_kinds: tuple[tuple[str, str], ...]
+    request_units: tuple[RequestUnitV1, ...]
+    prose_bundles: tuple[SourceBundleV1, ...]
 
     @classmethod
     def build(cls, catalog, obligations, query, payload):
@@ -57,7 +59,8 @@ class CompilerReferencesV1:
                 add(dependency, "o")
             for requirement in owner.get("evidence_requirements") or []:
                 add(requirement["requirement_id"], "r")
-        for unit in build_request_units(query):
+        request_units = build_request_units(query)
+        for unit in request_units:
             add(unit.request_unit_id, "q")
 
         def surfaces(node):
@@ -90,7 +93,8 @@ class CompilerReferencesV1:
             tuple(sorted((key, tuple(interpretation_axis_sources(row))) for key, row in numeric.items())),
             tuple(sorted((key, tuple(sorted(values))) for key, values in contexts_by_owner.items())),
             tuple(sorted((key, "prose" if row.get("candidate_kind") == "sentence_value" and key in prose_ids
-                          else "cell") for key, row in numeric.items())))
+                          else "cell") for key, row in numeric.items())), request_units,
+            tuple(bundle for bundle in bundles if bundle.source_kind == "prose_sentence"))
 
     def context_refs_for_owner(self, owner_id):
         return dict(self.owner_context_refs).get(owner_id, ())
@@ -135,7 +139,9 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
     raw = model.model_validate(response.model_dump() if hasattr(response, "model_dump") else response).model_dump()
     allowed = visibility.candidate_ids_by_owner()
     candidates = {row["candidate_id"]: row for row in catalog}
-    bundle_ids = source_bundle_id_by_candidate_id(build_semantic_source_bundles(catalog))
+    prose_bundles = {candidate_id: bundle for bundle in build_semantic_source_bundles(catalog)
+                    if bundle.source_kind == "prose_sentence" for candidate_id in bundle.candidate_ids}
+    request_units = {unit.request_unit_id: unit for unit in refs.request_units}
     result = {"status": "ready", "direct_bindings": [], "expressions": [], "narrative_bindings": [],
               "source_assertions": [], "missing_obligation_ids": [], "ambiguous_obligation_ids": [], "rationale": raw["rationale"]}
 
@@ -164,9 +170,8 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
             elif not evidence["resolves"]:
                 raise CompilerReferenceError("unused_context_evidence", owner_id, source_id)
             contexts.extend({**proof, **binding} for binding in evidence["resolves"])
-        quote = selection.get("evidence_text")
         if source_id not in candidates:
-            if interpretation is not None or contexts or quote is not None:
+            if interpretation is not None or contexts:
                 raise ValueError("dependency_has_source_grounding")
         else:
             if interpretation is not None:
@@ -174,10 +179,29 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                 # axes without asking the model to repeat (or invent) axis IDs.
                 interpretation.update(axis_refs=list(refs.axis_refs_for_candidate(source_id)),
                     context_evidence=interpretation_contexts)
-            if quote is not None:
-                result["source_assertions"].append({"source_bundle_id": bundle_ids[source_id],
-                    "candidate_ids": [source_id], "evidence_text": quote})
+            if candidates[source_id].get("candidate_kind") == "sentence_value":
+                bundle = prose_bundles.get(source_id)
+                span = bundle.value_span_by_candidate_id().get(source_id) if bundle else None
+                if span is None:
+                    raise CompilerReferenceError("source_assertion_value_span_missing", owner_id, source_id)
+                # The selected candidate already addresses one physical value.
+                # Copy its complete span, not a model-retyped or inferred quote.
+                result["source_assertions"].append({"source_bundle_id": bundle.source_bundle_id,
+                    "candidate_ids": [source_id], "evidence_text": bundle.source_text[span[0]:span[1]]})
         return source_id, interpretation, contexts
+
+    def constants(items, owner):
+        declarations = refs.project(items, reverse=True)
+        for declaration in declarations:
+            if declaration["origin"] != "query":
+                continue
+            unit_id = declaration["request_unit_id"]
+            if unit_id not in request_units or unit_id not in (owner.get("request_unit_ids") or []):
+                raise CompilerReferenceError("constant_request_not_owned", owner["obligation_id"])
+            # This proves linkage to the chosen whole instruction, not a unique
+            # quantity occurrence or correctness of the model's interpretation.
+            declaration["source_text"] = request_units[unit_id].text
+        return declarations
 
     def groups(rows, owner):
         requirement_ids = {refs.ref(row["requirement_id"]): row["requirement_id"] for row in owner.get("evidence_requirements") or []}
@@ -236,7 +260,7 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                 "comparison_request_unit_id": (refs.resolve(content["comparison_request_unit_id"])
                     if content["comparison_request_unit_id"] is not None else None),
                 **{key: content[key] for key in ("formula", "display_unit", "display_format", "source_display_reason")},
-                "constants": refs.project(content["constants"], reverse=True),
+                "constants": constants(content["constants"], owner),
                 "source_display_candidate_id": display_id, "source_display_interpretation": display_interpretation,
                 "source_display_context_bindings": display_contexts,
                 "compatibility_candidate_ids": [selected(ref, owner_id) for ref in content["compatibility_refs"]]})

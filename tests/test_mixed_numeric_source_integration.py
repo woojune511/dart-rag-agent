@@ -51,7 +51,7 @@ class MixedNumericSourceIntegrationTests(unittest.TestCase):
                 self.assertEqual(case, before)
                 Draft202012Validator(queue.models[0].model_json_schema()).validate(queue.wires[0])
 
-    def test_prose_quotes_cells_and_dependencies_keep_distinct_shapes(self):
+    def test_prose_addresses_cells_and_dependencies_keep_distinct_provenance(self):
         case, program = self.witness()
         compiled, queue, _ = compile_case(case, [program])
         model = queue.models[0]
@@ -66,7 +66,11 @@ class MixedNumericSourceIntegrationTests(unittest.TestCase):
                         candidate = by_id[resolved]
                         kinds.add(candidate['candidate_kind'])
                         if candidate['candidate_kind'] == 'sentence_value':
-                            self.assertIn(selection['evidence_text'], candidate['source_bundle_text'])
+                            self.assertNotIn('evidence_text', selection)
+                            assertion = next(row for row in compiled['semantic_program']['source_assertions']
+                                             if resolved in row['candidate_ids'])
+                            start, end = candidate['source_bundle_value_span']
+                            self.assertEqual(assertion['evidence_text'], candidate['source_bundle_text'][start:end])
                         else:
                             self.assertNotIn('evidence_text', selection)
                             self.assertTrue(candidate['physical_cell_id'])
@@ -133,13 +137,13 @@ class MixedNumericSourceIntegrationTests(unittest.TestCase):
             # must be unchanged after targeted repair.
             self.assertEqual(canonical(compiled['semantic_program']['source_assertions']), canonical(old_assertions))
 
-    def test_wrong_or_missing_prose_quote_is_not_silently_repaired(self):
+    def test_removed_quote_fields_and_missing_interpretation_are_not_silently_repaired(self):
         case, good = self.witness()
         for mutation in ('missing', 'inexact', 'uncovered'):
             def corrupt(raw, attempt, model):
                 selection = raw['outputs']['net']['result']['inputs']['adjustment'][0]
                 if mutation == 'missing':
-                    selection.pop('evidence_text')
+                    selection['interpretation'].pop('source_evidence_text')
                 else:
                     selection['evidence_text'] = 'Not in this source' if mutation == 'inexact' else 'Nova'
             compiled, queue, _ = compile_case(case, [good, good], mutate=corrupt)

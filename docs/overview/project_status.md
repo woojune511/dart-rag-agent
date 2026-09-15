@@ -14,7 +14,7 @@ checks. Baseline: `d9c36d8d`.
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
 | Exposure / authority | Ranking selects bounded bundles; actual source conditions govern use of their visible union |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | CompilerResponseV2; owner-allowed cell/prose/dependency choices, explicit constant lists and prose interpretation quotes/context choice; cell axes assembled by code; no narrative expressions |
+| Model transport | CompilerResponseV2; owner-allowed source/request addresses; code copies exact value spans and whole instructions; constant/scalar interpretation and prose subject/metric support remain explicit; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
@@ -32,7 +32,7 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Python 3.13 required-evidence local suite **1,743/1,743**, no skips (68.814s); eight new omission/SDK tests, focused 104 and related 58 pass. Not model accuracy.
+Python 3.13 addressed-proof local suite **1,753/1,753**, no skips; ten new contracts, focused 99 and import/topology/docs 24 pass. Domain audit 83 and pycompile/diff pass; not model accuracy.
 Earlier source-choice tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
 stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
@@ -135,11 +135,11 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-- [Request constants](../../tests/test_request_formula_constants.py) now bind a finite scalar to an owned exact request excerpt and explicit Compiler interpretation; no numeral allowlist or word multiplier rule.
-  Every calculation now explicitly supplies constants (including []); supplied prose interpretation requires a body quote or explicit null with attached support. Missing evidence is not filled; same-cohort retry, accepted bytes and V2 checks pass.
+- [Addressed numeric proofs](../../tests/test_compiler_addressed_numeric_proofs.py) copy the selected candidate's full value span and a query scalar's owned whole request unit; no retyping, word multiplier rule, missing-address guess or unique quantity-occurrence claim.
+  Explicit constants/scalar interpretations and separate prose interpretation quotes/context remain required. Old invalid/missing proofs remain invalid in offline projection; same-cohort retry, accepted bytes and V2 checks pass. No parser/store/ID/arithmetic redesign.
   [Same-six first-response run](../../benchmarks/results/required_evidence_compiler_2026-09-16/RESULTS.md): full runtime 4/6 unchanged, frozen source/formula probes 12/12. Lists 12/12, prose quotes 9/9, scalar declarations present 3/3 but grounded 2/3; not general accuracy.
-  Negative multiplier now passes; sign case newly fails unit-inclusive quote coverage and half fails duplicate request-quote location. No response repair; [prior result](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md) unchanged. Next is provider-free quote-address contract review, not automatic paid retry.
-  `417037b9...726981f` consumed on clean `1865ffee`: 6 counts/generations, API/schema errors and retries 0; USD 0.134295 + count contingency 0.36 < 0.80, invoice unobserved. Frozen inputs/criteria/runtime and raw response hashes unchanged.
+  That historical run has a sign-quote coverage failure and ambiguous half quote; it is not repaired by this build. [Prior result](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md) also unchanged. Next is a new bounded model check, not automatic retry.
+  [No-call comparison](../../benchmarks/results/addressed_numeric_proofs_local_2026-09-16/RESULTS.md): same six inputs, 22 historical files unchanged; prompt bytes 150,810→152,160, schema 66,143→64,559. No sampled replies, SDK-token/speed claim or provider call. `417037b9...726981f` stays consumed.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

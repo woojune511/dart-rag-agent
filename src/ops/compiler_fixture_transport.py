@@ -16,10 +16,22 @@ def project_offline_program_to_wire(program, model):
     program = program.model_dump() if hasattr(program, "model_dump") else deepcopy(program)
     output_type = model.model_fields["outputs"].annotation
     outputs = {}
-    assertions = {candidate_id: row["evidence_text"] for row in program.get("source_assertions") or [] for candidate_id in row["candidate_ids"]}
+    assertions = {candidate_id: row for row in program.get("source_assertions") or [] for candidate_id in row["candidate_ids"]}
+    refs = model.__compiler_references__
+    units = {unit.request_unit_id: unit for unit in refs.request_units}
+    prose_bundles = {candidate_id: bundle for bundle in refs.prose_bundles for candidate_id in bundle.candidate_ids}
 
     def constant(row):
         result = deepcopy(row)
+        if result.get("origin") == "query":
+            unit, quote = units.get(result.get("request_unit_id")), result.get("source_text")
+            # Only an already valid historical quote can be represented by the
+            # whole-unit wire address. Invalid/missing proof stays schema-invalid.
+            if (unit is not None and isinstance(quote, str) and quote.strip()
+                    and (at := unit.text.find(quote)) >= 0 and unit.text.find(quote, at + 1) < 0):
+                result.pop("source_text")
+            else:
+                result["source_text"] = quote
         if result.get("origin") == "deterministic_cardinality":
             # Internal optional request fields are absent in this wire variant.
             # Preserve any non-default value so invalid fixtures still fail.
@@ -70,8 +82,22 @@ def project_offline_program_to_wire(program, model):
         result = {"source_ref": references.get(source_id, short_ref(source_id, "c"))}
         if interpretation is not None:
             result["interpretation"] = addresses(interpretation)
-        if source_id in assertions:
-            result["evidence_text"] = assertions[source_id]
+        if source_id in prose_bundles or source_id in assertions:
+            assertion, bundle = assertions.get(source_id, {}), prose_bundles.get(source_id)
+            quote = assertion.get("evidence_text")
+            span = bundle.value_span_by_candidate_id().get(source_id) if bundle else None
+            valid = False
+            if span and isinstance(quote, str) and quote and assertion.get("source_bundle_id") == bundle.source_bundle_id:
+                at = bundle.source_text.find(quote)
+                while at >= 0:
+                    if at <= span[0] and span[1] <= at + len(quote):
+                        valid = True
+                        break
+                    at = bundle.source_text.find(quote, at + 1)
+            if not valid:
+                # Preserve a bad/missing old quote as a forbidden field rather
+                # than silently replacing it with the current candidate span.
+                result["evidence_text"] = quote
         if evidence:
             result["context_evidence"] = list(evidence.values())
         return result

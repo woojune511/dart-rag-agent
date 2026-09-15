@@ -104,7 +104,6 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
             candidate[key] = deepcopy(context_source[key])
         refs, model, visibility, _ = wire([candidate], [owner])
         selected = selection(refs, candidate, context=True)
-        selected["evidence_text"] = "23%"
         selected["interpretation"]["source_evidence_text"] = None
         raw = direct(selected)
         self.assert_wire(model, raw)

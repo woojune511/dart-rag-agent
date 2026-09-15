@@ -1018,6 +1018,9 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         ]
         first_assertion = _source_assertions(catalog, "cand-first-prose")[0]
         second_assertion = _source_assertions(catalog, "cand-second-prose")[0]
+        # The source-address wire preserves the exact value span, not the larger
+        # historical quote. Freeze that initial proof before the other island retries.
+        first_assertion["evidence_text"] = "10 items"
         llm = _StructuredQueueLLM(
             SemanticCalculationProgram.model_validate(
                 {

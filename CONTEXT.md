@@ -130,11 +130,11 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. [Required evidence fields](tests/test_compiler_required_evidence_fields.py) implemented: supplied prose interpretation explicitly quotes its body or supported context; every calculation declares constants, including []. No inferred proof/scalar.
-   Python 3.13 full unittest 1,743/1,743 (68.814s); eight new tests, focused 104 plus related 58, domain/import/topology/pycompile/diff pass. Real SDK serialization with mocked HTTP, not model-accuracy evidence.
+1. [Addressed numeric proofs](tests/test_compiler_addressed_numeric_proofs.py) implemented: source_ref copies its exact value span; request_unit_id copies the owned whole instruction. Prose subject/metric interpretation support, explicit constant lists and scalar interpretations remain separate; no quantity-word rule or unique-occurrence claim.
+   Python 3.13 full unittest 1,753/1,753; ten new contracts, focused 99 and import/topology/docs 24, domain audit 83, pycompile/diff pass. Old invalid proofs stay invalid; retry preserves accepted bytes. No sampled model result for this build.
    [Same-six paid successor](benchmarks/results/required_evidence_compiler_2026-09-16/RESULTS.md): runtime 4/6 remains unchanged; fixed source/formula probes 12/12. Explicit lists 12/12, prose body quotes 9/9, scalar declarations present 3/3 but grounded 2/3.
    Negative multiplier now passes (-9% source / -10% calculation / 30% dependent); sign case newly fails unit-inclusive quote coverage, half quotes a twice-occurring word. No repaired/reconstructed final outputs; [prior 4/6](benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md) preserved.
-   Manifest `417037b9...726981f` consumed on `1865ffee`: 6 counts/generations, API/schema errors and retries 0, accounted USD 0.494295 < 0.80 (not invoice). Next: provider-free numeric/request quote-address contract review; no further paid trial or automatic proof repair.
+   Manifest `417037b9...726981f` remains consumed. [No-call comparison](benchmarks/results/addressed_numeric_proofs_local_2026-09-16/RESULTS.md): same six inputs; prompt bytes 150,810→152,160, schema 66,143→64,559. Historical 22 files unchanged; no provider call or paid-result repair. Next is a separately bounded new-schema model check.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
