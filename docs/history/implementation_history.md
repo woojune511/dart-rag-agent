@@ -5,6 +5,35 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Mixed numeric source contracts and unit policy (2026-09-16)
+
+- Baseline `ff9b6641`. Fixed four anonymous source/plan cases and separate offline
+  criteria before test implementation. They cover table/prose format swapping,
+  scaled amounts, signed adjustments and calculated dependencies with distinct
+  source-stated display. These are authored contracts, not actual planner/model
+  responses, DART examples or unseen holdout evidence.
+- Real catalog construction reproduced missing prose numeric candidates for
+  `4만원` / `0.8만원`; unit tests also reproduced missing scale/precision and
+  parenthesized-inline handling. Added the omitted `만원` declaration to the
+  existing extraction, normalization and display policy only. No company/metric
+  branch, parser/store/schema change, additional LLM call or arithmetic rewrite.
+- Four cases execute through the current source-choice wire, lowering, validation
+  and executor with one authored compiler reply each. Exact prose quotes remain
+  required; cells/dependencies keep their own fields. Reversed source carriers
+  preserve catalog IDs/fingerprint and initial prompt/schema; no criterion enters
+  initial transport. Source 21% / calculation 20% stays separate, and the dependent
+  calculation uses 20% to produce 40%, not 42%.
+- Eight integration tests cover malformed/missing quotes, source/program drift,
+  accepted expression/assertion bytes during targeted repair, read-only computed
+  dependency input and final-answer/ledger artifact equality. Input and criteria
+  hashes remain `6d5ca176...ed021c` / `14cf518c...791c` after implementation.
+- Python 3.13: focused 63/63, import/topology 22/22, full unittest 1,724/1,724
+  (67.705s, no skips); domain audit 83, reviewer surface, pycompile and diff passed.
+  Initial canonical JSON: prompt 23,960–24,364 bytes, schema 8,468–8,831 bytes,
+  three numeric candidates in two bundles per case. Not SDK token counts or a
+  prompt-reduction comparison. No provider dispatch, store mutation or past-result
+  rewrite; mixed-source model interpretation remains unmeasured.
+
 ## Numeric source-choice generation schema (2026-09-15)
 
 - Baseline `a9b7f792`. Six generation-contract regressions reproduced owner-crossing

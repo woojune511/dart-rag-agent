@@ -68,6 +68,7 @@ class NumericUnitContractTests(unittest.TestCase):
             ("87.0", "78.0", "만 대", "9만 대"),
             ("2", "1", "백만달러", "1백만달러"),
             ("7.5", "2.0", "백만원", "5.5백만원"),
+            ("16", "4", "만원", "12만원"),
             ("1.83", "1.73", "%p", "0.10%p"),
         ):
             with self.subTest(unit=unit):
@@ -101,6 +102,7 @@ class NumericUnitContractTests(unittest.TestCase):
         for raw, unit, expected_value, dimension, display in (
             ("(1,234)", "백만원", -1_234_000_000, "KRW", "(1,234)백만원"),
             ("(1.2백만달러)", "USD", -1_200_000, "USD", "(1.2백만달러)"),
+            ("(1.2만원)", "원", -12_000, "KRW", "(1.2만원)"),
             ("-1.2만 대", "개", -12_000, "COUNT", "-1.2만 대"),
             ("1.2%p", "원", 1.2, "PERCENT", "1.2%p"),
             ("3", "items", 3, "COUNT", "3items"),
@@ -114,6 +116,7 @@ class NumericUnitContractTests(unittest.TestCase):
     def test_source_precision_is_expressed_in_base_units(self):
         for raw, unit, expected in (
             ("1.2", "백만원", 50_000),
+            ("1.2", "만원", 500),
             ("1.2만 대", "", 500),
             ("11.5%", "", 0.05),
             ("(1조 2억원)", "원", 50_000_000),

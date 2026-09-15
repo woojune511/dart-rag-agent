@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-15
+Last updated: 2026-09-16
 
 ## Product and current boundary
 
@@ -130,11 +130,11 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. Numeric source-choice schemas are implemented; local full suite 1,716/1,716 passed.
-   The paired model probe improves 3/6 → 5/6, but one reverse-direction error remains.
-   [Six control results](benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md): runtime 6/6 and independent meaning 6/6, no retries.
-   One sample/case; 6 counts + 6 generations, USD 0.1201475 + count allowance 0.36 < 0.75.
-   Manifest `55029ef1...3000e0` consumed. Prior temporal error remains; mixed-source checks next.
+1. Numeric source-choice local full suite: 1,724/1,724. [Mixed-source contracts](tests/test_mixed_numeric_source_integration.py)
+   pass four authored cases, not model accuracy. Missing `만원` extraction/scale/display policy is fixed.
+   [Six paid controls](benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md) remain runtime 6/6 and independent meaning 6/6, no retries.
+   One sample/case; manifest `55029ef1...3000e0` consumed. Prior temporal error remains.
+   Next: bounded mixed-source model probe using the frozen synthetic inputs and separate criteria.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
