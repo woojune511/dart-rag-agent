@@ -12,6 +12,31 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Source-choice six-control preparation (2026-09-15)
+
+- Source-identical successor to `830233aa` / handoff `4a833f79`; no runtime changes.
+  Six previously frozen row-mirror/equal-value/Korean questions, plans, candidate IDs,
+  physical source records and criteria are preserved. Actual catalog reconstruction
+  agrees; reversing carrier order changes only internal list iteration, not candidate
+  content/fingerprint or the final prompt/schema. No parser or data repair.
+- Authored positive responses execute for all six; endpoint-swapped responses remain
+  source-valid semantic negatives. Both equal-value negatives still compute the right
+  scalar and are nevertheless wrong. Formula, hidden-reference, abstention and provider
+  error controls stay separate. The fixed semantic scorer is unchanged.
+- Local focused 50, experiment 9 and import/topology/docs 24 pass; domain audit 83,
+  pycompile/diff pass. No full suite rerun: runtime source matches the historical
+  1,716-test gate. Provider calls 0; authored witnesses are not new model samples.
+- Proposed compiler-only scope: one current-schema response per question, six counts
+  and six generations, Gemini 2.5 Pro, output 4096/thinking 1024, all retries 0.
+  Proposed cap USD 0.75; estimated generation 0.10–0.20 plus count contingency 0.36,
+  not measured usage or invoice. Exact manifest and two separate SDK no-call receipts
+  are local artifacts required before an approved run, not authorization by this note.
+- Not A/B, unseen holdout, repeated-sample accuracy or a causal language/row-order
+  study. Prior named responses use older schemas and are not matched current controls.
+  Mixed-source and current full-agent accuracy remain unmeasured.
+  [Design](../../benchmarks/results/source_choice_controls_2026-09-15/DESIGN.md) and
+  [pre-run review](../../benchmarks/results/source_choice_controls_2026-09-15/review.html).
+
 ## Numeric source-choice schema A/B (2026-09-15)
 
 - Implementation `830233aa`, pre-edit capture `a9b7f792`. Immutable manifest

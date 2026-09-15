@@ -132,9 +132,9 @@ older fixture/source/result limitations.
 
 1. Numeric source-choice schemas are implemented; local full suite 1,716/1,716 passed.
    The paired model probe improves 3/6 → 5/6, but one reverse-direction error remains.
-   Broader meaning/mixed-source checks remain separate; no auto-binding/direction repair.
-   The [baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
-   retains untested row-mirror/equal-value/Korean model controls and authored contracts.
+   [Six prepared controls](benchmarks/results/source_choice_controls_2026-09-15/DESIGN.md) reproject unchanged source/criteria.
+   Local focused 50 + experiment 9 pass; authored direction errors stay semantic negatives.
+   Provider calls 0; one current-schema response/case proposed. Mixed-source accuracy unmeasured.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

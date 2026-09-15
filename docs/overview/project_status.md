@@ -136,10 +136,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Numeric source-choice A/B observed 3/6→5/6 combined success, with one direction
-  error remaining. Mixed-source model accuracy is still unmeasured. No neutral-ID promotion.
-  [Baseline controls](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
-  retain untested row-mirror/equal-value/Korean model cases. No partial-run resume or promotion.
+- Numeric source-choice A/B retains 3/6→5/6, with one direction error remaining.
+  [Six prepared controls](../../benchmarks/results/source_choice_controls_2026-09-15/DESIGN.md): row-mirror/equal-value/Korean sources and criteria unchanged.
+  Local focused 50 + experiment 9 pass; provider calls 0. Current-only first-response sampling proposed.
+  No automatic endpoint repair, partial-run resume or model-accuracy claim; mixed sources unmeasured.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,
