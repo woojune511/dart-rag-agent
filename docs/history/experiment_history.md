@@ -8405,3 +8405,33 @@ References:
   not a paid admission. Next compare original direction pairs with/without hints
   only after a new bounded manifest; no correction or automatic rerun was performed.
 - [Provider-free analysis and comparison inputs](../../benchmarks/results/plan_metric_hint_ablation_2026-09-15/README.md).
+
+## 2026-09-15 — Plan metric hints, approved original/neutral Compiler A/B
+
+- Approved and consumed manifest
+  `045a3eb536d0fad95aabac2fdf627a6549fae729f8b0ee1826f379ae1a4dfe53`,
+  clean `60593584`, Gemini 2.5 Pro, USD 0.60 cap. Two original forward/reverse
+  synthetic questions each sampled once with original/neutral prompt projection;
+  order forward original/neutral, reverse neutral/original. No cross-cell responses.
+- Neutral projection clears only derived-output label and metric_surfaces after
+  exposure. Questions, canonical plans, requirements, sources, authority and schema
+  stay fixed; growth originated in the authored fixture, not a sampled Planner.
+- Source/execution 4/4; separate Codex direction review original 2/2, neutral 1/2.
+  Neutral reverse selects previous=reference/current=target and yields -10%, not
+  +11.111…%. Original reverse is correct. Exact request links 4/4, endpoints 3/4.
+  All four use the same formula; code executes, not repairs, the model's assignment.
+- No observed hint-removal benefit; do not promote production target clearing.
+  One sample per cell establishes neither causal effect nor systematic harm.
+  Same original reverse initial SDK SHA as the preceding run, different final
+  value (-10% then, +11.111…% now); cause is unestablished, historical failure retained.
+- Generation/count 4/4, retries/provider errors 0. Input 21,670; output 1,531 plus
+  thinking 4,566. Generation estimate USD 0.08805750, count contingency USD 0.24,
+  accounted USD 0.32805750 below cap; not invoice/count tariff. Case time 56.930s.
+  Input tokens original/neutral 5,419/5,416; SDK bytes 26,398/26,382, not a cost claim.
+- Pre-call diagnostic 5/5 + focused 41/41, two independent SDK rehearsals identical
+  (`752cbe241cb5167de10067fb887bdea1d93ed5369c50c4d0ddbf5b57d5e7dbdf`).
+  Paid initial hashes/count links/tokens agree; runtime and all bound files unchanged
+  after execution, before docs. No runtime/Planner/retrieval/OpenAI/judge/embedding/
+  ingest/store/dataset mutation, automatic rerun, or artifact commit. No unseen,
+  general-accuracy, actual-Planner/full-agent/HTTP/ledger/release claim.
+- [Immutable A/B outputs and raw-response review](../../benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md).

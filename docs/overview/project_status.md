@@ -29,7 +29,6 @@ Compiler exception messages are not copied into retry prompts or public diagnost
 
 No parser/store/candidate-ID/hash redesign, extra runtime model call, source-store
 mutation, dataset/evaluator change or HTTP/public-result change was included.
-The separately delegated compiler-only verification is recorded below.
 
 ## Local verification
 
@@ -84,20 +83,23 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [comparison-binding probe](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
-ran four questions once on clean `9837d78b` under exact SHA/cap approval. All catalogs
-and fixed plans are byte-identical; two original inputs/criteria stay unchanged.
-Source/execution **4/4**, separate Codex direction review **3 correct / 1 wrong**.
-All four use comparison request links; only three endpoint assignments are correct.
-The original reverse question yields -10%, not +11.111…%; both explicit-reference
-controls succeed. Retry fixes input ownership, not direction. No blended success rate.
-Generation/count 5/5, internal retries 1, provider errors 0. Generation estimate
-USD 0.10857625 + count contingency USD 0.30 = accounted USD 0.40857625 below USD 0.60;
-not an invoice/count tariff. Manifest `b2a68ca0...ff0f0` consumed. Focused 41/41, two
-byte-identical socket-blocked SDK receipts; initial paid request hashes match rehearsal.
-Runtime and every bound file verified unchanged before documentation updates.
-No runtime patch or paid rerun. Synthetic pre-exposed controls, not unseen holdout,
-isolated patch causation, general accuracy or final-answer/HTTP/ledger/full-agent proof.
+The [plan-hint A/B probe](../../benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
+ran the original direction pair under original/neutral prompt projections once each
+on clean `60593584`. Source/execution **4/4**; separate direction review: original
+**2/2**, neutral **1/2**. Neutral reverse yields -10%, not +11.111…%; original reverse
+is correct. Exact request links 4/4, correct endpoints 3/4, no blended success rate.
+Only two output metric hints change after exposure; canonical plans, source conditions,
+questions and schema stay fixed. No observed hint-removal benefit or production change.
+One sample per cell is not causal/systematic-harm evidence. Same original reverse SDK
+input failed previously but succeeds now; cause of response variation is unestablished.
+Generation/count 4/4, retries/errors 0. Generation estimate USD 0.08805750 + count
+contingency USD 0.24 = accounted USD 0.32805750 below USD 0.60, not an invoice/tariff.
+Manifest `045a3eb5...dfe53` consumed. Diagnostic 5/5 + focused 41/41; two identical SDK
+rehearsals and actual first requests agree. Runtime/bound files verified before docs.
+Synthetic, pre-exposed, positive-count controls; not Planner/general/full-agent proof.
+The [preceding comparison probe](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
+retains 3/4 correct directions, an original reverse error and two correct explicit-reference
+controls. Its consumed `b2a68ca0...ff0f0` and raw responses are not retroactively repaired.
 The [prior numeric-reading run](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
 on `02c799a0` retains 3 correct / 1 wrong numeric, 1 appropriate / 2 excess abstentions
 and 1 scope rejection. Its consumed `24deb343...d2141a` and original results are immutable.
@@ -134,12 +136,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- [Plan-hint ablation](../../benchmarks/results/plan_metric_hint_ablation_2026-09-15/README.md)
-  is prepared provider-free: only two post-exposure prompt fields change. `growth`
-  originates in the authored fixture, not a sampled Planner. Five diagnostic + 41
-  focused tests pass; fixed responses, full V2 envelopes, schema and permissions stay
-  identical. Model effect remains unmeasured; no production target clearing or paid call.
-  Next bounded direction-pair comparison is separate from lookup/full-agent work.
+- Do not promote plan-hint clearing: the A/B result above shows no benefit. `growth`
+  came from an authored fixture, not a sampled Planner. Inspect request-to-endpoint
+  interpretation and response consistency before another mechanism or paid run;
+  keep formula/source gates intact. Lookup and current full-agent work stay separate.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

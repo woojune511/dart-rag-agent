@@ -67,20 +67,25 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [comparison-binding Compiler probe](benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
-ran four fixed synthetic questions once on clean `9837d78b`, under exact SHA/cap approval.
-Source/execution accepts **4/4**; separate Codex review finds **3 correct directions /
-1 wrong reverse direction**. All four link the exact request, but only three assign
-the right endpoints. Original reverse wording yields -10% instead of +11.111…%; both
-explicit-reference controls are correct. Same catalog/plan bytes, original two
-inputs/criteria unchanged; not unseen holdout or isolated patch causation.
-The reverse retry repairs a previous candidate misplaced under the current input;
-it does not repair the wrong comparison direction. No automatic formula correction.
-Generations/counts 5/5, internal retries 1, provider errors 0. Generation estimate
-USD 0.10857625 + count contingency USD 0.30 = accounted USD 0.40857625 below USD 0.60;
-not an invoice/count tariff. Manifest `b2a68ca0...ff0f0` consumed. Focused 41/41 and two
-byte-identical socket-blocked SDK rehearsals preceded calls; all first request hashes,
-runtime and bound files verified unchanged afterward. No runtime patch or paid rerun.
+The [plan-hint A/B probe](benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
+ran the original forward/reverse synthetic pair with original/neutral prompt projections
+once each on clean `60593584`, under exact SHA/cap approval. Source/execution **4/4**;
+separate direction review: original **2/2**, neutral **1/2**. Neutral reverse gives
+-10% instead of +11.111…%; all four link the exact request, only three assign correct
+endpoints. Clearing the two post-exposure metric hints shows no benefit in this run;
+no production target clearing. This fixture hint is not a sampled Planner output.
+Same canonical plans, questions, sources, permissions and schema; one sample per cell,
+not causal/systematic-harm/general-accuracy evidence. Original reverse now succeeds
+despite the same initial SDK body as the previous failed run; response variation's
+cause is unestablished. No arithmetic or semantic auto-repair was performed.
+Generations/counts 4/4, retries/errors 0. Generation estimate USD 0.08805750 + count
+contingency USD 0.24 = accounted USD 0.32805750 below USD 0.60, not an invoice/tariff.
+Manifest `045a3eb5...dfe53` consumed. Five diagnostic + 41 focused tests and two identical
+SDK rehearsals preceded calls. Paid request hashes, runtime and all bound files verified
+unchanged after execution, before docs. No runtime patch, source mutation or paid rerun.
+The [preceding comparison probe](benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
+retains 3/4 correct directions, including the original reverse error after an ownership
+retry; both explicit-reference controls were correct. `b2a68ca0...ff0f0` remains consumed.
 The [prior numeric-reading run](benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
 on `02c799a0` retains 3 correct / 1 wrong numeric, 1 appropriate / 2 excess abstentions
 and 1 scope rejection. Its consumed `24deb343...d2141a` and original results are immutable.
@@ -124,12 +129,10 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. [Plan-hint ablation](benchmarks/results/plan_metric_hint_ablation_2026-09-15/README.md)
-   isolates two model-visible metric fields after exposure. `growth` came from the
-   authored fixture, not a sampled Planner. Five diagnostic + 41 focused tests pass;
-   two captures and fixed-response execution/envelope/schema bytes are identical.
-   No runtime change or new model evidence. Next compare original direction pairs
-   with/without those hints under a new admission; do not force formulas or clear runtime targets.
+1. The bounded plan-hint comparison above does not support production hint removal.
+   Preserve this negative result; inspect request-to-endpoint interpretation and
+   response consistency before another mechanism or paid experiment. Do not force
+   formulas, add direction keywords, or equate exact request linkage with meaning.
 2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
