@@ -5,6 +5,37 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Bounded operation steps instead of punctuation generation (2026-09-16)
+
+- Baseline clean `fc24fb9e`; compiler formula transport bug seam, not parser,
+  unit engine, source permission or question-specific interpretation. The prior
+  paid result remains 4/6; two responses emitted over 1,400 opening parentheses
+  in their first formula before half/negative operations. No model/decoder causal
+  isolation, malformed JSON repair, larger token allowance or new provider call.
+- Production now requests operation/arguments steps with prior one-based references;
+  the final step is the result and all steps must contribute. Arity-specific shapes
+  contain variable, prior-step, neutral literal/count or inline request-proof arguments.
+  Code assembles the stated arithmetic into the existing engine, preserving order
+  and source/dependency proof authority. Bounds: 64 steps, 4,096 expanded arithmetic
+  nodes, at most 96 min/max arguments; no truncation or source substitution.
+- Ten new contracts cover punctuation rejection, wrong arity, self/forward/unknown
+  references, unused operations, safe shared expansion, AST/precedence roundtrips,
+  proof reuse and target-local same-source repair preserving accepted program bytes.
+  Existing inline proof, schema, source, unit, display, fingerprint and retry tests
+  retain their checks; obsolete token positions become step-argument positions and
+  formula whitespace checks compare ASTs. Offline authored transport never adapts
+  sampled model responses or supplies undeclared request quantities; string/bool
+  constants stay invalid rather than becoming neutral literals or binding counts.
+- Python 3.13 full unittest **1,786/1,786**, no skips (59.807s); import/topology/docs
+  24, audit 83 and pycompile/diff checks pass. Six authored local witnesses retain
+  twelve numerical/display checks and six ledgers; one mock call/no retry each.
+  Thirty-two predecessor files stay byte-identical. [Local report](../../benchmarks/results/formula_steps_local_2026-09-16/RESULTS.md).
+- Input UTF-8 bytes 220,889 -> 247,463 (+12.0%); authored response bytes 9,589 ->
+  10,328. Shared argument schema removes 4,824 bytes from the first step-schema draft.
+  This trades a larger explicit operation schema for no punctuation generation;
+  model stability, semantic accuracy and latency/cost remain unmeasured.
+  No provider, fresh ingest, actual store/dataset mutation or artifact commit.
+
 ## Inline request operands in typed infix formulas (2026-09-16)
 
 - Baseline clean `593ef2f7`; compiler formula/proof transport seam. The paid

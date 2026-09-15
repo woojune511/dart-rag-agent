@@ -1,11 +1,12 @@
-"""Authored token transport helpers; never repair saved model responses."""
+"""Authored operation transport helpers; never repair saved model responses."""
 import ast
 
-from src.ops.compiler_fixture_transport import project_offline_formula_tokens as formula_tokens
+from src.ops.compiler_fixture_transport import project_offline_formula_steps as formula_steps
 
 
 def request_operand(result):
-    return next(token for token in result["formula"] if isinstance(token, dict) and "value" in token)
+    return next(arg for step in result["formula"] for arg in step["arguments"]
+                if isinstance(arg, dict) and "value" in arg)
 
 
 def formula_ast(formula):

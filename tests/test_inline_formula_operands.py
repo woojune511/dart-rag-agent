@@ -10,9 +10,9 @@ from pydantic import ValidationError
 
 from src.agent.financial_compiler_wire import lower_compiler_response
 from src.agent.financial_formula_eval import safe_eval_formula
-from src.agent.financial_formula_wire import FormulaWireError, lower_formula_tokens
+from src.agent.financial_formula_wire import FormulaWireError, lower_formula_steps
 from src.ops.compiler_fixture_transport import project_offline_program_to_wire
-from tests.formula_wire_test_support import formula_ast, formula_tokens, request_operand
+from tests.formula_wire_test_support import formula_ast, formula_steps, request_operand
 from tests.mixed_numeric_source_test_support import canonical, capture_initial, compile_case, execute
 from tests.test_named_request_inputs import named_witness
 from tests.test_request_formula_constants import validate
@@ -40,7 +40,7 @@ class InlineFormulaOperandTests(unittest.TestCase):
         schema = Draft202012Validator(model.model_json_schema())
         for value in (2, "2", True, {"value": 2}, {"value": 2, "request_unit_id": "request_002"}):
             raw = deepcopy(good)
-            raw["outputs"]["double"]["result"]["formula"][-1] = value
+            raw["outputs"]["double"]["result"]["formula"][-1]["arguments"][-1] = value
             with self.subTest(value=value):
                 self.assertFalse(schema.is_valid(raw))
                 with self.assertRaises(ValidationError):
@@ -67,19 +67,20 @@ class InlineFormulaOperandTests(unittest.TestCase):
                          {"value", "request_unit_id", "interpretation"})
         for bad in (False, "3", "x * 7", {"variable": "x", "value": 7}):
             with self.subTest(token=bad), self.assertRaises(FormulaWireError):
-                lower_formula_tokens([bad], source_variables=["x"], resolve_request=lambda item: item)
+                lower_formula_steps([{"operation": "identity", "arguments": [bad]}],
+                    source_variables=["x"], resolve_request=lambda item: item)
 
     def test_operator_order_parentheses_functions_and_precedence_are_unchanged(self):
         formulas = ("(x-y)/abs(y)*100", "-(x+y)/y", "min(x,y)+max(x,y)",
                     "round(x/y,1)", "log(exp(x))", "x**(1+1)")
         for formula in formulas:
-            tokens = formula_tokens(formula)
-            before = deepcopy(tokens)
-            lowered = lower_formula_tokens(tokens, source_variables=["x", "y"], resolve_request=lambda item: item)
+            steps = formula_steps(formula)
+            before = deepcopy(steps)
+            lowered = lower_formula_steps(steps, source_variables=["x", "y"], resolve_request=lambda item: item)
             with self.subTest(formula=formula):
                 self.assertEqual(formula_ast(lowered["formula"]), formula_ast(formula))
                 self.assertEqual(lowered["request_inputs"], [])
-                self.assertEqual(tokens, before)
+                self.assertEqual(steps, before)
                 for x, y in ((3, 4), (-2, -5), (1, -2)):
                     self.assertAlmostEqual(safe_eval_formula(lowered["formula"], dict(x=x, y=y)),
                                            safe_eval_formula(formula, dict(x=x, y=y)))
@@ -87,7 +88,8 @@ class InlineFormulaOperandTests(unittest.TestCase):
     def test_multiple_equal_quantities_get_distinct_position_bound_internal_names(self):
         case, _, model, raw = self.wire()
         result = raw["outputs"]["double"]["result"]
-        result["formula"].extend(["/", deepcopy(request_operand(result))])
+        result["formula"].append({"operation": "divide",
+            "arguments": [{"step": len(result["formula"])}, deepcopy(request_operand(result))]})
         first = self.lower(case, model, raw)
         self.assertEqual(validate(case, first)["status"], "ready")
         scalars = first["expressions"][-1]["request_inputs"]
@@ -97,9 +99,10 @@ class InlineFormulaOperandTests(unittest.TestCase):
 
     def test_generated_names_do_not_capture_source_or_unbound_variables(self):
         scalar = {"value": 3, "request_unit_id": "q", "interpretation": "Authored quantity."}
-        for name in ("_request_operand_2", "_request_operand_2_", "_binding_count"):
-            tokens = [{"variable": name}, "*", scalar, "/", "binding_count"]
-            lowered = lower_formula_tokens(tokens, source_variables=[name], resolve_request=lambda item: item)
+        for name in ("_request_operand_0_1", "_request_operand_0_1_", "_binding_count"):
+            steps = [{"operation": "multiply", "arguments": [{"variable": name}, scalar]},
+                     {"operation": "divide", "arguments": [{"step": 1}, "binding_count"]}]
+            lowered = lower_formula_steps(steps, source_variables=[name], resolve_request=lambda item: item)
             self.assertNotEqual(lowered["request_inputs"][0]["variable"], name)
             self.assertNotEqual(lowered["binding_count_variable"], name)
             self.assertIn(name, lowered["formula"])
@@ -111,31 +114,36 @@ class InlineFormulaOperandTests(unittest.TestCase):
         errors = []
         bad = self.lower(case, model, raw, errors)
         self.assertEqual([e["code"] for e in errors], ["constant_request_not_owned"])
+        self.assertEqual(errors[0]["location"], "compiler_response.outputs.formula[0].arguments[1]")
         self.assertEqual(canonical(correct["expressions"][0]), canonical(bad["expressions"][0]))
         self.assertEqual(bad["missing_obligation_ids"], ["double"])
 
-    def test_unknown_variable_or_bad_syntax_is_not_rebound_or_fixed(self):
+    def test_unknown_variable_is_not_rebound_or_fixed(self):
         case, _, model, good = self.wire()
-        for tokens in ([{"variable": "hidden"}], [{"variable": "calculated_rate"}, "+", "*", "1"]):
+        for steps in ([{"operation": "identity", "arguments": [{"variable": "hidden"}]}],
+                      [{"operation": "add", "arguments": [{"variable": "calculated_rate"}, {"variable": "missing"}]}]):
             raw = deepcopy(good)
-            raw["outputs"]["double"]["result"]["formula"] = tokens
+            raw["outputs"]["double"]["result"]["formula"] = steps
             lowered = self.lower(case, model, raw)
             self.assertTrue(any(e["obligation_id"] == "double" for e in validate(case, lowered)["errors"]))
-            self.assertEqual(raw["outputs"]["double"]["result"]["formula"], tokens)
+            self.assertEqual(raw["outputs"]["double"]["result"]["formula"], steps)
 
     def test_invalid_quantity_or_identifier_never_reaches_arithmetic(self):
         for value in (True, float("inf"), float("nan"), "2", 10**400):
             token = {"value": value, "request_unit_id": "q", "interpretation": "Quantity."}
             with self.subTest(value=repr(value)), self.assertRaises(FormulaWireError):
-                lower_formula_tokens([token], source_variables=[], resolve_request=lambda item: item)
+                lower_formula_steps([{"operation": "identity", "arguments": [token]}],
+                    source_variables=[], resolve_request=lambda item: item)
         for name in ("x + 7", "obj.attr", "for", "", "a[0]"):
             with self.subTest(name=name), self.assertRaises(FormulaWireError):
-                lower_formula_tokens([{"variable": name}], source_variables=[], resolve_request=lambda item: item)
+                lower_formula_steps([{"operation": "identity", "arguments": [{"variable": name}]}],
+                    source_variables=[], resolve_request=lambda item: item)
 
     def test_named_source_cannot_be_replaced_by_an_inline_request_number(self):
         case, _, model, raw = self.wire()
         raw["outputs"]["double"]["result"]["inputs"]["own"] = []
-        raw["outputs"]["double"]["result"]["formula"] = [request_operand(raw["outputs"]["double"]["result"])]
+        raw["outputs"]["double"]["result"]["formula"] = [{"operation": "identity",
+            "arguments": [request_operand(raw["outputs"]["double"]["result"])]}]
         lowered = self.lower(case, model, raw)
         self.assertIn("invalid_variable_binding", {e["code"] for e in validate(case, lowered)["errors"]})
 

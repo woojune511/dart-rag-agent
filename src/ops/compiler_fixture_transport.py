@@ -8,11 +8,10 @@ from copy import deepcopy
 import ast
 import hashlib
 import math
-import io
-import tokenize
+from src.agent.financial_formula_wire import FORMULA_OPERATION_GROUPS
 
 
-def project_offline_formula_tokens(formula, *, request_inputs=(), binding_count_variable=None):
+def project_offline_formula_steps(formula, *, request_inputs=(), binding_count_variable=None):
     """Explicit authored-fixture conversion, never a production reply adapter.
 
     Only already-declared quantities can become request operands. Undeclared
@@ -23,31 +22,48 @@ def project_offline_formula_tokens(formula, *, request_inputs=(), binding_count_
         declarations = {item["variable"]: item for item in request_inputs}
         if len(declarations) != len(request_inputs) or binding_count_variable in declarations:
             return invalid
-        lexemes = [t for t in tokenize.generate_tokens(io.StringIO(formula).readline)
-                   if t.type not in (tokenize.ENDMARKER, tokenize.NEWLINE, tokenize.NL,
-                                     tokenize.INDENT, tokenize.DEDENT)]
-        tokens, used, count_used = [], set(), False
-        for index, token in enumerate(lexemes):
-            text = token.string
-            if token.type == tokenize.NAME:
-                call = index + 1 < len(lexemes) and lexemes[index + 1].string == "("
-                if text in declarations and not call:
-                    tokens.append({k: deepcopy(v) for k, v in declarations[text].items() if k != "variable"})
-                    used.add(text)
-                elif text == binding_count_variable and not call:
-                    tokens.append("binding_count")
+        steps, used, count_used = [], set(), False
+        binary = {ast.Add: "add", ast.Sub: "subtract", ast.Mult: "multiply", ast.Div: "divide", ast.Pow: "power"}
+        arities = {name: (low, high) for names, low, high in FORMULA_OPERATION_GROUPS for name in names}
+
+        def visit(node):
+            nonlocal count_used
+            if isinstance(node, ast.Name):
+                if node.id in declarations:
+                    used.add(node.id)
+                    return {k: deepcopy(v) for k, v in declarations[node.id].items() if k != "variable"}
+                if node.id == binding_count_variable:
                     count_used = True
-                else:
-                    tokens.append(text if call else {"variable": text})
-            elif token.type == tokenize.NUMBER:
-                value = ast.literal_eval(text)
-                tokens.append(str(int(value)) if value in (0, 1, 100) else value)
+                    return "binding_count"
+                return {"variable": node.id}
+            if isinstance(node, ast.Constant):
+                value = node.value
+                if type(value) not in (int, float):
+                    raise ValueError("nonnumeric authored literal")
+                return str(int(value)) if value in (0, 1, 100) else value
+            if isinstance(node, ast.BinOp) and type(node.op) in binary:
+                operation, arguments = binary[type(node.op)], [visit(node.left), visit(node.right)]
+            elif isinstance(node, ast.UnaryOp) and isinstance(node.op, (ast.UAdd, ast.USub)):
+                operation, arguments = ("positive" if isinstance(node.op, ast.UAdd) else "negative"), [visit(node.operand)]
+            elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and not node.keywords:
+                operation, arguments = node.func.id, [visit(arg) for arg in node.args]
+                if operation not in {"min", "max", "abs", "round", "log", "exp"}:
+                    raise ValueError("unsupported authored function")
             else:
-                tokens.append(text)
+                raise ValueError("unsupported authored syntax")
+            low, high = arities[operation]
+            if not low <= len(arguments) <= high:
+                raise ValueError("unsupported authored arity")
+            steps.append({"operation": operation, "arguments": arguments})
+            return {"step": len(steps)}
+
+        final = visit(ast.parse(formula, mode="eval").body)
+        if not steps:
+            steps.append({"operation": "identity", "arguments": [final]})
         if used != set(declarations) or (binding_count_variable is not None and not count_used):
             return invalid
-        return tokens
-    except (ValueError, TypeError, SyntaxError, KeyError, tokenize.TokenError):
+        return steps
+    except (ValueError, TypeError, SyntaxError, KeyError):
         return invalid
 
 
@@ -150,7 +166,7 @@ def project_offline_program_to_wire(program, model):
         source_names = {b["variable"] for b in row.get("variable_bindings") or []}
         if any(item.get("variable") in source_names for item in named["request_inputs"]):
             return {"formula": [{"invalid_offline_formula": row["formula"]}]}
-        return {"formula": project_offline_formula_tokens(**named)}
+        return {"formula": project_offline_formula_steps(**named)}
 
     def addresses(node):
         if isinstance(node, list):

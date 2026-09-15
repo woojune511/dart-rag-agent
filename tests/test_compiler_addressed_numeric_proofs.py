@@ -109,9 +109,9 @@ class AddressedNumericProofTests(unittest.TestCase):
             altered["outputs"]["growth"]["result"]["source_display"]["source_ref"] = ref
             with self.subTest(source_ref=ref), self.assertRaises(ValidationError):
                 model.model_validate(altered)
-        raw["outputs"]["double"]["result"]["formula"][-1] = 2
+        raw["outputs"]["double"]["result"]["formula"][-1]["arguments"][-1] = 2
         with self.assertRaises(ValidationError):
-            model.model_validate(raw)  # A quantity without its proof has no valid token shape.
+            model.model_validate(raw)  # A quantity without its proof has no valid argument shape.
 
     def test_foreign_request_addresses_fail_locally_without_affecting_other_output(self):
         case, program = witness()

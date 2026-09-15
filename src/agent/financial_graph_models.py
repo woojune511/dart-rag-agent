@@ -4,9 +4,10 @@ from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, create_model
 from pydantic.json_schema import SkipJsonSchema
+from typing_extensions import TypeAliasType
 
 from src.agent.financial_program_projection import narrative_candidate_ids, project_narrative_claims
-from src.agent.financial_formula_wire import FORMULA_SYMBOLS
+from src.agent.financial_formula_wire import FORMULA_LITERALS, FORMULA_OPERATION_GROUPS, MAX_FORMULA_STEPS
 
 
 def _normalise_optional_planner_text(value: Any) -> str:
@@ -820,17 +821,27 @@ def compiler_response_model(obligations, refs, visibility):
                     description="Explain how that request specifies this scalar at this formula position; not a source value or answer.")))
             variable = create_model("FormulaVariable_" + key, __base__=WireModel,
                 variable=(str, Field(min_length=1, description="An existing source/dependency input variable.")))
-            formula_token = Union[Literal[FORMULA_SYMBOLS], variable, request_input]
+            prior_step = create_model("FormulaStepReference_" + key, __base__=WireModel,
+                step=(int, Field(strict=True, ge=1,
+                    description="One-based index of an earlier formula step; never this step or a later step.")))
+            argument = TypeAliasType("FormulaArgument_" + key,
+                Union[variable, prior_step, request_input, Literal[FORMULA_LITERALS]])
+            steps = [create_model(f"FormulaStep_{key}_{index}", __base__=WireModel,
+                operation=(Literal[names], ...),
+                arguments=(list[argument], Field(min_length=low, max_length=high)))
+                for index, (names, low, high) in enumerate(FORMULA_OPERATION_GROUPS)]
             result = create_model("Calculation_" + key, __base__=WireModel,
                 comparison_request_unit_id=(Optional[str], Field(description=(
                     "For a directed comparison, select an owned request unit ID and name its endpoint inputs "
                     "reference and target in both inputs and formula. Null for other calculations. "
                     "The request, not source period labels, defines these endpoints."))),
-                inputs=(inputs, ...), formula=(list[formula_token], Field(min_length=1, description=(
-                    "Infix tokens in order: operator/function/parenthesis or neutral 0/1/100 strings; "
-                    "{variable: input name}; or an inline {value, request_unit_id, interpretation} operand. "
-                    "Put each requested quantity directly where it is used, not in a separate declaration. "
-                    "binding_count is a code-computed count of source/dependency inputs."))),
+                inputs=(inputs, ...), formula=(list[Union[tuple(steps)]], Field(
+                    min_length=1, max_length=MAX_FORMULA_STEPS, description=(
+                    "Ordered operation steps; the last step is the result and every step must contribute to it. "
+                    "Arguments are {variable: input name}, {step: earlier one-based index}, neutral 0/1/100 strings, "
+                    "binding_count, or inline {value, request_unit_id, interpretation}. "
+                    "Write no parentheses or punctuation tokens. Keep argument order, including subtract/divide/power. "
+                    "identity returns its sole argument. binding_count counts source/dependency inputs only."))),
                 display_unit=(str, ""), display_format=(str, ""),
                 source_display=(Optional[numeric_model(owner["obligation_id"]) or type(None)], Field(description=(
                     "Primary source-stated display only when consistent with the linked request. "

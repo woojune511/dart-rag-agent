@@ -162,9 +162,9 @@ class RequestFormulaConstantTests(unittest.TestCase):
         parsed = SemanticCalculationProgram.model_validate(program).model_dump()
         compiled, queue, _ = compile_case(case, [parsed])
         self.assertEqual(execute(case, compiled)["status"], "ok")
-        self.assertIn("binding_count", queue.wires[0]["outputs"]["double"]["result"]["formula"])
-        self.assertFalse(any(isinstance(t, dict) and "value" in t
-            for t in queue.wires[0]["outputs"]["double"]["result"]["formula"]))
+        arguments = [arg for step in queue.wires[0]["outputs"]["double"]["result"]["formula"] for arg in step["arguments"]]
+        self.assertIn("binding_count", arguments)
+        self.assertFalse(any(isinstance(arg, dict) and "value" in arg for arg in arguments))
 
     def test_retry_repairs_only_failed_output_with_same_sources_and_calculated_dependency(self):
         case, good = witness()

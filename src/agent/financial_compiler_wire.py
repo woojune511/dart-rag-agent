@@ -12,7 +12,7 @@ import hashlib
 from typing import Any, Literal, Mapping, Optional, Sequence
 
 from src.agent.financial_graph_model_loaders import compiler_response_model, semantic_calculation_program_model
-from src.agent.financial_formula_wire import lower_formula_tokens
+from src.agent.financial_formula_wire import lower_formula_steps
 from src.agent.financial_request_units import RequestUnitV1, build_request_units
 from src.agent.financial_source_interpretation import interpretation_axis_sources
 from src.agent.financial_source_bundles import SourceBundleV1, build_semantic_source_bundles
@@ -258,7 +258,7 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                 "comparison_request_unit_id": (refs.resolve(content["comparison_request_unit_id"])
                     if content["comparison_request_unit_id"] is not None else None),
                 **{key: content[key] for key in ("display_unit", "display_format", "source_display_reason")},
-                **lower_formula_tokens(content["formula"], source_variables=[b["variable"] for b in bindings],
+                **lower_formula_steps(content["formula"], source_variables=[b["variable"] for b in bindings],
                     resolve_request=lambda item: request_operand(item, owner)),
                 "source_display_candidate_id": display_id, "source_display_interpretation": display_interpretation,
                 "source_display_context_bindings": display_contexts,

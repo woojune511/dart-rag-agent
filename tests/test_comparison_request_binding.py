@@ -15,7 +15,7 @@ from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.agent.financial_reconciliation_candidates import semantic_candidate_catalog_fingerprint
 from tests.semantic_program_test_support import _obligation, _requirement, _StructuredQueueLLM
-from tests.formula_wire_test_support import formula_ast, formula_tokens
+from tests.formula_wire_test_support import formula_ast, formula_steps
 from tests.test_compiler_numeric_reading_intent import (
     AuthoredReadingLLM, calculation, comparison, compile_case, execute, selection,
 )
@@ -37,7 +37,7 @@ def comparison_reply(catalog, query, reference="previous", *, unit="request_001"
             "inputs": {name: [{**selection(refs, source, "quantity"),
                 "variable": "reference" if name == reference else "target"}]
                 for name, source in zip(("current", "previous"), catalog)},
-            "formula": formula_tokens(formula), "display_unit": "%", "source_display": None,
+            "formula": formula_steps(formula), "display_unit": "%", "source_display": None,
             "source_display_reason": "The request asks for a calculation, not a reported display.",
         }
     return respond
@@ -106,7 +106,7 @@ class ComparisonRequestBindingTests(unittest.TestCase):
         output = execute(compiled, catalog, owner, "Add the two quantities.")["outputs_by_obligation"]["answer"]
         self.assertEqual(output["calculated_value"], 135)
         self.assertNotIn("comparison_resolution", output)
-        self.assertEqual(compiled["semantic_program"]["expressions"][0]["formula"], "A + B")
+        self.assertEqual(formula_ast(compiled["semantic_program"]["expressions"][0]["formula"]), formula_ast("A + B"))
 
     def test_request_reference_is_owned_and_copies_exact_text_and_python_span(self):
         catalog, owner = comparison()
@@ -142,9 +142,9 @@ class ComparisonRequestBindingTests(unittest.TestCase):
                 result = comparison_reply(catalog, query)(refs)
                 if mode == "rename":
                     result["inputs"]["previous"][0]["variable"] = "A"
-                    result["formula"] = formula_tokens("(target-A)/abs(A)*100")
+                    result["formula"] = formula_steps("(target-A)/abs(A)*100")
                 else:
-                    result["formula"] = formula_tokens("target")
+                    result["formula"] = formula_steps("target")
                 return result
             with self.subTest(mode=mode):
                 llm = AuthoredReadingLLM(reply)
@@ -224,7 +224,7 @@ class ComparisonRequestBindingTests(unittest.TestCase):
                 result = {"comparison_request_unit_id": unit_id,
                     "inputs": {owner_id + "_" + period: [{"source_ref": model.__compiler_references__.ref(source["candidate_id"]), "variable": variable}]
                         for period, source, variable in zip(("current", "previous"), catalog, endpoints)},
-                    "formula": formula_tokens(FORMULA), "display_unit": "%", "source_display": None, "source_display_reason": "Calculated only."}
+                    "formula": formula_steps(FORMULA), "display_unit": "%", "source_display": None, "source_display_reason": "Calculated only."}
                 raw = {"outputs": {owner_id: {"status": "ready", "result": result}}}
                 self.raw.append(deepcopy(raw))
                 return model.model_validate(raw)

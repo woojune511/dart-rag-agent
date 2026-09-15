@@ -138,8 +138,9 @@ class NamedRequestInputTests(unittest.TestCase):
         self.assertEqual((count["value"], count["binding_count"]), (1, 1))
         self.assertIn(count["variable"], output["formula"])
         wire = queue.wires[0]["outputs"]["double"]["result"]
-        self.assertIn("binding_count", wire["formula"])
-        self.assertEqual(len([t for t in wire["formula"] if isinstance(t, dict) and "value" in t]), 1)
+        arguments = [arg for step in wire["formula"] for arg in step["arguments"]]
+        self.assertIn("binding_count", arguments)
+        self.assertEqual(len([arg for arg in arguments if isinstance(arg, dict) and "value" in arg]), 1)
 
     def test_count_names_cannot_collide_be_unused_or_supply_their_own_value(self):
         for name in ("factor", "unused", "", "not a name"):
@@ -174,8 +175,9 @@ class NamedRequestInputTests(unittest.TestCase):
         case, program = named_witness()
         model, _ = capture_initial(case)
         raw = project_offline_program_to_wire(program, model)
-        self.assertFalse(any(isinstance(t, dict) and "value" in t for t in raw["outputs"]["growth"]["result"]["formula"]))
-        self.assertIn("100", raw["outputs"]["growth"]["result"]["formula"])
+        arguments = [arg for step in raw["outputs"]["growth"]["result"]["formula"] for arg in step["arguments"]]
+        self.assertFalse(any(isinstance(arg, dict) and "value" in arg for arg in arguments))
+        self.assertIn("100", arguments)
         for value in ([], [{"value": 100, "origin": "deterministic_calculation"}]):
             changed = deepcopy(raw)
             changed["outputs"]["growth"]["result"]["constants"] = value

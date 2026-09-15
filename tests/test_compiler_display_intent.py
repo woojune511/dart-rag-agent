@@ -7,7 +7,7 @@ from src.agent.financial_calculation_execution import execute_semantic_calculati
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_reconciliation_candidates import build_semantic_candidate_catalog
 from tests.semantic_program_test_support import _obligation, _requirement, execute_compiled_fixture
-from tests.formula_wire_test_support import formula_tokens
+from tests.formula_wire_test_support import formula_steps
 
 
 def fixture(initial="70", final="84", reported="19.8", name="Atlas", year="2043"):
@@ -46,7 +46,7 @@ class AuthoredDisplayLLM:
         result = {"selection": selection("reported")} if self.direct else {
             "inputs": {"initial": [{**selection("initial"), "variable": "P"}],
                        "final": [{**selection("final"), "variable": "Q"}]},
-            "comparison_request_unit_id": None, "formula": formula_tokens("(Q - P) / P * 100"), "display_unit": "%",
+            "comparison_request_unit_id": None, "formula": formula_steps("(Q - P) / P * 100"), "display_unit": "%",
             "source_display": selection("reported") if self.use_display else None,
             "source_display_reason": ("The request includes the reported figure alongside calculation."
                 if self.use_display else "The request asks for calculation from the quantities only."),

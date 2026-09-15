@@ -30,6 +30,7 @@
 2. **LLM은 semantics, code는 execution.**
    - LLM은 intent, concept, evidence interpretation처럼 의미 판단에 쓴다.
    - 산술, 단위 변환, dependency binding, dedupe, ordering, validation은 deterministic code로 처리한다.
+   - Compiler는 연산·인수·요청 수량의 근거를 선택하고, 코드는 명시된 단계 연결을 기존 계산식으로 옮긴다. 괄호 생성은 의미 보정이 아니며, 빠진 연산·인수·근거를 추정해서 채우지 않는다.
    - deterministic fallback은 없는 근거를 만들어내는 답변 생성이 아니라, 이미 구조화된 row/evidence를 조립하는 경우에만 허용한다.
    - Planner의 주체·항목 표현은 요청 보존과 독해 목표이지 원문 표현의 허용 목록이 아니다. Compiler는 요청 구간과 선택한 셀의 전체 축·연결 문맥의 대응을 기록한다. 코드는 물리적 연결을 검증하며, 문자 동일성으로 의미 동등성을 판정하지 않는다.
    - 원문 연결 검증 통과와 의미 정확도를 별도로 보고한다. 잘못된 대상 해석은 익명 의미 대조 평가에 남기고, 다른 셀·미연결 문맥 인용은 provider-free 계약에서 거절한다.

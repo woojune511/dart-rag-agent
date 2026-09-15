@@ -72,7 +72,7 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
             else:
                 payload = {"outputs": {"answer": {"status": "ready", "result": {
                     "inputs": {"own": [{**deepcopy(selected), "variable": "x"}]},
-                    "formula": [{"variable": "x"}], "comparison_request_unit_id": None,
+                    "formula": [{"operation": "identity", "arguments": [{"variable": "x"}]}], "comparison_request_unit_id": None,
                     "source_display": selected if kind == "display" else None,
                     "source_display_reason": "Authored display choice."}}}}
                 if kind == "input":
@@ -126,13 +126,13 @@ class CompilerRequiredEvidenceFieldsTests(unittest.TestCase):
             changed["outputs"]["answer"]["result"]["selection"]["context_evidence"] = replacement
             self.assertIn(code, {e["code"] for e in validation(changed)["errors"]})
 
-    def test_undeclared_literal_is_not_a_valid_formula_token(self):
+    def test_undeclared_literal_is_not_a_valid_formula_argument(self):
         case, good = witness()
         model, _ = capture_initial(case)
         raw = project_offline_program_to_wire(good, model)
         for token in (2, "2", {"value": 2}):
             altered = deepcopy(raw)
-            altered["outputs"]["double"]["result"]["formula"][-1] = token
+            altered["outputs"]["double"]["result"]["formula"][-1]["arguments"][-1] = token
             with self.subTest(token=token):
                 self.assert_wire(model, altered, valid=False)
 

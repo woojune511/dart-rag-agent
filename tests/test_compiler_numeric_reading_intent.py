@@ -7,7 +7,7 @@ from src.agent.financial_calculation_execution import execute_semantic_calculati
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_source_interpretation import interpretation_axis_sources
 from tests.semantic_program_test_support import _candidate, _obligation, _requirement, _scope
-from tests.formula_wire_test_support import formula_ast, formula_tokens
+from tests.formula_wire_test_support import formula_ast, formula_steps
 
 
 def cell(identifier, value, axes, year):
@@ -39,7 +39,7 @@ def calculation(catalog, formula, *, swap_source=False):
             "current": [{**selection(refs, previous if swap_source else current, "quantity"), "variable": "A"}],
             "previous": [{**selection(refs, previous, "quantity"), "variable": "B"}]},
             # Legacy authored formula witness, not a new comparison interpretation.
-            "comparison_request_unit_id": None, "formula": formula_tokens(formula), "display_unit": "%", "source_display": None,
+            "comparison_request_unit_id": None, "formula": formula_steps(formula), "display_unit": "%", "source_display": None,
             "source_display_reason": "The request asks for a calculated comparison."}
     return respond
 
