@@ -8435,3 +8435,34 @@ References:
   ingest/store/dataset mutation, automatic rerun, or artifact commit. No unseen,
   general-accuracy, actual-Planner/full-agent/HTTP/ledger/release claim.
 - [Immutable A/B outputs and raw-response review](../../benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Minimum/current comparison-reading baseline, provider-free
+
+- On clean `28f9db79`, froze five synthetic pairs / ten conditions before diagnostic
+  implementation: new temporal values/years, named entities, a physical-row mirror,
+  equal-valued different entities, and Korean requests. Eight unique question texts;
+  the row-mirror pair reuses two questions with changed physical source positions.
+  Source/query-only plans and separate offline endpoint/value criteria are SHA-bound.
+- Current arm captures the actual Compiler prompt/schema and guarded execution.
+  Minimum arm exposes the exact question, two raw rows and the same short source IDs;
+  output selects reference/target, formula or abstention. It uses the shared restricted
+  arithmetic engine but only diagnostic ID/arithmetic checks, never production V2 authority.
+  No new production reading call, enum, forced formula or source validation change.
+- Twelve diagnostic contracts + 41 current focused tests pass. Wrong directions remain
+  semantic errors in both paths. Equal-valued swapped endpoints remain wrong even when
+  the scalar is correct. Unknown refs, extra result fields, bad AST/variables, nonfinite
+  arithmetic and zero division fail. Carrier/catalog reordering preserves identities
+  and resolution; physical-row mirrors retain their own source provenance.
+- Two separate blocked-socket captures are byte-identical:
+  `f5535784614e4e244d779443790fa2ffc28adc1d293bd4a350a4ce602070f683`.
+  Per capture: ten current-Compiler authored-response invocations, zero retries, ten
+  minimum authored evaluations with matching endpoints/values. Not sampled model answers.
+- Current/minimum prompt text 19,913–20,153 / 759–812 UTF-8 bytes; schema
+  4,847–4,850 / 745 bytes. These are local serializations, not SDK tokens, cost or speed.
+  This jointly changes instructions/plan/schema/proof burden, not one isolated factor.
+- Initial-input and execution-input exports exclude criteria/authored responses.
+  Provider/store/runtime writes 0; no paid mode or authorization in this artifact.
+  Future first-response consistency sampling needs a new bounded admission and SDK
+  no-call; production retries stay a separate measure. No real-DART/Planner/signs/
+  full-agent/unseen/general-accuracy claim, and no production hint clearing.
+- [Diagnostic source/input review and local contracts](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md).

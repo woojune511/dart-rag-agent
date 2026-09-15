@@ -136,10 +136,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Do not promote plan-hint clearing: the A/B result above shows no benefit. `growth`
-  came from an authored fixture, not a sampled Planner. Inspect request-to-endpoint
-  interpretation and response consistency before another mechanism or paid run;
-  keep formula/source gates intact. Lookup and current full-agent work stay separate.
+- [Reading baseline](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md): five synthetic pairs / ten conditions.
+  Twelve diagnostic + 41 focused tests; two identical captures, provider/runtime changes 0.
+  Minimum prompt/schema is diagnostic, not a V2 replacement or model-accuracy result.
+  Next compare first-response consistency under a new bounded admission; do not clear production hints.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

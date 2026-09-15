@@ -129,10 +129,11 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. The bounded plan-hint comparison above does not support production hint removal.
-   Preserve this negative result; inspect request-to-endpoint interpretation and
-   response consistency before another mechanism or paid experiment. Do not force
-   formulas, add direction keywords, or equate exact request linkage with meaning.
+1. [Minimum/current reading baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
+   prepares five synthetic pairs / ten conditions, including physical-row mirrors.
+   Twelve diagnostic + 41 focused tests pass; two socket-blocked captures are identical.
+   Authored replies only; minimum ID/arithmetic checks do not replace production V2.
+   Next assess first-response consistency under a new bounded admission, not hint clearing.
 2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
