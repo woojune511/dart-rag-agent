@@ -12,6 +12,40 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Required-evidence same-six first-response run (2026-09-16)
+
+- Explicitly approved `417037b9119e88c8ba864c7c20f579815e41ca6c0daa3f9b469b484a5726981f`,
+  consumed once on clean `1865ffee` (runtime source `30a89618`). Six identical
+  questions/plans/sources/frozen criteria; Gemini 2.5 Pro first response per case.
+  Six count/generation pairs, provider/JSON/schema errors and all retries 0.
+- Schema 6/6, full runtime acceptance **4/6 -> 4/6**, ledger 4/4 ok on complete cases.
+  Source/requirement/dependency, finite formula and display-choice probes 12/12 each;
+  completed eight calculated/display/unit outputs match. No full semantic accuracy claim.
+- Explicit constant lists 12/12 and selected prose interpretations' exact body
+  quote presence/containment 9/9. Non-neutral scalar declaration coverage 3/3,
+  actual request grounding 2/3; the other nine outputs do not exercise the contract.
+- Negative multiplier newly passes: source -9%, calculated -10%, dependent 30%.
+  Sign case newly fails: correct sources/formulas, but `(24)` and `6` quotes omit
+  the unit in preserved `(24)원` / `6원` value spans. Exact substrings exist;
+  `source_assertion_text_mismatch` is span undercoverage, not a sign/arithmetic failure.
+  Subsequent missing-source-assertion errors are consequences of these same rejections.
+- Half now supplies `/ 2`, scalar 2, request ID and interpretation, but `half`
+  occurs twice in its owned request unit: `constant_request_quote_invalid`.
+  Observed pre-retry dependency is calculated 30, not source 31. Failed case final
+  outputs remain empty; no reconstructed 15%, sampled repair or additional call.
+- Generation estimate USD 0.134295 + count contingency 0.36 = 0.494295 < 0.80;
+  invoice unknown. Server count equals generation input on all six: 39,476 input /
+  8,495 output incl. thinking. Count+generation total 82.91s, mean 13.82s.
+  Single historical/current samples do not establish latency improvement or causality.
+- All live bodies/order agree with SDK rehearsals; manifest/runtime/dependencies
+  and six raw responses verified unchanged after offline review. Runtime/store
+  changes and planner/OpenAI/embedding calls 0; no artifact commit.
+- Next is provider-free numeric/request quote-address contract review, not another
+  prompt trial, inferred quote repair or weakened grounding. Fixed finite criteria
+  do not establish symbolic equivalence, negative-reference denominator semantics,
+  nullable comparison intent correctness, general accuracy or full-agent acceptance.
+  [Results and exact failure evidence](../../benchmarks/results/required_evidence_compiler_2026-09-16/RESULTS.md).
+
 ## Required-evidence same-six successor preparation (2026-09-16)
 
 - Source `30a89618`, no runtime edit. Same six questions, fixed plans, candidate

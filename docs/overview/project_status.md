@@ -135,11 +135,11 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-- Preserve the bounded display-intent pair and its source/calculated provenance.
 - [Request constants](../../tests/test_request_formula_constants.py) now bind a finite scalar to an owned exact request excerpt and explicit Compiler interpretation; no numeral allowlist or word multiplier rule.
   Every calculation now explicitly supplies constants (including []); supplied prose interpretation requires a body quote or explicit null with attached support. Missing evidence is not filled; same-cohort retry, accepted bytes and V2 checks pass.
-  [Six-case paid successor](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md): runtime 4/6, fixed input/formula probes 12/12, grounded constants 2/3. Original four pass; new two omit prose interpretation quotes, half also omits its constant. No response repair.
-  [Same-six successor](../../benchmarks/results/required_evidence_compiler_2026-09-16/review.html) prepared on source `30a89618`: inputs/criteria unchanged; 16 experiment and 29 focused checks pass; 6 counts/generations, no retries, proposed USD 0.80. No paid call; previous manifest consumed and 4/6 unchanged.
+  [Same-six first-response run](../../benchmarks/results/required_evidence_compiler_2026-09-16/RESULTS.md): full runtime 4/6 unchanged, frozen source/formula probes 12/12. Lists 12/12, prose quotes 9/9, scalar declarations present 3/3 but grounded 2/3; not general accuracy.
+  Negative multiplier now passes; sign case newly fails unit-inclusive quote coverage and half fails duplicate request-quote location. No response repair; [prior result](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md) unchanged. Next is provider-free quote-address contract review, not automatic paid retry.
+  `417037b9...726981f` consumed on clean `1865ffee`: 6 counts/generations, API/schema errors and retries 0; USD 0.134295 + count contingency 0.36 < 0.80, invoice unobserved. Frozen inputs/criteria/runtime and raw response hashes unchanged.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

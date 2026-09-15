@@ -132,9 +132,9 @@ older fixture/source/result limitations.
 
 1. [Required evidence fields](tests/test_compiler_required_evidence_fields.py) implemented: supplied prose interpretation explicitly quotes its body or supported context; every calculation declares constants, including []. No inferred proof/scalar.
    Python 3.13 full unittest 1,743/1,743 (68.814s); eight new tests, focused 104 plus related 58, domain/import/topology/pycompile/diff pass. Real SDK serialization with mocked HTTP, not model-accuracy evidence.
-   [Six-case model result](benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md): runtime 4/6, fixed input/formula probes 12/12, constant declarations grounded 2/3. Single first drafts, not general accuracy.
-   Original four now execute, including source 21% / computed 20% / doubled 40%. Both new cases omit prose interpretation quotes; half also omits its constant. No repaired/reconstructed outputs.
-   [Same-six successor packet](benchmarks/results/required_evidence_compiler_2026-09-16/review.html) stages required-field validation: identical questions/plans/sources/criteria, 6 counts/generations, all retries 0, proposed USD 0.80. No paid call yet; `b72b2038...4220bc` remains consumed.
+   [Same-six paid successor](benchmarks/results/required_evidence_compiler_2026-09-16/RESULTS.md): runtime 4/6 remains unchanged; fixed source/formula probes 12/12. Explicit lists 12/12, prose body quotes 9/9, scalar declarations present 3/3 but grounded 2/3.
+   Negative multiplier now passes (-9% source / -10% calculation / 30% dependent); sign case newly fails unit-inclusive quote coverage, half quotes a twice-occurring word. No repaired/reconstructed final outputs; [prior 4/6](benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md) preserved.
+   Manifest `417037b9...726981f` consumed on `1865ffee`: 6 counts/generations, API/schema errors and retries 0, accounted USD 0.494295 < 0.80 (not invoice). Next: provider-free numeric/request quote-address contract review; no further paid trial or automatic proof repair.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
