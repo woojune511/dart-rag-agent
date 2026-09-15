@@ -12,6 +12,27 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Required-evidence same-six successor preparation (2026-09-16)
+
+- Source `30a89618`, no runtime edit. Same six questions, fixed plans, candidate
+  catalogs and independent criteria as the consumed `b72b2038...4220bc` packet.
+  The historical 4/6 result and original replies are unchanged and not model inputs.
+- Gemini 2.5 Pro first responses only: at most six counts/generations, no internal,
+  SDK or automatic retry; provider/budget errors stop the remaining suffix. No
+  planner, retrieval, embeddings, OpenAI, store mutation or new DART transmission.
+- Field presence/quote containment, scalar grounding, frozen source/formula probes
+  and runtime display/ledger are reported separately. Schema and instructions
+  changed together; single historical/current samples cannot isolate causality or
+  establish general accuracy. Literal-free equivalent formulas remain admissible.
+- Provider-free packet tests 16/16, focused contracts 29/29; six positive and six
+  wrong-formula witnesses, unchanged cases/criteria and no response repair. The
+  exact clean-build manifest and separate-process SDK no-call receipts belong to
+  the local packet. Preparing them authorizes no provider call.
+- Proposed accounted cap USD 0.80; expected generation USD 0.15–0.32 plus count
+  contingency USD 0.36, not an invoice or asserted count API tariff. Public Gemini
+  pricing rechecked 2026-09-16. Separate exact-manifest approval remains required.
+  [Scope, inputs and approval packet](../../benchmarks/results/required_evidence_compiler_2026-09-16/review.html).
+
 ## Request-constant six-case first-response run (2026-09-16)
 
 - Explicitly approved `b72b2038fcf728f8d29f399952f7312cf7bd0d801b0cc4f9043435ef8b4220bc`,

@@ -139,7 +139,7 @@ it does not inject answers or change shared evaluation extraction.
 - [Request constants](../../tests/test_request_formula_constants.py) now bind a finite scalar to an owned exact request excerpt and explicit Compiler interpretation; no numeral allowlist or word multiplier rule.
   Every calculation now explicitly supplies constants (including []); supplied prose interpretation requires a body quote or explicit null with attached support. Missing evidence is not filled; same-cohort retry, accepted bytes and V2 checks pass.
   [Six-case paid successor](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md): runtime 4/6, fixed input/formula probes 12/12, grounded constants 2/3. Original four pass; new two omit prose interpretation quotes, half also omits its constant. No response repair.
-  `b72b2038...4220bc` consumed, six counts/generations, retries 0; USD 0.4929225 including contingency < 0.80, invoice unknown. No new paid calls. Next: bounded model validation of required fields; historical failures and temporal errors unchanged, no general/full-agent claim.
+  [Same-six successor](../../benchmarks/results/required_evidence_compiler_2026-09-16/review.html) prepared on source `30a89618`: inputs/criteria unchanged; 16 experiment and 29 focused checks pass; 6 counts/generations, no retries, proposed USD 0.80. No paid call; previous manifest consumed and 4/6 unchanged.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

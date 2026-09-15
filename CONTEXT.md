@@ -134,7 +134,7 @@ older fixture/source/result limitations.
    Python 3.13 full unittest 1,743/1,743 (68.814s); eight new tests, focused 104 plus related 58, domain/import/topology/pycompile/diff pass. Real SDK serialization with mocked HTTP, not model-accuracy evidence.
    [Six-case model result](benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md): runtime 4/6, fixed input/formula probes 12/12, constant declarations grounded 2/3. Single first drafts, not general accuracy.
    Original four now execute, including source 21% / computed 20% / doubled 40%. Both new cases omit prose interpretation quotes; half also omits its constant. No repaired/reconstructed outputs.
-   `b72b2038...4220bc` consumed; six counts/generations, retries 0, accounted USD 0.4929225 < 0.80, not invoice. No new paid run; next is bounded model validation of required fields, not a temporal-error repair claim.
+   [Same-six successor packet](benchmarks/results/required_evidence_compiler_2026-09-16/review.html) stages required-field validation: identical questions/plans/sources/criteria, 6 counts/generations, all retries 0, proposed USD 0.80. No paid call yet; `b72b2038...4220bc` remains consumed.
 2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
