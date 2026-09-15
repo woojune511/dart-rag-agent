@@ -12,6 +12,39 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Addressed numeric proofs: approved first-response run (2026-09-16)
+
+- Approved `7c9742d9661ac5b3f7baf3b243716882fcd6766d1cea8605ea3b022c88c0b746`,
+  consumed once on clean `b17db852` (implementation `75501486`). Same six questions,
+  fixed plans, sources, order and criteria; six Gemini 2.5 Pro count/generation pairs.
+  API/JSON syntax errors 0; schema failure 1; internal/SDK/automatic retries 0.
+- [Result](../../benchmarks/results/addressed_numeric_proofs_compiler_2026-09-16/RESULTS.md):
+  schema 5/6, full runtime 4/6, unchanged from the predecessor's 4/6. Complete-case
+  ledger 4/4; all eight finalized calculated/display values and units match.
+  Raw source/requirement/dependency, finite formula and display probes 12/12 each;
+  invalid raw-response diagnostics are not schema/runtime acceptance.
+- Sign newly passes 76/82 KRW with exact `(24)원` and `6원` spans. Double newly
+  fails `undeclared_formula_constant`: correct `*2`, but `constants: []`.
+  Offline feedback preserves preceding calculated value 20 and targets only double;
+  no repair is sampled and final case outputs remain empty.
+- Half supplies `/2`, scalar 2, owned request and interpretation, but its sibling
+  growth declares neutral 100 with invented `origin=deterministic_calculation`.
+  This is not a ban on literal 100. Whole-response schema failure prevents lowering
+  and execution; half's actual request grounding remains unassessable. No 15%
+  answer is reconstructed. Negative multiplier remains source -9% / calculation
+  -10% / dependent 30% with a whole-owned-instruction proof.
+- Required lists 12/12, exact prose interpretation quotes 9/9, value-recopy fields 0.
+  Eight converted exact value assertions verified; non-neutral declarations present
+  2/3, actual grounding 1, missing 1, schema-blocked 1. Linkage is not quantity meaning.
+- Estimated generation USD 0.133410 + count contingency 0.36 = accounted 0.493410
+  within 0.80; invoice unknown. Input 39,704 / output including thinking 8,378.
+  All server input counts equal generation usage; no pending/denied requests.
+  Total count/generation 71.87s, mean 11.98s; no speed or causal-effect claim.
+- Sent bodies/order match both SDK rehearsals; runtime 166 files, 37 dependencies,
+  11 packet files and six unchanged raw response hashes verified before docs update.
+  No runtime/store/dataset change, prior-response repair or additional paid call.
+  Next work is a general constant-declaration contract review, not another blind rerun.
+
 ## Addressed numeric proofs: same-six preparation (2026-09-16)
 
 - Runtime `75501486`; [successor design](../../benchmarks/results/addressed_numeric_proofs_compiler_2026-09-16/DESIGN.md)
