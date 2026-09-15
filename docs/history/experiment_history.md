@@ -12,6 +12,38 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Inline request operands: approved first-response run (2026-09-16)
+
+- Approved `950de7e78b8d57b88bed729453587058be12d52db5703564f85bf8130fe53ae1`,
+  consumed once on clean `589b3240` (runtime `234cb782`). Same six synthetic
+  questions, plans, sources/candidate IDs, order and independent criteria.
+  Six Gemini 2.5 Pro count/generation pairs; internal/SDK/automatic retries 0.
+- [Result](../../benchmarks/results/inline_request_operands_compiler_2026-09-16/RESULTS.md):
+  JSON/schema 4/6 versus previous 6/6; runtime unchanged 4/6, ledger 4/4. Eight
+  finalized calculated/display values and units match. Eight assessed source,
+  finite-formula and display probes match; four requested outputs unassessable.
+- Double newly succeeds: inline value 2, owned request and interpretation;
+  dependency calculation 20%, source display 21%, final 40%. Half and previously
+  accepted negative multiplier fail before their transform expression: the first
+  growth formula repeats 1,433 / 1,419 opening-parenthesis tokens, zero closing
+  parentheses/formula variables, then MAX_TOKENS. SDK parse failures are
+  ValidationError; strict offline JSON gives JSONDecodeError. Quantity meanings
+  are unknown, not two arithmetic/subject rejections. No JSON/answer reconstruction.
+- Source interpretation quotes and converted exact value assertions 7 each;
+  one grounded quantity expression and two unassessable cases. Original complete
+  replies used production replay only, with source/unit/AST/authority unchanged.
+- Input 39,812 / output including thinking 14,444 tokens; count/generation time
+  106.35s. Generation estimate USD 0.194205 + count contingency 0.36 = 0.554205
+  < 0.80, pending reservation 0, invoice unknown. API errors 0, parse failures 2.
+- SDK bodies match identical rehearsals; server input counts match usage. Forty
+  dependencies, 11 packet files, 167 runtime files and six raw responses verified
+  unchanged. No planner/retrieval/embedding, runtime/store/dataset edits or artifact commit.
+- No aggregate improvement: one newly accepted case and a new sampled regression.
+  Repetition is observed; model/decoder/schema/prompt causal contributions remain
+  unestablished. Review fine-grained formula serialization offline, not automatic
+  paid repetition or a presumed token-cap fix. Known-case, one-sample historical
+  comparison, not novel-question or full-agent evidence.
+
 ## Named request inputs: approved first-response run (2026-09-16)
 
 - Approved `76f0581f591b4c658b946973d85a248c05b5cf3334538ff6b95efd12fe80536b`,
