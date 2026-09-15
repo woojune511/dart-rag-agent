@@ -67,17 +67,17 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [requirement-ID comparison](benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md)
-on clean `c7f3a8f5` completed 12 generations/counts: two questions x three names x two repeats.
-Named/r7-r9/r9-r7 score 4/4, 3/4, 2/4 for meaning/value; runtime accepts 2/4, 3/4, 4/4.
-Both gates pass **2/4 each**. Two drafts misuse input ownership, one quotes a table as prose;
-three source-valid drafts reverse the request. All formulas pass; no ID-rename remedy established.
-Source/periods/authority/field order fixed; aliases invert without repairing selections.
-Manifest `36a2e3dd...7081c` consumed; API errors/retries 0, 52 tests, identical SDK rehearsals.
-Usage estimate USD 0.214205 + count contingency 0.72 = 0.934205 < 1.20, not invoice.
+The [source-choice schema A/B](benchmarks/results/source_choice_schema_2026-09-15/INTERPRETATION.md)
+on clean `830233aa` completed 12 generations/counts: two questions x two schemas x three repeats.
+Before/after runtime accepts **5/6 → 6/6**, meaning and both gates **3/6 → 5/6**.
+Reverse direction remains wrong once after; source validation does not certify meaning.
+Full production prompts/sources/authority unchanged; only schema differs. No automatic repair.
+Manifest `8b0468ed...f3b6b1` consumed; API/schema errors/retries 0; identical SDK rehearsals.
+Estimate USD 0.241115 + count contingency 0.72 = 0.961115 < 1.20, not invoice.
+Earlier [naming-only conditions](benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md) retain both gates 2/4 each; no ID-rename remedy.
 The [previous input deletion](benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
 retains its 503 partial run: 14 responses, nine not run, both arms 5/7; no resume.
-Runtime/predecessors unchanged. Tiny repeated diagnostics, not general/full-agent evidence.
+Predecessor evidence unchanged. Tiny repeated diagnostics, not general/full-agent evidence.
 The [preceding factorial](benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
 retains current/current+formula/minimum/minimum+formula 9/12, 9/12, 12/12, 10/12.
 No formula benefit was observed; minimum jointly changes input and schema, not V2 authority.
@@ -131,8 +131,8 @@ older fixture/source/result limitations.
 ## Next work and hard stops
 
 1. Numeric source-choice schemas are implemented; local full suite 1,716/1,716 passed.
-   Compare frozen pre-edit versus current schemas with unchanged questions/prompts,
-   tracking construction errors separately from meaning. No auto-binding/direction repair.
+   The paired model probe improves 3/6 → 5/6, but one reverse-direction error remains.
+   Broader meaning/mixed-source checks remain separate; no auto-binding/direction repair.
    The [baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
    retains untested row-mirror/equal-value/Korean model controls and authored contracts.
 2. Structural output constraints are not a remedy for semantic direction errors.

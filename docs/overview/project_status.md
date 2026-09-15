@@ -34,7 +34,7 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 Python 3.13 source-choice local suite **1,716/1,716**, no skips (58.824s).
 Ten new tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
-stable references and unchanged runtime authority. Earlier comparison contracts use
+stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
 The 12 anonymous controls were frozen before source edits. Historical fixtures stay
 byte-identical; test-only copies explicitly author new request/proof/transport fields.
@@ -83,13 +83,13 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [requirement-ID comparison](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md)
-on clean `c7f3a8f5` completed 12 generations/counts: two questions, three names, two repeats.
-Named/r7-r9/r9-r7 meaning/value 4/4, 3/4, 2/4; runtime 2/4, 3/4, 4/4; **both 2/4 each**.
-Three semantic reversals, two owner violations, one table-as-prose assertion: no naming remedy.
-Source/periods/authority/field order unchanged; no program repair in the alias decoder.
-Manifest `36a2e3dd...7081c` consumed; API errors/retries 0, 52 tests, SDK captures/dispatches match.
-Estimate USD 0.214205 + count contingency 0.72 = 0.934205 < 1.20, not invoice. Runtime unchanged.
+The [source-choice schema A/B](../../benchmarks/results/source_choice_schema_2026-09-15/INTERPRETATION.md)
+on clean `830233aa`: two questions x before/after x three repeats; 12 generations/counts.
+Runtime **5/6 → 6/6**; meaning and both **3/6 → 5/6**. One reverse error remains after.
+Same full production prompts, source IDs, periods and authority; only schema differs.
+Manifest `8b0468ed...f3b6b1` consumed; API/schema errors/retries 0; SDK rehearsals/dispatch match.
+Estimate USD 0.241115 + count allowance 0.72 = 0.961115 < 1.20, not invoice; no general claim.
+Prior [naming-only comparison](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md) retains both gates 2/4 each; no naming remedy.
 The [previous input deletion](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
 retains 14 responses, one 503, nine not run; both arms 5/7. Neither probe is general/full-agent proof.
 The [preceding factorial](../../benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
@@ -136,8 +136,8 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Compare implemented numeric source-choice schemas against their frozen predecessor;
-  preserve legal mixed/dependency programs and separate meaning. No neutral-ID promotion.
+- Numeric source-choice A/B observed 3/6→5/6 combined success, with one direction
+  error remaining. Mixed-source model accuracy is still unmeasured. No neutral-ID promotion.
   [Baseline controls](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
   retain untested row-mirror/equal-value/Korean model cases. No partial-run resume or promotion.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add

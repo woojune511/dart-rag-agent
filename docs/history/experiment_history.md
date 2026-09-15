@@ -12,6 +12,32 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Numeric source-choice schema A/B (2026-09-15)
+
+- Implementation `830233aa`, pre-edit capture `a9b7f792`. Immutable manifest
+  `8b0468edf6621189cb1bd275a31b67fb205615c5b6f2ae9fdafc7f7374f3b6b1` consumed once.
+- Full production question/plan/instructions/source/IDs/authority held fixed;
+  only the owner-source enum and cell/prose/dependency schema differs. Two known
+  temporal-direction questions, three repeats each, 12 count/generation pairs.
+  Gemini 2.5 Pro, temperature 0, output 4096/thinking 1024, all retries 0.
+- Before/after runtime 5/6→6/6, semantic and both gates 3/6→5/6. Forward 3/3 each;
+  reverse 0/3→2/3. Before's last reverse response swapped requirement source refs;
+  exact offline lowering retained `candidate_not_authorized_for_output_input`.
+  After's first reverse response stayed source-valid but chose the wrong direction.
+- API/JSON/schema errors 0, no calls to planner/OpenAI/embedding/store. Two SDK
+  rehearsals match `f04218039ebfa5e1eec788a5d3b435084017bfffabc3fcd228ac4bd02dd2746b`;
+  every live count/generation matches the frozen body/ordering. Local full suite
+  1,716 passed; new contracts 10, grounding/wire 18, broader 143, import/topology/docs
+  24 and experiment tests 5; domain audit 83, pycompile/diff passed.
+- Schema/request bytes +184; observed mean input tokens 5,435 in both. Mean completed
+  count+generation latency 11.76/11.28 seconds is descriptive, not a speed claim.
+  Generation estimate USD 0.241115 + count contingency 0.72 = 0.961115 < 1.20;
+  invoice unobserved. No paid retry/resume, prior response edit or artifact commit.
+- Repeated diagnostics, not independent unseen questions, general accuracy, enum-only
+  causality or full-agent release. Mixed/prose/dependency paths have local contracts
+  only. [Interpretation](../../benchmarks/results/source_choice_schema_2026-09-15/INTERPRETATION.md)
+  and [original responses](../../benchmarks/results/source_choice_schema_2026-09-15/result_review.html).
+
 ## At a Glance
 
 | 항목 | 현재 해석 |
