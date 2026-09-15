@@ -83,15 +83,15 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [fixed-schema input deletion](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
-on clean `b7807573` stopped on generation 15 with Google **503 UNAVAILABLE**: 14 responses,
-one API failure, nine not run; no retry. Current/trimmed both **5/7** semantics on the same
-seven pairs; temporal reverse **0/2** each. Schema/source/runtime 7/7 each, formulas 14/14.
-The tested plan/instruction deletion reduces input tokens 26.9% but not observed errors;
-schema and source payload stay identical. This incomplete four-question run is not general proof.
-Manifest `056572ba...7f504` consumed; 45 pre-call tests, two identical SDK rehearsals and
-15 count/generation pairs verified. Usage estimate USD 0.2764125 + failed reservation
-0.05616375 + count contingency 0.90 = 1.23257625 < 2.20, not invoice. Runtime unchanged.
+The [requirement-ID comparison](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md)
+on clean `c7f3a8f5` completed 12 generations/counts: two questions, three names, two repeats.
+Named/r7-r9/r9-r7 meaning/value 4/4, 3/4, 2/4; runtime 2/4, 3/4, 4/4; **both 2/4 each**.
+Three semantic reversals, two owner violations, one table-as-prose assertion: no naming remedy.
+Source/periods/authority/field order unchanged; no program repair in the alias decoder.
+Manifest `36a2e3dd...7081c` consumed; API errors/retries 0, 52 tests, SDK captures/dispatches match.
+Estimate USD 0.214205 + count contingency 0.72 = 0.934205 < 1.20, not invoice. Runtime unchanged.
+The [previous input deletion](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
+retains 14 responses, one 503, nine not run; both arms 5/7. Neither probe is general/full-agent proof.
 The [preceding factorial](../../benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
 retains current/current+formula/minimum/minimum+formula 9/12, 9/12, 12/12, 10/12.
 No formula benefit observed; minimum jointly changes input/schema and is not V2 authority.
@@ -136,8 +136,8 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Next isolate temporal meaning in model-facing requirement IDs provider-free; keep
-  periods/source/schema structure/authority fixed, without preassigning comparison roles.
+- Next review owner-allowed source choices and source-kind-specific schema fields
+  provider-free, preserving legal mixed/dependency programs. No neutral-ID promotion.
   [Baseline controls](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
   retain untested row-mirror/equal-value/Korean model cases. No partial-run resume or promotion.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add

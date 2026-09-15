@@ -67,17 +67,17 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [fixed-schema input deletion](benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
-on clean `b7807573` stopped at generation 15 on Google **503 UNAVAILABLE**: 14 responses,
-one API failure, nine not run; automatic retry 0. Same seven paired samples per arm.
-Current and trimmed input both score **5/7** semantically; reverse temporal **0/2** each.
-Both pass schema/source/execution 7/7; formulas pass 14/14. Wrong outputs recognize the
-requested reversal but bind previous=reference/current=target and compute -20%, not +25%.
-Deleting plan descriptions and existing instructions, with schema/source payload fixed,
-reduces input tokens 26.9% but shows no correctness gain in this incomplete small comparison.
-Manifest `056572ba...7f504` consumed; 45 pre-call tests and paired SDK captures match all 15 request pairs.
-Usage estimate USD 0.2764125 + failed reservation 0.05616375 + count contingency 0.90 = 1.23257625 < 2.20, not invoice.
-Runtime/predecessors unchanged. Four questions, not independent/general/full-agent evidence.
+The [requirement-ID comparison](benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md)
+on clean `c7f3a8f5` completed 12 generations/counts: two questions x three names x two repeats.
+Named/r7-r9/r9-r7 score 4/4, 3/4, 2/4 for meaning/value; runtime accepts 2/4, 3/4, 4/4.
+Both gates pass **2/4 each**. Two drafts misuse input ownership, one quotes a table as prose;
+three source-valid drafts reverse the request. All formulas pass; no ID-rename remedy established.
+Source/periods/authority/field order fixed; aliases invert without repairing selections.
+Manifest `36a2e3dd...7081c` consumed; API errors/retries 0, 52 tests, identical SDK rehearsals.
+Usage estimate USD 0.214205 + count contingency 0.72 = 0.934205 < 1.20, not invoice.
+The [previous input deletion](benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
+retains its 503 partial run: 14 responses, nine not run, both arms 5/7; no resume.
+Runtime/predecessors unchanged. Tiny repeated diagnostics, not general/full-agent evidence.
 The [preceding factorial](benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
 retains current/current+formula/minimum/minimum+formula 9/12, 9/12, 12/12, 10/12.
 No formula benefit was observed; minimum jointly changes input and schema, not V2 authority.
@@ -130,12 +130,12 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. The tested deletion-only input does not resolve temporal direction. Next isolate
-   temporal meaning in model-facing requirement IDs provider-free, preserving source,
-   periods, schema structure and authority without assigning reference/target for the model.
+1. Do not promote neutral IDs or repeat naming-only paid experiments. Next review
+   owner-allowed source choices and source-kind-specific fields in schema provider-free,
+   preserving legal table/prose/dependency programs without auto-binding or direction repair.
    The [baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
    retains untested row-mirror/equal-value/Korean model controls and authored contracts.
-2. Do not resume the consumed partial run or promote this input deletion to production.
+2. Structural output constraints are not a remedy for semantic direction errors.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.
    No automatic paid retry, fresh ingest, store adoption/mutation,

@@ -8540,3 +8540,45 @@ References:
 - Next candidate: provider-free opaque requirement-ID projection while retaining periods,
   sources, schema structure and authority. Do not preassign endpoints or resume this manifest.
 - [Partial results, interpretation and raw responses](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md).
+
+## 2026-09-15 — Requirement-ID-only transport naming comparison
+
+- Continued delegated experiment, not a resume of the prior partial run. Clean `c7f3a8f5`;
+  consumed manifest `36a2e3dd08f9236e5ab2775396a2533e868c851318b4418bb7d0e6c71cd7081c`,
+  Google Gemini 2.5 Pro, cap USD 1.20. Two frozen temporal direction questions, three
+  conditions (current/previous, r7/r9, r9/r7), two samples each: 12 generations/counts.
+- All use the preceding B_trimmed input, not a new production prompt. Changes are
+  plan requirement IDs, matching cohort labels, schema input property names/titles/required
+  keys only. Source words/period roles, candidate IDs/authority, field positions and all
+  other SDK contents remain unchanged. Alias decoding changes keys only, never selections,
+  arrays, formula, variable names or rationale. Original internal plan/catalog untouched.
+- Initial local manifest `aa47a3eb...eabd3` lacked the runner constructor helper; both
+  no-call processes stopped before any API call. V2 preserves those files, adds the helper
+  and constructor test; no question/criteria/condition/cap change or paid retry.
+- All 12 generations/counts completed, no API/JSON parsing error, no retry. Meaning/value
+  correctness A/B/C **4/4, 3/4, 2/4**; runtime acceptance **2/4, 3/4, 4/4**; intersection
+  **2/4 in each**. Each denominator four repeats two questions, not four independent cases.
+  Ordinary direction is correct throughout. All formulas pass restricted positive contrasts.
+- A reverse drafts both correctly choose current=reference/previous=target but put both
+  selections in current and leave previous empty. Existing
+  `candidate_not_authorized_for_output_input` rejects them. B ordinary second draft uses
+  correct selections/formula but non-null table evidence_text; existing
+  `source_assertion_nonprose_candidate` rejects it. B reverse second and both C reverse
+  drafts keep valid input scope but invert meaning, producing -20% instead of requested +25%.
+- Provider-free inspection captures the existing retry feedback for the three rejected
+  drafts then stops before a second response; no correction, sample or semantic regrading.
+  The unchanged named SDK input varies from the prior run's error pattern. This bounds
+  claims from tiny samples; no reliable ID remedy, root-cause/equivalence claim or promotion.
+- Eight projection + nine review + 35 focused tests precede calls. Two SDK no-call captures
+  match (`e80fc5b0ceefbc7ead37e4e7afe6c848e562c96de1bb29d466a571fc93290626`). Six condition
+  inverses match predecessor SDK values; live body hashes and input field order checked.
+  Blocked-socket cleanup warnings exit 0 and are separate from actual provider behavior.
+- Input tokens 47,700, output+thinking 15,458. Mean input A 3,971 / B,C 3,977: shorter
+  key bytes do not save tokens. Generation estimate USD 0.214205, count contingency 0.72,
+  accounted 0.934205 < 1.20; not observed billing. Provider rates rechecked on official page.
+- Runtime/store/dataset/candidate/previous artifact changes 0. No Planner, retrieval,
+  OpenAI, embedding, ingest or extra judge call. Artifacts remain ignored, not committed.
+- Next: provider-free schema admissibility review (owner-visible choices and prose-only
+  fields), preserving legal mixed/dependency programs. This addresses structural errors,
+  not semantic direction by fiat. No more naming-only paid trials or automatic expansion.
+- [Results, raw responses and failure-layer interpretation](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md).
