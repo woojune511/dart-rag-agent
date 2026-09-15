@@ -83,12 +83,12 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [source-choice schema A/B](../../benchmarks/results/source_choice_schema_2026-09-15/INTERPRETATION.md)
-on clean `830233aa`: two questions x before/after x three repeats; 12 generations/counts.
-Runtime **5/6 → 6/6**; meaning and both **3/6 → 5/6**. One reverse error remains after.
-Same full production prompts, source IDs, periods and authority; only schema differs.
-Manifest `8b0468ed...f3b6b1` consumed; API/schema errors/retries 0; SDK rehearsals/dispatch match.
-Estimate USD 0.241115 + count allowance 0.72 = 0.961115 < 1.20, not invoice; no general claim.
+The [six-control run](../../benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md)
+on clean `386cf867`: six first responses, current schema; runtime and separate meaning **6/6**.
+Row-mirror/equal-value/Korean pairs each 2/2; six counts/generations, errors/retries 0.
+Manifest `55029ef1...3000e0` consumed; USD 0.1201475 + count allowance 0.36 < 0.75, not invoice.
+The [preceding schema A/B](../../benchmarks/results/source_choice_schema_2026-09-15/INTERPRETATION.md) retains runtime 5/6→6/6 and meaning 3/6→5/6.
+Its temporal error remains; these single-sample controls do not establish general accuracy or its repair.
 Prior [naming-only comparison](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md) retains both gates 2/4 each; no naming remedy.
 The [previous input deletion](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
 retains 14 responses, one 503, nine not run; both arms 5/7. Neither probe is general/full-agent proof.
@@ -136,10 +136,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- Numeric source-choice A/B retains 3/6→5/6, with one direction error remaining.
-  [Six prepared controls](../../benchmarks/results/source_choice_controls_2026-09-15/DESIGN.md): row-mirror/equal-value/Korean sources and criteria unchanged.
-  Local focused 50 + experiment 9 pass; provider calls 0. Current-only first-response sampling proposed.
-  No automatic endpoint repair, partial-run resume or model-accuracy claim; mixed sources unmeasured.
+- Numeric source-choice A/B retains its temporal error; no endpoint repair or rerun.
+  [Six current-schema controls](../../benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md): runtime and separate meaning both 6/6, first responses only.
+  Six counts/generations, errors/retries 0; USD 0.1201475 + count allowance 0.36 < 0.75; manifest consumed.
+  One sample/case, not general accuracy or a temporal fix. Mixed-source local checks are next.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

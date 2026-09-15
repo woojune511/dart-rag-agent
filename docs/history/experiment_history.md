@@ -12,6 +12,29 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Source-choice six-control model run (2026-09-15)
+
+- User requested execution of the prepared manifest
+  `55029ef11ee331f4cea8541d815f03a2959443db53b86b28f719608d853000e0`; consumed once
+  on clean `386cf867`. No runtime/prompt/schema/source/criteria change since preparation.
+- Gemini 2.5 Pro, six synthetic questions, one current-schema response each. Runtime
+  acceptance 6/6 and independent endpoint/formula/scalar evaluation 6/6. Row-mirror,
+  equal-value and Korean direction pairs each 2/2. Equal scalar 0 was not sufficient:
+  distinct reference/target source IDs also matched the frozen direction criteria.
+- Six count/generation pairs, API/JSON/schema errors and abstentions 0, all retries 0.
+  Server input counts equal generation usage: 32,606 input / 7,939 output incl. thinking.
+  Generation estimate USD 0.1201475 + count contingency 0.36 = 0.4801475 < 0.75;
+  actual invoice unobserved. Mean completed count+generation 11.21 seconds.
+- All live request bodies/property orders match the two prepared SDK no-call receipts.
+  Manifest source/dependency hashes verified after offline review; original responses
+  unchanged. No planner/OpenAI/embedding/store/DART transmission or artifact commit.
+- One sample/case, no current same-order arm; not row-order/language causality, unseen
+  or general accuracy, a remedy for the earlier temporal-direction error, or full-agent
+  evidence. Next scope is provider-free mixed table/prose/dependency checks. No new
+  source-selection patch or automatic endpoint repair follows from these six successes.
+  [Results](../../benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md) and
+  [original responses](../../benchmarks/results/source_choice_controls_2026-09-15/result_review.html).
+
 ## Source-choice six-control preparation (2026-09-15)
 
 - Source-identical successor to `830233aa` / handoff `4a833f79`; no runtime changes.
