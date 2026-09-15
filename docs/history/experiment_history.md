@@ -12,6 +12,22 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Addressed numeric proofs: same-six preparation (2026-09-16)
+
+- Runtime `75501486`; [successor design](../../benchmarks/results/addressed_numeric_proofs_compiler_2026-09-16/DESIGN.md)
+  reuses the previous six questions, plans, synthetic sources, order and independent
+  criteria. No historical response is repaired or supplied to generation; prior 4/6 remains.
+- New wire drops redundant value/request quotes. The offline review uses actual
+  production lowering, retains complete value spans and whole owned instructions,
+  and keeps address linkage separate from scalar interpretation/formula correctness.
+- Provider-free 19 experiment checks (six positive and six wrong-formula witnesses),
+  63 focused tests and 24 import/topology/docs checks pass; domain audit 83,
+  pycompile/diff pass. Previous integration gate remains 1,753/1,753 on `75501486`.
+- Proposed one first response per case, Gemini 2.5 Pro, at most six count/generation
+  pairs, retries 0, USD 0.80 accounted cap. Two separate-process SDK no-call receipts
+  must agree with a new clean-build manifest before separate approval. Paid calls 0.
+  No planner, retrieval, embedding, ingest, source-store change or full-agent claim.
+
 ## Required-evidence same-six first-response run (2026-09-16)
 
 - Explicitly approved `417037b9119e88c8ba864c7c20f579815e41ca6c0daa3f9b469b484a5726981f`,
