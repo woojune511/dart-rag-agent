@@ -83,20 +83,20 @@ semantic negative controls. These local gates do not measure model semantic accu
 
 ## Latest compiler-only evidence
 
-The [plan-hint A/B probe](../../benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
-ran the original direction pair under original/neutral prompt projections once each
-on clean `60593584`. Source/execution **4/4**; separate direction review: original
-**2/2**, neutral **1/2**. Neutral reverse yields -10%, not +11.111…%; original reverse
-is correct. Exact request links 4/4, correct endpoints 3/4, no blended success rate.
-Only two output metric hints change after exposure; canonical plans, source conditions,
-questions and schema stay fixed. No observed hint-removal benefit or production change.
-One sample per cell is not causal/systematic-harm evidence. Same original reverse SDK
-input failed previously but succeeds now; cause of response variation is unestablished.
-Generation/count 4/4, retries/errors 0. Generation estimate USD 0.08805750 + count
-contingency USD 0.24 = accounted USD 0.32805750 below USD 0.60, not an invoice/tariff.
-Manifest `045a3eb5...dfe53` consumed. Diagnostic 5/5 + focused 41/41; two identical SDK
-rehearsals and actual first requests agree. Runtime/bound files verified before docs.
-Synthetic, pre-exposed, positive-count controls; not Planner/general/full-agent proof.
+The [reading/formula factorial](../../benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
+on clean `ff36d19e` uses four synthetic questions x four conditions x three samples.
+Semantic correct: current **9/12**, current+formula **9/12**, minimum **12/12**,
+minimum+formula **10/12**. Errors all reverse the temporal request; formulas pass 48/48.
+Current runtime accepts 10/12 and 12/12; minimum ID/arithmetic is not V2 authority.
+Two current drafts also violate input ownership. Wrong rationales prefer conventional
+chronology over the request. Formula addition shows no benefit in this small sample.
+Minimum jointly changes plan/instruction/schema burden, not one isolated cause.
+Generation/count 48/48, retries/errors 0; estimate USD 0.74502 + count contingency
+2.88 = accounted 3.62502 < 4.00, not invoice. Delegated manifest `2f4535a1...75cb3` consumed.
+51 pre-call + six offline-review tests; two identical SDK rehearsals match actual bodies.
+Runtime/predecessors unchanged. Four questions, not 48 independent/general/full-agent cases.
+Earlier [plan-hint A/B](../../benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
+retains structural 4/4 and original/neutral semantic 2/2 versus 1/2; no hint clearing.
 The [preceding comparison probe](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
 retains 3/4 correct directions, an original reverse error and two correct explicit-reference
 controls. Its consumed `b2a68ca0...ff0f0` and raw responses are not retroactively repaired.
@@ -136,10 +136,10 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - Preserve the bounded display-intent pair and its source/calculated provenance.
-- [Reading baseline](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md): five synthetic pairs / ten conditions.
-  Twelve diagnostic + 41 focused tests; two identical captures, provider/runtime changes 0.
-  Minimum prompt/schema is diagnostic, not a V2 replacement or model-accuracy result.
-  Next compare first-response consistency under a new bounded admission; do not clear production hints.
+- Next isolate plan/instruction exposure from output-schema burden in provider-free
+  intermediate inputs. The minimum arm is diagnostic, not a production V2 replacement.
+  [Baseline controls](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
+  retain untested row-mirror/equal-value/Korean model cases. No automatic paid expansion.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,

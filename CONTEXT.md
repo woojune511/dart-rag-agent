@@ -67,22 +67,22 @@ signature. Prompt bytes 208,427 → 134,135; schema bytes 59,832 → 37,115.
 These are local UTF-8 serializations, not measured SDK tokens, bills, latency or
 model accuracy. Current validation gates are recorded in project status.
 
-The [plan-hint A/B probe](benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
-ran the original forward/reverse synthetic pair with original/neutral prompt projections
-once each on clean `60593584`, under exact SHA/cap approval. Source/execution **4/4**;
-separate direction review: original **2/2**, neutral **1/2**. Neutral reverse gives
--10% instead of +11.111…%; all four link the exact request, only three assign correct
-endpoints. Clearing the two post-exposure metric hints shows no benefit in this run;
-no production target clearing. This fixture hint is not a sampled Planner output.
-Same canonical plans, questions, sources, permissions and schema; one sample per cell,
-not causal/systematic-harm/general-accuracy evidence. Original reverse now succeeds
-despite the same initial SDK body as the previous failed run; response variation's
-cause is unestablished. No arithmetic or semantic auto-repair was performed.
-Generations/counts 4/4, retries/errors 0. Generation estimate USD 0.08805750 + count
-contingency USD 0.24 = accounted USD 0.32805750 below USD 0.60, not an invoice/tariff.
-Manifest `045a3eb5...dfe53` consumed. Five diagnostic + 41 focused tests and two identical
-SDK rehearsals preceded calls. Paid request hashes, runtime and all bound files verified
-unchanged after execution, before docs. No runtime patch, source mutation or paid rerun.
+The [reading/formula factorial](benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
+ran on clean `ff36d19e`: four synthetic questions x four conditions x three samples.
+Semantic correct: current **9/12**, current+formula **9/12**, minimum **12/12**,
+minimum+formula **10/12**. All eight errors reverse the requested temporal direction;
+all 48 formulas pass positive-input contrasts. Current runtime accepts 10/12 and 12/12;
+minimum checks confer no V2 authority. Two current drafts also violate input ownership.
+Wrong rationales explicitly prefer conventional chronology to the requested direction.
+Formula addition shows no benefit; minimum is promising but jointly changes prompt,
+plan exposure and schema. Four questions, not 48 independent questions or general proof.
+Generation/count 48/48, live retries/errors 0; estimate USD 0.74502 + count contingency
+2.88 = accounted 3.62502 < 4.00, not invoice. User delegated this bounded experiment.
+Manifest `2f4535a1...75cb3` consumed; 51 pre-call and six offline-review tests passed.
+Two identical SDK rehearsals match actual requests; runtime/bound predecessors unchanged.
+The earlier [plan-hint A/B](benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
+retains structural 4/4, original/neutral semantic 2/2 and 1/2; no hint clearing.
+Its consumed `045a3eb5...dfe53` and historical same-input response variation stay preserved.
 The [preceding comparison probe](benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
 retains 3/4 correct directions, including the original reverse error after an ownership
 retry; both explicit-reference controls were correct. `b2a68ca0...ff0f0` remains consumed.
@@ -129,11 +129,11 @@ older fixture/source/result limitations.
 
 ## Next work and hard stops
 
-1. [Minimum/current reading baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
-   prepares five synthetic pairs / ten conditions, including physical-row mirrors.
-   Twelve diagnostic + 41 focused tests pass; two socket-blocked captures are identical.
-   Authored replies only; minimum ID/arithmetic checks do not replace production V2.
-   Next assess first-response consistency under a new bounded admission, not hint clearing.
+1. Separate plan/instruction exposure from output-schema burden in provider-free
+   intermediate inputs, keeping one factor fixed. Do not replace production V2 or
+   force a formula based on the bounded factorial. No extra paid expansion was run.
+   The [baseline](benchmarks/results/comparison_reading_baseline_2026-09-15/README.md)
+   retains untested row-mirror/equal-value/Korean model controls and authored contracts.
 2. No arithmetic defect or general instruction-only remedy was established.
    Context-rich model accuracy and current full-agent acceptance remain unmeasured.
    Further provider work requires a new bounded successor, never a consumed manifest.

@@ -8466,3 +8466,37 @@ References:
   no-call; production retries stay a separate measure. No real-DART/Planner/signs/
   full-agent/unseen/general-accuracy claim, and no production hint clearing.
 - [Diagnostic source/input review and local contracts](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md).
+
+## 2026-09-15 — Reading interface x named-formula aid, delegated bounded run
+
+- User delegated design/execution without another approval. New consumed manifest
+  `2f4535a1fc6a802e6546b7fd4e0c53600d4a87df57084fb98a08f6b398375cb3`,
+  clean `ff36d19e`, Gemini 2.5 Pro, USD 4.00 cap. No earlier approval was reused.
+- Four frozen anonymous temporal/named forward/reverse questions; four conditions
+  (current, current+formula, minimum, minimum+formula), three independent first-response
+  samples each. Balanced within-case order; 48 generations/counts, no cross-call answers,
+  compiler/SDK/runner retry 0. Not 48 independent questions or an unseen holdout.
+- Formula treatment appends the same generic positive-quantity equation only; SDK
+  body comparisons confirm no other difference within each interface. It does not
+  assign endpoints or replace the original current prompt's generic formula examples.
+- Separate semantic review: A 9/12, B 9/12, C 12/12, D 10/12. Temporal reverse alone
+  is 0/3, 0/3, 3/3, 1/3; all remaining cases 3/3. Every wrong result is -20% instead
+  of +25%. All 48 formulas pass positive-input contrasts; JSON/schema/visible refs 48/48.
+- Wrong final rationales explicitly prefer conventional previous-to-current chronology
+  over the requested reverse direction. This observes output behavior, not hidden thought.
+  Current runtime accepts 10/12 and 12/12: two A drafts additionally swap input ownership.
+  First-response offline replay records the need for repair without sampling that repair.
+  Minimum checks are diagnostic and confer no production V2 authority.
+- No formula-addition benefit observed. Minimum's improvement is a joint prompt/plan/
+  schema intervention, not proof of a particular field or general model superiority.
+  No runtime patch, formula forcing, target clearing, evaluator relaxation or paid expansion.
+- Generation estimate USD 0.74502000, count contingency USD 2.88, accounted USD
+  3.62502000; no invoice/count tariff claim. Input 136,224; output+thinking 57,474;
+  sequential count+generation time 540.895s. API/parsing errors 0; heartbeat every 30s.
+- 4 design + 12 baseline + 35 focused tests preceded generation. Six offline-review
+  tests verify arithmetic variants, equal-value wrong-subject rejection and real source
+  gates. Two separate SDK rehearsals identical (`0f2ab00d...3a6f1de`), and all actual
+  request hashes/count inputs match. Blocked-socket rehearsals emitted an asyncio cleanup
+  warning on exit 0; live calls did not fail. Runtime and predecessor hashes verified
+  before docs. Store/dataset/embedding/Planner/retrieval/OpenAI/judge mutations/calls 0.
+- [Results, interpretation and raw responses](../../benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md).
