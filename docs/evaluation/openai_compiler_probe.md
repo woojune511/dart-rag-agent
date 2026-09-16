@@ -3,7 +3,8 @@
 Two separately approved trials executed on 2026-09-16, each with a USD 6 cap.
 The six-case Compiler trial passes all 12 frozen outputs. Fresh full-agent integration
 completes 2/3 real questions, with 5/6 planned outputs accepted and no API/runtime
-errors; a numeric candidate-exposure gap remains. Google stays the default provider.
+errors. Its numeric exposure gap is fixed locally; a new USD 7 capped admission
+is prepared but unexecuted. Google stays the default provider.
 
 The current `FinancialAgent` factory supports an explicit `openai` route with
 output/retry limits, reasoning effort, endpoint mode, storage, tier, timeout and
@@ -158,3 +159,25 @@ The paid result above remains 2/3 complete. Further live validation needs a new
 approved manifest/cost cap and must account for the larger numeric input.
 Eight anonymous exposure contracts and focused 101 tests pass; full Python 3.13
 unittest **1,815/1,815**, no skips (47.747s), audit 83 and import/topology/docs pass.
+
+## Prepared exposure successor
+
+The [new admission packet](../../benchmarks/results/openai_compiler_exposure_admission_2026-09-16_v2/PREPARED.md)
+keeps the same three questions, source stores, models, generation controls and call
+limits. Runtime source matches the tested `96dcf198` fingerprint. Ten packet checks
+pass and two separate-process no-call SDK/runner receipts are byte-identical;
+270 predecessor/input files and both original stores are preserved. No paid call,
+new answer, fresh ingest, document embedding, or default change occurred.
+
+Actual SDK serialization of the recorded independent first-island inputs gives
+77,809 to 114,063 canonical UTF-8 bytes for the numeric request. Its reservation
+increases by USD 0.453175; all four narrative request hashes match the paid run.
+Five first-request reservations total USD 5.4372125. Adding historical Google/query
+embedding usage (USD 0.03165004) and the maximum count allowance (USD 0.72) gives
+USD 6.18886254, so the proposed shared cap is **USD 7**. This mixes reservations
+with labeled historical usage for sizing, not a future cost prediction or bill.
+Fresh plans/retrieval and any permitted repair may change inputs; every call still
+requires a reservation within the remaining shared cap, with no automatic rerun.
+The original USD 6 preparation draft is retained as unexecuted sizing evidence.
+Offline saved-input sizing is excluded from live reads. Separate approval of the
+new immutable manifest and cost cap remains required before the single run.

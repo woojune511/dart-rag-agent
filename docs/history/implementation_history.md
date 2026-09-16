@@ -13126,3 +13126,23 @@ are complete. It remains only as an audit record, not an active priority.
   gate. Original paid answers/manifests remain consumed and unchanged; Google
   remains the default. No new paid manifest or run was prepared.
 - [Offline diagnosis, comparison and validation](../../benchmarks/results/candidate_exposure_offline_2026-09-16/RESULTS.md).
+
+## 2026-09-16 — Exposure successor preparation without provider calls
+
+- Prepared a new store-fixed full-agent admission with the same three questions,
+  source criteria, models and call caps; runtime source is unchanged from tested
+  `96dcf198`. The prepared artifact remains separate from consumed manifests.
+- Reconstructed original catalog/plan serialization to capture all five first
+  SDK request bodies without a response. Four narrative hashes match the prior
+  paid run; numeric body 77,809 to 114,063 bytes, reservation +USD 0.453175.
+- Proposed USD 7 shared cap after the saved-input first-request reservations,
+  historical other-provider usage and maximum count allowance total USD 6.18886254.
+  This is a sizing scenario, not measured future tokens/cost or guaranteed completion.
+  The superseded USD 6 draft is retained without a finalized manifest or paid call.
+- Ten packet checks pass; two separate-process no-call SDK/runner rehearsals are
+  byte-identical. Both original stores and 270 predecessor/input files are preserved.
+  Existing 1,815-test runtime evidence is reused with a matching source fingerprint;
+  no full-suite rerun or new model-quality claim. Live generation cannot read the
+  saved-input sizing, source review criteria, prior answers or authored witnesses.
+- [Prepared exact-manifest/cost approval packet](../../benchmarks/results/openai_compiler_exposure_admission_2026-09-16_v2/PREPARED.md).
+  Provider calls 0; separate approval is still required for its single execution.
