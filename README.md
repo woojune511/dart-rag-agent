@@ -145,7 +145,8 @@ Optional deep dives:
 ## Run the API
 
 The full profile is needed for ingest, Chroma, the API, benchmarks, and the full
-test suite. Provider selection also depends on the configured API keys.
+test suite. Application LLM routing is selected by `DART_LLM_PROFILE`; API keys
+provide credentials rather than selecting a model automatically.
 `.python-version` declares Python 3.13 as the repository reference line, and a
 contract test keeps the workflow's Python literals aligned with it. Python 3.14
 is not the publication gate and the current
@@ -157,6 +158,23 @@ uv run --with-requirements requirements.txt python -m unittest discover -s tests
 ```
 
 Swagger UI is available at `http://localhost:8000/docs`.
+
+For the reviewed OpenAI Compiler route, add this setting to the project `.env`
+or process environment, then restart FastAPI or Streamlit:
+
+```dotenv
+DART_LLM_PROFILE=openai_compiler
+```
+
+Both entrypoints share this configuration. Only program compilation uses
+`gpt-6-astra` through Responses: medium reasoning, at most 5,120 output tokens,
+90-second timeout, `store=false`, standard service tier and zero SDK retries.
+Routing, planning and ingestion keep the existing Google route, so both
+`GOOGLE_API_KEY` and `OPENAI_API_KEY` are needed. An unset/blank profile or
+`DART_LLM_PROFILE=google` preserves the previous defaults; unknown profiles
+fail startup instead of silently selecting another provider. Process settings
+override `.env`. The profile sets request options, not a total spending cap.
+See the [Compiler validation and its limits](docs/evaluation/openai_compiler_probe.md).
 
 The API requires an exact `StoreManifestV1` match before serving queries.
 Missing or mismatched stores return 503 and are never adopted automatically;

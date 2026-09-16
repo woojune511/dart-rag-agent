@@ -11,6 +11,7 @@
 | --- | --- |
 | `main.py` | FastAPI lifespan과 환경 기반 CORS |
 | `src/api/services.py` | `AppServices`, strict readiness, dependency assembly |
+| `src/config/llm_profiles.py` | reviewed opt-in application LLM routes; shared API/Streamlit profile selection, no benchmark inputs or credentials |
 | `src/api/financial_router.py` | HTTP schema, readiness gate, threadpool dispatch |
 | `src/agent/financial_graph.py` | `FinancialAgent`, explicit phase inputs/provider controls, final assembly then ledger; run packages only |
 | `src/agent/financial_graph_state.py` | concrete phase input/output TypedDicts and `FinancialAgentStateV2` |

@@ -11,6 +11,7 @@ from pathlib import Path
 import threading
 from typing import Any, Dict, Iterator, Mapping, Optional
 
+from src.config.llm_profiles import app_llm_routing_config
 from src.storage.store_manifest import (
     StoreManifestV1,
     StoreReadiness,
@@ -24,6 +25,7 @@ _APP_SETTING_NAMES = (
     "CONTEXTUAL_INGEST_MAX_WORKERS",
     "DART_ALLOW_DEGRADED_BM25_ONLY",
     "DART_CORS_ALLOW_ORIGINS",
+    "DART_LLM_PROFILE",
     "DART_REPORTS_PATH",
     "DART_STORE_PATH",
 )
@@ -152,6 +154,7 @@ def build_app_services(
     root = project_root or Path(__file__).resolve().parents[2]
     load_dotenv(root / ".env")
     settings: Mapping[str, str] = resolve_app_settings(root)
+    routing_config = app_llm_routing_config(settings.get("DART_LLM_PROFILE", ""))
 
     from src.agent.financial_graph import FinancialAgent
     from src.ingestion.context_generator import ContextGenerator
@@ -191,6 +194,14 @@ def build_app_services(
     if not may_initialize:
         return services
 
+    compiler_route = routing_config.get("llm_routes", {}).get("program_compilation", {})
+    if (
+        compiler_route.get("provider") == "openai"
+        and not os.environ.get("OPENAI_API_KEY", "").strip()
+    ):
+        # Reject a missing compiler credential before store/query-router startup.
+        raise ValueError("OPENAI_API_KEY is required for DART_LLM_PROFILE=openai_compiler.")
+
     force_bm25_only = bool(
         allow_degraded
         and initial.status != "compatible"
@@ -204,7 +215,7 @@ def build_app_services(
         allow_query_embedding_fallback=allow_degraded,
         force_bm25_only=force_bm25_only,
     )
-    agent = FinancialAgent(store, k=8)
+    agent = FinancialAgent(store, k=8, routing_config=routing_config)
     context_generator = ContextGenerator(agent.llm, store)
     parser = FinancialParser(
         chunk_size=expected.ingest.chunk_size,

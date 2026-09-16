@@ -273,3 +273,28 @@ Fresh plans and retrieval differ, so this is not an isolated causal model/patch 
 Google remains the default and routing/planning provider. Next: normal-entrypoint
 OpenAI Compiler configuration and broader independent regression coverage before
 any default promotion; no automatic paid rerun or consumed-manifest reuse.
+
+## Application profile wiring (provider-free)
+
+[Normal API/Streamlit configuration](../../README.md#run-the-api) now selects the
+reviewed Compiler route through `DART_LLM_PROFILE=openai_compiler`. The shared
+service builder forwards this named profile to `FinancialAgent`; routing/planning
+and contextual ingestion retain the Google default. The profile does not import
+any frozen benchmark input or install its shared cost/call admission. Unknown
+profiles and missing Compiler keys fail before store/query-router startup when
+initialization is otherwise allowed. Unselected/blank/`google` preserves defaults;
+process environment overrides `.env`. Local activation only appended the profile
+setting; previous settings and credential bytes were preserved.
+
+A real FastAPI lifespan test also reproduced and fixed project-path shadowing by
+the nested root endpoint. [No-call validation](../../benchmarks/results/app_openai_profile_no_call_2026-09-16/RESULTS.md)
+passes **1,838/1,838**, no skips (53.600s), with nine new profile tests, external
+network blocked and zero external connection attempts. Audit 83, import/topology/
+docs, pycompile and diff checks pass. Actual SDK serialization and no-transport-
+retry behavior are exercised using authored responses and mocked storage/routing.
+This changes no historical paid result and does not certify a new live answer.
+
+No server, fresh ingest or provider run was started. Read-only default-store
+manifest readiness is `mismatch`; the next normal-entrypoint smoke run needs a
+verified disposable store copy. Original source stores and frozen results remain
+unchanged. Remaining Google phases and independent question coverage are pending.
