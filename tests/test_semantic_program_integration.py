@@ -495,7 +495,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 "obligations": [
                     {"request_unit_ids": ["request_001"],
                         "obligation_id": "share",
-                        "kind": "direct_value",
+                        "kind": "derived_value",
                         "label": "target venture ownership share",
                         "scope": {
                             "period": "2024",

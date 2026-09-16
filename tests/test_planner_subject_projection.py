@@ -4,6 +4,7 @@ Names are anonymous. Authored source-link witnesses test transport, not a model'
 ability to distinguish names, groups or free scope descriptions.
 """
 from copy import deepcopy
+from itertools import product
 import json
 import unittest
 
@@ -70,15 +71,19 @@ class PlannerSubjectProjectionTests(unittest.TestCase):
             self.assertIn(instruction, prompt)
 
     def test_named_identity_and_full_request_conditions_survive_both_owner_levels(self):
-        for subject, wrapper in (("Aster", "division"), ("Birch", "unit"), ("별빛", "부문")):
-            with self.subTest(subject=subject):
+        for kind, (subject, wrapper) in product(("direct_value", "derived_value"),
+                (("Aster", "division"), ("Birch", "unit"), ("별빛", "부문"))):
+            with self.subTest(kind=kind, subject=subject):
                 query = f"Return 2042 quantity for the {subject} {wrapper}; use the Northern area and exclude transfers."
                 target = {"local_subjects": [subject], "metric_surfaces": ["quantity"]}
-                raw = authored_owner([subject], scope={"segment": "Northern", "basis": "excluding transfers"},
-                    requirements=[{"requirement_id": "raw-input", "label": "Quantity", "semantic_target": target}])
+                requirements = ([{"requirement_id": "raw-input", "label": "Quantity", "semantic_target": target}]
+                    if kind == "derived_value" else [])
+                raw = authored_owner([subject], kind=kind, scope={"segment": "Northern", "basis": "excluding transfers"},
+                    requirements=requirements)
                 result, llm = plan(query, [raw])
                 owner = result["answer_obligations"][0]
-                for item in (owner, owner["evidence_requirements"][0]):
+                self.assertEqual(len(owner["evidence_requirements"]), len(requirements))
+                for item in (owner, *owner["evidence_requirements"]):
                     self.assertEqual(item["semantic_target"]["local_subjects"], [subject])
                     self.assertEqual(item["scope"]["segment"], "Northern")
                     self.assertEqual(item["scope"]["basis"], "excluding transfers")

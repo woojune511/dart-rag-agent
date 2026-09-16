@@ -5,6 +5,28 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Direct lookup Planner evidence boundary (2026-09-17)
+
+- Baseline `f0d7fb5a`: the saved cash-balance answer had a correct source binding
+  but partial status because Planner attached child inputs to a direct output.
+  Generation admitted this shape while the final validator already rejected it.
+- Direct/derived/narrative generation branches now require an empty direct-input
+  list, retaining lookup subject/scope/hints on the output. Planning diagnostics and
+  island preflight preserve invalid historical rows and block their whole dependent
+  component with `repair_requirements`; independent valid outputs continue.
+  Final source/program validation, arithmetic, units and rendering stay unchanged.
+- Six new contracts plus real-SDK strict-schema checks pass. Two old authored scope
+  fixtures now use valid calculations when declaring inputs; direct and derived
+  subject/scope preservation remain tested without weakening assertions.
+  Focused 164, scope regression 44, import/topology/docs 24, audit 83, full unittest
+  **1,873/1,873**, no skips (52.591s), pycompile and diff checks pass. External
+  connection attempts/provider calls 0; no fresh ingest or configuration change.
+- [Frozen-source replay](../../benchmarks/results/direct_lookup_contract_2026-09-17/RESULTS.md)
+  preserves catalog/program hashes, original direct/context proofs and all 659
+  protected predecessor files. An authored valid-plan copy is not a new model answer;
+  the sampled paid result remains 2/3 complete with the cash lookup partial.
+  Requested fixed decimal presentation remains a separate pending seam.
+
 ## Narrative Planner unit generation boundary (2026-09-17)
 
 - Baseline clean `243bddf2`: the saved normal-application Planner put presentation

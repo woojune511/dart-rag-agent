@@ -307,7 +307,7 @@ class AppLLMProfileTests(unittest.TestCase):
         self.assertEqual(schema["type"], "object")
         self.assertNotIn("anyOf", schema)
         branches = schema["properties"]["obligations"]["items"]["anyOf"]
-        self.assertEqual(len(branches), 2)
+        self.assertEqual(len(branches), 3)
         for branch in branches:
             nested = schema["$defs"][branch["$ref"].rsplit("/", 1)[1]]
             self.assertEqual(set(nested["required"]), set(nested["properties"]))
@@ -317,6 +317,12 @@ class AppLLMProfileTests(unittest.TestCase):
         validator.validate(payload)
         payload["obligations"][0]["display_unit"] = "text"
         self.assertFalse(validator.is_valid(payload))
+        payload = values[1].model_dump()
+        payload["obligations"][1]["evidence_requirements"] = payload["obligations"][0]["evidence_requirements"]
+        self.assertFalse(validator.is_valid(payload))
+        direct_branch = next(schema["$defs"][branch["$ref"].rsplit("/", 1)[1]] for branch in branches
+            if schema["$defs"][branch["$ref"].rsplit("/", 1)[1]]["properties"]["kind"].get("const") == "direct_value")
+        self.assertEqual(direct_branch["properties"]["evidence_requirements"]["maxItems"], 0)
         self.google_factory.assert_not_called()
 
     def test_full_openai_failure_does_not_retry_or_create_google_client(self):

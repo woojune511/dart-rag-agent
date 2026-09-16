@@ -126,6 +126,13 @@ def build_semantic_compilation_islands(
         errors_by_id[section_error["obligation_id"]].append(section_error)
     dependency_edges: List[tuple[str, str]] = []
     for obligation_id, obligation in obligation_by_id.items():
+        if obligation.get("kind") == "direct_value" and obligation.get("evidence_requirements"):
+            errors_by_id[obligation_id].append({
+                "code": "evidence_requirement_on_unsupported_obligation", "obligation_id": obligation_id,
+                "owner_id": obligation_id, "candidate_id": "",
+                "location": "obligation.evidence_requirements", "repair_action": "repair_requirements",
+                "detail": "",
+            })
         declared_unit = _normalise_spaces(str(obligation.get("display_unit") or ""))
         if declared_unit and declared_unit.upper() != "UNKNOWN" and resolve_unit_spec(declared_unit) is None:
             errors_by_id[obligation_id].append({

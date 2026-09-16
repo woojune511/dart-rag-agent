@@ -356,6 +356,13 @@ class FinancialAgentPlanningMixin:
         obligations: List[Dict[str, Any]] = []
         for index, obligation in enumerate(raw_obligations, start=1):
             stable_id = f"ob_{index:03d}"
+            if obligation.get("kind") == "direct_value" and obligation.get("evidence_requirements"):
+                requirement_errors.append({
+                    "code": "evidence_requirement_on_unsupported_obligation", "obligation_id": stable_id,
+                    "owner_id": stable_id, "candidate_id": "",
+                    "location": "obligation.evidence_requirements", "repair_action": "repair_requirements",
+                    "detail": "",
+                })
             declared_unit = _normalise_spaces(str(obligation.get("display_unit") or ""))
             if declared_unit and declared_unit.upper() != "UNKNOWN" and resolve_unit_spec(declared_unit) is None:
                 requirement_errors.append({

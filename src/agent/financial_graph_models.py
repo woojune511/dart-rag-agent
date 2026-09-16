@@ -253,6 +253,25 @@ class NumericAnswerObligation(AnswerObligation):
     kind: Literal["direct_value", "derived_value"]
 
 
+class DirectValueAnswerObligation(NumericAnswerObligation):
+    """A source lookup is its own evidence owner, without calculation inputs."""
+
+    kind: Literal["direct_value"]
+    evidence_mode: Literal["declared_inputs"] = "declared_inputs"
+    evidence_requirements: List[EvidenceRequirement] = Field(
+        default_factory=list, max_length=0, description=(
+            "Always empty for direct_value. The output itself owns the source lookup; "
+            "preserve its requested subject, scope and retrieval hints on this obligation."
+        ),
+    )
+
+
+class DerivedValueAnswerObligation(NumericAnswerObligation):
+    """A calculation may declare the evidence inputs its formula requires."""
+
+    kind: Literal["derived_value"]
+
+
 class NarrativeAnswerObligation(AnswerObligation):
     """A narrative's presentation is not a scalar measurement unit."""
 
@@ -273,7 +292,7 @@ class RequirementPlannerOutput(_DeferredBaseModel):
     output_relationships: List[OutputRelationshipV1] = Field(default_factory=list)
     topic: str = ""
     section_filter: Optional[str] = None
-    obligations: List[Union[NumericAnswerObligation, NarrativeAnswerObligation]] = Field(default_factory=list)
+    obligations: List[Union[DirectValueAnswerObligation, DerivedValueAnswerObligation, NarrativeAnswerObligation]] = Field(default_factory=list)
     retrieval_queries: List[str] = Field(default_factory=list)
     rationale: str = ""
 

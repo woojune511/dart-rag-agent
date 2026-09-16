@@ -206,9 +206,9 @@ Runtime completeness is **2/3**, with one partial; all frozen criteria pass for
   and preserve explicit timing, report-as-of reach and aspirational platform wording.
 
 Anonymous offline controls reproduce the two contract/presentation gaps without
-external connections or source edits. Next: align direct-value Planner/preflight
-with the existing strict requirement contract, then address requested decimal
-precision separately. Do not weaken validation, add question-specific rules,
+external connections or source edits. The direct-value correction below aligns
+Planner/preflight with the existing strict requirement contract; requested decimal
+precision remains separate. Do not weaken validation, add question-specific rules,
 rewrite old answers or treat this as an automatic paid-rerun authorization.
 
 New `5a7767e2...b376d` consumed once after identical SDK and full-wrapper rehearsals.
@@ -220,3 +220,27 @@ reservations **4.03783214** under shared USD 7; pending 0, not observed billing.
 All 618 protected predecessor files and original source bytes remain unchanged;
 read-only logical source tables match the working copy. These newly authored but
 source-reviewed questions are not unseen holdout or a general release gate.
+
+## Direct lookup contract correction (2026-09-17)
+
+The [provider-free correction](../../benchmarks/results/direct_lookup_contract_2026-09-17/RESULTS.md)
+separates direct/derived/narrative Planner branches. A direct lookup owns its source
+selection on the output and requires an empty child-input list. Subject, scope,
+request and retrieval hints remain intact; derived/narrative inputs remain allowed.
+Preflight preserves malformed old plans and blocks their dependent component
+before Compiler calls, without retrying or excluding source candidates. Independent
+valid outputs continue. The existing final source/program validator is unchanged.
+
+Six new contracts, real SDK strict-schema serialization and anonymous execution
+pass; array length constraints follow [official Structured Outputs support](https://developers.openai.com/api/docs/guides/structured-outputs#supported-properties).
+Full unittest **1,873/1,873**, no skips (52.591s), focused 164, scope regression 44,
+audit 83 and import/topology/docs 24 pass with external networking blocked and
+attempted connections/provider calls 0. Two historical authored scope fixtures
+were made structurally valid while retaining their original assertions and direct
+scope coverage. Frozen catalog/program hashes, source proofs and 659 protected
+predecessor files remain unchanged. No original store writes or consumed admission reuse.
+
+This does not alter the preceding paid partial cash answer or prove live provider
+acceptance/answer quality for the new schema. Next: explicit fixed-decimal
+presentation, with arithmetic and source display provenance preserved; fresh
+provider verification of corrected contracts remains a separate bounded run.
