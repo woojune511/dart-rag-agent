@@ -12,6 +12,29 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Formula-step compiler: generation admission failure (2026-09-16)
+
+- Approved `e2dc8c1e0cfa13e9954a4f50a520f25f829e872ea2cd6266d41e3414ebf626dd`
+  consumed once on clean `6e25dedb` (runtime `8fe84445`), same six known synthetic
+  inputs/criteria, Gemini 2.5 Pro, USD 0.80 cap, all retries zero.
+- [Result](../../benchmarks/results/formula_steps_compiler_2026-09-16/RESULTS.md):
+  first token count succeeded, 6,644 tokens; first generation returned HTTP 400
+  INVALID_ARGUMENT. Five remaining cases not attempted under the provider-error
+  stop rule. No model response and no syntax/semantic/runtime/ledger assessment;
+  do not record this as six incorrect answers or compare accuracy with prior 4/6.
+- Both transmitted bodies and schema field order match the immutable SDK receipts.
+  Non-schema generation settings match the prior run. The safe error projection
+  retains codes, not the detailed provider message; exact invalid-field/server
+  cause is unknown. Schema compatibility is a follow-up target, not a proven cause.
+- Failed generation usage unknown: retained reservation USD 0.059505 plus count
+  contingency 0.06 gives accounted USD 0.119505 < 0.80, pending 0. Not actual billing.
+  No further call, JSON reconstruction, runtime/store/embedding/OpenAI change.
+- Original clean-HEAD verification passed for 167 runtime files, 41 dependencies,
+  11 packet files and all 32 protected predecessor files. Local reviewer made no
+  calls; artifacts stay uncommitted. Local/schema/count checks did not establish
+  generation acceptance. Investigate that boundary and credential-safe diagnostic
+  capture before another immutable, separately approved request.
+
 ## Inline request operands: approved first-response run (2026-09-16)
 
 - Approved `950de7e78b8d57b88bed729453587058be12d52db5703564f85bf8130fe53ae1`,
