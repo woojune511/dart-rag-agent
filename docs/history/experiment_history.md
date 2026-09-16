@@ -12,6 +12,14 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Fresh normal OpenAI quality check after period correction (2026-09-17)
+
+- Runtime clean `10ee083d`; [three fixed questions](../../benchmarks/results/period_quality_v2_2026-09-17/RESULTS.md), one regression and two newly authored/source-reviewed cases. Real normal ASGI app/shared services, unchanged OpenAI routes and existing NAVER working copy. HTTP 200 for 3/3, ledger ok for 3/3, but **1/3 whole questions complete and 2/4 outputs accepted**.
+- Commerce growth now uses exact attached `당기`/`전기` proofs as 2023/2022 and returns 41.3957043439745% → 41.4%. New consolidated 2023 operating cash flow less PPE outflow returns 1,361,609,576,268 KRW with correct sign/period/unit/source. Both numeric outputs pass assistant source review; fresh plans/retrieval do not isolate the prompt change.
+- Acquisition-impact and cloud-AI narratives were never compiled: Planner `display_unit` values `text` and `서술` trigger `invalid_obligation_unit` in their islands. Relevant sources were retrieved, but no narrative semantic quality result exists. Next seam: generic narrative-unit Planner/schema contract; preserve strict numeric-unit validation and avoid case-specific aliases or answer backfill.
+- Original packet `5e86d4b8...406b86` failed before question execution and before HTTP transmission on caller log argument collision. One dispatch-intent marker and USD 0.00022958 reservation were retained; not API/model failure or observed billing. Original inputs remain untouched. Successor `a1b7ef41...300a0` fixes caller logging and additionally tests the actual three-query loop and terminal-stop path with mock HTTP, alongside identical SDK rehearsals and cost/no-retry checks.
+- Successor 56/56 requests completed: Terra 6, Astra 2, embeddings 48; no Google/context calls or SDK/whole-question/Compiler retry. USD 0.82543298 usage estimate; USD 0.82566256 including prior local reservation, peak including reservation 1.75520537 within shared USD 7, not invoice. All 528 protected files preserved; read-only logical tables still 1,872 source/59,477 metadata rows. No fresh ingest, original-store mutation or production code change during the packets.
+
 ## Relative-period contract correction without provider calls (2026-09-17)
 
 - Baseline `d3c6f6ed`; [local reconstruction](../../benchmarks/results/relative_period_contract_2026-09-17/RESULTS.md) reads original source sidecars and immutable normal-app results without opening a store client. Both visible numeric cells retain exact attached current/prior quotes; existing source proofs resolve 2023/2022 unchanged.

@@ -103,5 +103,34 @@ initial/retry prompts and execution; blocked external connection attempts 0.
 All 494 protected files, catalog/payload/cohort hashes and historical source proofs
 remain unchanged. The actual sampled missing response remains missing. This proves
 the local contract correction, not a live completion improvement or isolated cause
-of the historical abstention. Next is a fresh bounded quality check and independent
-question coverage; consumed admissions remain unusable.
+of the historical abstention. The separate live successor below tests the corrected
+contract with fresh plans; consumed admissions remain unusable.
+
+## Fresh three-question application verification (2026-09-17)
+
+The [normal-app successor](../../benchmarks/results/period_quality_v2_2026-09-17/RESULTS.md)
+used clean `10ee083d` and three fixed questions through real ASGI/shared services.
+All returned HTTP 200, but only **1/3 questions and 2/4 requested outputs** completed.
+
+- The known Commerce question now calculates **41.4%** using the unchanged exact
+  current/prior context proofs for 2023/2022. Its acquisition explanation is missing.
+- A new consolidated cash-flow question returns **1,361,609,576,268 KRW** after
+  subtracting the PPE acquisition outflow magnitude; source signs/period/units pass review.
+- A new cloud AI strategy question returns no explanation. Both narrative outputs
+  were blocked before Compiler dispatch by `invalid_obligation_unit`: Planner wrote
+  `text` and `서술` into `display_unit`. Related sources were retrieved; narrative
+  faithfulness/completeness remain untested, not failed model-writing samples.
+
+Next: the generic narrative display-unit Planner/schema contract, preserving strict
+numeric-unit validation. Do not introduce unit-name exceptions or backfill answers.
+Fresh plans/retrieval prevent isolated prompt/model attribution; these are two new
+source-reviewed questions, not unseen holdout or a release gate.
+
+New `a1b7ef41...300a0` consumed once after identical SDK rehearsals and full caller
+success/failure controls. All 56 provider requests completed: Terra 6, Astra 2,
+embeddings 48; Google/context calls and SDK/whole-query/Compiler retries 0.
+Usage estimate USD 0.82543298; with the predecessor's local reservation,
+USD 0.82566256 accounted within the shared USD 7 limit, not billed cost.
+The predecessor failed in caller logging before any HTTP transmission or question;
+its consumed manifest/result remain preserved. All 528 protected files and logical
+source tables pass; no production source changes, fresh ingestion or original-store writes.
