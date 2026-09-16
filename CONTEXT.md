@@ -120,7 +120,7 @@ outputs are byte-identical. All source/response bytes and first prompt/schema/vi
 IDs are unchanged. No new model sample, semantic repair, paid retry-reduction claim
 or retroactive correction of the paid result above.
 
-The latest historical [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
+The preceding Google [full-agent result](benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
 remains 2/3 complete, 3/5 outputs accepted on `054c6b22`; its admission
 `af784682...a8f0` is consumed. The [fixed-plan compiler result](benchmarks/results/narrative_address_compiler_2026-09-14/RESULTS.md)
 remains 9/9 structurally complete, not current-build or unseen-question evidence.
@@ -133,10 +133,10 @@ older fixture/source/result limitations.
 1. [OpenAI Compiler trial](docs/evaluation/openai_compiler_probe.md) completed on clean `3354fbc9`; Google remains the default. GPT-6 Astra returned all six first responses: API/parsing errors 0, strict/original schema 6/6, unchanged runtime and ledger 6/6. All 12 outputs pass the frozen source, finite-formula, display, value and unit checks.
    Current Python 3.13 provider-free full unittest **1,807/1,807**, no skips (51.415s); mixed-provider focused 46 and new packet checks 7 pass. The new opt-in guard binds fresh Compiler requests to the approved active question/phase and shares Google/count/embedding accounting; the earlier exact-body guard stays strict.
    [Six-case results](benchmarks/results/openai_compiler_preparation_2026-09-16/RESULTS.md) retain the frozen anonymous inputs/criteria and original replies. Approved manifest `8144726f...6273d3` is consumed; all sent hashes match the rehearsals, 169 runtime files, nine frozen packet files and 67 protected predecessor files verified before documentation changes. Offline review made no provider calls or repairs.
-   Prior six-case usage: input 53,677/output 5,352, accounted USD 0.9385625, mean 14.88s, invoice unobserved. The [three-real-question full-agent successor](benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/) is prepared: only Compiler switches, fresh planning/retrieval, verified store copies; two no-call receipts identical. Proposed shared USD 6 cap, SDK/run retries 0, existing Compiler repair at most once/island within 12 Responses. Exact new manifest/cost approval remains; paid successor calls 0. No general availability, unseen accuracy or default promotion claim.
+   The approved [three-real-question full-agent run](benchmarks/results/openai_compiler_full_agent_2026-09-16/RESULTS.md) on clean `5dbcdb0c` is **2/3 complete, 5/6 outputs accepted**; API/runtime errors 0, ledger 3/3, Compiler calls 5/repairs 0. Manifest `9a85a367...f2f0d` consumed; shared accounting USD 1.59127504/6 including 0.36 count contingency, not invoice. Fresh planning/retrieval and verified copies; 29 accepted support occurrences match stored source. The 509-candidate catalog contains Commerce amounts, but exposure sends only total-revenue alternatives; Compiler appropriately abstains locally while the growth request remains incomplete. Exact ranking subcause is open. Runtime/packet/protected/store hashes verified before docs; no default promotion.
    The consumed [Google formula-step run](benchmarks/results/formula_steps_compiler_2026-09-16/RESULTS.md) remains first generation HTTP 400, no model response, five unattempted. Its exact cause is unknown. The earlier inline-operand run remains 4/6 with two punctuation failures. Neither history nor original artifacts are rewritten.
 2. Structural output constraints are not a remedy for semantic direction errors.
-   Context-rich model accuracy and current full-agent acceptance remain unmeasured.
+   Next: provider-free candidate/bundle exposure diagnosis with anonymous total/segment and row/column controls; preserve source eligibility. The known three-question run is not unseen accuracy or release acceptance.
    Further provider work requires a new bounded successor, never a consumed manifest.
    No automatic paid retry, fresh ingest, store adoption/mutation,
    answer-key/tolerance change, or artifact commit.

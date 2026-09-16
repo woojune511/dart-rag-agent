@@ -8943,3 +8943,42 @@ References:
 - [Results, per-case answers and integrity receipt](../../benchmarks/results/openai_compiler_preparation_2026-09-16/RESULTS.md).
 - Post-run documentation/import/topology checks **24/24** passed (18.190s);
   documentation changes only, no new runtime modification or additional paid run.
+
+## 2026-09-16 — Approved OpenAI Compiler full-agent integration
+
+- Exact manifest `9a85a367a80f37ffdb213afa135e2d3fbe6e7e750e8460bbdce2a15fe14f2f0d`
+  consumed once after user approval, clean `5dbcdb0c`, shared USD 6 cap. Fresh
+  routing/planning/retrieval, verified disposable store copies, OpenAI only for
+  Compiler; no prior plans, answers or source-review criteria injected.
+- **2/3 complete, 5/6 planned outputs accepted**; API/runtime errors 0, ledger
+  3/3 ok, retrieval degraded 0. Compiler responses 5, repairs 0; two questions
+  use two separate islands. NAVER B2B/AI and Celltrion risk policies complete;
+  NAVER acquisition explanation accepted but Commerce growth calculation missing.
+- All 29 accepted subject/fact support occurrences match original documents or
+  table sidecars. Separate Codex source review applies the unchanged pre-fixed
+  criteria, not human gold. Schema-parsed Compiler snapshots, source/result JSON
+  and hashes preserved; no raw HTTP-response capture or repaired numeric answer.
+- Offline reconstruction matches both fingerprints of the live 509-candidate
+  catalog. Commerce amount pairs exist there, but no Commerce numeric cell reaches
+  the first Compiler island. Each year exposes total consolidated revenue instead;
+  the recorded numeric cohorts select those bundles. Compiler declines substitution
+  and discloses missing calculation. This bounds the failure to candidate exposure;
+  the exact ranking subcause is open. Overall incomplete, appropriate local abstention.
+- Calls: GPT-6 Astra 5, Gemini 2.5 Flash 6, embeddings 22, Google counts 6, all
+  39 completed. Astra input/output 76,758/4,803; Flash 39,433/7,729; embedding
+  input 3,828. Generation/embedding estimate USD 1.23127504 plus count contingency
+  0.36 = **1.59127504 < 6.00**; peak reserved 2.27336254, pending 0, not invoice.
+  Question latencies 53.22s, 63.02s, 49.53s; no SDK/run retry or budget denial.
+- Five sent Responses hashes match authorized current question/Compiler phases;
+  six count/generation bodies and counts match. Runtime 169, packet 16, protected
+  191 and original store 23 file hashes checked before documentation edits.
+  External sockets blocked for mechanical/source-review scripts; review provider calls 0.
+- Previous Google full-agent result remains 2/3, 3/5 on `054c6b22`. Fresh plans
+  here yield a different output denominator and code has changed: no controlled
+  model-improvement, unseen accuracy, release or default-promotion claim.
+- Next: provider-free candidate/bundle exposure diagnosis with anonymous total/
+  segment and row/column controls. No fresh ingest, store mutation, artifact commit,
+  automatic paid rerun or resumed manifest. Google remains the runtime default.
+- [Results, source review and exact exposure evidence](../../benchmarks/results/openai_compiler_full_agent_2026-09-16/RESULTS.md).
+- Post-run documentation/import/topology checks **24/24** passed (17.232s),
+  `git diff --check` passed. This turn changes result documentation only.

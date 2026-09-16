@@ -1,8 +1,9 @@
 # OpenAI compiler migration probe
 
-Executed on 2026-09-16 after approval of the exact six-case manifest and USD 6 cap.
-All six first responses pass API, strict schema and original execution checks;
-all 12 outputs match the frozen criteria. Google remains the default provider.
+Two separately approved trials executed on 2026-09-16, each with a USD 6 cap.
+The six-case Compiler trial passes all 12 frozen outputs. Fresh full-agent integration
+completes 2/3 real questions, with 5/6 planned outputs accepted and no API/runtime
+errors; a numeric candidate-exposure gap remains. Google stays the default provider.
 
 The current `FinancialAgent` factory supports an explicit `openai` route with
 output/retry limits, reasoning effort, endpoint mode, storage, tier, timeout and
@@ -86,12 +87,12 @@ Actual billing is unobserved. This is six known synthetic cases, one sample each
 it establishes acceptance for these requests, not general availability, unseen
 semantic accuracy or current full-agent performance. The prior Google HTTP 400
 has no model response and cannot be an accuracy denominator. No default promotion
-was included. Next: a bounded real-question/compiler integration evaluation with
-a new approved manifest, preserving the current inputs and consumed history.
+was included. The separately approved full-agent successor below preserves these
+inputs, criteria, responses and consumed history.
 
-## Prepared full-agent successor
+## Executed full-agent successor
 
-The [new three-question packet](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/)
+The [three-question packet](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/)
 keeps the existing NAVER and Celltrion questions and source-review criteria. Routing,
 planning and retrieval run fresh; only `program_compilation` changes to the OpenAI
 route above. Original stores are verified and copied; the default incomplete store
@@ -108,4 +109,31 @@ Python 3.13 full unittest **1,807/1,807**, no skips (51.415s); mixed-provider fo
 46 and packet checks 7 pass. Both store copies open and pass existing-vector probes.
 Separate SDK/runner no-call processes produce identical receipts. These checks do
 not measure live OpenAI narrative acceptance, fresh retrieval or full-agent accuracy.
-Paid execution awaits exact successor-manifest and cap approval; defaults remain Google.
+After user approval, manifest `9a85a367a80f37ffdb213afa135e2d3fbe6e7e750e8460bbdce2a15fe14f2f0d`
+was consumed once on clean `5dbcdb0c`. **2/3 questions complete, 5/6 outputs accepted**;
+API/runtime errors 0, all three ledgers `ok`, five parsed Compiler responses and no
+Compiler/SDK/run retry. NAVER B2B/AI strategy and Celltrion risk policies complete;
+NAVER acquisition impact is supported but its growth calculation is missing.
+All 29 accepted subject/fact support occurrences match immutable stored sources.
+Separate Codex source review uses the frozen criteria; this is not human gold.
+
+Offline reconstruction matches the live 509-candidate catalog's ID/content hashes.
+Commerce current/prior amounts are present, but each numeric input exposes only
+total consolidated revenue alternatives. The Compiler declines those substitutes
+and discloses the missing calculation. This is a candidate-exposure loss, not an
+API rejection or missing source catalog; the exact ranking subcause remains open.
+No received answer, source or validation rule was repaired to create success.
+
+Observed calls: Astra 5, Flash 6, query/canonical embeddings 22, Google counts 6.
+Astra input/output usage is 76,758/4,803; conservative generation/embedding estimate
+USD 1.23127504 plus count contingency 0.36 = **USD 1.59127504 / 6.00**. Outstanding
+reservation 0, peak reserved 2.27336254; actual invoice unobserved. Source stores,
+169 runtime files, 16 packet and 191 protected files verified before docs edits.
+Captured Compiler attempts preserve schema-parsed JSON, not original HTTP bytes.
+
+[Results and exposure diagnosis](../../benchmarks/results/openai_compiler_full_agent_2026-09-16/RESULTS.md)
+retain original output hashes. Fresh plans split the first question into two outputs;
+code and plans differ from the historical Google 2/3, 3/5 result, so counts cannot
+establish a causal model improvement. Next: provider-free exposure diagnosis with
+anonymous total/segment and row/column controls, preserving eligibility. No automatic
+paid retry, new default, unseen accuracy or release claim follows this run.
