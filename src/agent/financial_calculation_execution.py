@@ -975,7 +975,8 @@ def _resolve_source_context_bindings(
         if field == "period":
             _, value_year = annual_period_evidence(value, report_year=candidate.get("year"))
             _, quoted_year = annual_period_evidence(quote, report_year=candidate.get("year"))
-            if value_year is None or (quoted_year is not None and value_year != quoted_year):
+            # An authored calendar value cannot fill absent/ambiguous source evidence.
+            if value_year is None or quoted_year is None or value_year != quoted_year:
                 raise ValueError("context_period_mismatch")
             scope.update(value_year=value_year, period_source="source_context_binding",
                          period_label_scope="source_context")

@@ -81,3 +81,27 @@ The provider migration is implemented and selected. It is not a complete answer
 quality or release gate: calendar-period grounding and independent-question
 coverage remain next. Keep source/request/execution validation strict; do not
 fill the missing calculation from the known answer or rerun consumed admissions.
+
+## Provider-free period-contract correction (2026-09-17)
+
+The [stored-source reconstruction](../../benchmarks/results/relative_period_contract_2026-09-17/RESULTS.md)
+found a contract mismatch: ingestion `year` is the business year, but the Compiler
+prompt described it as the filing year. The unchanged current/prior exact attached
+quotes already resolve to 2023/2022 through existing validation. Instructions now
+explain the business-year anchor and the existing `context_evidence.resolves` path
+for a selected cell whose catalog period is still unknown. No new candidate field,
+automatic context selection, parser change or provider call was introduced.
+
+Anonymous controls also reproduced a validator gap: an explicit model-written year
+could replace absent, ambiguous or unanchored quote evidence. Period bindings now
+require the exact attached quote to resolve one matching year. Explicit source
+years still work without a report-year anchor; physical attachment, source conflicts,
+raw values and V2 execution proofs remain enforced.
+
+Focused tests **146/146** pass, including six new contracts with authored transport,
+initial/retry prompts and execution; blocked external connection attempts 0.
+All 494 protected files, catalog/payload/cohort hashes and historical source proofs
+remain unchanged. The actual sampled missing response remains missing. This proves
+the local contract correction, not a live completion improvement or isolated cause
+of the historical abstention. Next is a fresh bounded quality check and independent
+question coverage; consumed admissions remain unusable.

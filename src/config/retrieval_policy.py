@@ -550,7 +550,7 @@ _COMPILER_SHARED_INSTRUCTIONS = (
     "source_sections/source_section_bindings와 상위 출력의 제한을 모두 지키세요. 제목·본문에 언급됐다는 이유로 다른 절을 사용할 수 없습니다. evidence_bundle_constraints의 물리적 공유 행 option은 반드시 유지하세요.\n"
     "source_readings의 enclosing_contexts → preceding_contexts → bodies → following_contexts를 함께 읽으세요. source_continuation은 같은 본문의 이어지는 구간이고 surface_ref는 이미 제시된 동일 표면입니다. 각 surface의 같은 partition 안 연속 pieces만 하나의 원문 구간입니다. 서로 다른 셀/표면을 이어 붙이지 마세요.\n"
     "제목/행/열 계층과 본문이 실제 가리키는 주체·범위를 해석하세요. document_provenance의 공시 회사·year, parser local_heading, 인접 관계만으로 값이나 문장의 주체를 확정하지 않습니다. 다른 행 이름이나 미연결 제목을 빌려 쓰지 마세요.\n"
-    "year는 공시 연도입니다. 숫자의 기간은 period/value_year와 그 period_source로 확인하고 당기·전기 표현과 측정 열을 함께 읽으세요. unknown이나 unbound_table 힌트는 기간 확인이 아닙니다.\n"
+    "year는 보고서의 사업연도이며 접수일의 연도가 아닙니다. 숫자의 측정기간과 자동으로 같지는 않습니다. period/value_year는 period_source와 연결된 원문으로 확인하고 unknown이나 unbound_table 힌트만으로 기간을 확정하지 마세요.\n"
     "출력/요구사항/요청은 주어진 중첩 키를 쓰고, 후보와 표면은 짧은 참조만 선택하세요. 모델이 숫자 결과나 새로운 출처 ID를 만들지 않습니다. 의미 정확성은 Compiler의 책임이며 코드가 검증하는 것은 원문 연결과 실행 계약입니다.\n"
 )
 
@@ -559,6 +559,7 @@ _COMPILER_NUMERIC_INSTRUCTIONS = (
     "직접 조회에서는 보고된 행의 조회와 여러 행의 합산 요청을 구별하세요. 전체 행·열 계층과 연결 문맥이 요청 주체·항목·범위를 뒷받침하면 그 보고된 값을 선택하세요. 하위·유사 이름 행이나 같은 값이 함께 있다는 사실만으로 요청되지 않은 합계를 상정하거나 모호하다고 하지 마세요. 반대로 계층만으로 포함·제외·합산 관계를 단정하지 않습니다. 보류한다면 원문에 남은 실제 대안 해석이나 필요한 근거의 공백을 rationale에 설명하세요.\n"
     "숫자 대상·범위는 interpretation에 요청 구간과 해석한 subject/metric/scope를 남기세요. 선택한 셀의 전체 행·열 축은 코드가 그대로 연결하므로 axis_refs를 쓰지 않습니다. 문장 해석에는 interpretation.source_evidence_text로 자기 원문을 명시하세요. schema가 null을 허용할 때도 selection.context_evidence의 연결 문맥이 해석을 뒷받침하는 경우에만 null을 선택합니다. source_ref 선택만으로 주체·항목 해석 근거가 자동으로 채워지지 않습니다. 의미가 같은지는 문자 동일성으로 판정하지 않습니다.\n"
     "표 밖 문맥이 필요하면 selection.context_evidence에 원문 인용을 한 번만 적으세요: schema에 노출된 context_ref, 정확한 evidence_text, 대상·항목 해석 근거이면 supports_interpretation=true, 기간/범위 보완은 resolves의 field/value로 표현합니다. 각 문맥은 선택한 셀에 실제로 연결되어야 합니다. 해당 입력 schema에 문맥 필드가 없으면 쓰지 말고, 이미 축/메타데이터로 확인된 조건에 새 문맥을 만들지 마세요. context_bindings는 모델 출력 필드가 아닙니다.\n"
+    "period/value_year가 비어 있어도 선택 셀에 연결된 원문 문맥의 상대기간이 명확하면 해당 후보의 사업연도 year를 기준으로 해석할 수 있습니다. 당기는 그 사업연도, 전기는 직전 사업연도입니다. selection.context_evidence에 정확한 기간 인용과 resolves의 field=period/value=해석한 연도를 남기세요. 원문에 명시된 연도가 있으면 우선하며, 사업연도가 없거나 기간이 모호하면 상대기간을 특정 연도로 채우지 말고 missing/ambiguous로 남기세요. 다른 셀·표의 기간이나 year만으로 측정기간을 만들지 마세요.\n"
     "prose 숫자는 source_ref로 선택합니다. 코드가 해당 후보의 전체 값 span을 원문 그대로 연결하므로 selection.evidence_text를 쓰지 않습니다. 표 셀은 기존 물리 출처를 사용합니다. 문맥 해석은 명시적 보고서/기간/연결 범위 충돌을 덮지 않습니다.\n"
     "비교 수식은 연결된 요청에서 기준점과 비교점을 먼저 해석하세요. comparison_request_unit_id로 소유한 요청 구간을 선택하고, 기준 입력의 variable은 reference, 비교 입력은 target으로 지정하여 formula에도 그 이름을 쓰세요. 요청 원문은 코드가 그대로 연결하므로 다시 쓰지 않습니다. 비교가 아닌 계산은 comparison_request_unit_id=null입니다. 입력의 기간 라벨이나 나열 순서는 비교 방향을 정하지 않습니다. 시간상 앞·뒤나 관행적인 증가율로 요청한 방향을 대체하지 마세요. 코드는 요청·변수 연결만 확인하며 방향의 의미를 대신 판단하지 않습니다.\n"
     "원문 부호/배율을 유지하고 필요한 의미 변환은 formula에 표현하세요. 부호 있는 값과 크기는 다릅니다: (abs(A)-abs(B))/abs(B)*100, (A-B)/abs(B)*100, (A-B)/B*100은 서로 다른 비교입니다. 원하는 답의 부호로 고르지 말고 비교 대상과 분모를 rationale에 설명하세요.\n"

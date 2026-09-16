@@ -12,6 +12,12 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Relative-period contract correction without provider calls (2026-09-17)
+
+- Baseline `d3c6f6ed`; [local reconstruction](../../benchmarks/results/relative_period_contract_2026-09-17/RESULTS.md) reads original source sidecars and immutable normal-app results without opening a store client. Both visible numeric cells retain exact attached current/prior quotes; existing source proofs resolve 2023/2022 unchanged.
+- Ingestion `year` is the business year; the Compiler prompt incorrectly called it filing year. Corrected guidance explains existing attached-context period selection. Anonymous negative controls additionally showed that a declared calendar value could fill missing/ambiguous/unanchored quote evidence; the validator now requires one matching quote-resolved year.
+- Six new authored contracts and focused **146/146** pass with external networking blocked. Catalog, payload, cohorts, source proofs and 494 protected files remain unchanged. No provider/embedding call, fresh ingest, store write or consumed-manifest reuse. The saved model response remains missing; no live accuracy or isolated causal claim.
+
 ## Formula-step compiler: generation admission failure (2026-09-16)
 
 - Approved `e2dc8c1e0cfa13e9954a4f50a520f25f829e872ea2cd6266d41e3414ebf626dd`
