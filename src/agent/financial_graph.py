@@ -321,6 +321,10 @@ class FinancialAgent(
                 **generation_options,
             )
         if provider in {"openai", "openrouter"}:
+            if provider == "openai" and not (spec.get("model") or spec.get("model_name")):
+                raise ValueError(f"An explicit model is required for LLM route '{phase}'.")
+            if provider == "openai" and any(key in spec for key in ("thinking_budget", "include_thoughts")):
+                raise ValueError("Google generation options cannot configure an OpenAI route.")
             key_name = "OPENROUTER_API_KEY" if provider == "openrouter" else "OPENAI_API_KEY"
             api_key = str(spec.get("api_key") or os.environ.get(key_name) or "").strip()
             if not api_key:
@@ -330,11 +334,31 @@ class FinancialAgent(
                 base_url = os.environ.get("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
             from langchain_openai import ChatOpenAI
 
-            return ChatOpenAI(
+            if provider == "openrouter":
+                return ChatOpenAI(model=model, temperature=temperature, api_key=api_key,
+                                  base_url=str(base_url) if base_url else None)
+            from src.utils.openai_structured import StrictOpenAIChatModel
+
+            generation_options = {
+                target: spec[source]
+                for source, target in (
+                    ("max_output_tokens", "max_completion_tokens"),
+                    ("provider_client_retries", "max_retries"),
+                    ("reasoning_effort", "reasoning_effort"),
+                    ("use_responses_api", "use_responses_api"),
+                    ("store", "store"),
+                    ("service_tier", "service_tier"),
+                    ("timeout_seconds", "timeout"),
+                )
+                if source in spec
+            }
+            return StrictOpenAIChatModel(
                 model=model,
-                temperature=temperature,
+                temperature=None if spec.get("temperature", 0) is None else temperature,
                 api_key=api_key,
                 base_url=str(base_url) if base_url else None,
+                callbacks=[self.llm_usage_callback],
+                **generation_options,
             )
         raise ValueError(f"Unsupported LLM provider for route '{phase}': {provider}")
 

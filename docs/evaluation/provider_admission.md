@@ -36,3 +36,22 @@ generation-only approval. Runtime defaults do not install this guard.
   provider exceeding its count or an invoice exceeding the accounting estimate.
 
 Verification: `tests/test_server_count_admission.py` uses anonymous text/schema inputs, actual LangChain/genai serialization and mocked HTTP with external sockets blocked. No count total is fabricated during no-call rehearsal; local success is not paid-provider or financial-answer correctness.
+
+## OpenAI Responses successor
+
+`src.ops.openai_provider_admission` adds an opt-in synchronous text-only Responses
+guard. A policy must explicitly allow `openai_response`, its call limit, fixed
+settings, rates and short-context input reservation; legacy policies do not gain
+generation permission. Exact ordered rehearsal hashes bind the final SDK bodies.
+Only `https://api.openai.com/v1/responses` is admitted; tools, extra endpoints,
+streaming, async, SDK retries, redirects and altered bodies are rejected locally.
+This is a separately approved successor, never reuse of a Google admission.
+
+The input reservation is canonical UTF-8 body bytes plus an explicit allowance,
+not server counting. Output usage already includes reasoning. Failed/unknown
+usage retains its reservation; an overrun closes the guard and cannot return an
+accepted response. Cache-write upper pricing may conservatively account for all
+input. Detailed errors, keys and headers are not included in receipts.
+The private SDK request seam is exercised with real serialization and mocked HTTP.
+The [six-case migration packet](openai_compiler_probe.md) documents its proposed
+settings, limits and lack of live acceptance; runtime defaults install no guard.

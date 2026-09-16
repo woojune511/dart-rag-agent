@@ -32,6 +32,12 @@ def _request_observation(kind, request):
     Component sizes are separate serializations, not an additive byte breakdown.
     Only source/schema fields may be retained, not arbitrary SDK configuration.
     """
+    if kind == "openai_response":
+        fields = {key: request[key] for key in ("input", "instructions", "text") if key in request}
+        encoded = {key: json_bytes(value) for key, value in fields.items()}
+        return {"representation": "openai_responses_body_json", "component_sizes_additive": False,
+                "components_json": {key: value.decode("utf-8") for key, value in encoded.items()},
+                "component_bytes": {key: len(value) for key, value in encoded.items()}}
     if kind == "google" and "generationConfig" in request:
         config = request["generationConfig"]
         fields = {key: request[key] for key in ("contents", "systemInstruction") if key in request}
@@ -94,13 +100,17 @@ class ProviderBudget:
 
     def preflight(self, *, kind, model, request, input_bound, output_bound):
         """Quote the real request without consuming budget, calls or approval."""
-        if kind not in {"google", "openai_embedding"}:
+        limits = {"google": "max_google_calls", "openai_embedding": "max_openai_embedding_calls",
+                  "openai_response": "max_openai_response_calls"}
+        if kind not in limits:
             raise ValueError("unsupported provider request kind")
+        if limits[kind] not in self.policy:
+            raise ValueError("provider request kind is absent from the admission policy")
         if any(type(value) is not int or value < 0 for value in (input_bound, output_bound)):
             raise ValueError("token reservations must be non-negative integers")
         reserve = self._cost(model, input_bound, output_bound)
         with self.lock:
-            limit = self.policy["max_google_calls" if kind == "google" else "max_openai_embedding_calls"]
+            limit = self.policy[limits[kind]]
             total = self.charged + self.pending + self.count_allowance + reserve
             code = (self.stop_reason.code if self.closed else
                     "provider_call_limit_reached" if sum(row["kind"] == kind for row in self.records) >= limit else

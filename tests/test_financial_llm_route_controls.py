@@ -68,6 +68,34 @@ class FinancialLLMRouteControlTests(unittest.TestCase):
             }, phase="default")
         self.assertEqual(constructor.call_args.kwargs.get("thinking_budget"), 0)
 
+    def test_openai_controls_and_nullable_temperature_reach_constructor(self):
+        spec = {"provider": "openai", "model": "test-reasoning-model", "api_key": "test-only-placeholder",
+                "temperature": None, "max_output_tokens": 5120, "provider_client_retries": 0,
+                "reasoning_effort": "medium", "use_responses_api": True,
+                "store": False, "service_tier": "default", "timeout_seconds": 90}
+        before = deepcopy(spec)
+        with patch("src.utils.openai_structured.StrictOpenAIChatModel") as constructor:
+            self.agent._create_chat_model(spec, phase="program_compilation")
+        args = constructor.call_args.kwargs
+        self.assertIsNone(args["temperature"])
+        self.assertEqual(args["max_completion_tokens"], 5120)
+        self.assertEqual(args["max_retries"], 0)
+        self.assertEqual(args["callbacks"], [self.agent.llm_usage_callback])
+        self.assertEqual(args["reasoning_effort"], "medium")
+        self.assertEqual(args["timeout"], 90)
+        self.assertIs(args["store"], False)
+        self.assertIs(args["use_responses_api"], True)
+        self.assertEqual(spec, before)
+
+    def test_google_options_cannot_leak_into_an_openai_override(self):
+        for extra in ({"thinking_budget": 1024}, {"include_thoughts": False}):
+            with self.subTest(extra=extra), self.assertRaisesRegex(ValueError, "Google generation options"):
+                self.agent._create_chat_model({"provider": "openai", "model": "test", **extra}, phase="program_compilation")
+
+    def test_openai_route_cannot_inherit_google_model_default(self):
+        with self.assertRaisesRegex(ValueError, "explicit model"):
+            self.agent._create_chat_model({"provider": "openai"}, phase="program_compilation")
+
 
 if __name__ == "__main__":
     unittest.main()

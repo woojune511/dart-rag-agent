@@ -13074,3 +13074,12 @@ are complete. It remains only as an audit record, not an active priority.
   Provider/embedding/ingest/real store writes 0; no paid manifest/run prepared.
   Next: a bounded model probe of fixed direction-only pairs, then the separate
   reported-row over-abstention issue. Do not relabel predecessor outcomes.
+
+
+## 2026-09-16 — Prepare OpenAI Compiler transport and bounded admission
+
+- Added opt-in OpenAI generation controls and strict JSON transport. Source enums, operation arity, original Pydantic validation and deterministic execution remain authoritative. Missing fields, refusals and incomplete responses stay invalid; no reply repair or default-provider promotion.
+- Kept structured invocation on the caller thread for phase usage. OpenAI inclusive output/reasoning accounting is normalized without double counting; Google/OpenRouter defaults remain unchanged.
+- Added separately enabled, ordered-body-hash Responses admission with conservative reservations, official endpoint restriction, zero retries and safe failure receipts. Legacy policies cannot authorize OpenAI generation.
+- Python 3.13 full unittest 1,799/1,799, no skips (62.526s); focused 52, import/topology/docs 24 and runtime-domain audit 83 passed. Real SDK/mocked HTTP checks retain six authored executions and ledgers. Three ignored packet lifecycle tests passed.
+- Prepared six unchanged anonymous cases with identical SDK rehearsals and 12 local output checks. GPT-6 Astra/medium, six first responses, 5,120 inclusive output tokens, USD 6 accounting cap; independent conservative reservations USD 4.73755. No paid call, store mutation, historical-response migration or measured provider/semantic improvement. Exact successor manifest/cost approval remains the next boundary.

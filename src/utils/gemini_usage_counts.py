@@ -30,16 +30,28 @@ def _split_langchain_usage(source: Mapping[str, Any]) -> Mapping[str, Any]:
     """Project LangChain's inclusive output count into disjoint answer/thought counts."""
     projected = dict(source)
     output_details = _as_mapping(source.get("output_token_details"))
+    native_details = _as_mapping(source.get("output_tokens_details") or source.get("completion_tokens_details"))
+    if "reasoning_tokens" in native_details:
+        output_details = {"reasoning": native_details["reasoning_tokens"]}
+        if "completion_tokens" in source:
+            projected["output_tokens"] = source["completion_tokens"]
+    if "prompt_tokens" in source:
+        projected["input_tokens"] = source["prompt_tokens"]
     if "reasoning" in output_details:
         thoughts = _lookup_int(output_details, keys=("reasoning",))
         projected["thoughts_tokens"] = thoughts
-        if source.get("output_tokens") is not None:
+        if projected.get("output_tokens") is not None:
             projected["output_tokens"] = max(
-                _lookup_int(source, keys=("output_tokens",)) - thoughts, 0,
+                _lookup_int(projected, keys=("output_tokens",)) - thoughts, 0,
             )
+    elif "completion_tokens" in source:
+        projected["output_tokens"] = source["completion_tokens"]
     input_details = _as_mapping(source.get("input_token_details"))
     if "cache_read" in input_details:
         projected["cached_tokens"] = _lookup_int(input_details, keys=("cache_read",))
+    native_input = _as_mapping(source.get("input_tokens_details") or source.get("prompt_tokens_details"))
+    if "cached_tokens" in native_input:
+        projected["cached_tokens"] = _lookup_int(native_input, keys=("cached_tokens",))
     # Native Gemini candidate counts and older explicit thought counts are
     # already disjoint. Without the nested reasoning field, do not subtract.
     return projected

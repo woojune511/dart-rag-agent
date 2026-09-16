@@ -343,7 +343,7 @@ depend on ops/experimental modules.
 Every runtime change runs focused tests, domain audit, import/topology, pycompile,
 and `git diff --check`; candidate/compilation/public-result changes also run full unittest.
 
-Provider validation requires separate manifest/cost approval, then one store-fixed
+Provider validation requires separate manifest/cost approval (including [OpenAI successors](../evaluation/provider_admission.md)), then one store-fixed
 eval-only run with a 30-second heartbeat; no automatic retry or fresh ingest.
 A release needs all approved questions complete, zero runtime errors, and ledger `ok`;
 dataset governance and evaluator tolerance remain separate. Local success is not provider evidence.
