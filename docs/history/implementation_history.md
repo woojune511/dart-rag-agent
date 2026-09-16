@@ -13083,3 +13083,14 @@ are complete. It remains only as an audit record, not an active priority.
 - Added separately enabled, ordered-body-hash Responses admission with conservative reservations, official endpoint restriction, zero retries and safe failure receipts. Legacy policies cannot authorize OpenAI generation.
 - Python 3.13 full unittest 1,799/1,799, no skips (62.526s); focused 52, import/topology/docs 24 and runtime-domain audit 83 passed. Real SDK/mocked HTTP checks retain six authored executions and ledgers. Three ignored packet lifecycle tests passed.
 - Prepared six unchanged anonymous cases with identical SDK rehearsals and 12 local output checks. GPT-6 Astra/medium, six first responses, 5,120 inclusive output tokens, USD 6 accounting cap; independent conservative reservations USD 4.73755. No paid call, store mutation, historical-response migration or measured provider/semantic improvement. Exact successor manifest/cost approval remains the next boundary.
+
+
+## 2026-09-16 — Prepare OpenAI Compiler full-agent integration
+
+- Added an opt-in runtime-generated Responses guard sharing Google/count/embedding accounting. Each request requires an approved current-question/Compiler context; explicit policy, strict schema, output/input bounds, endpoint and zero SDK retry controls remain. The existing exact-body guard is unchanged.
+- Context-local dispatch ownership allows only an already-admitted embedding through the shared OpenAI transport, resets on failure, and keeps unknown-usage reservations. Eight new mocked-HTTP contracts cover cross-kind budgets, scope denial, embedding bypass, call caps, endpoint/settings drift, failure stop and missing usage.
+- Python 3.13 full unittest **1,807/1,807**, no skips (51.415s), focused 46 and packet checks 7 passed. The first discovery command used an unsupported top-level layout and exited before tests; the normal discovery command above passed.
+- Prepared three original NAVER/Celltrion questions with unchanged question-derived review criteria. Fresh routing/planning/retrieval; only Compiler moves to GPT-6 Astra. Verified original store hashes and two disposable Chroma copies; new SDK/runner rehearsals match in separate processes. No prior answers/plans injected, no default-store adoption.
+- Proposed shared USD 6 accounting cap, Google generation/count limits 12 each, OpenAI Responses 12 and query/canonical embeddings 64. Existing once/island Compiler repair is included, SDK/run retries and paid judges are zero. No paid successor execution; exact new manifest/cost approval remains. Artifacts stay uncommitted.
+- [Prepared integration packet](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/). No full-agent model or release claim; the preceding six-case paid result remains unchanged.
+- Final import/topology/documentation checks 24/24 (16.060s), domain audit 83, pycompile and diff checks passed.

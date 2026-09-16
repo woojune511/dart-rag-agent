@@ -88,3 +88,24 @@ semantic accuracy or current full-agent performance. The prior Google HTTP 400
 has no model response and cannot be an accuracy denominator. No default promotion
 was included. Next: a bounded real-question/compiler integration evaluation with
 a new approved manifest, preserving the current inputs and consumed history.
+
+## Prepared full-agent successor
+
+The [new three-question packet](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/)
+keeps the existing NAVER and Celltrion questions and source-review criteria. Routing,
+planning and retrieval run fresh; only `program_compilation` changes to the OpenAI
+route above. Original stores are verified and copied; the default incomplete store
+is not used. Previous plans, catalogs, answers and review criteria are not injected.
+
+One shared **USD 6** cap covers Google generation/counts, OpenAI Responses and query/
+canonical embeddings. Outer limits: 12 Google generations and 12 counts, 12 OpenAI
+Responses, 64 embedding calls. Existing Compiler repair is at most one per island;
+SDK retries, automatic run retries, fresh ingest and paid judges remain zero.
+Limits do not guarantee all calls or questions fit the cap; unknown usage or errors
+stop the run. No point cost prediction is made for fresh plans and tokenization.
+
+Python 3.13 full unittest **1,807/1,807**, no skips (51.415s); mixed-provider focused
+46 and packet checks 7 pass. Both store copies open and pass existing-vector probes.
+Separate SDK/runner no-call processes produce identical receipts. These checks do
+not measure live OpenAI narrative acceptance, fresh retrieval or full-agent accuracy.
+Paid execution awaits exact successor-manifest and cap approval; defaults remain Google.

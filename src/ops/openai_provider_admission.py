@@ -102,3 +102,75 @@ def guarded_openai_responses(policy, expected_request_hashes):
 
     with patch.object(SyncAPIClient, "request", request), patch.object(AsyncAPIClient, "request", blocked_async):
         yield budget
+
+
+@contextmanager
+def guarded_runtime_openai_responses(budget, authorize_request):
+    """Share a mixed-provider budget for explicitly admitted runtime-generated input.
+
+    Unlike fixed-input comparison, future planner/retrieval output is unknown.
+    The caller must bind each dispatch to its approved current run/phase. This
+    separate opt-in never relaxes the ordered-hash guard above or old policies.
+    Embedding calls remain owned by the enclosing mixed-provider guard.
+    """
+    from contextvars import ContextVar
+    from openai._base_client import AsyncAPIClient, SyncAPIClient
+    from openai.resources.responses import AsyncResponses, Responses
+
+    if (budget.policy.get("openai_response_binding") != "runtime_generated_v1"
+            or not callable(authorize_request)
+            or type(budget.policy.get("max_openai_response_calls")) is not int
+            or budget.policy["max_openai_response_calls"] <= 0):
+        raise ValueError("Runtime-generated Responses need a separate policy and request authorizer")
+    active = ContextVar("admitted_openai_response", default=False)
+    original_create, original_request = Responses.create, SyncAPIClient.request
+
+    def create(client, *args, **kwargs):
+        token = active.set(True)
+        try:
+            return original_create(client, *args, **kwargs)
+        finally:
+            active.reset(token)
+
+    def request(client, cast_to, options, *, stream=False, stream_cls=None):
+        if not active.get():
+            # The enclosing guard owns other OpenAI operations. A direct
+            # Responses request cannot bypass the resource/context boundary.
+            built = client._build_request(options)
+            if (budget.active_request_kind == "openai_embedding" and built.method == "POST"
+                    and str(built.url) == "https://api.openai.com/v1/embeddings"):
+                return original_request(client, cast_to, options, stream=stream, stream_cls=stream_cls)
+            raise budget._close("unapproved_transport", "OpenAI operation lacks an admitted resource context")
+        with budget.lock:
+            if budget.closed:
+                raise budget.stop_reason
+            if stream or options.get_max_retries(client.max_retries) != 0:
+                raise budget._close("unapproved_transport", "Streaming and SDK retries are not admitted")
+            built = client._build_request(options)
+            if built.method != "POST" or str(built.url) != "https://api.openai.com/v1/responses":
+                raise budget._close("unapproved_transport", "Only the official Responses endpoint is admitted")
+            try:
+                body = json.loads(built.content)
+                params = openai_request_parameters(budget.policy, body)
+                if authorize_request(deepcopy(body)) is not True:
+                    raise BudgetStop("unapproved_runtime_request", "Request is outside the approved runtime phase")
+            except Exception as error:
+                code = error.code if isinstance(error, BudgetStop) else "unapproved_runtime_request"
+                raise budget._close(code, "OpenAI runtime request failed local admission") from error
+            redirects = client._client.follow_redirects
+            client._client.follow_redirects = False
+            try:
+                response = budget.dispatch(**params, usage=openai_usage,
+                    invoke=lambda: original_request(client, cast_to, options, stream=False, stream_cls=stream_cls))
+            finally:
+                client._client.follow_redirects = redirects
+            if budget.closed:
+                raise budget.stop_reason
+            return response
+
+    async def blocked_async(*args, **kwargs):
+        raise budget._close("unapproved_transport", "Asynchronous requests are not admitted")
+
+    with patch.object(Responses, "create", create), patch.object(SyncAPIClient, "request", request), \
+         patch.object(AsyncResponses, "create", blocked_async), patch.object(AsyncAPIClient, "request", blocked_async):
+        yield budget

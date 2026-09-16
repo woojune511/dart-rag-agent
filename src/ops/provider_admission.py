@@ -6,6 +6,7 @@ Frozen historical admission scripts are not imported or rewritten.
 """
 
 from contextlib import ExitStack, contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 import hashlib
 import json
@@ -72,6 +73,7 @@ class ProviderBudget:
         self.blocked_requests = []
         self.stop_reason = None
         self.lock = threading.RLock()
+        self._active_request_kind = ContextVar("admitted_provider_request", default=None)
         mode = self.policy.get("google_input_counting")
         if mode not in (None, "server_count_tokens_v1"):
             raise ValueError("unsupported google_input_counting policy")
@@ -90,6 +92,10 @@ class ProviderBudget:
     @property
     def closed(self):
         return self.stop_reason is not None
+
+    @property
+    def active_request_kind(self):
+        return self._active_request_kind.get()
 
     def _cost(self, model, input_tokens, output_tokens):
         rates = self.policy["rates"][model]
@@ -146,7 +152,11 @@ class ProviderBudget:
             row = {**quote, "status": "started"}
             self.records.append(row)
         try:
-            response = invoke()
+            token = self._active_request_kind.set(kind)
+            try:
+                response = invoke()
+            finally:
+                self._active_request_kind.reset(token)
             actual_input, actual_output = usage(response)
             if (not math.isfinite(actual_input) or not math.isfinite(actual_output)
                     or actual_input <= 0 or actual_output < 0):

@@ -32,7 +32,7 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Latest recorded Python 3.13 full unittest **1,799/1,799**, no skips (62.526s); focused provider/transport/usage 52, import/topology/docs 24 and audit 83 pass. OpenAI route controls, strict transport and usage/admission are locally validated. Local tests do not measure provider schema acceptance or model accuracy.
+Latest recorded Python 3.13 full unittest **1,807/1,807**, no skips (51.415s); mixed-provider focused 46 and new packet checks 7 pass. Fresh Compiler admission binds the approved current question/phase and shares generation/count/embedding accounting; the prior exact-body guard stays strict. Local tests do not establish live full-agent success.
 Earlier source-choice tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
 stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
@@ -136,9 +136,9 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - [OpenAI Compiler trial](../evaluation/openai_compiler_probe.md) completed on clean `3354fbc9`; Google remains the default. Six first responses, API/parsing errors 0, strict/original schema 6/6, unchanged runtime and ledger 6/6. All 12 outputs pass frozen source, finite-formula, display, calculated/displayed value and unit checks.
-  Full unittest **1,799/1,799**, no skips (62.526s), focused 52, import/topology/docs 24, audit 83. SDK serialization and missing fields/refusal/incomplete responses are covered; source enums and operation arity survive. Three packet tests cover mocked six-case execution, one-shot consumption and provider-error stop.
+  Current full unittest **1,807/1,807**, no skips (51.415s), focused 46, new packet checks 7. Strict wire/refusal/incomplete controls, source enums and operation arity remain. Mixed-provider admission covers shared caps, phase denial, embedding isolation, safe failure settlement and no SDK retry.
   [Six-case results](../../benchmarks/results/openai_compiler_preparation_2026-09-16/RESULTS.md) preserve anonymous questions, evidence, plans, criteria and original replies. Approved manifest `8144726f...6273d3` consumed; all sent hashes match rehearsal. Original clean-build, nine packet and 67 predecessor files verified; sockets blocked for review, no response repair/store write.
-  GPT-6 Astra Responses/medium, 5,120 inclusive output-token limit, no retry. Input 53,677/output 5,352 tokens; conservative accounted USD 0.9385625 < USD 6, invoice unobserved. Generation sum 89.27s/mean 14.88s. Known synthetic cases with one sample each do not establish general availability, unseen meaning or full-agent accuracy. Next: bounded real-question/compiler integration evaluation before default promotion, under a new approved manifest.
+  Prior synthetic usage: input 53,677/output 5,352, accounted USD 0.9385625, mean 14.88s, invoice unobserved. [Three-real-question full-agent successor](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/) prepared with fresh planning/retrieval, only Compiler switched and verified store copies. Separate no-call receipts identical. Proposed shared USD 6; 12 Responses maximum including existing once/island repair; SDK/run retries 0. Exact new manifest/cost approval pending, paid successor calls 0; no default promotion or unseen accuracy claim.
   The consumed [Google step-formula run](../../benchmarks/results/formula_steps_compiler_2026-09-16/RESULTS.md) stays first generation HTTP 400/no response/five unattempted, exact cause unknown. Earlier [inline-operand evidence](../../benchmarks/results/inline_request_operands_compiler_2026-09-16/RESULTS.md) stays 4/6 with two punctuation failures. Original source/result bytes and historical judgments are unchanged.
 - Preserve qualifiers, complete entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.

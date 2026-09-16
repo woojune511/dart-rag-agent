@@ -55,3 +55,26 @@ input. Detailed errors, keys and headers are not included in receipts.
 The private SDK request seam is exercised with real serialization and mocked HTTP.
 The [six-case migration packet](openai_compiler_probe.md) records its approved
 settings and six successful first responses; runtime defaults install no guard.
+
+## OpenAI in a fresh full-agent run
+
+`guarded_runtime_openai_responses` is a separate opt-in for inputs produced by a
+fresh planner/retrieval run. It requires `openai_response_binding="runtime_generated_v1"`,
+an explicit Responses call limit, and a caller-owned request authorizer bound to
+the approved question and active Compiler invocation. It shares the enclosing
+`guarded_providers` budget, including Google count allowances and query embeddings.
+No initial body-hash equality is claimed for future model-generated plans; the
+fixed-input ordered-hash guard above retains its unchanged contract.
+
+Only the official synchronous Responses endpoint, fixed strict-output settings,
+zero SDK retries and bounded UTF-8 input reservations are admitted. Other OpenAI
+transport is denied except an embedding already inside this same budget's admitted
+dispatch. The context-local dispatch marker is reset even on failure. Unknown
+usage retains reservations and closes subsequent work; provider diagnostics remain
+credential-safe. Caller validation sees a copy and cannot rewrite the SDK body.
+
+The [three-question successor](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/)
+uses verified copies of existing stores, fresh routing/planning/retrieval and
+OpenAI only for Compiler. Runtime repair remains at most one per island, under
+the explicit call and cost caps. Source criteria and old answers are excluded
+from live reads. New manifest/cost approval is required before any provider work.
