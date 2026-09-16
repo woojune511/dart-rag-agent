@@ -16,7 +16,9 @@ from openai import APIStatusError
 from src.agent.financial_graph import FinancialAgent
 from src.api.services import build_app_services, resolve_app_settings
 from src.config.llm_profiles import app_llm_routing_config
-from src.storage.store_manifest import StoreReadiness, canonical_store_manifest
+from src.storage.store_manifest import (
+    StoreReadiness, assess_store_readiness, canonical_store_manifest, write_store_manifest,
+)
 from tests.test_openai_compiler_transport import Payload, ROUTE, response_body
 
 
@@ -120,6 +122,51 @@ class AppLLMProfileTests(unittest.TestCase):
         services = build_app_services(project_root=self.root)
         self.assertFalse(services.readiness.ready)
         self.assertIsNone(services.agent)
+        self.store_factory.assert_not_called()
+
+    def test_collection_setting_obeys_dotenv_and_process_precedence(self):
+        (self.root / ".env").write_text("DART_COLLECTION_NAME=stored-reports\n", encoding="utf-8")
+        before = dict(os.environ)
+        self.assertEqual(resolve_app_settings(self.root)["DART_COLLECTION_NAME"], "stored-reports")
+        self.assertEqual(dict(os.environ), before)
+        with patch.dict(os.environ, DART_COLLECTION_NAME="process-reports"):
+            self.assertEqual(resolve_app_settings(self.root)["DART_COLLECTION_NAME"], "process-reports")
+
+    def test_explicit_collection_reaches_store_and_readiness_without_adoption(self):
+        self.prepare_services()
+        store_path = self.root / "store"
+        manifest = canonical_store_manifest(collection_name="stored-reports")
+        manifest_path = write_store_manifest(store_path, manifest)
+        original = manifest_path.read_bytes()
+        with patch.dict(os.environ, DART_STORE_PATH=str(store_path), DART_COLLECTION_NAME=" stored-reports "), \
+                patch("src.api.services.assess_store_readiness", wraps=assess_store_readiness):
+            services = build_app_services(project_root=self.root)
+        self.assertTrue(services.readiness.ready)
+        self.assertEqual(services.expected_manifest, manifest)
+        self.assertEqual(self.store_factory.call_args.kwargs["collection_name"], "stored-reports")
+        self.assertEqual(manifest_path.read_bytes(), original)
+
+    def test_collection_selection_keeps_default_and_strict_identity_checks(self):
+        from src.api.services import _store_may_initialize
+        from src.storage.vector_store import DEFAULT_COLLECTION_NAME
+
+        self.prepare_services()
+        store_path = self.root / "store"
+        for collection, provider in (("stored-reports", "openai"), (DEFAULT_COLLECTION_NAME, "google")):
+            with self.subTest(collection=collection, provider=provider):
+                path = write_store_manifest(store_path, canonical_store_manifest(
+                    collection_name=collection, embedding_provider=provider,
+                ))
+                original = path.read_bytes()
+                with patch.dict(os.environ, DART_STORE_PATH=str(store_path), DART_COLLECTION_NAME=" "), \
+                        patch("src.api.services.assess_store_readiness", wraps=assess_store_readiness), \
+                        patch("src.api.services._store_may_initialize", wraps=_store_may_initialize):
+                    services = build_app_services(project_root=self.root)
+                self.assertEqual(services.expected_manifest.collection_name, DEFAULT_COLLECTION_NAME)
+                self.assertEqual(services.readiness.status, "mismatch")
+                self.assertFalse(services.readiness.ready)
+                self.assertIsNone(services.agent)
+                self.assertEqual(path.read_bytes(), original)
         self.store_factory.assert_not_called()
 
     def test_services_route_only_compiler_through_actual_responses_adapter(self):

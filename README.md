@@ -177,6 +177,11 @@ override `.env`. The profile sets request options, not a total spending cap.
 See the [Compiler validation and its limits](docs/evaluation/openai_compiler_probe.md).
 
 The API requires an exact `StoreManifestV1` match before serving queries.
+Use `DART_STORE_PATH` to select an existing store directory and
+`DART_COLLECTION_NAME` to select its collection. An unset/blank collection uses
+`dart_reports_v2`. Both settings accept `.env` or process values; the selected
+collection must still match the manifest and canonical embedding/parser settings.
+Selecting a store does not rename a collection, rewrite its manifest or re-index it.
 Missing or mismatched stores return 503 and are never adopted automatically;
 use the separate manifest-adoption CLI in dry-run mode before requesting any
 write approval.

@@ -24,6 +24,7 @@ from src.storage.store_manifest import (
 _APP_SETTING_NAMES = (
     "CONTEXTUAL_INGEST_MAX_WORKERS",
     "DART_ALLOW_DEGRADED_BM25_ONLY",
+    "DART_COLLECTION_NAME",
     "DART_CORS_ALLOW_ORIGINS",
     "DART_LLM_PROFILE",
     "DART_REPORTS_PATH",
@@ -173,7 +174,7 @@ def build_app_services(
         settings.get("DART_ALLOW_DEGRADED_BM25_ONLY", "")
     )
     expected = canonical_store_manifest(
-        collection_name=DEFAULT_COLLECTION_NAME
+        collection_name=(settings.get("DART_COLLECTION_NAME", "").strip() or DEFAULT_COLLECTION_NAME)
     )
     initial = assess_store_readiness(
         persist_directory,
