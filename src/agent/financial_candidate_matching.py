@@ -1002,13 +1002,17 @@ def build_candidate_matches(
             reading_subject_state = _narrative_subject_mention(
                 candidate_by_id[fact.candidate_id], fact, target.local_subjects,
             )
-            reading_joint_hint_state = (
-                _narrative_joint_hint(candidate_by_id[fact.candidate_id], joint_subject_terms, joint_hint_terms)
-                if reading_subject_state == "unknown" else "unknown"
-            )
+            # A complete subject mention must not disable an independent topic
+            # hint that was available for the same compound request spelling.
+            reading_joint_hint_state = _narrative_joint_hint(
+                candidate_by_id[fact.candidate_id], joint_subject_terms, joint_hint_terms)
             has_joint_hint = reading_joint_hint_state != "unknown"
-            reading_metric_rank = int(metric_state != "unknown" or reading_hint_state != "unknown" or has_joint_hint)
-            request_anchor_rank = int(reading_subject_state != "unknown" or has_joint_hint)
+            has_topic_match = metric_state != "unknown" or reading_hint_state != "unknown"
+            reading_metric_rank = int(has_topic_match or has_joint_hint)
+            # A lexical pair is a fallback reading hint. It cannot displace a
+            # literal subject with an independently matched topic/search hint.
+            request_anchor_rank = (2 if has_topic_match and reading_subject_state in {"local_literal", "context_literal"}
+                else int(reading_subject_state != "unknown" or has_joint_hint))
             # Keep applicability/identity diagnostics and all conflict gates.
             # Scope/unit eligibility is independent of whether this passage
             # repeats a name. Within a scope tier, topic relevance precedes a

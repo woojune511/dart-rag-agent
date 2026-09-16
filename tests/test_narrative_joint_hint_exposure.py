@@ -109,14 +109,14 @@ class NarrativeJointHintExposureTests(unittest.TestCase):
                 _, _, matches, _ = select([source], request())
                 self.assertEqual(matches["source"]["reading_joint_hint_state"], expected)
 
-    def test_whole_subject_mention_keeps_existing_ranking(self):
+    def test_whole_subject_mention_keeps_its_state_and_independent_topic_hint(self):
         owner = request()
         owner["semantic_target"]["local_subjects"] = ["Boreal"]
         _, _, matches, _ = select([relevant()], owner)
         match = matches["z-related"]
         self.assertEqual(match["reading_subject_state"], "local_literal")
-        self.assertEqual(match["reading_joint_hint_state"], "unknown")
-        self.assertEqual(match["rank_vector"][1], 0)
+        self.assertEqual(match["reading_joint_hint_state"], "reading:joint_terms")
+        self.assertEqual(match["rank_vector"][1], 1)
 
     def test_scope_and_metric_words_cannot_be_partial_subject_anchors(self):
         owner = request()
