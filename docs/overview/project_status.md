@@ -12,7 +12,7 @@ checks. Baseline: `d9c36d8d`.
 | Boundary | Current behavior |
 | --- | --- |
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
-| Exposure / authority | Ranking selects bounded bundles; actual source conditions govern use of their visible union |
+| Exposure / authority | Bounded bundles; literal own-axis hints may rank unresolved numeric subjects, without changing identity or source conditions |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
 | Model transport | CompilerResponseV2; exact source/request addresses; bounded operation steps with inline quantity/proof and backward-only references, code-computed binding_count; separate prose subject/metric support; no narrative expressions |
 | Group / retry | Request-grounded output relationships, declared dependencies and physical-row constraints; one targeted retry, accepted bytes preserved |
@@ -32,7 +32,7 @@ mutation, dataset/evaluator change or HTTP/public-result change was included.
 
 ## Local verification
 
-Latest recorded Python 3.13 full unittest **1,807/1,807**, no skips (51.415s); mixed-provider focused 46 and new packet checks 7 pass. Fresh Compiler admission binds the approved current question/phase and shares generation/count/embedding accounting; the prior exact-body guard stays strict. The separate live result below remains 2/3 complete.
+Latest Python 3.13 full unittest **1,815/1,815**, no skips (47.747s); candidate-focused 101 including eight new exposure contracts pass. Domain audit 83, import/topology/docs, pycompile and diff checks pass. Existing phase/budget and exact-body admissions are unchanged. The separate historical live result below remains 2/3 complete.
 Earlier source-choice tests cover input enums, source-kind fields, mixed/dependency/empty spaces,
 stable refs/authority; import/topology/docs 24, audit 83, pycompile/diff pass. Prior contracts use
 direction-only pairs, owned request/source links, same-cohort/dependency retry and V2 proofs.
@@ -136,11 +136,11 @@ it does not inject answers or change shared evaluation extraction.
 ## Next work
 
 - [OpenAI Compiler trial](../evaluation/openai_compiler_probe.md) completed on clean `3354fbc9`; Google remains the default. Six first responses, API/parsing errors 0, strict/original schema 6/6, unchanged runtime and ledger 6/6. All 12 outputs pass frozen source, finite-formula, display, calculated/displayed value and unit checks.
-  Current full unittest **1,807/1,807**, no skips (51.415s), focused 46, new packet checks 7. Strict wire/refusal/incomplete controls, source enums and operation arity remain. Mixed-provider admission covers shared caps, phase denial, embedding isolation, safe failure settlement and no SDK retry.
+  Current full unittest **1,815/1,815**, no skips (47.747s), candidate-focused 101/eight new exposure contracts. Strict wire/refusal/incomplete controls, source enums and operation arity remain. Mixed-provider admission still covers shared caps, phase denial, embedding isolation, safe failure settlement and no SDK retry.
   [Six-case results](../../benchmarks/results/openai_compiler_preparation_2026-09-16/RESULTS.md) preserve anonymous questions, evidence, plans, criteria and original replies. Approved manifest `8144726f...6273d3` consumed; all sent hashes match rehearsal. Original clean-build, nine packet and 67 predecessor files verified; sockets blocked for review, no response repair/store write.
   Approved [three-real-question integration](../../benchmarks/results/openai_compiler_full_agent_2026-09-16/RESULTS.md), clean `5dbcdb0c`: **2/3 complete, 5/6 outputs accepted**, API/runtime errors 0, ledger 3/3; five Compiler first responses, repairs 0. Consumed `9a85a367...f2f0d`; 39 total API attempts, accounted USD 1.59127504/6 including 0.36 count contingency, invoice unobserved. All 29 accepted support occurrences match stored sources. Commerce amount pairs exist in the exact 509-candidate catalog but are omitted from Compiler exposure; only total-revenue alternatives reach its numeric inputs. Local abstention is appropriate, overall growth request incomplete. Fresh plan/code differ from historical Google results; no causal improvement, unseen accuracy or default promotion claim.
   The consumed [Google step-formula run](../../benchmarks/results/formula_steps_compiler_2026-09-16/RESULTS.md) stays first generation HTTP 400/no response/five unattempted, exact cause unknown. Earlier [inline-operand evidence](../../benchmarks/results/inline_request_operands_compiler_2026-09-16/RESULTS.md) stays 4/6 with two punctuation failures. Original source/result bytes and historical judgments are unchanged.
-- Next: provider-free candidate/bundle exposure diagnosis using anonymous total/segment and row/column controls; exact ranking subcause is open. Preserve qualifiers, entity/group scope and independent topics; do not add
+- [Offline exposure fix](../../benchmarks/results/candidate_exposure_offline_2026-09-16/RESULTS.md) traces the miss to exact subject matching plus stronger total-row metric rank. Whole own-axis literal hints now rank unresolved numeric targets without identity/authority changes; Commerce pairs reach the saved-input island and four narrative payloads stay identical. Numeric candidate payload 51,302 to 88,405 bytes, not SDK tokens. Live accuracy remains unmeasured after this fix; a fresh manifest is needed. Preserve qualifiers, entity/group scope and independent topics; do not add
   alias/suffix/benchmark rules or infer semantic success from ledger integrity.
 - Default `data/chroma_dart` remains incomplete and untouched. Acquisition ambiguity,
   whole-source consistency, retired helper deletion and formula-wide rounding

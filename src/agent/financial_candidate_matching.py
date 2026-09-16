@@ -116,6 +116,31 @@ def structured_subject_evidence(
     return {"state": "match" if subject else "unknown", "subject": subject, "source": source}
 
 
+def _numeric_subject_hint(candidate: Mapping[str, Any], subjects: Sequence[str]) -> str:
+    """A complete own-axis occurrence in a declared target is relevance only.
+
+    A descriptive request can contain an observed label without being that
+    label's identity. Preserve qualifiers/word separation; do not borrow body,
+    context, inferred entities or another cell's axes. Unknown identity stays
+    unknown and still needs Compiler interpretation.
+    """
+    if not subjects:
+        return "unspecified"
+    targets = _ordered_surfaces(subjects)
+    for kind, axes in (
+        ("row_axis_literal", candidate.get("row_headers") or [candidate.get("row_label")]),
+        ("column_axis_literal", candidate.get("column_headers") or []),
+    ):
+        for axis in _ordered_surfaces(axes):
+            label = _normalise_spaces(strip_financial_label_annotations(axis)).casefold()
+            if not any(character.isalnum() for character in label) or is_period_only_surface(label):
+                continue
+            pattern = r"(?<!\w)" + re.escape(label) + r"(?!\w)"
+            if any(re.search(pattern, target.casefold()) for target in targets):
+                return kind
+    return "unknown"
+
+
 def _identity_matches(expected: str, observed: str) -> bool:
     left = _compact(strip_financial_label_annotations(expected))
     right = _compact(strip_financial_label_annotations(observed))
@@ -223,6 +248,7 @@ class CandidateMatchV1:
     reading_subject_state: str = ""
     reading_state: str = ""
     reading_hint_state: str = ""
+    numeric_subject_hint: str = ""
 
 
 def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
@@ -247,6 +273,8 @@ def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
                           reading_subject_state=match.reading_subject_state,
                           reading_state=match.reading_state,
                           reading_hint_state=match.reading_hint_state)
+    else:
+        projection["numeric_subject_hint"] = match.numeric_subject_hint
     return projection
 
 
@@ -818,6 +846,15 @@ def build_candidate_matches(
         else:
             subject_state, subject_rank = "unknown", 1
 
+        numeric_subject_hint = (
+            _numeric_subject_hint(candidate_by_id[fact.candidate_id], declared_subjects)
+            if owner_kind != "narrative" and fact.structured and fact.kind == "numeric" else ""
+        )
+        if subject_state == "unknown" and numeric_subject_hint in {"row_axis_literal", "column_axis_literal"}:
+            # Between exact subject correspondence and no local hint; never
+            # upgrades applicability or changes source/interpretation checks.
+            subject_rank = 2
+
         # Filing identity is scope authority, not an implicit subject/rank bonus.
         if target.document_company and any(
             _identity_matches(target.document_company, observed)
@@ -932,6 +969,7 @@ def build_candidate_matches(
             reading_subject_state=reading_subject_state,
             reading_state=reading_state,
             reading_hint_state=reading_hint_state,
+            numeric_subject_hint=numeric_subject_hint,
         )
     return matches
 

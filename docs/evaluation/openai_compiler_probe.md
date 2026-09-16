@@ -121,7 +121,7 @@ Offline reconstruction matches the live 509-candidate catalog's ID/content hashe
 Commerce current/prior amounts are present, but each numeric input exposes only
 total consolidated revenue alternatives. The Compiler declines those substitutes
 and discloses the missing calculation. This is a candidate-exposure loss, not an
-API rejection or missing source catalog; the exact ranking subcause remains open.
+API rejection or missing source catalog; the offline follow-up below diagnoses the ranking cause.
 No received answer, source or validation rule was repaired to create success.
 
 Observed calls: Astra 5, Flash 6, query/canonical embeddings 22, Google counts 6.
@@ -137,3 +137,24 @@ code and plans differ from the historical Google 2/3, 3/5 result, so counts cann
 establish a causal model improvement. Next: provider-free exposure diagnosis with
 anonymous total/segment and row/column controls, preserving eligibility. No automatic
 paid retry, new default, unseen accuracy or release claim follows this run.
+
+## Provider-free exposure follow-up
+
+The [offline follow-up](../../benchmarks/results/candidate_exposure_offline_2026-09-16/RESULTS.md)
+reproduces the live exposure from immutable catalog/plan inputs. Exact subject
+comparison left the descriptive target and observed table label unresolved; the
+total-revenue rows then won on exact metric names. A complete own-axis label
+appearing literally in a declared numeric target now supplies a ranking hint.
+Unknown identity/applicability stays unknown; source conditions, interpretation,
+bundle limits and execution validation are unchanged. No suffix stripping or alias
+inference is used. The hint stays in diagnostics, outside Compiler input.
+
+Local replay now exposes both Commerce segment-note cells; four narrative island
+payloads remain byte-identical. The numeric island grows from 9 to 18 visible
+candidates and 51,302 to 88,405 local candidate-payload UTF-8 bytes because whole
+physical rows remain atomic. These are not SDK tokens, cost or a new model answer.
+Original source/plan/result artifacts are unchanged; no API call or store write.
+The paid result above remains 2/3 complete. Further live validation needs a new
+approved manifest/cost cap and must account for the larger numeric input.
+Eight anonymous exposure contracts and focused 101 tests pass; full Python 3.13
+unittest **1,815/1,815**, no skips (47.747s), audit 83 and import/topology/docs pass.

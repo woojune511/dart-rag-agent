@@ -13094,3 +13094,35 @@ are complete. It remains only as an audit record, not an active priority.
 - Proposed shared USD 6 accounting cap, Google generation/count limits 12 each, OpenAI Responses 12 and query/canonical embeddings 64. Existing once/island Compiler repair is included, SDK/run retries and paid judges are zero. No paid successor execution; exact new manifest/cost approval remains. Artifacts stay uncommitted.
 - [Prepared integration packet](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/). No full-agent model or release claim; the preceding six-case paid result remains unchanged.
 - Final import/topology/documentation checks 24/24 (16.060s), domain audit 83, pycompile and diff checks passed.
+
+## 2026-09-16 — Literal numeric subject hints for bounded exposure
+
+- Classified as a candidate-exposure bug. On clean baseline `abcccebd`, a
+  provider-free reconstruction matches all live catalog fingerprints, cohort
+  exposure lists and first-island visible IDs. Descriptive request subjects and
+  shorter source axes both remained unresolved; exact total-row metric wording
+  then displaced the relevant rows within the two-bundle quota.
+- Changed only `financial_candidate_matching.py`: a complete non-temporal own
+  row/column label literally present in the declared target supplies an ordinal
+  hint between exact subject correspondence and no hint. Subject/applicability
+  states, source conditions, target wording and Compiler interpretation do not
+  change. No suffix removal, alias inference, context/metadata borrowing,
+  cross-axis joining or repeated-word score; hint diagnostics stay outside prompts.
+- Eight anonymous contracts cover row/column layouts, total/segment distinctions,
+  complete period pairs, exact/hint ordering, qualifiers and word boundaries,
+  immutable inputs, repeated/foreign surface isolation, scope/unit/period/section
+  and retry exclusions, and owner-local diagnostics excluded from Compiler input.
+- Saved-input replay now exposes the Commerce segment-note pair. All three
+  catalogs/obligation lists and four narrative island payloads stay byte-identical.
+  Numeric island candidates 9 to 18; local candidate payload 51,302 to 88,405 UTF-8
+  bytes because whole physical rows remain atomic. This is not SDK-token/cost
+  evidence. Unknown numeric periods still need grounded Compiler interpretation;
+  no new answer, formula, successful calculation or 3/3 paid result is claimed.
+- Focused **101/101** (5.798s); Python 3.13 full unittest **1,815/1,815**, no skips
+  (47.747s), including import/topology/documentation gates; domain audit 83,
+  pycompile and diff checks pass. Provider/embedding/ingest/original-store writes 0.
+- All 239 protected predecessor/input/store file hashes preserved. The local
+  observer records an edited build without changing the paid-admission clean-build
+  gate. Original paid answers/manifests remain consumed and unchanged; Google
+  remains the default. No new paid manifest or run was prepared.
+- [Offline diagnosis, comparison and validation](../../benchmarks/results/candidate_exposure_offline_2026-09-16/RESULTS.md).
