@@ -182,5 +182,41 @@ and original source bytes remain unchanged; logical working-source tables match.
 
 This is fresh application evidence for two known-source questions, not unseen
 accuracy, human gold, or an isolated schema/model causal comparison. Source and
-model settings remain unchanged during the run. Next: broader normal-app questions
-with a new fixed scope/budget, without automatic reuse of this consumed admission.
+model settings remain unchanged during the run. The separate broader-question
+successor below does not reuse this consumed admission.
+
+## Broader normal-application verification (2026-09-17)
+
+The [three-question successor](../../benchmarks/results/broader_app_2026-09-17/RESULTS.md)
+on clean `173d5d02` uses the same runtime and default OpenAI application routes.
+All three questions return HTTP 200 and ledger ok, producing **4/4 outputs**.
+Runtime completeness is **2/3**, with one partial; all frozen criteria pass for
+**1/3**, with two partial. No production source code changed during the run.
+
+- Consolidated cash and cash equivalents are correctly retrieved as
+  **3,576,456,533,329원** at 2023-12-31 / 제25기, preserving source unit and scope.
+  Planner also supplies unsupported direct-value evidence requirements, leaving
+  `evidence_requirement_on_unsupported_obligation` beside the accepted binding.
+- Operating margin uses exact consolidated source inputs and calculates
+  15.395255319023432%, explicitly rounded to **15.4%**. Arithmetic and calculation-only
+  intent pass; fixed presentation **15.40%** is lost when the renderer strips zeros.
+  Exact inputs and formula remain in trace; no separate unrounded scalar is stored.
+- Naver Pay payment expansion and financial-service activities pass separate
+  assistant review. Ten claims/28 source-support occurrences cover both themes
+  and preserve explicit timing, report-as-of reach and aspirational platform wording.
+
+Anonymous offline controls reproduce the two contract/presentation gaps without
+external connections or source edits. Next: align direct-value Planner/preflight
+with the existing strict requirement contract, then address requested decimal
+precision separately. Do not weaken validation, add question-specific rules,
+rewrite old answers or treat this as an automatic paid-rerun authorization.
+
+New `5a7767e2...b376d` consumed once after identical SDK and full-wrapper rehearsals.
+All **43 requests** completed: Terra 6, Astra 4, embeddings 33; no Compiler feedback,
+SDK/whole-question retry, API/parsing/unhandled runtime error, Google/context call
+or fresh ingest. One program-validation error remains as reported above.
+Estimate USD **1.05468823**; prior accounting plus this run **3.34833214**, peak with
+reservations **4.03783214** under shared USD 7; pending 0, not observed billing.
+All 618 protected predecessor files and original source bytes remain unchanged;
+read-only logical source tables match the working copy. These newly authored but
+source-reviewed questions are not unseen holdout or a general release gate.
