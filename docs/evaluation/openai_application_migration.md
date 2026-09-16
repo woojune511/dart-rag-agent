@@ -263,6 +263,45 @@ Nine new tests, focused **156/156**, full unittest **1,882/1,882** without skips
 (53.272s), and domain audit 83 pass with external connections blocked; attempts
 and provider calls are 0. This is an exact-program execution comparison, not fresh
 model generation, current provider acceptance, or general answer-quality evidence.
-Next is bounded normal-application verification of both the direct-lookup Planner
-contract and fixed-decimal output, using the existing ready store and a fresh
-admission under the remaining shared budget. No consumed admission is reusable.
+The separate successor below tests direct-lookup Planner generation and attempts
+fixed-decimal verification using the ready store and a fresh admission. No consumed
+admission is reusable, and the historical answers remain unchanged.
+
+## Live verification after numeric contract corrections (2026-09-17)
+
+The [two-question successor](../../benchmarks/results/corrected_numeric_app_2026-09-17/RESULTS.md)
+on clean `7326ae58` uses the real ASGI/shared services and unchanged OpenAI routes.
+Both return HTTP 200 and ledger ok, but runtime is **1/2 complete**, with **1/2
+outputs** and **0/2** passing every frozen acceptance criterion. This verifies API
+execution and direct-lookup generation; it does not establish full answer quality.
+
+- Cash has empty direct child requirements and no old contract error. Its selected
+  summary-financial row really reports **3,576,456백만원**, but the requested full
+  consolidated statement reports **3,576,456,533,329원**. The exact full-statement
+  source was absent from retrieved/seed windows and the catalog. Selected-source
+  fidelity passes; requested statement and precision fail. No rounding explanation
+  is inferred for the difference.
+- Margin's exact revenue/profit cells are retrieved and cataloged but both absent
+  from Compiler exposure. The parsed response declines unrelated available amounts
+  and returns missing. No expression executes, so fixed-decimal live behavior is
+  **unexercised**, not a passed or failed presentation check. The earlier exact
+  saved-program `15.40%` replay remains separate local evidence.
+
+Provider-free reconstruction reproduces catalog fingerprints and candidate cohorts.
+Statement-type wording in scope/search hints becomes an implicit local subject,
+weakening the correct input cells' rank. An authored control removes only the exact
+declared basis from copied search hints: profit becomes visible, revenue still does
+not. This is partial diagnostic evidence, not a complete fix or a new model answer.
+Next is numeric requirement exposure characterization/correction, including source
+bundle ranking, with permissions/IDs/accepted evidence preserved. Requested-statement
+cash retrieval remains a separate seam; add no company/metric-specific runtime rule.
+
+Fresh `72b5dced...4b3ca` consumed once after identical SDK and full-wrapper rehearsals.
+All **23 requests** completed: Terra 4, Astra 2, embeddings 17; no API/parsing/unhandled
+runtime error, Compiler feedback/SDK/whole-question retry, Google/context call or
+fresh ingest. Estimate **USD 0.68876178**; shared accounting **4.03709392 / 7**,
+remaining **2.96290608**, peak with reservations **5.44039392**, pending 0; not invoice.
+All **717** protected predecessor files, 19 frozen admission files and original
+source bytes remain unchanged; working source tables match at 1,872/59,477 rows.
+No production source code changed during verification. These known-source cases
+and fresh plans/retrieval are neither unseen holdout nor isolated patch/model proof.
