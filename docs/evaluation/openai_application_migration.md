@@ -121,8 +121,8 @@ All returned HTTP 200, but only **1/3 questions and 2/4 requested outputs** comp
   `text` and `서술` into `display_unit`. Related sources were retrieved; narrative
   faithfulness/completeness remain untested, not failed model-writing samples.
 
-Next: the generic narrative display-unit Planner/schema contract, preserving strict
-numeric-unit validation. Do not introduce unit-name exceptions or backfill answers.
+The subsequent provider-free correction below separates narrative display format
+from numeric units in the generation schema; these sampled answers stay unchanged.
 Fresh plans/retrieval prevent isolated prompt/model attribution; these are two new
 source-reviewed questions, not unseen holdout or a release gate.
 
@@ -134,3 +134,27 @@ USD 0.82566256 accounted within the shared USD 7 limit, not billed cost.
 The predecessor failed in caller logging before any HTTP transmission or question;
 its consumed manifest/result remain preserved. All 528 protected files and logical
 source tables pass; no production source changes, fresh ingestion or original-store writes.
+
+## Narrative unit generation contract (2026-09-17)
+
+The [offline correction](../../benchmarks/results/narrative_unit_contract_2026-09-17/RESULTS.md)
+reproduces both narrative blocks from clean `243bddf2`. The old Planner schema
+accepted format labels as units. Production generation now uses separate numeric
+and narrative obligation branches: narratives require `display_unit=""`, while
+requested presentation stays in `display_format`. Numeric units remain declared
+and pass through the unchanged deterministic checks. There is no unit alias,
+format-label whitelist, automatic relabeling or historical-response repair.
+
+Six authored contracts cover schema rejection, null compatibility, both narrative
+evidence modes, free presentation labels, a blocked numeric sibling, and unsupported
+numeric claims. The real OpenAI SDK mock sends the nested strict schema and parses
+all three output kinds. The shape follows the [official supported schema subset](https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas);
+SDK serialization is not live provider admission or model-quality evidence.
+
+Full unittest **1,867/1,867**, no skips (52.611s); focused **158/158**, domain audit
+83, import/topology/documentation and pycompile/diff checks pass. External network
+was blocked with 0 attempted connections/provider calls; all 564 protected files
+are unchanged. Original sampled narrative units remain invalid under preflight;
+explicitly authored blank-unit copies pass that gate without fabricating answers.
+The paid result remains **1/3 questions, 2/4 outputs**. Next is fresh normal-app
+generation and source review under a new bounded admission; no automatic paid rerun.

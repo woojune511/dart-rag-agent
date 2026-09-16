@@ -5,6 +5,24 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Narrative Planner unit generation boundary (2026-09-17)
+
+- Baseline clean `243bddf2`: the saved normal-application Planner put presentation
+  labels in narrative `display_unit`, preventing both narrative Compiler dispatches.
+  This is a generic Planner/schema bug, not a narrative source-quality measurement.
+- Separate numeric/narrative generation branches share the existing field contract.
+  Narratives require the empty unit literal and retain presentation in `display_format`;
+  numeric units stay available to unchanged strict unit validation. No format-label
+  allowlist, runtime coercion, source substitution or historical answer rewrite.
+- Six authored tests and an expanded real-SDK mock cover schema enforcement,
+  optional-null normalization, source-defined and declared narrative requirements,
+  mixed numeric isolation, source-grounded assembly and unsupported-number rejection.
+  Full unittest **1,867/1,867** (52.611s), focused 158, audit 83 and boundary gates
+  pass; no external connection attempts/provider calls or fresh ingest. All 564
+  protected files are unchanged. [Offline evidence](../../benchmarks/results/narrative_unit_contract_2026-09-17/RESULTS.md)
+  does not upgrade the prior paid result (1/3 questions, 2/4 outputs); fresh narrative
+  generation and semantic review remain separate work.
+
 ## Bounded operation steps instead of punctuation generation (2026-09-16)
 
 - Baseline clean `fc24fb9e`; compiler formula transport bug seam, not parser,

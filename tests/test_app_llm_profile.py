@@ -264,6 +264,7 @@ class AppLLMProfileTests(unittest.TestCase):
             self.assertIsNone(build_app_services(project_root=self.root).agent)
 
     def test_real_router_and_nested_planner_schemas_use_strict_responses(self):
+        from jsonschema import Draft202012Validator
         from src.agent.financial_graph_models import RequirementPlannerOutput
         from src.routing.types import QueryRoutingDecision
 
@@ -272,10 +273,15 @@ class AppLLMProfileTests(unittest.TestCase):
         agent = build_app_services(project_root=self.root).agent
         values = [
             QueryRoutingDecision(intent="qa", format_preference="paragraph"),
-            RequirementPlannerOutput(obligations=[dict(
-                kind="narrative", label="anonymous activity", request_unit_ids=["q1"],
-                evidence_requirements=[dict(label="anonymous source")],
-            )]),
+            RequirementPlannerOutput(obligations=[
+                dict(kind="narrative", label="anonymous activity", request_unit_ids=["q1"],
+                     display_unit="", display_format="paragraph",
+                     evidence_requirements=[dict(label="anonymous source")]),
+                dict(kind="direct_value", label="anonymous quantity", request_unit_ids=["q1"],
+                     display_unit="COUNT"),
+                dict(kind="derived_value", label="anonymous rate", request_unit_ids=["q1"],
+                     display_unit="%"),
+            ]),
         ]
         calls = []
         for value in values:
@@ -297,9 +303,20 @@ class AppLLMProfileTests(unittest.TestCase):
             self.assertFalse(body["store"])
             self.assertNotIn("temperature", body)
             self.assertTrue(body["text"]["format"]["strict"])
-        nested = calls[1]["text"]["format"]["schema"]["$defs"]["AnswerObligation"]
-        self.assertEqual(set(nested["required"]), set(nested["properties"]))
-        self.assertFalse(nested["additionalProperties"])
+        schema = calls[1]["text"]["format"]["schema"]
+        self.assertEqual(schema["type"], "object")
+        self.assertNotIn("anyOf", schema)
+        branches = schema["properties"]["obligations"]["items"]["anyOf"]
+        self.assertEqual(len(branches), 2)
+        for branch in branches:
+            nested = schema["$defs"][branch["$ref"].rsplit("/", 1)[1]]
+            self.assertEqual(set(nested["required"]), set(nested["properties"]))
+            self.assertFalse(nested["additionalProperties"])
+        validator = Draft202012Validator(schema)
+        payload = values[1].model_dump()
+        validator.validate(payload)
+        payload["obligations"][0]["display_unit"] = "text"
+        self.assertFalse(validator.is_valid(payload))
         self.google_factory.assert_not_called()
 
     def test_full_openai_failure_does_not_retry_or_create_google_client(self):

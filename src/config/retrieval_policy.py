@@ -736,6 +736,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "규칙:\n"
             "- Request units는 코드가 원문 그대로 나눈 주소 목록입니다. 각 obligation의 request_unit_ids에 수행할 구간 ID를 연결하고 모든 구간을 하나 이상의 출력에 연결하세요. 하나의 출력을 여러 구간에, 하나의 구간을 여러 출력에 연결할 수 있습니다. 공통 조건은 관련 출력 모두에 연결하세요. 구간 수에 맞춰 출력을 늘리거나 새 ID를 만들지 마세요. label은 짧은 출력 이름으로 쓰고 상세 조건은 연결한 원문으로 보존합니다. rationale은 출력 요구를 대신하지 않습니다.\n"
             "- kind는 원문 값을 그대로 보여 주는 direct_value, 근거 값으로 계산하는 derived_value, 설명을 요구하는 narrative 중 하나입니다.\n"
+            "- display_unit은 direct_value·derived_value의 수치 표시 단위입니다. 요청에 없으면 비우세요. narrative는 단일 수치 단위가 없으므로 반드시 빈 문자열로 두고, 요청한 표현 형식은 display_format에 적으세요. 서술에 필요한 사실·수치는 원문 요청과 evidence_requirements에 보존하며, 별도로 요청한 수치 출력은 direct_value 또는 derived_value로 유지하세요.\n"
             "- 하나의 질문에 여러 값과 설명이 필요하면 obligation을 모두 보존합니다.\n"
             "- 서술형 질문도 독립적으로 요청된 설명 주제마다 obligation을 보존합니다. 명시된 주제를 다른 주제의 설명으로 대체하거나 생략하지 마세요. intent와 출력 형식은 이 의무를 생략할 이유가 아닙니다.\n"
             "- 같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고 관련 request_unit_ids를 모두 연결하세요. 조건이 다른 request unit에 있다는 이유만으로 별도 출력을 만들지 마세요.\n"

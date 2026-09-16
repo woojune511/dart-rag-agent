@@ -161,8 +161,15 @@ class AnswerObligation(_DeferredBaseModel):
         "the referenced request text. These are instructions, not source evidence."
     ))
     required: bool = True
-    display_unit: str = ""
-    display_format: str = ""
+    display_unit: str = Field(default="", description=(
+        "Requested numeric display unit for direct_value or derived_value; "
+        "leave blank when unspecified. Narrative outputs have no scalar unit. "
+        "Preserve separately requested quantities as numeric outputs."
+    ))
+    display_format: str = Field(default="", description=(
+        "Requested presentation format, separate from a numeric unit; "
+        "leave blank when unspecified."
+    ))
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
     source_sections: List[str] = Field(default_factory=list, description=(
         "Explicit query-requested section titles or paths, not inferred search hints. "
@@ -240,6 +247,22 @@ class OutputRelationshipV1(_DeferredBaseModel):
     request_text: str = Field(min_length=1, description="Exact request substring requiring these outputs to share a basis, not merely a company or topic.")
 
 
+class NumericAnswerObligation(AnswerObligation):
+    """Numeric generation keeps its declared unit for deterministic validation."""
+
+    kind: Literal["direct_value", "derived_value"]
+
+
+class NarrativeAnswerObligation(AnswerObligation):
+    """A narrative's presentation is not a scalar measurement unit."""
+
+    kind: Literal["narrative"]
+    display_unit: Literal[""] = Field(default="", description=(
+        "Always empty for narrative outputs. Use display_format for presentation "
+        "instructions and retain requested facts in the narrative requirements."
+    ))
+
+
 class RequirementPlannerOutput(_DeferredBaseModel):
     """Pre-retrieval semantic requirements without a fixed calculation type."""
 
@@ -250,7 +273,7 @@ class RequirementPlannerOutput(_DeferredBaseModel):
     output_relationships: List[OutputRelationshipV1] = Field(default_factory=list)
     topic: str = ""
     section_filter: Optional[str] = None
-    obligations: List[AnswerObligation] = Field(default_factory=list)
+    obligations: List[Union[NumericAnswerObligation, NarrativeAnswerObligation]] = Field(default_factory=list)
     retrieval_queries: List[str] = Field(default_factory=list)
     rationale: str = ""
 
