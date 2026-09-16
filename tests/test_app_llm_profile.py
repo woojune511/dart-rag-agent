@@ -227,6 +227,96 @@ class AppLLMProfileTests(unittest.TestCase):
             self.assertIn("program_compilation", app.state.services.agent.llm_routes)
             self.assertEqual(app.state.services.agent.routing_config, app_llm_routing_config("openai_compiler"))
 
+    def test_full_openai_profile_starts_without_google_and_separates_ingest(self):
+        from main import create_app
+
+        self.prepare_services()
+        os.environ.pop("GOOGLE_API_KEY")
+        (self.root / ".env").write_text("DART_LLM_PROFILE=openai\n", encoding="utf-8")
+        app = create_app(project_root=self.root)
+        with patch("main._configure_logging"), TestClient(app) as client:
+            self.assertEqual(client.get("/api/health/ready").status_code, 200)
+            agent = app.state.services.agent
+            self.assertEqual(agent.llm.model_name, "gpt-5.6-terra")
+            self.assertIs(self.router_factory.call_args.kwargs["llm"], agent.llm)
+            for phase in ("routing", "requirement_planning", "evidence_extraction"):
+                self.assertIs(agent._llm_for_phase(phase), agent.llm)
+            context = agent.llm_routes["context_generation"]
+            self.assertEqual(context.model_name, "gpt-5.6-luna")
+            self.context_factory.assert_called_once_with(context, app.state.services.store)
+        self.google_factory.assert_not_called()
+        routes = app_llm_routing_config("openai")["llm_routes"]
+        self.assertEqual(routes["program_compilation"], app_llm_routing_config("openai_compiler")["llm_routes"]["program_compilation"])
+        routes["program_compilation"]["model"] = "caller-change"
+        self.assertEqual(app_llm_routing_config("openai")["llm_routes"]["program_compilation"]["model"], "gpt-6-astra")
+
+    def test_full_openai_checks_key_and_readiness_before_initialization(self):
+        self.prepare_services()
+        os.environ["DART_LLM_PROFILE"] = "openai"
+        os.environ.pop("GOOGLE_API_KEY")
+        os.environ.pop("OPENAI_API_KEY")
+        with self.assertRaisesRegex(ValueError, "OPENAI_API_KEY"):
+            build_app_services(project_root=self.root)
+        self.store_factory.assert_not_called()
+        self.google_factory.assert_not_called()
+        self.router_factory.assert_not_called()
+        with patch("src.api.services._store_may_initialize", return_value=False):
+            self.assertIsNone(build_app_services(project_root=self.root).agent)
+
+    def test_real_router_and_nested_planner_schemas_use_strict_responses(self):
+        from src.agent.financial_graph_models import RequirementPlannerOutput
+        from src.routing.types import QueryRoutingDecision
+
+        self.prepare_services()
+        os.environ["DART_LLM_PROFILE"] = "openai"
+        agent = build_app_services(project_root=self.root).agent
+        values = [
+            QueryRoutingDecision(intent="qa", format_preference="paragraph"),
+            RequirementPlannerOutput(obligations=[dict(
+                kind="narrative", label="anonymous activity", request_unit_ids=["q1"],
+                evidence_requirements=[dict(label="anonymous source")],
+            )]),
+        ]
+        calls = []
+        for value in values:
+            def send(request, **kwargs):
+                self.assertEqual(str(request.url), "https://api.openai.com/v1/responses")
+                calls.append(json.loads(request.content))
+                body = response_body(value.model_dump())
+                body["model"] = "gpt-5.6-terra"
+                return httpx.Response(200, request=request, json=body)
+
+            with self.subTest(schema=type(value).__name__), patch.object(httpx.Client, "send", side_effect=send):
+                parsed = agent.llm.with_structured_output(type(value)).invoke("Anonymous schema check")
+            self.assertEqual(parsed, value)
+        self.assertEqual(len(calls), 2)
+        for body in calls:
+            self.assertEqual(body["model"], "gpt-5.6-terra")
+            self.assertEqual(body["reasoning"], {"effort": "low"})
+            self.assertEqual(body["max_output_tokens"], 8192)
+            self.assertFalse(body["store"])
+            self.assertNotIn("temperature", body)
+            self.assertTrue(body["text"]["format"]["strict"])
+        nested = calls[1]["text"]["format"]["schema"]["$defs"]["AnswerObligation"]
+        self.assertEqual(set(nested["required"]), set(nested["properties"]))
+        self.assertFalse(nested["additionalProperties"])
+        self.google_factory.assert_not_called()
+
+    def test_full_openai_failure_does_not_retry_or_create_google_client(self):
+        self.prepare_services()
+        os.environ["DART_LLM_PROFILE"] = "openai"
+        agent = build_app_services(project_root=self.root).agent
+        for phase in ("routing", "requirement_planning", "context_generation"):
+            calls = []
+            def send(request, **kwargs):
+                calls.append(request.url.host)
+                return httpx.Response(503, request=request, json={"error": {"message": "offline unavailable", "type": "server_error"}})
+
+            with self.subTest(phase=phase), patch.object(httpx.Client, "send", side_effect=send), self.assertRaises(APIStatusError):
+                agent._llm_for_phase(phase).invoke("Anonymous failure check")
+            self.assertEqual(calls, ["api.openai.com"])
+        self.google_factory.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -63,7 +63,7 @@
 | `src/processing/source_context.py` | bounded exact heading/table fragments, physical cell partitions, XML spans, hierarchy/adjacency links and file identity; no entity inference |
 | `src/utils/source_segments.py` | source-local partition clipping, independent prompt quote surfaces and contiguous-quote checks shared by narrative/scope validation |
 | `src/processing/table_structure.py`, `table_records.py` | explicit THEAD/TH header scope before grid inference; v2 parser row/cell projection |
-| `src/ingestion/context_generator.py` | contextual text generation and indexing payloads |
+| `src/ingestion/context_generator.py` | contextual text generation, completed provider text projection, fallback/usage counts and indexing payloads |
 | `src/ingestion/ingest_service.py` | end-to-end ingest ownership |
 | `src/storage/vector_store.py` | scoped dense/BM25 search, private cache copies/commit invalidation, source coverage and no-embedding sidecar repair |
 | `src/storage/search_scope.py`, `bm25_index.py` | observed source-ID/document filters before dense/lexical top-K, matching union semantics, explicit empty-scope no-call; no agent/domain dependency |

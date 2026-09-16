@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import time
+from collections.abc import Mapping
 from typing import Any, Dict, List, Optional
 
 from src.config.retrieval_policy import CONTEXTUAL_INGEST_POLICY
@@ -48,12 +49,40 @@ class ContextGenerator:
         prompt = self._build_context_prompt(text, metadata)
         try:
             response = self.llm.invoke(prompt)
-            return response.content.strip()
+            return self._response_text(response) or self._fallback_context(metadata)
         except ProviderAdmissionError:
             raise
         except Exception as exc:
             logger.warning("Context generation failed: %s", exc)
             return self._fallback_context(metadata)
+
+    @staticmethod
+    def _response_text(response: Any) -> str:
+        """Read completed text across providers, excluding reasoning/refusals."""
+        metadata = getattr(response, "response_metadata", None)
+        if isinstance(metadata, Mapping):
+            if metadata.get("status") not in (None, "completed"):
+                return ""
+            if metadata.get("finish_reason") in {"length", "content_filter"}:
+                return ""
+        extra = getattr(response, "additional_kwargs", None)
+        if isinstance(extra, Mapping) and extra.get("refusal"):
+            return ""
+        content = getattr(response, "content", "")
+        if isinstance(content, str):
+            return content.strip()
+        if not isinstance(content, list):
+            return ""
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                if block.get("type") == "refusal":
+                    return ""
+                if block.get("type") in {"text", "output_text"} and isinstance(block.get("text"), str):
+                    parts.append(block["text"])
+        return "".join(parts).strip()
 
     def _fallback_context(self, metadata: dict) -> str:
         return str(CONTEXTUAL_INGEST_POLICY["fallback_context_template"]).format(
@@ -151,10 +180,12 @@ class ContextGenerator:
                 logger.warning("Context generation failed for chunk %s: %s", idx, response)
             metrics["fallback_count"] += 1
             return self._fallback_context(chunk.metadata)
-        content = getattr(response, "content", "") or ""
-        context = content.strip() or self._fallback_context(chunk.metadata)
         if collect_usage:
             add_gemini_usage_counts(metrics, extract_gemini_usage_counts(response))
+        context = self._response_text(response)
+        if not context:
+            metrics["fallback_count"] += 1
+            return self._fallback_context(chunk.metadata)
         return context
 
     def _generate_contexts_for_chunks(
@@ -246,11 +277,12 @@ class ContextGenerator:
             request_batch_size,
         )
 
-        contexts, _ = self._generate_contexts_for_chunks(
+        contexts, context_metrics = self._generate_contexts_for_chunks(
             chunks,
             workers=workers,
             request_batch_size=request_batch_size,
             on_progress=on_progress,
+            collect_usage=True,
             log_item_failures=True,
         )
         texts, metadatas = self._contextual_index_payload(chunks, contexts)
@@ -267,10 +299,7 @@ class ContextGenerator:
             "added_chunks": int(add_metrics.get("added_chunks", total)),
             "stored_parent_chunks": len(parents),
             "api_calls": total,
-            "fallback_count": 0,
-            "prompt_chars": 0,
-            "response_chars": 0,
-            **zero_gemini_usage_counts(),
+            **context_metrics,
             "max_workers": workers,
             "batch_size": request_batch_size,
             "elapsed_sec": 0.0,

@@ -159,22 +159,30 @@ uv run --with-requirements requirements.txt python -m unittest discover -s tests
 
 Swagger UI is available at `http://localhost:8000/docs`.
 
-For the reviewed OpenAI Compiler route, add this setting to the project `.env`
+To use OpenAI for application LLM calls, add this setting to the project `.env`
 or process environment, then restart FastAPI or Streamlit:
 
 ```dotenv
-DART_LLM_PROFILE=openai_compiler
+DART_LLM_PROFILE=openai
 ```
 
-Both entrypoints share this configuration. Only program compilation uses
-`gpt-6-astra` through Responses: medium reasoning, at most 5,120 output tokens,
-90-second timeout, `store=false`, standard service tier and zero SDK retries.
-Routing, planning and ingestion keep the existing Google route, so both
-`GOOGLE_API_KEY` and `OPENAI_API_KEY` are needed. An unset/blank profile or
-`DART_LLM_PROFILE=google` preserves the previous defaults; unknown profiles
-fail startup instead of silently selecting another provider. Process settings
-override `.env`. The profile sets request options, not a total spending cap.
-See the [Compiler validation and its limits](docs/evaluation/openai_compiler_probe.md).
+Both entrypoints share these Responses routes; only `OPENAI_API_KEY` is needed
+for LLM calls (DART data fetching still needs its own credential):
+
+| Phase | Model | Reasoning | Output-token ceiling |
+| --- | --- | --- | --- |
+| Routing, planning and default evidence helpers | `gpt-5.6-terra` | low | 8,192 |
+| Program compilation | `gpt-6-astra` | medium | 5,120 |
+| Ingest context sentence | `gpt-5.6-luna` | none | 512 |
+
+All three use a 90-second timeout, `store=false`, standard service tier and zero
+SDK retries. `openai_compiler` remains available for the previous mixed-provider
+setup and needs both OpenAI and Google keys. Unset/blank/`google` preserves the
+Google defaults; unknown profiles fail startup. Process settings override `.env`.
+The profile sets per-request options, not a total spending cap, and does not
+rebuild existing stores or change canonical embedding/parser identity.
+See [application migration validation](docs/evaluation/openai_application_migration.md)
+and the separate [Compiler evidence](docs/evaluation/openai_compiler_probe.md).
 
 The API requires an exact `StoreManifestV1` match before serving queries.
 Use `DART_STORE_PATH` to select an existing store directory and

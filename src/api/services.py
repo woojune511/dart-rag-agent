@@ -195,13 +195,13 @@ def build_app_services(
     if not may_initialize:
         return services
 
-    compiler_route = routing_config.get("llm_routes", {}).get("program_compilation", {})
+    routes = routing_config.get("llm_routes", {})
     if (
-        compiler_route.get("provider") == "openai"
+        any(route.get("provider") == "openai" for route in routes.values())
         and not os.environ.get("OPENAI_API_KEY", "").strip()
     ):
-        # Reject a missing compiler credential before store/query-router startup.
-        raise ValueError("OPENAI_API_KEY is required for DART_LLM_PROFILE=openai_compiler.")
+        # Reject missing credentials before store/query-router initialization.
+        raise ValueError("OPENAI_API_KEY is required for the selected OpenAI LLM profile.")
 
     force_bm25_only = bool(
         allow_degraded
@@ -217,7 +217,7 @@ def build_app_services(
         force_bm25_only=force_bm25_only,
     )
     agent = FinancialAgent(store, k=8, routing_config=routing_config)
-    context_generator = ContextGenerator(agent.llm, store)
+    context_generator = ContextGenerator(agent.llm_routes.get("context_generation", agent.llm), store)
     parser = FinancialParser(
         chunk_size=expected.ingest.chunk_size,
         chunk_overlap=expected.ingest.chunk_overlap,
