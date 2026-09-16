@@ -298,3 +298,42 @@ No server, fresh ingest or provider run was started. Read-only default-store
 manifest readiness is `mismatch`; the next normal-entrypoint smoke run needs a
 verified disposable store copy. Original source stores and frozen results remain
 unchanged. Remaining Google phases and independent question coverage are pending.
+
+## Normal application store connection and API smoke
+
+Clean `4bab8ea7` adds explicit `DART_COLLECTION_NAME` selection alongside
+`DART_STORE_PATH`; the default collection and canonical manifest/source checks
+remain strict. Local settings connect a byte-identical NAVER 2023 source-store
+copy at `data/app_nav_2023_20260916`, with its existing collection and vectors.
+No collection rename, manifest adoption, fresh ingest or original-store write.
+
+[Actual API result and source review](../../benchmarks/results/app_store_smoke_2026-09-16/RESULTS.md)
+use normal FastAPI lifespan/shared services through in-process ASGI HTTP, with real
+providers and fresh planning/retrieval. Health, companies and one mixed query return
+200; storage is compatible/non-degraded/source-complete, 1,872 chunks. Runtime
+accepts 2/2 outputs and ledger integrity is ok; API/parsing/runtime errors, feedback
+repairs and SDK/whole-run retries are zero. No external listening server was started.
+
+Fresh manifest `230fceea0b85052267c91729def00721bc8ecc9cc6a473a63a7cc303bcfbb71a`
+was consumed once under delegated USD 7 authority, after two identical no-call
+app/SDK rehearsals and a terminal-failure check. Normal app model and retrieval
+settings were preserved; an external caller applied cost/call/single-dispatch limits.
+Google default bodies used a conservative byte input bound and model-ceiling output
+reservation, without a count call or the earlier benchmark's generation settings.
+All 18 attempts completed: Astra 2, Flash 2, embeddings 14. Estimated usage cost
+USD 0.61264133, peak reserved 1.70867883, pending 0; not observed billing.
+Full unittest 1,841/1,841, no skips (53.618s), external network blocked and zero
+attempted external connections; audit 83, import/topology/docs and diff pass.
+All 398 protected files, including both original stores and inactive default, match.
+
+Independent arithmetic/source review retains 41.3957043439745%, displayed 41.4%.
+Two narrative claims and four subject/fact support occurrences match original
+sources and retain subsidiary versus segment scope. Narrative completeness remains
+partial: direct Commerce-impact source `20240318000844:888:5` is retrieved but none
+of its candidates reaches the narrative window. The emitted answer supports the
+platform role and acquired-group revenue/net loss; it omits management's direct
+Commerce-growth explanation. Runtime 2/2 therefore does not satisfy the complete
+narrative review criterion. This is one known-source app sample, not unseen quality,
+a release gate or a causal comparison with the differently planned benchmark run.
+Next: reproduce the normal-profile exposure gap offline before another live run,
+then expand independent questions and migrate remaining Google phases.
