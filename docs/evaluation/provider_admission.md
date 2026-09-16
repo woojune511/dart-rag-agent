@@ -53,5 +53,5 @@ usage retains its reservation; an overrun closes the guard and cannot return an
 accepted response. Cache-write upper pricing may conservatively account for all
 input. Detailed errors, keys and headers are not included in receipts.
 The private SDK request seam is exercised with real serialization and mocked HTTP.
-The [six-case migration packet](openai_compiler_probe.md) documents its proposed
-settings, limits and lack of live acceptance; runtime defaults install no guard.
+The [six-case migration packet](openai_compiler_probe.md) records its approved
+settings and six successful first responses; runtime defaults install no guard.

@@ -8908,3 +8908,38 @@ References:
   fields), preserving legal mixed/dependency programs. This addresses structural errors,
   not semantic direction by fiat. No more naming-only paid trials or automatic expansion.
 - [Results, raw responses and failure-layer interpretation](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md).
+
+## 2026-09-16 — Approved OpenAI Compiler first-response trial
+
+- User approved the prepared exact manifest
+  `8144726f02bea29f8bc0e7b8f1a8d07fcf9e8e5567969f965c535b158a6273d3`,
+  consumed once on clean `3354fbc9`; GPT-6 Astra Responses, medium reasoning,
+  5,120 inclusive output-token limit, USD 6 cap, all retries zero.
+- Six frozen anonymous synthetic questions, evidence, fixed plans and criteria
+  remain identical to the preceding Google step-formula packet. OpenAI's strict
+  schema requires explicit fields and removes default annotations; this is a
+  historical provider/transport comparison, not isolated model A/B evidence.
+- All six first responses completed; API/parsing errors 0. Strict wire/original
+  schema/runtime/ledger **6/6 each**. All 12 outputs pass each frozen source-binding,
+  finite-formula, source-display, calculated/displayed value and unit check.
+  The display/calculation pairs preserve 21%/20% then 40%, 31%/30% then 15%, and
+  -9%/-10% then 30%. No sampled reply repair or missing quantity reconstruction.
+- Provider-reported input 53,677/output 5,352 tokens; output includes 226 reasoning
+  tokens, cached input 0. Generation time 89.26999s total, 14.87833s mean,
+  12.38227–18.18899s range. Conservative input USD 12.50/M/output USD 50/M gives
+  USD 0.9385625 < 6.00; outstanding reservation 0, actual invoice unobserved.
+- All actual body hashes match the frozen SDK rehearsal in order. Original clean
+  build (169 runtime files), nine packet files and 67 protected predecessor files
+  verified before documentation changes. Separate offline review uses the unchanged
+  frozen assessor with sockets blocked and preserves raw JSON, criteria and history.
+- No Planner, retrieval, embedding, Google, fresh ingest, store write, judge or
+  additional provider call. Default remains Google. Artifacts stay ignored and
+  uncommitted. Prior local full unittest 1,799/1,799 remains local validation.
+- Six known cases with one response each do not establish general availability,
+  unseen semantic accuracy, reverse-direction/abstention fixes or full-agent release
+  acceptance. Prior Google first-generation HTTP 400 has no response and is not an
+  accuracy failure denominator; its exact cause remains unknown. Next is bounded
+  real-question/compiler integration evaluation under a new approved manifest.
+- [Results, per-case answers and integrity receipt](../../benchmarks/results/openai_compiler_preparation_2026-09-16/RESULTS.md).
+- Post-run documentation/import/topology checks **24/24** passed (18.190s);
+  documentation changes only, no new runtime modification or additional paid run.
