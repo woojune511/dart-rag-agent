@@ -241,6 +241,28 @@ scope coverage. Frozen catalog/program hashes, source proofs and 659 protected
 predecessor files remain unchanged. No original store writes or consumed admission reuse.
 
 This does not alter the preceding paid partial cash answer or prove live provider
-acceptance/answer quality for the new schema. Next: explicit fixed-decimal
-presentation, with arithmetic and source display provenance preserved; fresh
-provider verification of corrected contracts remains a separate bounded run.
+acceptance/answer quality for the new schema. The fixed-decimal correction below
+is separate local evidence; fresh provider verification remains a bounded run.
+
+## Final-round presentation correction (2026-09-17)
+
+The [provider-free replay and contracts](../../benchmarks/results/fixed_decimal_display_2026-09-17/RESULTS.md)
+on baseline `5ede1b83` preserve the exact saved program, request, source catalog,
+visibility and validation. Its final `round(..., 2)` now renders **15.40%** throughout
+the calculated slot, trace, final answer and ledger. The numeric value stays 15.4;
+source rows and source/calculated provenance remain unchanged. Original paid
+answers/results and all 684 protected predecessor files are preserved.
+
+Only outermost rounding supplies precision; intermediate operations and dependency
+values do not propagate it. Source displays keep their original precision. Unit
+conversion shifts base-unit precision, with fixed formatting bounded to 324 places;
+larger requests retain the existing formatter. No query keyword parsing, new model
+schema/prompt, source mutation or arithmetic change was introduced.
+
+Nine new tests, focused **156/156**, full unittest **1,882/1,882** without skips
+(53.272s), and domain audit 83 pass with external connections blocked; attempts
+and provider calls are 0. This is an exact-program execution comparison, not fresh
+model generation, current provider acceptance, or general answer-quality evidence.
+Next is bounded normal-application verification of both the direct-lookup Planner
+contract and fixed-decimal output, using the existing ready store and a fresh
+admission under the remaining shared budget. No consumed admission is reusable.

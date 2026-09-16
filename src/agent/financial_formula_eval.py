@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import ast
 import math
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 _ALLOWED_FORMULA_FUNCTIONS: Dict[str, Any] = {
     "min": min,
@@ -77,3 +77,17 @@ def safe_eval_formula(expression: str, variables: Dict[str, float]) -> float:
         raise ValueError(f"unsupported AST node: {type(node).__name__}")
 
     return float(_eval(tree))
+
+
+def final_round_precision(expression: str, variables: Dict[str, float]) -> Optional[int]:
+    """Read only a validated formula's outermost round; never propagate inner precision."""
+    body = ast.parse(expression, mode="eval").body
+    if not (
+        isinstance(body, ast.Call) and isinstance(body.func, ast.Name)
+        and body.func.id == "round" and not body.keywords and len(body.args) in (1, 2)
+    ):
+        return None
+    if len(body.args) == 1:
+        return 0
+    precision = safe_eval_formula(ast.unparse(body.args[1]), variables)
+    return int(precision) if math.isfinite(precision) and precision.is_integer() else None

@@ -20,7 +20,7 @@ from src.agent.financial_answer_slots import (
     build_calculated_value_slot,
     build_operand_value_slot,
 )
-from src.agent.financial_formula_eval import safe_eval_formula
+from src.agent.financial_formula_eval import final_round_precision, safe_eval_formula
 from src.agent.financial_formula_constants import (
     FormulaConstantError, resolve_formula_constants, resolve_request_inputs,
 )
@@ -3494,6 +3494,7 @@ def execute_semantic_calculation_program(
             source_row_ids=_clean_source_row_ids(source_row_ids),
             role="primary_value",
             source_anchor=next((item for item in source_anchors if item), ""),
+            decimal_places=final_round_precision(formula, env),
         )
         rendered_value = str(slot.get("rendered_value") or "")
         formula_rendered_value = rendered_value

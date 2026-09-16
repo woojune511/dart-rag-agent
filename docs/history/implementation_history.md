@@ -5,6 +5,28 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Final-round decimal presentation (2026-09-17)
+
+- Baseline `5ede1b83`: the saved calculation already contained a request-grounded
+  final `round(..., 2)` and the correct value 15.4, but rendering stripped the zero.
+  This is a calculated-presentation bug; no retrieval, arithmetic or model change.
+- Execution passes only the validated outermost round's precision to calculated
+  slots. Rendering preserves zeros, shifts precision with power-of-ten display
+  units and bounds fixed output to 324 decimal places. Intermediate operations,
+  dependencies and free-form presentation text do not infer precision. Direct and
+  selected source displays retain their exact original precision independently.
+- Nine new contracts cover wire-to-final/ledger propagation, signs/zero/small
+  values, unit scaling, bounded formatting, source/calculation separation,
+  dependencies, fractional-precision failure and V2 tampering. Focused **156/156**,
+  full unittest **1,882/1,882**, no skips (53.272s), audit 83 pass; external
+  connection attempts/provider calls 0.
+- [Exact stored-program replay](../../benchmarks/results/fixed_decimal_display_2026-09-17/RESULTS.md)
+  changes final/slot/trace presentation from `15.4%` to `15.40%`, with catalog,
+  source rows, program, obligations, visibility, validation, values and provenance
+  unchanged; ledger ok. All 684 protected predecessor files remain intact.
+  This is local execution evidence, not a new provider answer or a relabeling of
+  the prior paid results. Fresh normal-application verification remains separate.
+
 ## Direct lookup Planner evidence boundary (2026-09-17)
 
 - Baseline `f0d7fb5a`: the saved cash-balance answer had a correct source binding
