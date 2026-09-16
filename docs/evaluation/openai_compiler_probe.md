@@ -337,3 +337,38 @@ narrative review criterion. This is one known-source app sample, not unseen qual
 a release gate or a causal comparison with the differently planned benchmark run.
 Next: reproduce the normal-profile exposure gap offline before another live run,
 then expand independent questions and migrate remaining Google phases.
+
+## Normal-app narrative evidence successor
+
+The [frozen-input diagnosis](../../benchmarks/results/app_narrative_exposure_offline_2026-09-16/RESULTS.md)
+reproduces a ranking inconsistency: a complete literal subject mention disabled an
+independent same-surface joint topic hint. The ranking owner now evaluates that
+hint independently, while preferring a literal mention with an independently
+matched primary/search topic over a weak lexical pair. Seven new anonymous controls
+cover both the omission and protection against displacing stronger evidence.
+All source conditions, physical partitions, identities, validation and numeric
+matching remain strict. Five of eight saved payloads are identical; the two changed
+cloud windows retain all accepted evidence, as do the other historical narratives.
+
+[Fresh normal-app validation](../../benchmarks/results/app_narrative_smoke_2026-09-16/RESULTS.md)
+on clean `abf87889` completes one ASGI `/api/query` with actual providers and normal
+app settings: HTTP 200, **2/2 complete outputs**, ledger ok, errors/repairs/retries 0.
+The direct Commerce-impact paragraph is now visible and cited. Independent arithmetic
+retains 41.3957043439745% → 41.4%; two narrative claims and five support occurrences
+match original sources. Other growth factors, acquired-group revenue/net loss and
+segment/group scope remain distinct. The frozen numeric/narrative/runtime criteria
+pass separate assistant review, not human gold or unseen-question evaluation.
+
+New manifest `70d63a929fb5f2140dd7906d4a22f8c65d0d8d1e9291dc84343211ef4e8b96f7`
+was consumed once under delegated USD 7, after identical no-call app/SDK rehearsals
+and terminal-failure validation. Seventeen completed attempts: Astra 2, Flash 2,
+embeddings 13; estimated USD 0.59734408, peak reserved 1.45699408, pending 0, no
+count calls; not invoice. The ready working copy and local configuration are unchanged.
+All 433 protected original/source/result files match. No ingest or external server.
+
+Full unittest **1,848/1,848**, no skips (53.931s), external network blocked and zero
+attempted external connections; focused 53/53, audit 83, import/topology/docs,
+pycompile and diff pass. The earlier incomplete live answer remains a historical
+fact. Fresh plans differ, so the new sample is not an isolated causal patch test or
+a general accuracy/release claim. Next: independent question coverage and remaining
+Google phase migration; no automatic paid rerun or consumed-manifest reuse.
