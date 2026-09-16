@@ -4,7 +4,8 @@ Three separately approved trials executed on 2026-09-16: the first two under USD
 caps, the exposure successor under USD 7. The six-case Compiler trial passes all
 12 frozen outputs. Both full-agent runs complete 2/3 questions and 5/6 outputs,
 with no API/runtime errors. The successor calculates Commerce growth correctly,
-but acquisition-impact narrative exposure is incomplete. Google stays the default.
+but acquisition-impact narrative exposure is incomplete in that recorded run.
+The narrative exposure fix below is provider-free; Google stays the default.
 
 The current `FinancialAgent` factory supports an explicit `openai` route with
 output/retry limits, reasoning effort, endpoint mode, storage, tier, timeout and
@@ -208,3 +209,31 @@ Runtime, 19 packet, 270 protected and 23 original-store files verified; all
 source mutation, new runtime code, fresh ingest or default change. Next: provider-free
 anonymous narrative exposure controls for planner expression variation. No paid
 retry, resume or release claim follows from this consumed run.
+
+
+## Offline narrative exposure successor
+
+The [saved-input comparison](../../benchmarks/results/narrative_exposure_offline_2026-09-16/RESULTS.md)
+reproduces the omission on `025794cc`. Eight field combinations show that restoring
+only subjects, metrics or search hints does not recover the direct paragraph;
+subjects plus either metrics or hints do. No saved plan is injected into a live run.
+
+The narrative matcher now admits a same-surface pair of a declared subject term
+and an owner-local search-hint term when the full subject mention is absent.
+Original/resolved metric, concept-alias and scope terms are excluded from subject
+anchors. Separate cells/contexts, hidden tails, repeated/nested terms, sibling hints
+and unpartitioned structured bodies cannot create this new signal. It preserves
+full targets, identity/applicability, source conditions and existing mention paths;
+Compiler receives no rank hint and still must ground each claim.
+
+The direct impact paragraph is exposed within the existing six-candidate limit.
+All five other candidate payloads, including the growth input, remain byte-identical;
+all source catalogs and plans retain their fingerprints. Changed narrative payload
+is 26,096 to 25,823 UTF-8 JSON bytes, not an SDK-body/token/cost measurement.
+No answer is generated or repaired, so the live 2/3 result remains unchanged.
+
+Fourteen anonymous contracts and full Python 3.13 unittest **1,829/1,829** pass,
+no skips (51.111s); audit 83, import/topology/docs, pycompile and diff checks pass.
+The 326 protected original files and 23 store files remain unchanged. Further paid
+validation needs a new immutable manifest, cost bound, no-call rehearsal and
+separate approval; the previous consumed manifest grants no retry authority.

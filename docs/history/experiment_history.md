@@ -9016,3 +9016,33 @@ References:
   Frozen preparation/results/history preserved; no source code, store, dataset,
   evaluator, default provider or artifact publication change. Next: anonymous
   provider-free narrative exposure contracts across planner expressions.
+
+
+## 2026-09-16 — Provider-free narrative exposure correction
+
+- On clean baseline `025794cc`, reproduced the missing direct-impact paragraph
+  using the unchanged three-question source catalogs and recorded plans. An
+  eight-way subject/metric/hint substitution isolates combined expression
+  sensitivity: individual swaps fail; subject plus metric or hint succeeds.
+- `financial_candidate_matching.py` adds a diagnostic-only joint literal hint
+  when no complete subject mention is present. One explicit subject term and a
+  different owner-local search-hint term must occur in one retained partition.
+  Original/resolved metrics, concept aliases and scope cannot become subject
+  anchors. Repetition, nested/overlapping occurrences, cross-cell/context joins,
+  hidden tails, other-owner hints and unpartitioned structured bodies cannot
+  supply the signal. Targets, source authority and numeric matching are intact.
+- Final saved-input projection exposes direct Commerce/Poshmark impact evidence
+  within six narrative candidates. Five other candidate payload hashes stay
+  identical; all catalog and plan hashes are unchanged. Changed payload JSON
+  shrinks 26,096 to 25,823 UTF-8 bytes, not a provider token/cost observation.
+- Fourteen anonymous tests cover the mechanism and hard negatives, including a
+  one-call authored mock with an independently rejected unsupported full subject.
+  Full unittest **1,829/1,829**, no skips, **51.111s**; runtime audit **83**, import,
+  topology, documentation, pycompile and diff checks pass.
+- Original inputs/results **326 files** and source stores **23 files** preserved.
+  Provider calls, fresh ingest, source-store mutation and answer repair: **0**.
+  Original paid 2/3 questions and 5/6 outputs remain historical facts; no new
+  semantic/model success, default migration, paid retry or release claim.
+- [Result and final offline comparison](../../benchmarks/results/narrative_exposure_offline_2026-09-16/RESULTS.md).
+  Next provider validation requires a new manifest/cost/no-call preparation and
+  separate approval; consumed admission artifacts remain immutable.
