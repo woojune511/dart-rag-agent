@@ -237,3 +237,39 @@ no skips (51.111s); audit 83, import/topology/docs, pycompile and diff checks pa
 The 326 protected original files and 23 store files remain unchanged. Further paid
 validation needs a new immutable manifest, cost bound, no-call rehearsal and
 separate approval; the previous consumed manifest grants no retry authority.
+
+## Executed narrative exposure successor
+
+The user's explicit instruction to proceed without another approval question
+superseded repeated confirmation for this bounded successor. New manifest
+`ec2e65e15179b1180ef5cf67176cdff68f55c04e575a3fde2d954cd1cd98892f` bound clean
+`e07b2704`, the same three questions/stores/routes and shared USD 7 ceiling.
+Ten admission checks passed, two separate no-call rehearsals were byte-identical,
+and reconstructed SDK requests preserved five of six prior first-request hashes.
+Saved-input reservation scenario USD 6.65749805 was not a live cost prediction.
+
+[Results and source review](../../benchmarks/results/openai_compiler_narrative_full_agent_2026-09-16/RESULTS.md):
+**3/3 complete, 6/6 outputs**, API/parsing/runtime errors 0 and ledger 3/3. Seven
+Astra responses comprise six first attempts and one allowed feedback repair after
+an unauthorized context reference in the first narrative question. Its rejected
+program remains recorded; SDK and whole-run retries are zero. The other five first
+island programs passed. The direct Commerce-impact paragraph is exposed and cited.
+The answer separates other growth factors from consolidation effect and preserves
+post-acquisition Poshmark/subsidiary revenue/net-loss scope. Independent operand/
+period review retains 41.3957043439745%, displayed 41.4%, with no source-display
+substitution for the explicit calculation. Both other narrative themes are complete.
+
+All 43 attempts completed: Astra 7, Flash 6, query/canonical embeddings 24, counts 6.
+Usage estimate USD 1.67351403 + count contingency 0.36 = **USD 2.03351403 / 7**,
+pending 0, peak reserved 2.70855153; not observed billing. All 35 accepted support
+occurrences from 15 narrative claims match stored sources. Assistant review supports
+the frozen question-derived criteria, not human gold or unseen generalization.
+Runtime/21 packet/335 protected/23 original-store files were verified before docs.
+
+Original runtime/results/stores are unchanged by review. The raw execution receipt
+keeps `completed_once_pending_review`; source and integrity reviews are separate.
+Prior paid 2/3 results and the Google admission failure remain historical facts.
+Fresh plans and retrieval differ, so this is not an isolated causal model/patch test.
+Google remains the default and routing/planning provider. Next: normal-entrypoint
+OpenAI Compiler configuration and broader independent regression coverage before
+any default promotion; no automatic paid rerun or consumed-manifest reuse.

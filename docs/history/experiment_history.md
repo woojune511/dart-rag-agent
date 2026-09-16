@@ -9046,3 +9046,34 @@ References:
 - [Result and final offline comparison](../../benchmarks/results/narrative_exposure_offline_2026-09-16/RESULTS.md).
   Next provider validation requires a new manifest/cost/no-call preparation and
   separate approval; consumed admission artifacts remain immutable.
+
+
+## OpenAI narrative integration: complete three-question successor (2026-09-16)
+
+- User explicitly delegated continuation without another approval question. Fresh
+  manifest `ec2e65e15179b1180ef5cf67176cdff68f55c04e575a3fde2d954cd1cd98892f`
+  consumed once on clean `e07b2704`, runtime SHA `d98aefaa...16b500`, USD 7 shared cap.
+  Same three questions, fixed stores and provider routes; fresh plans and retrieval,
+  verified disposable store copies. Ten admission checks and two byte-identical
+  no-call rehearsals passed; five of six reconstructed SDK first requests unchanged.
+- [Results](../../benchmarks/results/openai_compiler_narrative_full_agent_2026-09-16/RESULTS.md):
+  **3/3 complete, 6/6 outputs**, API/parsing/runtime errors 0, task ledger 3/3.
+  Six initial Compiler calls plus one in-budget feedback repair. The first B2B
+  organization program used an unauthorized context reference, was rejected, and
+  its repair passed unchanged validation. All seven responses parsed; five of six
+  initial island programs valid. Failed attempt bytes remain; no SDK/run retry.
+- Direct Commerce-impact paragraph is now exposed and cited. The narrative preserves
+  other growth factors, consolidated inclusion and post-acquisition subsidiary
+  revenue/net-loss scope. Growth remains 41.3957043439745%, displayed 41.4%, from
+  the same grounded current/prior Commerce operands with separate formula provenance.
+  Fifteen accepted narrative claims contain 35 source-supported subject/fact
+  occurrences; assistant review supports all frozen criteria for the three questions.
+- All 43 API attempts complete: Astra 7, Flash 6, embeddings 24, counts 6. Estimate
+  USD 1.67351403 + count contingency 0.36 = accounted **USD 2.03351403 / 7**,
+  pending 0, peak reserved 2.70855153, not invoice. Runtime/21 packet/335 predecessor/
+  23 original-store files verified before docs; no fresh ingest or source/result edits.
+- No new runtime changes. Existing full suite 1,829/1,829 and audit 83 remain the
+  runtime evidence. Source review is local, not human gold or unseen holdout. Fresh
+  plans/retrieval differ from prior runs; 3/3 is not causal provider/patch evidence.
+  Google remains the default/routing/planning provider. Earlier paid 2/3 runs and
+  Google HTTP 400 are unchanged. No automatic paid rerun or default/release promotion.
