@@ -12,6 +12,13 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Fresh normal OpenAI narrative-unit successor (2026-09-17)
+
+- Clean `136a1a06`; [two unchanged questions](../../benchmarks/results/narrative_quality_2026-09-17/RESULTS.md), both known/source-exposed. Normal ASGI/shared services and unchanged OpenAI application settings returned **2/2 complete questions, 3/3 outputs**, HTTP 200 and ledger ok. Empty narrative display units retain separate presentation intent; `invalid_obligation_unit` does not recur.
+- Commerce calculation remains 41.3957043439745% → 41.4% with exact source-owned 2023/2022 context. The narrative cites direct Commerce acquisition impact, additional growth contributors and post-acquisition Poshmark/subsidiary revenue/loss without conflating them with segment profit or net causal effect. Cloud covers organizational integration, HyperCLOVA X, CLOVA Studio and security-oriented hybrid services, preserving achieved-versus-intended wording. Six claims/20 subject-fact support occurrences pass source checks and separate assistant semantic review; cloud repetition remains a readability issue.
+- Cloud's first response used a context unauthorized for `ob_001:req_002`; one existing feedback repair succeeds with identical visible candidates. No source permission/validator/default change, SDK/whole-question retry, API/parsing/runtime error or fresh ingest. All attempts and the earlier 1/3-question result remain immutable; fresh plans/retrieval preclude isolated causal or unseen-accuracy claims.
+- New `0a08e0eb...aa189e` consumed once under the remaining USD 6.17433744 of a shared USD 7 cap, following identical five-request numeric/narrative SDK rehearsals and full-wrapper controls. A mock-only obsolete schema-name lookup was fixed before paid dispatch. All 45 requests completed: Terra 4, Astra 4, embeddings 37. Estimate USD 1.46798135; combined with prior accounting USD 2.29364391, peak including reservations USD 3.12099391; not invoice. Google/context calls 0, all 582 protected files/original source bytes preserved, logical source/metadata tables still 1,872/59,477 rows.
+
 ## Fresh normal OpenAI quality check after period correction (2026-09-17)
 
 - Runtime clean `10ee083d`; [three fixed questions](../../benchmarks/results/period_quality_v2_2026-09-17/RESULTS.md), one regression and two newly authored/source-reviewed cases. Real normal ASGI app/shared services, unchanged OpenAI routes and existing NAVER working copy. HTTP 200 for 3/3, ledger ok for 3/3, but **1/3 whole questions complete and 2/4 outputs accepted**.

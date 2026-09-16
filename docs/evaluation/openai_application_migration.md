@@ -156,5 +156,31 @@ Full unittest **1,867/1,867**, no skips (52.611s); focused **158/158**, domain a
 was blocked with 0 attempted connections/provider calls; all 564 protected files
 are unchanged. Original sampled narrative units remain invalid under preflight;
 explicitly authored blank-unit copies pass that gate without fabricating answers.
-The paid result remains **1/3 questions, 2/4 outputs**. Next is fresh normal-app
-generation and source review under a new bounded admission; no automatic paid rerun.
+That paid result remains **1/3 questions, 2/4 outputs**; the separate live successor
+below checks fresh generation and source quality without rewriting those answers.
+
+## Live narrative-unit successor (2026-09-17)
+
+The [two-question successor](../../benchmarks/results/narrative_quality_2026-09-17/RESULTS.md)
+on clean `136a1a06` completed **2/2 questions and 3/3 outputs**, HTTP 200 and ledger
+ok throughout. Both narrative display units are empty, with presentation intent
+retained separately. Commerce growth remains 41.3957043439745% → 41.4%; its direct
+acquisition-impact explanation retains other contributors and the acquired-group
+scope of post-acquisition revenue/loss. Cloud strategy covers organizational and
+technical integration, HyperCLOVA X, CLOVA Studio and the security-oriented hybrid
+offering, preserving completed-versus-intended distinctions. Six claims and 20
+subject/fact support occurrences pass source linkage plus separate assistant
+semantic review. Some cloud wording is repetitive, a remaining readability issue.
+
+Cloud used one allowed same-candidate feedback repair after an unauthorized context
+reference; both attempts are preserved. All 45 requests completed: Terra 4, Astra 4,
+embeddings 37; no API/parsing/runtime error, Google/context call, SDK/whole-query retry
+or fresh ingest. New admission `0a08e0eb...aa189e` consumed once after identical SDK
+and full-wrapper rehearsals. Estimated USD 1.46798135; including prior accounting,
+USD 2.29364391 under the shared USD 7 ceiling, not invoice. All 582 protected files
+and original source bytes remain unchanged; logical working-source tables match.
+
+This is fresh application evidence for two known-source questions, not unseen
+accuracy, human gold, or an isolated schema/model causal comparison. Source and
+model settings remain unchanged during the run. Next: broader normal-app questions
+with a new fixed scope/budget, without automatic reuse of this consumed admission.
