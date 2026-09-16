@@ -8982,3 +8982,37 @@ References:
 - [Results, source review and exact exposure evidence](../../benchmarks/results/openai_compiler_full_agent_2026-09-16/RESULTS.md).
 - Post-run documentation/import/topology checks **24/24** passed (17.232s),
   `git diff --check` passed. This turn changes result documentation only.
+
+## 2026-09-16 — Approved exposure-fix OpenAI integration successor
+
+- Manifest `f9bbe243b2e6ac04306b399c847f613a65361e37610d6dc3b6f78ef58584dc41`
+  consumed once after user approval on clean `5a8fd0ad`, shared USD 7 cap.
+  Runtime source matches tested `96dcf198`; fresh plans/retrieval, original stores
+  accessed through verified copies, no prior plans/answers/sizing inputs injected.
+- **2/3 complete, 5/6 planned outputs**, API/runtime errors 0, ledger 3/3;
+  Compiler first responses 6, repairs 0. Cloud/AI and Celltrion risk questions
+  complete. Commerce calculation now succeeds but acquisition narrative is missing.
+- Same-scope segment-note inputs 2,546,648,516 / 1,801,079,126 thousand KRW,
+  exact attached current/prior contexts, independent Decimal recomputation
+  41.39570434397450231734016554%; execution 41.3957043439745%, display 41.4%.
+  Calculated display, no source-stated ratio substitution or response repair.
+- Narrative abstention is appropriate for its exposed group-wide excerpt. Direct
+  Commerce-impact evidence exists in the current 537-candidate catalog, including
+  all six previously exposed related sources, but none reaches this narrative
+  Compiler input. Previous/current plan/catalog cross-projections reproduce each
+  exposure set by plan regardless of catalog version. Exact field cause remains
+  open; this is not a model-only comparison or a new semantic success claim.
+- GPT-6 Astra 6 calls, input/output 90,479/5,006; Flash 6, 39,433/7,889;
+  embeddings 24, input 4,005; counts 6. All 42 API attempts completed.
+  Estimate USD 1.41336055 + count contingency 0.36 = **1.77336055 / 7.00**;
+  pending 0, peak reserved 2.45749805, invoice unobserved. Latencies 62.216s,
+  55.992s, 45.971s. No SDK/run retry, count failure or budget denial.
+- Runtime 169, packet 19, protected 270 and original-store 23 files verified
+  before documentation changes. Six Compiler request/phase hashes and Google
+  count/generation links match; 26 accepted subject/fact support occurrences
+  match original stored documents/sidecars. Separate unchanged-criterion source
+  review is assistant assessment, not human gold or full original XML coverage.
+- [Results and offline source inspection](../../benchmarks/results/openai_compiler_exposure_full_agent_2026-09-16_v2/RESULTS.md).
+  Frozen preparation/results/history preserved; no source code, store, dataset,
+  evaluator, default provider or artifact publication change. Next: anonymous
+  provider-free narrative exposure contracts across planner expressions.

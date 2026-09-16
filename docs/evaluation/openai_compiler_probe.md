@@ -1,10 +1,10 @@
 # OpenAI compiler migration probe
 
-Two separately approved trials executed on 2026-09-16, each with a USD 6 cap.
-The six-case Compiler trial passes all 12 frozen outputs. Fresh full-agent integration
-completes 2/3 real questions, with 5/6 planned outputs accepted and no API/runtime
-errors. Its numeric exposure gap is fixed locally; a new USD 7 capped admission
-is prepared but unexecuted. Google stays the default provider.
+Three separately approved trials executed on 2026-09-16: the first two under USD 6
+caps, the exposure successor under USD 7. The six-case Compiler trial passes all
+12 frozen outputs. Both full-agent runs complete 2/3 questions and 5/6 outputs,
+with no API/runtime errors. The successor calculates Commerce growth correctly,
+but acquisition-impact narrative exposure is incomplete. Google stays the default.
 
 The current `FinancialAgent` factory supports an explicit `openai` route with
 output/retry limits, reasoning effort, endpoint mode, storage, tier, timeout and
@@ -160,14 +160,14 @@ approved manifest/cost cap and must account for the larger numeric input.
 Eight anonymous exposure contracts and focused 101 tests pass; full Python 3.13
 unittest **1,815/1,815**, no skips (47.747s), audit 83 and import/topology/docs pass.
 
-## Prepared exposure successor
+## Exposure successor preparation
 
 The [new admission packet](../../benchmarks/results/openai_compiler_exposure_admission_2026-09-16_v2/PREPARED.md)
 keeps the same three questions, source stores, models, generation controls and call
 limits. Runtime source matches the tested `96dcf198` fingerprint. Ten packet checks
 pass and two separate-process no-call SDK/runner receipts are byte-identical;
-270 predecessor/input files and both original stores are preserved. No paid call,
-new answer, fresh ingest, document embedding, or default change occurred.
+270 predecessor/input files and both original stores are preserved. Preparation
+made no paid call, new answer, fresh ingest, document embedding, or default change.
 
 Actual SDK serialization of the recorded independent first-island inputs gives
 77,809 to 114,063 canonical UTF-8 bytes for the numeric request. Its reservation
@@ -179,5 +179,32 @@ with labeled historical usage for sizing, not a future cost prediction or bill.
 Fresh plans/retrieval and any permitted repair may change inputs; every call still
 requires a reservation within the remaining shared cap, with no automatic rerun.
 The original USD 6 preparation draft is retained as unexecuted sizing evidence.
-Offline saved-input sizing is excluded from live reads. Separate approval of the
-new immutable manifest and cost cap remains required before the single run.
+Offline saved-input sizing is excluded from live reads. The user separately approved
+the immutable manifest and USD 7 cap before the single execution below.
+
+## Executed exposure successor
+
+Manifest `f9bbe243b2e6ac04306b399c847f613a65361e37610d6dc3b6f78ef58584dc41`
+was consumed once on clean `5a8fd0ad`. [Results and source review](../../benchmarks/results/openai_compiler_exposure_full_agent_2026-09-16_v2/RESULTS.md):
+**2/3 complete, 5/6 outputs**, API/runtime errors 0, ledger 3/3, six Compiler first
+responses and no repair. Both complete narrative questions retain source support.
+
+Commerce current/prior segment-note operands now reach Compiler. The selected
+2,546,648,516 and 1,801,079,126 thousand-KRW cells share scope; attached current/
+prior contexts ground the periods. Independent Decimal recomputation matches
+41.3957043439745%, displayed 41.4%; source display is null for the calculation.
+The acquisition narrative instead abstains: its visible excerpts show a group-wide
+effect, while a direct Commerce-impact paragraph remains unexposed in the current
+537-candidate catalog. All six previously visible related sources still exist.
+Offline crossed previous/current catalogs and plans reproduce exposure according
+to the plan in both catalogs. This isolates a planner/exposure boundary in these
+inputs, not one specific changed field, new model accuracy, or a model A/B effect.
+
+Calls: Astra 6, Flash 6, query/canonical embeddings 24, counts 6, all 42 complete.
+Generation/embedding estimate USD 1.41336055 + count contingency 0.36 =
+**USD 1.77336055 / 7**, pending 0, peak reserved 2.45749805, not an invoice.
+Runtime, 19 packet, 270 protected and 23 original-store files verified; all
+26 accepted support occurrences match stored sources. No raw response/result or
+source mutation, new runtime code, fresh ingest or default change. Next: provider-free
+anonymous narrative exposure controls for planner expression variation. No paid
+retry, resume or release claim follows from this consumed run.
