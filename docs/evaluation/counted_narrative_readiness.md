@@ -10,6 +10,11 @@ freeze one exact narrative request envelope and the existing caller policy.
 No provider/count/generation/embedding request or authenticated model-list query
 was made. No source, local profile, budget cap, store or consumed artifact changed.
 
+The subsequent user-authorized [live experiment](counted_narrative_experiment.md) now
+supersedes this read-only stage for execution/account-access status and shared
+accounting. Count billing is still unknown; the original mock caller remains
+immutable and the separately created live manifest is consumed.
+
 ## What official documentation establishes
 
 The current [API pricing table](https://developers.openai.com/api/docs/pricing)

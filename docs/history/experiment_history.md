@@ -12,6 +12,15 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Counted narrative application experiment (2026-09-17)
+
+- Base `c7aefc4f`; user explicitly requested an experiment. Fresh manifest `41749c34...1c6d61f` was consumed once. [Terminal experiment report](../evaluation/counted_narrative_experiment.md). No source/default/output-bound/cap change.
+- **24/24 HTTP 200**: 15 embeddings, five counts, Terra 2/Astra 2 generations. Counted/generated inputs **1229/16276/13171/14623** match exactly; last count **11664** has no generation. No Google, SDK/whole-query retry, fallback or ingest. Count access for both models is observed; tariff remains unknown.
+- One two-output island initially fails shared-basis declaration equality, then passes its permitted repair. Two raw responses match saved parsed programs; model/lowered hashes verify. Second island certification is pending. Its USD **0.4018** reservation exceeds **0.38441766** remaining by **0.01738234**; local budget denial, HTTP 500, no final answer/ledger, no reconstructed or resumed result.
+- Experiment estimate **0.52114657** plus **0.05** count contingency = **0.57114657**. Shared **6.61558234 / 7**, remaining **0.38441766**, pending 0; not invoice. Full output reserves remain 5120/8192.
+- Provider-free controls **20+3** pass, including actual app/store-copy rehearsal. Initial receipt-label and authored request-unit fixture errors were corrected before admission; failed local receipts are preserved. **1224** predecessors, **172** sources, .env and original/selected stores stay byte-identical. Prior full1940/audit83 retained, not rerun.
+- Next is provider-free shared-basis/Planner relationship characterization against saved traces. No semantic equivalence claim from string equality, no complete narrative success, causal model comparison or claim that another two cents guarantees a new full run.
+
 ## Read-only counted narrative readiness (2026-09-17)
 
 - Base `82f1d698`; [readiness review](../evaluation/counted_narrative_readiness.md) and local immutable specification freeze the exact narrative request and existing policy without source, store, profile, cap or dispatcher changes. Seven official pages were fetched. Generation cache-write/full-output rates still match policy; public count-specific tariff/free status and exact permission are not established.
