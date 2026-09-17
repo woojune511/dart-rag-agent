@@ -533,7 +533,29 @@ All **997** predecessor/22 admission files and original source bytes remain inta
 logical original/working source tables are identical at 1,872/59,477 rows. Startup
 was ready; terminal failure skipped the ordinary final readiness step, while
 post-run read-only integrity checks passed. Runtime/model/config/ingest unchanged;
-current 241 checks retained, not rerun. Next: provider-free caller capture in finally
-with a mocked later-dispatch failure, preserving completed observations and the
-original stop. Keep the consumed packet unchanged; no paid rerun, cap increase,
-reservation weakening or fresh ingest. Repeated scope wording remains separate.
+current 241 checks retained for that paid run, not rerun. The separate caller-only
+correction below leaves that result and its missing historical observations intact.
+
+## Caller persistence after interruption (2026-09-17)
+
+[Provider-free correction](../../benchmarks/results/application_diagnostics_capture_2026-09-17/RESULTS.md)
+adds an ops-owned persist_request_diagnostics(path) scope using the existing capture
+delivery API. A new non-executable caller template wraps the original agent call
+and result write; finally saves a JSON array of delivered request_diagnostics_v1
+snapshots. Debug-off produces no file. Exclusive writes preserve existing files;
+safe error-class logging keeps persistence failures from replacing run outcomes.
+No default API import, graph/Compiler change, retry, source write or provider call.
+
+Six new tests; focused **18/18**, imports/topology **22/22**, docs **2/2** pass.
+Five mocked full-wrapper controls compare capture on/off and inject a third-island
+budget stop or HTTP 503 after two valid narrative replies. Both earlier parsed
+programs, validation/phase IDs and the pending request survive; no interrupted
+answer/ledger is invented. Success result/request/call identity and original failure
+HTTP behavior are retained. All **1047** predecessor and **170** existing source
+files are intact. The new module is an explicit operational helper; no live
+admission/CLI is created and historical lost traces cannot be recovered.
+
+Shared estimate stays **6.04443577 / 7**, remainder **0.95556423**, new paid cost 0.
+Next: provider-free sizing/feasibility before a fresh narrative-only admission; the
+last observed 1.0099 reserve alone exceeds the remainder. No automatic paid rerun,
+cap increase or reservation weakening. Repeated scope wording remains separate.

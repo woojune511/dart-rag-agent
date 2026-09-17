@@ -121,9 +121,34 @@ agent/debug output only after successful return and did not use the existing
 `capture_request_diagnostics()` exception-delivery scope. No final narrative result
 or intermediate diagnostic snapshot was persisted. It is not a completed 3/3 eval.
 
-Next: correct the caller provider-free by capturing and saving diagnostics in
-`finally`, then exercise a mocked later-call budget stop with earlier responses
-preserved. Keep this consumed manifest and historical evidence unchanged. Narrative
-evaluation remains pending; any paid successor is separate and must fit a freshly
-verified budget. Do not weaken reservations or infer missing response contents.
+## Caller persistence correction (provider-free, 2026-09-17)
+
+[Caller correction](../../benchmarks/results/application_diagnostics_capture_2026-09-17/RESULTS.md)
+adds `src.ops.application_diagnostics.persist_request_diagnostics(path)` around the
+existing agent call in a new non-executable successor template. It saves the
+delivered snapshots as a JSON array in `finally`, for both success and interruption.
+Debug remains opt-in. No delivered snapshots means no file; existing files are
+never overwritten. Persistence failures log only their class and retain the original
+run result/exception. Process crashes and partial filesystem writes are not covered.
+
+Six new contracts cover exact success preservation, first/retry/next-island stops,
+debug-off, existing files, filesystem failure and nested capture paths. Focused
+**18/18**, import/topology **22/22**, docs **2/2** pass. Five mocked SDK/ASGI checks
+exercise three separate narrative outputs: the first two responses/validations and
+pending third request remain available when a later budget admission or HTTP 503
+stops execution. Attempt/island IDs, hashes and safe stop metadata remain distinct.
+Success results/request bodies/call counts match capture-disabled controls; failed
+queries retain HTTP 500 without fabricating a partial answer or ledger.
+
+All **1047** predecessor files and **170** existing source files remain unchanged;
+one ops helper is added, with no application-default import or core semantic change.
+The template has no live finalizer/CLI or new provider admission. Actual model calls
+and additional cost **0**; shared estimate remains **6.04443577 / 7**, remainder
+**0.95556423**. Authored fixtures do not recover the lost historical narrative or
+establish its accuracy; that paid question remains interrupted.
+
+Next: provider-free sizing/feasibility for a fresh narrative-only packet. The last
+observed **1.0099** request reservation exceeds the current remainder before any
+new planning/embedding costs. A paid successor needs a fresh feasible admission;
+no automatic rerun, cap increase, reservation weakening or inferred missing replies.
 Repeated scope wording remains separate presentation work.
