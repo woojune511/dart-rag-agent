@@ -1,5 +1,23 @@
 """Reconstruct retained text for equality checks, not cross-segment quote authority."""
 
+from copy import deepcopy
+
+
+def expand_piece_rows(payload):
+    """Decode the declared wire table before test-only reference/text inspection."""
+    result = deepcopy(payload)
+    if not isinstance(result, dict) or "piece_columns" not in result:
+        return result
+    columns = result["piece_columns"]
+    assert columns == ["piece_id", "partition", "text"]
+    for reading in result["source_readings"]:
+        for group in ("enclosing_contexts", "preceding_contexts", "bodies", "following_contexts"):
+            for surface in reading[group]:
+                if "pieces" in surface:
+                    assert all(isinstance(row, list) and len(row) == len(columns) for row in surface["pieces"])
+                    surface["pieces"] = [dict(zip(columns, row)) for row in surface["pieces"]]
+    return result
+
 
 def surface_text(surface):
     if 'pieces' in surface:

@@ -230,7 +230,7 @@ class CompilerReadingPresentationTests(unittest.TestCase):
             self.assertNotIn(numeric, text)
             self.assertIn(numeric, CALCULATION_PROMPT_POLICY["semantic_program_prompt_template"])
         self.assertNotIn("row_description_quote_options", text)
-        self.assertEqual(prompt_json(prompts[0], MARKER)["schema"], "semantic_program_candidate_payload_v9")
+        self.assertEqual(prompt_json(prompts[0], MARKER)["schema"], "semantic_program_candidate_payload_v10")
         self.assertIn("source_display_reason", SemanticCalculationProgram.model_json_schema()["$defs"]["SemanticProgramExpression"]["properties"])
 
     def test_special_row_permission_requires_real_scalar_axes_and_provenance(self):

@@ -84,6 +84,32 @@ def project_prompt_retry_feedback(feedback: str, *, narrative_only: bool) -> str
     return json.dumps(result, ensure_ascii=False, separators=(",", ":"))
 
 
+def project_wire_reading_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Declare piece columns once after reference projection, preserving every value.
+
+    Only addressed reading surfaces change representation. Source/catalog data,
+    IDs, partitions and piece order remain unchanged; this grants no new evidence.
+    Numeric-only readings keep their existing wire shape.
+    """
+    result = deepcopy(dict(payload))
+    columns = ("piece_id", "partition", "text")
+    changed = False
+    for reading in result.get("source_readings", []):
+        for group in ("enclosing_contexts", "preceding_contexts", "bodies", "following_contexts"):
+            for surface in reading[group]:
+                pieces = surface.get("pieces")
+                if not pieces:
+                    continue
+                if any(not isinstance(piece, Mapping) or set(piece) != set(columns) for piece in pieces):
+                    raise ValueError("unsupported_reading_piece_fields")
+                surface["pieces"] = [[piece[key] for key in columns] for piece in pieces]
+                changed = True
+    if changed:
+        return {"schema": "semantic_program_candidate_payload_v10", "piece_columns": list(columns),
+                **{key: value for key, value in result.items() if key != "schema"}}
+    return result
+
+
 def _locator_parts(locator: str) -> tuple:
     # Numeric XML sibling indices sort naturally (P[2] before P[10]). No title text.
     return tuple((0, int(part)) if part.isdigit() else (1, part)

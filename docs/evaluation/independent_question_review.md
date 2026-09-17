@@ -166,9 +166,10 @@ The last row admits only the last known request; its response and subsequent cal
 are unknown, so this is not a complete-run budget. Even omitting bootstrap in an
 isolated sensitivity check leaves the first threshold at 0.97839483, still over
 budget. Merely excluding the two completed numeric questions is insufficient.
-At unchanged rates/prefix/output, the first body needs at least 1,844 fewer bytes;
-no lossless reduction or later-call feasibility is demonstrated. Missing bodies
-and island/feedback identities remain unavailable, and fresh plans may differ.
+At unchanged rates/prefix/output, the first body needs at least 1,844 fewer bytes.
+This preceding sizing alone demonstrates no lossless reduction or later-call
+feasibility. Missing bodies and island/feedback identities remain unavailable;
+fresh plans may differ. The separate complete-request comparison follows below.
 
 All **46** old request costs reconcile. Four isolated real-budget controls using
 recorded metadata/usage and six exact-threshold checks pass, with all sockets/DNS
@@ -177,8 +178,54 @@ bodies or model responses. All **1081** predecessor files, **171** source files,
 local settings and original/working stores are unchanged. Documentation checks
 **2/2** pass; shared accounting remains **6.04443577 / 7**, pending 0, not invoice.
 
-Next: audit generic narrative request composition using complete saved or explicitly
-authored diagnostics, preserving exact requests, source evidence and validation.
-Paid retesting remains unadmitted until a fresh feasible packet exists; no consumed
-packet resume, cap increase, output-bound reduction, reservation weakening or assumed
-cache discount. Repeated scope wording remains separate presentation work.
+The resulting presentation audit is recorded below; this older sizing result
+and the missing historical narrative observations remain unchanged. Repeated scope
+wording remains separate presentation work.
+
+## Lossless narrative request presentation (provider-free, 2026-09-17)
+
+[Request-composition audit](../../benchmarks/results/narrative_request_composition_2026-09-17/RESULTS.md)
+on base `0b5aa608` keeps all source text, piece IDs, partitions, ordering, context
+attachments, visible candidates and permissions. Only the model-facing addressed
+piece representation changes: wire v10 declares `piece_columns` once and carries
+`[piece_id, partition, text]` rows. Internal objects and `CompilerResponseV2` remain
+unchanged; numeric-only wire v9 is byte-identical. Unknown piece fields fail instead
+of losing metadata. No candidate pruning or source rewording is involved.
+
+| Complete saved SDK request | Before bytes | After bytes | Reduction |
+| --- | ---: | ---: | ---: |
+| Cloud strategy initial | 60,856 | 56,593 | 7.0051% |
+| Cloud strategy feedback | 66,987 | 62,724 | 6.3639% |
+| Commerce narrative | 96,230 | 91,319 | 5.1034% |
+| Commerce numeric control | 110,757 | 110,757 | 0% |
+
+All four saved full-request hashes match before projection, and decoding the rows
+restores every complete SDK body exactly. All four response schemas are identical;
+saved responses still satisfy those schemas, with their historical invalid/ready
+statuses retained rather than regraded. Four paired real-SDK/mock-HTTP controls
+cover initial, feedback-retry, numeric and mixed execution with identical programs,
+V2 proofs, retry counts and final execution. Seven new tests, focused **70/70**,
+full **1,921/1,921** without skips (57.882s), and domain audit **83** pass.
+
+All **1094** predecessor files, **169** unchanged source files, local settings and
+original/working stores retain their bytes; two source files implement presentation
+and integration. Actual provider/count calls and new admissions **0**. Shared
+estimate remains **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice.
+The full test process exited successfully after reporting an ignored Windows
+`ProactorEventLoop.__del__` cleanup warning; this was not a test or provider failure.
+
+These are wire-byte reductions, not measured model-token or billed savings. The
+unchanged byte-bound policy reserves 0.0532875 / 0.0613875 USD less on the three
+complete narrative samples while retaining the 5120-token output bound. The lost
+datacenter request cannot be reconstructed or assigned these savings. Its paid
+result stays interrupted, and fresh narrative completion/quality remain unproven.
+
+Next is provider-free design and mocked-SDK validation of a separately guarded,
+opt-in OpenAI input-token-count admission path. The official
+[token-counting guide](https://developers.openai.com/api/docs/guides/token-counting)
+and installed SDK expose `responses.input_tokens.count`; neither was called here.
+Count/generation input and schema must match exactly, with the full output reserve,
+shared cap, independent count-call limit and explicit count-cost allowance retained.
+Existing byte-bound policies stay unchanged; no live count/generation, fallback,
+automatic retry, consumed-packet resume or assumed free counting. Endpoint pricing,
+model/account access and a fresh complete-run budget still require verification.

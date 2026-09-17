@@ -41,6 +41,7 @@ from src.agent.financial_output_relationships import output_relationships
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
     project_prompt_cohort, project_prompt_retry_feedback, project_reading_payload,
+    project_wire_reading_payload,
 )
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
@@ -2029,6 +2030,7 @@ class FinancialAgentCalculationMixin:
                     structured_llm = self._llm_for_phase("program_compilation").with_structured_output(response_model)
                     wire_payload = references.project(active_prompt_payload)
                     wire_payload["schema"] = "semantic_program_candidate_payload_v9"
+                    wire_payload = project_wire_reading_payload(wire_payload)
                     active_prompt_catalog_json = _compiler_json(wire_payload)
                     if any(item.get("kind") == "narrative" for item in prompt_obligations):
                         active_responsibility_context_json = output_responsibility_context_json

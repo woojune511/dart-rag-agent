@@ -37,7 +37,7 @@
 | `src/agent/financial_formula_wire.py` | bounded backward-only operation steps to existing AST formulas and position-named scalar proofs; final-step reachability, safe expansion and collision-free names, no quantity inference or choice repair |
 | `src/agent/financial_source_interpretation.py` | owned request to full cell-axis/attached-context correspondence; exact physical linkage, explicitly not semantic-equivalence proof |
 | `src/agent/financial_output_relationships.py` | explicit output sets with shared owned request excerpts; distinct from dependencies and physical-row constraints |
-| `src/agent/financial_compiler_presentation.py` | canonical addressed source layout and filing metadata projected to wire v9; owner permission and responsibility allowlists, no ranking-state instructions |
+| `src/agent/financial_compiler_presentation.py` | canonical source layout and filing metadata; numeric wire v9, lossless addressed-piece column rows in wire v10; owner permission and responsibility allowlists, no ranking-state instructions |
 | `src/agent/financial_evidence_addresses.py` | lossless, content/provenance/partition-bound source pieces and exact range resolution; only visible candidate bodies/own contexts, no semantic segmentation or selection |
 | `src/agent/financial_compiler_debug.py` | opt-in immutable JSON snapshots of attempted/merged programs, validation locations and exact retry feedback; observational only, exported separately from accepted answers/scoring |
 | `src/agent/financial_program_projection.py` | explicit local subject references and one claim renderer; parent text/evidence/ID projection and description-only separation, no implicit inheritance or historical ID widening |

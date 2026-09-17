@@ -10,11 +10,12 @@ from src.agent.financial_narrative_claims import project_narrative_retry_drafts
 from src.ops.replay_reviewed_compiler_selection import _CompilerOnlyAgent, _case_state
 from tests.semantic_program_test_support import _candidate, _obligation, _StructuredQueueLLM
 from tests.test_narrative_claim_grounding import claim, source
+from tests.compiler_presentation_test_support import expand_piece_rows
 
 
 def prompt_json(prompt, marker):
     text = prompt.to_messages()[0].content.split(marker + "\n", 1)[1]
-    parsed = json.JSONDecoder().raw_decode(text.lstrip())[0]
+    parsed = expand_piece_rows(json.JSONDecoder().raw_decode(text.lstrip())[0])
     refs = getattr(prompt, "fixture_references", None)
     return refs.project(parsed, reverse=True) if refs else parsed
 
