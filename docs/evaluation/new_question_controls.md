@@ -5,6 +5,9 @@ Subsequent [first live query](search_display_app_probe.md) on `73a5b68c` failed:
 all 25 API requests returned 200, but optional-owner handling discarded both
 outputs and produced an empty `ok` result caught by the ledger. Public criteria
 0/4; the failure is frozen, not retried. Shared remainder is now **0.61397895**.
+The later [research count/source-scope readiness review](research_count_readiness.md)
+confirms source support but reproduces numeric unit/rendering and year-attribution
+limits offline. That question remains unexecuted, with no additional cost.
 The preparation facts and budget scenarios below retain their original boundary.
 Three exact questions and eight source-review criteria are frozen in the
 [local packet](../../benchmarks/results/new_question_controls_2026-09-17/).

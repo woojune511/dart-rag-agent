@@ -64,6 +64,10 @@ Local evidence: [packet summary](../../benchmarks/results/optional_output_contra
 `full_final.json`, `replay.json`, `public_replay.json`, `review.json` and
 `final_integrity.json`. Raw artifacts stay outside Git.
 
+The subsequent [research count readiness review](research_count_readiness.md)
+completes the next source check without changing this runtime build; the numeric
+unit boundary and same-column year attribution remain separate work.
+
 ## Cost and remaining boundary
 
 Provider/count/embedding calls and added cost are **0**. Shared accounting remains
