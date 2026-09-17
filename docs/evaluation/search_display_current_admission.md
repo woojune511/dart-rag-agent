@@ -1,5 +1,8 @@
 # Current-source search/display admission
 
+Subsequently consumed once by the [current-source application run](search_display_current_app.md).
+The preparation snapshot below remains historical; its manifest cannot be reused.
+
 Base `9698bd4a`; **no-call preparation** on 2026-09-18. One fresh application
 attempt is prepared against current source, the unchanged search/display question
 and the same four source-review criteria. The new manifest remains unconsumed.

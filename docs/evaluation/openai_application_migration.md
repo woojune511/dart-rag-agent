@@ -718,3 +718,16 @@ remains **0/4**, its offline replay **4/4**; other questions remain live-unexecu
 Next is no-call admission preparation for one fresh search/display application
 run under the unchanged **0.61397895** remainder. No paid dispatch or cap increase
 is scheduled; complete live-run budget fit remains unknown.
+
+## Current-source search/display application run (2026-09-18)
+
+The [fresh single-question run](search_display_current_app.md), clean `370b3f0b`,
+consumes prepared `d8eb12ca...c5d5e68` once: 26/26 HTTP requests succeed, two runtime
+outputs complete and ledger integrity is `ok`, with no repair or whole-query retry.
+All four required contents are present, but one explanatory paraphrase broadens
+product improvement toward product expansion; full semantic acceptance is withheld.
+Four claims retain 13 exact supports. Fresh required Planner owners/grouping prevent
+an isolated causal claim about the old optional-owner failure, which stays 0/4.
+No runtime/model/store/settings change. Accounted **0.30675649**, shared
+**7.69277754 / 8**, remainder **0.30722246**, pending 0; estimate/contingency, not invoice.
+Next is provider-free diagnosis of this wording-fidelity concern, with no new paid admission.

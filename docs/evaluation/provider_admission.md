@@ -159,3 +159,16 @@ The count tariff/invoice remains unobserved. The subsequent
 [provider-free contract correction](optional_output_contract.md) passes offline
 replay with no additional cost or admission; this paid result remains failed.
 Its consumed admission cannot authorize another question or rerun.
+
+## Current-source search/display settlement (2026-09-18)
+
+After no-call preparation, the user's continuation consumes fresh `d8eb12ca...c5d5e68`
+once on clean `370b3f0b`, with allowance **0.61397895** and shared cap still **8**.
+The [application run](search_display_current_app.md) completes 26/26 HTTP requests,
+two runtime outputs and ledger integrity `ok`, without repair or whole-query retry.
+Required content coverage is 4/4; full semantic acceptance is withheld for one
+paraphrase-fidelity concern. Usage estimate **0.27675649** plus **0.03** count
+contingency settles **0.30675649**, shared **7.69277754 / 8**, remainder
+**0.30722246**, pending **0**. All three measured inputs match generation usage.
+Tariff/invoice remain unobserved. The admission is consumed, source/stores/settings
+are unchanged, and no additional paid attempt or cap increase is scheduled.

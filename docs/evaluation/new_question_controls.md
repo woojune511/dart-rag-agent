@@ -4,7 +4,10 @@ Prepared 2026-09-17 on `ef7772ae`, without a provider call or runtime change.
 Subsequent [first live query](search_display_app_probe.md) on `73a5b68c` failed:
 all 25 API requests returned 200, but optional-owner handling discarded both
 outputs and produced an empty `ok` result caught by the ledger. Public criteria
-0/4; the failure is frozen, not retried. Shared remainder is now **0.61397895**.
+0/4; that failed attempt and its consumed manifest remain immutable.
+The separate [current-source application run](search_display_current_app.md) completes
+2/2 outputs and covers all four required contents, with full semantic acceptance
+withheld for one paraphrase-fidelity concern. Shared remainder is now **0.30722246**.
 The later [research count/source-scope readiness review](research_count_readiness.md)
 confirms source support but reproduces numeric unit/rendering and year-attribution
 limits offline. That question remains unexecuted, with no additional cost.
