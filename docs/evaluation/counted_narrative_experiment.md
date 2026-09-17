@@ -16,6 +16,10 @@ The [local result](../../benchmarks/results/counted_narrative_app_2026-09-17/RES
 contains the manifest link, actual HTTP bodies, accounting, and finally-persisted
 Compiler diagnostics. Historical response gaps remain unchanged.
 
+A later user-authorized [budget successor](counted_narrative_budget_successor.md)
+increases the total cap to USD 8 and completes the question in a separate fresh
+run. This report and its interrupted packet retain their original outcome.
+
 ## Scope and observed behavior
 
 One fixed question requested NAVER's 2023 report descriptions of the Chuncheon

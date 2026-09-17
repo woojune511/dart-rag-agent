@@ -12,6 +12,15 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Counted narrative budget successor (2026-09-17)
+
+- Base `6ea17d40`; user requested a modest budget increase. Shared cap **7 → 8**, one fresh-run allowance **1.38441766**, manifest `bfe437b6...e846810b` consumed once. [Result](../evaluation/counted_narrative_budget_successor.md).
+- **26 HTTP 200**: 18 embeddings, four counts, Terra 2/Astra 2 generations. Inputs **1229/16276/11667/11296** match counts and usage exactly. Both Compiler islands pass first response; no repair, SDK/whole-query retry, Google, fallback or ingest. Full output bounds 8192/5120 remain unchanged.
+- **HTTP 200 / structured ok / 3 required outputs / ledger ok**. After-run assistant review against unchanged frozen source criteria passes three required checks plus optional Chuncheon PUE attribution. Sejong LEED Platinum is pending as reported; original source graph and fact/subject spans match. No generated response is rewritten.
+- Generation/embedding estimate **0.42786026** plus **0.04** count contingency = **0.46786026**. Shared **7.08344260 / 8**, remaining **0.91655740**, pending 0, not invoice. Count tariff unknown.
+- **23** offline controls and docs **2/2** pass. **1327** protected predecessors, **172** sources, .env and original/selected stores stay unchanged. Copied caller changes only budget; runner only output path. Prior full1940/audit83 retained, not rerun. Old consumed packets and earlier numeric results remain unchanged.
+- This closes one known-source narrative sample, not a fresh three-question batch or broader reliability claim. Fresh plans/responses differ; the preceding shared-basis mismatch is not fixed by this cap change. Next is provider-free consistency characterization. Repetitive Sejong wording is a presentation limitation.
+
 ## Counted narrative application experiment (2026-09-17)
 
 - Base `c7aefc4f`; user explicitly requested an experiment. Fresh manifest `41749c34...1c6d61f` was consumed once. [Terminal experiment report](../evaluation/counted_narrative_experiment.md). No source/default/output-bound/cap change.
