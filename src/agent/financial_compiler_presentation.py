@@ -166,6 +166,8 @@ def project_reading_payload(
             row["attached_context_ids"] = sorted(attached)
         if narrative_only:
             row.pop("unit_options", None)
+            row.pop("period_options", None)
+            row.pop("source_column_period_evidence", None)
             # Missing/empty values are not known matches. Explicit UNKNOWN and
             # applicability states remain; numeric/mixed projections stay complete.
             for key in list(row):

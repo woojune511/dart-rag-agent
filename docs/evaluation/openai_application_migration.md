@@ -671,3 +671,7 @@ The [provider-free source review](research_count_readiness.md) confirms the 2023
 ## Source-grounded count units (2026-09-17)
 
 The [provider-free unit correction](source_count_unit_contract.md) lets the Compiler select a finite count reading from the selected cell's own axes; execution validates its request/source ownership and preserves original scalar/unit provenance. Full **2001/2001**, **18** new controls and audit **83** pass. Twenty-four authored frozen-source selections isolate the remaining same-column year problem: a clipped year quote still validates both equal-valued year columns. This question has no live result. No provider call or added cost; shared accounting remains **7.38602105 / 8**, remainder **0.61397895**. Next is provider-free year-column provenance.
+
+## Same-column annual period contract (2026-09-17)
+
+The [provider-free period correction](same_column_period_contract.md) supplies a finite Compiler choice tied to the selected value's actual column. Old clipped-year responses now fail; authored correct-column selections render 21건 while the equal-valued prior-year cell, borrowed columns and total/ongoing substitutions are rejected. Full **2020/2020**, **19** new controls and audit **83** pass. Source settings/stores and original candidate fields are preserved; attached evidence changes complete V2 catalog content. This is physical-link validation, not live schema acceptance or semantic accuracy. No provider call or added cost; remainder **0.61397895**. Next: provider-free mixed-question answer/ledger and budget-fit rehearsal.

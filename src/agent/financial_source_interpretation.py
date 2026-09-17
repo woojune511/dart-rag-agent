@@ -7,6 +7,8 @@ import json
 from typing import Any, Mapping
 
 from src.agent.financial_request_units import build_request_units
+from src.agent.financial_column_periods import source_period_options
+from src.agent.financial_scope_policies import annual_period_evidence
 from src.agent.financial_runtime_normalization import resolve_structured_source_unit, resolve_unit_spec
 from src.config.retrieval_policy import SOURCE_COUNT_UNIT_POLICY, TABLE_COLUMN_UNIT_POLICY
 from src.utils.source_segments import source_quote_is_contiguous
@@ -113,7 +115,7 @@ def validate_source_interpretation(
 ) -> dict[str, Any]:
     if not isinstance(interpretation, Mapping):
         raise ValueError("missing_source_interpretation")
-    allowed = {"request_unit_ids", "subject", "metric", "scope", "axis_refs", "context_evidence", "source_evidence_text", "unit_option_id"}
+    allowed = {"request_unit_ids", "subject", "metric", "scope", "axis_refs", "context_evidence", "source_evidence_text", "unit_option_id", "period_option_id"}
     if set(interpretation) - allowed or any(
         not isinstance(interpretation.get(key), str) or not interpretation[key].strip()
         for key in ("subject", "metric")
@@ -159,6 +161,21 @@ def validate_source_interpretation(
         result["unit_resolution"] = {**option, "axis_source": axes[option["axis_ref"]],
             "source_raw_unit": str(candidate.get("raw_unit") or ""),
             "source_normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
+            "validation_scope": "source_linkage_not_semantic_equivalence"}
+    period_id = interpretation.get("period_option_id")
+    if period_id is not None:
+        options = {row["period_option_id"]: row for row in source_period_options(candidate)}
+        if not isinstance(period_id, str) or period_id not in options:
+            raise ValueError("source_period_option_mismatch")
+        option = options[period_id]
+        if not any(axes[ref]["field"] == "column_headers" for ref in axis_refs):
+            raise ValueError("source_period_axis_missing")
+        has_period, known_year = annual_period_evidence(candidate.get("period"), report_year=candidate.get("year"))
+        if ((has_period and known_year is None) or any(
+                year is not None and int(year) != option["value_year"] for year in (known_year, candidate.get("value_year")))):
+            raise ValueError("source_period_conflicts_with_candidate")
+        result["period_resolution"] = {**option, "source_period": candidate.get("period", ""),
+            "source_value_year": candidate.get("value_year"),
             "validation_scope": "source_linkage_not_semantic_equivalence"}
     result["fingerprint"] = hashlib.sha256(json.dumps(result, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     return result

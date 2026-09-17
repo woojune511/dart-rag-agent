@@ -31,6 +31,7 @@ from src.agent.financial_narrative_claims import validate_narrative_claims
 from src.agent.financial_source_interpretation import (
     apply_source_unit_resolution, attached_context_quote, validate_source_interpretation,
 )
+from src.agent.financial_column_periods import apply_source_period_resolution
 from src.agent.financial_output_relationships import (
     output_relationships, relationship_proof_projection, validate_relationship_proofs,
 )
@@ -1128,18 +1129,26 @@ def validate_semantic_calculation_program(
         try:
             if not isinstance(raw_bindings, list) or any(not isinstance(b, Mapping) for b in raw_bindings):
                 raise ValueError("invalid_context_scope_binding")
-            resolved, resolution = _resolve_source_context_bindings(candidate, raw_bindings)
             parent = obligation_by_id.get(obligation_id, {})
             owner = requirement_by_id.get(owner_id, parent)
             scope = {**dict(parent.get("scope") or {}), **dict(owner.get("scope") or {})}
             interpretation = binding.get(interpretation_key)
+            period_proof = {}
+            if isinstance(interpretation, Mapping) and interpretation.get("period_option_id") is not None:
+                period_proof = validate_source_interpretation(
+                    candidate, interpretation, owner=owner, parent_owner=parent, query=query)
+            elif (candidate.get("source_column_period_evidence") and not candidate.get("period")
+                    and candidate.get("value_year") is None and any(row.get("field") == "period" for row in raw_bindings)):
+                raise ValueError("missing_source_column_period")
+            period_candidate = apply_source_period_resolution(candidate, period_proof)
+            resolved, resolution = _resolve_source_context_bindings(period_candidate, raw_bindings)
             needs_interpretation = (candidate.get("kind") == "numeric" and (
                 declared_local_subjects(owner, parent)
                 or obligation_id in related_owner_ids
                 or any(scope.get(field) not in (None, "", "unknown") for field in ("segment", "basis"))))
             if needs_interpretation or interpretation is not None:
                 location = location.rsplit('.', 1)[0] + '.source_interpretation'
-                proof = validate_source_interpretation(
+                proof = period_proof or validate_source_interpretation(
                     candidate, interpretation, owner=owner, parent_owner=parent, query=query)
                 # Free interpretations remain on the proof; they do not overwrite
                 # source fields or explicit attached-context resolutions above.
@@ -1148,6 +1157,7 @@ def validate_semantic_calculation_program(
                 proof["fingerprint"] = hashlib.sha256(json.dumps(
                     proof, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
                 binding[proof_key] = proof
+                resolved = apply_source_period_resolution(resolved, proof)
                 resolved = apply_source_unit_resolution(resolved, proof)
                 resolved["source_interpretation_resolution"] = proof
         except ValueError as exc:
@@ -2687,6 +2697,7 @@ def project_semantic_program_operand(
     interpretation = dict(binding.get("source_interpretation_resolution") or {})
     if resolution:
         candidate = {**dict(candidate), **dict(resolution.get("scope") or {})}
+    candidate = apply_source_period_resolution(candidate, interpretation)
     candidate = apply_source_unit_resolution(candidate, interpretation)
     obligation_row = dict(obligation or {})
     obligation_scope = dict(obligation_row.get("scope") or {})
@@ -2775,6 +2786,8 @@ def project_semantic_program_operand(
         "aggregate_label": str(candidate.get("aggregate_label") or ""),
         "matched_operand_role": obligation_id,
         **({"context_resolution": resolution} if resolution else {}),
+        **({"source_period_resolution": candidate["source_period_resolution"]}
+           if candidate.get("source_period_resolution") else {}),
         **({"source_interpretation_resolution": interpretation} if interpretation else {}),
     }
 

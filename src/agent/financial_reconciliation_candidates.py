@@ -9,6 +9,7 @@ from collections import Counter
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from src.agent.financial_numeric_surface import extract_source_numeric_surface_candidates
+from src.agent.financial_column_periods import project_column_period_evidence
 from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
 from src.agent.financial_scope_policies import (
     annual_period_evidence, explicit_period_years, relative_period_offsets,
@@ -2614,7 +2615,7 @@ def build_semantic_candidate_catalog(
                 }
             )
 
-    return [*numeric_rows, *narrative_rows]
+    return project_column_period_evidence(candidates, [*numeric_rows, *narrative_rows])
 
 
 def _candidate_statement_type(candidate: Dict[str, Any], metadata: Dict[str, Any]) -> str:

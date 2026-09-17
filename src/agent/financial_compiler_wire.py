@@ -15,6 +15,7 @@ from src.agent.financial_graph_model_loaders import compiler_response_model, sem
 from src.agent.financial_formula_wire import lower_formula_steps
 from src.agent.financial_request_units import RequestUnitV1, build_request_units
 from src.agent.financial_source_interpretation import interpretation_axis_sources, source_unit_options
+from src.agent.financial_column_periods import source_period_options
 from src.agent.financial_source_bundles import SourceBundleV1, build_semantic_source_bundles
 from src.agent.financial_output_relationships import output_relationships
 
@@ -35,6 +36,7 @@ class CompilerReferencesV1:
     prose_bundles: tuple[SourceBundleV1, ...]
     relationships: tuple[tuple[str, tuple[str, ...], str, str], ...] = ()
     candidate_unit_refs: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    candidate_period_refs: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
     @classmethod
     def build(cls, catalog, obligations, query, payload):
@@ -54,6 +56,8 @@ class CompilerReferencesV1:
                 add(axis, "a")
             for option in source_unit_options(candidate):
                 add(option["unit_option_id"], "u")
+            for option in source_period_options(candidate):
+                add(option["period_option_id"], "y")
             for context in candidate.get("source_contexts") or []:
                 add(context.get("context_id"), "x")
         bundles = build_semantic_source_bundles(catalog)
@@ -104,7 +108,9 @@ class CompilerReferencesV1:
             tuple((key, tuple(row["output_ids"]), row["request_unit_id"], row["request_text"])
                   for key, row in output_relationships(obligations, query)[0].items()),
             tuple((key, tuple(entries[option["unit_option_id"]] for option in source_unit_options(row)))
-                  for key, row in sorted(numeric.items()) if source_unit_options(row)))
+                  for key, row in sorted(numeric.items()) if source_unit_options(row)),
+            tuple((key, tuple(entries[option["period_option_id"]] for option in source_period_options(row)))
+                  for key, row in sorted(numeric.items()) if source_period_options(row)))
 
     def relationships_for(self, owner_ids):
         return {key: {"kind": "shared_basis", "output_ids": list(members),
@@ -119,6 +125,9 @@ class CompilerReferencesV1:
 
     def unit_refs_for_candidate(self, candidate_id):
         return dict(self.candidate_unit_refs).get(candidate_id, ())
+
+    def period_refs_for_candidate(self, candidate_id):
+        return dict(self.candidate_period_refs).get(candidate_id, ())
 
     def ref(self, source_id):
         try:
@@ -205,6 +214,11 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                     if unit_id not in {option["unit_option_id"] for option in source_unit_options(candidates[source_id])}:
                         raise CompilerReferenceError("unit_option_not_authorized_for_source", owner_id, source_id)
                     interpretation["unit_option_id"] = unit_id
+                period_id = interpretation.pop("period_ref", None)
+                if period_id is not None:
+                    if period_id not in {option["period_option_id"] for option in source_period_options(candidates[source_id])}:
+                        raise CompilerReferenceError("period_option_not_authorized_for_source", owner_id, source_id)
+                    interpretation["period_option_id"] = period_id
                 # Selection addresses exactly one cell: carry all its observed
                 # axes without asking the model to repeat (or invent) axis IDs.
                 interpretation.update(axis_refs=list(refs.axis_refs_for_candidate(source_id)),

@@ -72,7 +72,11 @@ unit readings. These are diagnostic responses, not sampled model answers.
 Local receipts and authored diagnostics:
 [`source_count_unit_contract_2026-09-17`](../../benchmarks/results/source_count_unit_contract_2026-09-17/RESULTS.md).
 
-## Next bounded work
+## Follow-up
+
+The [same-column annual period contract](same_column_period_contract.md) now closes the physical year-linkage gap. The diagnostics above remain the original unit-packet observations; they are not rewritten as new successes. Semantic interpretation and live question acceptance remain separate.
+
+## Next bounded work at this review
 
 Provider-free same-column year provenance: connect a selected numeric cell to
 the actual year/header source at its own physical column. Preserve equal-value

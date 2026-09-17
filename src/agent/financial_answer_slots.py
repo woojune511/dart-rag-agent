@@ -331,6 +331,8 @@ def build_operand_value_slot(
         "stated_change_raw_unit": str(row.get("stated_change_raw_unit") or ""),
         **({"source_unit_resolution": dict(row["source_unit_resolution"])}
            if row.get("source_unit_resolution") else {}),
+        **({"source_period_resolution": dict(row["source_period_resolution"])}
+           if row.get("source_period_resolution") else {}),
     }
 
 
