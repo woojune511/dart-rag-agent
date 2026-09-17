@@ -18,6 +18,7 @@ from tests.semantic_program_test_support import _StructuredQueueLLM
 from tests.test_narrative_claim_grounding import claim
 from tests.test_narrative_retry_context import prompt_json
 from tests.test_planner_requirement_transport import agent_for, request
+from tests.source_interpretation_fixture_support import authored_relationship_program
 
 
 def catalog_for_bodies(bodies, year=2051):
@@ -59,6 +60,12 @@ def authored_pipeline(query, bodies, owners, response_specs, *, year=2051, coupl
     state['request']['report_scope']['year'] = year
     before_candidates = deepcopy(candidates)
     state['requirements'] = agent._plan_answer_obligation_program(planning_phase_input(state))
+    if coupling:
+        programs = [SemanticCalculationProgram.model_validate(authored_relationship_program(
+            {key: value for key, value in program.model_dump().items()
+             if key not in ('relationship_declarations', 'relationship_bindings')},
+            state['requirements']['answer_obligations'], query)) for program in programs]
+        llm.responses = list(programs)
     state['candidates'] = candidates
     before = deepcopy(state)
     compiled = agent._compile_semantic_calculation_program(compilation_phase_input(state))

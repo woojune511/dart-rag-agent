@@ -8,6 +8,20 @@ from copy import deepcopy
 
 from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_interpretation import interpretation_axis_sources
+from src.agent.financial_output_relationships import output_relationships
+
+
+def authored_relationship_program(program, owners, query, basis="authored fixture common basis"):
+    """Explicit test authorship; never applied to a sampled model response."""
+    result = deepcopy(program)
+    groups, _ = output_relationships(owners, query)
+    if groups:
+        ready = {row["obligation_id"] for field in ("direct_bindings", "expressions", "narrative_bindings")
+                 for row in result.get(field, [])}
+        result.setdefault("relationship_declarations", {key: basis for key in groups})
+        result.setdefault("relationship_bindings", {owner: [key for key, row in groups.items()
+            if owner in row["output_ids"]] for owner in ready if any(owner in row["output_ids"] for row in groups.values())})
+    return result
 
 
 def authored_relationships(owners, query):
@@ -47,8 +61,6 @@ def authored_source_program(program, owners, catalog, query):
         proof = {"request_unit_ids": refs, "subject": subject, "metric": owner.get("label") or "fixture metric",
             "scope": {key: scope.get(key) or "" for key in ("segment", "basis")},
             "axis_refs": list(interpretation_axis_sources(candidate)), "context_evidence": []}
-        if parent.get("output_relationships"):
-            proof["scope"]["basis"] = "authored fixture common basis"
         if candidate.get("candidate_kind") == "sentence_value":
             proof["source_evidence_text"] = candidate["source_text"]
         binding[key] = proof
@@ -64,9 +76,7 @@ def authored_source_program(program, owners, catalog, query):
                     add(binding, binding["source_id"], requirements.get(binding.get("source_requirement_id"), owner), owner, "source_interpretation")
                 if row.get("source_display_candidate_id"):
                     add(row, row["source_display_candidate_id"], owner, owner, "source_display_interpretation")
-            elif owner.get("output_relationships"):
-                row["basis_interpretation"] = "authored fixture common basis"
-    return result
+    return authored_relationship_program(result, owners, query)
 
 
 def _authored_inputs(inputs):

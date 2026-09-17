@@ -232,7 +232,7 @@ class ScopeQualifiedDirectAnswerTests(unittest.TestCase):
     def _program(self, name):
         return SemanticCalculationProgram.model_validate(
             self.fixture["programs"][name]
-        ).model_dump()
+        ).model_dump(exclude={"relationship_declarations", "relationship_bindings"})
 
     def _execute(self, name="consolidated", *, obligations=None, catalog=None, program=None, query=None):
         inputs = {

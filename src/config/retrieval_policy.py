@@ -545,6 +545,7 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 _COMPILER_SHARED_INSTRUCTIONS = (
     "검색된 원문을 읽고 CompilerResponseV2의 outputs를 작성하세요. 별도의 독해 호출이나 원문 이름의 허용 목록은 없습니다.\n"
     "Compilation scope의 active_obligation_ids만 출력하며 각 request_unit_ids의 정확한 요청 구간과 한정 조건을 보존하세요. label/rationale은 상세 요청이나 공개 답변을 대신하지 않습니다. 같은 설명의 공유 조건과 독립적으로 요청된 설명 주제를 구별하세요.\n"
+    "Compilation scope의 output_relationships는 요청에 연결된 공통 기준 관계입니다. relationship_declarations의 해당 관계 키에 공통 해석을 한 번만 쓰고, 각 ready result의 relationship_refs에 자신이 속한 모든 관계를 명시하세요. 모든 구성원이 보류하면 선언은 null로 둘 수 있습니다. 개별 원문의 basis 해석을 같은 문장으로 바꾸지 마세요. read_only_relationship_declarations는 이미 통과한 출력과 공유하는 고정 선언이므로 다시 작성하지 말고 해당 관계를 참조하세요. 관계 참조는 원문·주체·범위 검증을 대체하지 않으며, 겹치는 관계의 해석은 각각 독립적입니다.\n"
     "입력은 bounded excerpts입니다. 개별 본문이 완전해도 보고서 전체의 coverage를 뜻하지 않습니다. 근거가 부족하면 해당 출력의 status=missing 또는 ambiguous, result=null로 남기며 전체 문서의 부재를 단정하지 마세요.\n"
     "cohorts의 candidate_ids는 owner별 사용 권한입니다. 동일한 출처 조건의 요구사항은 노출된 근거를 공유할 수 있지만 숨은 후보, 다른 보고서·제한 섹션·명시적 측정 기간·연결 범위는 공유하지 않습니다. 검색 힌트/주체 문자열 차이는 금지 사유가 아닙니다.\n"
     "source_sections/source_section_bindings와 상위 출력의 제한을 모두 지키세요. 제목·본문에 언급됐다는 이유로 다른 절을 사용할 수 없습니다. evidence_bundle_constraints의 물리적 공유 행 option은 반드시 유지하세요.\n"
@@ -567,7 +568,7 @@ _COMPILER_NUMERIC_INSTRUCTIONS = (
     "단위 차원과 scale은 코드가 추론합니다. 원문 배율을 formula에 재적용하지 말고 display_unit은 표시 의도만 적으세요. 백분율과 percentage-point를 구별하며 나눗셈 비율을 %로 계산할 때만 formula의 *100이 필요합니다.\n"
     "source_display는 필수 nullable 선택이며 선택하면 최종 주 표시값이 됩니다. 명시적인 요청이 원문 우선 기본값보다 우선합니다. 연결된 요청 구간에서 원하는 결과가 원문 보고값인지, 입력으로 계산한 값인지, 둘 다인지 먼저 판단하세요. 계산값만 요청하면 source_display=null로 두고 원문 보고값으로 대체하지 마세요. 두 값이 같아도 요청 의도에 따라 결정합니다.\n"
     "원문 보고값이 요청 결과와 부합할 때만 동일 의미의 원문 파생값을 선택하세요. 별도 표시 지시가 없으면 원문 우선·계산 병기를 적용합니다. source_display_reason에는 단순히 원문 값이 있다는 사실이 아니라 요청과 선택/null의 관계를 쓰세요. 선택해도 formula/원시 입력을 유지하고, 차이를 억지로 맞추거나 근거 없는 반올림 설명을 만들지 마세요.\n"
-    "output_relationships의 shared_basis는 각 선택의 interpretation.scope.basis에 일관되게 선언하고 자기 원문으로 뒷받침하세요. 동일 기준의 의미 판단과 실제 동일 행 사용 여부는 별개입니다. compatibility_refs는 실제 호환성 근거만 가리키며 출처 충돌을 허용하지 않습니다.\n"
+    "interpretation.scope.basis는 그 선택 원문의 개별 해석입니다. 공통 기준 관계에 속한 숫자 출력도 각 선택 원문의 interpretation을 제공해야 합니다. 공통 기준 문장을 복사하여 개별 근거의 차이를 덮지 마세요. 동일 기준의 의미 판단과 실제 동일 행 사용 여부는 별개입니다. compatibility_refs는 실제 호환성 근거만 가리키며 출처 충돌을 허용하지 않습니다.\n"
     "직접 조회의 compatibility_refs는 선택값의 범위를 보완하는 owner 노출 narrative 후보에만 쓰세요. 선택한 셀의 축·메타데이터나 selection.context_evidence로 필요한 범위가 확인되면 []로 둡니다. 선택값과 동일 원문 문맥에 연결된 witness가 있어야 하며, 같은 보고서·주제·유사한 숫자를 반복하는 다른 절만으로는 충분하지 않습니다. context_evidence의 context_ref를 이 목록에 복사하거나 보조 근거로 선택값의 해석·명시적 출처·기간 충돌을 덮지 마세요.\n"
     "재시도의 read_only_dependency_outputs는 검증된 계산값이지 원문 표시값이 아닙니다. 허용된 dependency ID를 source_ref로 쓰고 상수로 복사하거나 accepted 출력을 다시 작성하지 마세요. 그 candidate IDs는 provenance일 뿐 선택 권한이 아닙니다.\n"
 )
@@ -580,7 +581,7 @@ _COMPILER_NARRATIVE_INSTRUCTIONS = (
     "요청한 구분·관계·한계를 text에서 실제로 설명하세요. 전체/주요 구성을 한 사례로 대신하거나 한 구성원의 사실을 집단 전체로 넓히지 마세요. 인과를 말하려면 원문이 결과와 요인을 직접 연결해야 하며 일반 배경이나 동시 변화로 원인을 만들지 않습니다.\n"
     "kind=narrative 본문/읽기용 표 행은 일반 evidence로 읽습니다. numeric 셀을 행 설명으로만 읽을 때는 해당 셀의 전체 행 계층에 속하는 정확한 row_description_quote를 선택하고 숫자 operand로 재해석하지 마세요.\n"
     "source_defined_group_selection이 complete_physical_row면 required_candidate_ids의 모든 셀을 해당 requirement에서 선택하고 원문의 항목 이름과 값을 빠뜨리지 마세요. 표준 항목을 추정해 추가하지 않습니다.\n"
-    "의미상 segment/basis 적용은 scope_applicability_fields로 명시할 수 있습니다. 연결 범위 unknown은 연결된 근거로 보완할 수 있으나 명시적 보고서/기간/연결 충돌은 그대로 금지됩니다. shared_basis 관계가 있으면 basis_interpretation을 근거와 일관되게 선언하세요.\n"
+    "의미상 segment/basis 적용은 scope_applicability_fields로 명시할 수 있습니다. 연결 범위 unknown은 연결된 근거로 보완할 수 있으나 명시적 보고서/기간/연결 충돌은 그대로 금지됩니다. basis_interpretation은 이 출력 원문의 개별 해석이며 다른 출력과 같은 문구일 필요는 없습니다.\n"
     "unvalidated_narrative_drafts/unvalidated_compiler_response는 실패한 모델 초안이지 정답·원문·새 권한이 아닙니다. 오류 위치를 보고 현재 허용된 근거로만 수정하세요. 수정 권한이 없는 계획 오류나 실제 근거 부족을 새 출처 발명으로 메우지 마세요.\n"
     "{row_description_instructions}\n"
 )

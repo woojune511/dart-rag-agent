@@ -16,6 +16,7 @@ from src.agent.financial_formula_wire import lower_formula_steps
 from src.agent.financial_request_units import RequestUnitV1, build_request_units
 from src.agent.financial_source_interpretation import interpretation_axis_sources
 from src.agent.financial_source_bundles import SourceBundleV1, build_semantic_source_bundles
+from src.agent.financial_output_relationships import output_relationships
 
 
 class CompilerReferenceError(ValueError):
@@ -32,6 +33,7 @@ class CompilerReferencesV1:
     numeric_source_kinds: tuple[tuple[str, str], ...]
     request_units: tuple[RequestUnitV1, ...]
     prose_bundles: tuple[SourceBundleV1, ...]
+    relationships: tuple[tuple[str, tuple[str, ...], str, str], ...] = ()
 
     @classmethod
     def build(cls, catalog, obligations, query, payload):
@@ -95,7 +97,14 @@ class CompilerReferencesV1:
             tuple(sorted((key, tuple(sorted(values))) for key, values in contexts_by_owner.items())),
             tuple(sorted((key, "prose" if row.get("candidate_kind") == "sentence_value" and key in prose_ids
                           else "cell") for key, row in numeric.items())), request_units,
-            tuple(bundle for bundle in bundles if bundle.source_kind == "prose_sentence"))
+            tuple(bundle for bundle in bundles if bundle.source_kind == "prose_sentence"),
+            tuple((key, tuple(row["output_ids"]), row["request_unit_id"], row["request_text"])
+                  for key, row in output_relationships(obligations, query)[0].items()))
+
+    def relationships_for(self, owner_ids):
+        return {key: {"kind": "shared_basis", "output_ids": list(members),
+                      "request_unit_id": unit, "request_text": quote}
+                for key, members, unit, quote in self.relationships if set(owner_ids).intersection(members)}
 
     def context_refs_for_owner(self, owner_id):
         return dict(self.owner_context_refs).get(owner_id, ())
@@ -145,6 +154,13 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
     request_units = {unit.request_unit_id: unit for unit in refs.request_units}
     result = {"status": "ready", "direct_bindings": [], "expressions": [], "narrative_bindings": [],
               "source_assertions": [], "missing_obligation_ids": [], "ambiguous_obligation_ids": [], "rationale": raw["rationale"]}
+    relationships = refs.relationships_for([owner["obligation_id"] for owner in obligations])
+    if relationships:
+        result["relationship_declarations"] = {
+            **getattr(model, "__read_only_relationship_declarations__", {}),
+            **raw.get("relationship_declarations", {}),
+        }
+        result["relationship_bindings"] = {}
 
     def selected(ref, owner_id, *, dependencies=()):
         try:
@@ -274,6 +290,8 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
             result["narrative_bindings"].append({"obligation_id": owner_id, "subject_bindings": subjects,
                 "claims": claims, "scope_applicability_fields": content["scope_applicability_fields"],
                 "basis_interpretation": content["basis_interpretation"]})
+        if "relationship_refs" in content:
+            result["relationship_bindings"][owner_id] = list(content["relationship_refs"])
     for owner in obligations:
         assertion_count = len(result["source_assertions"])
         try:

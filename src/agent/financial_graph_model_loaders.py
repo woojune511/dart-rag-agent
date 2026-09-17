@@ -21,8 +21,8 @@ def semantic_calculation_program_model() -> Any:
     return _graph_model("SemanticCalculationProgram")
 
 
-def compiler_response_model(obligations, references, visibility):
-    return _graph_model("compiler_response_model")(obligations, references, visibility)
+def compiler_response_model(obligations, references, visibility, **kwargs):
+    return _graph_model("compiler_response_model")(obligations, references, visibility, **kwargs)
 
 
 def compression_output_model() -> Any:

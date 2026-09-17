@@ -9,6 +9,7 @@ from src.agent.financial_graph_models import SemanticCalculationProgram
 from tests.narrative_address_test_support import selection
 from tests.semantic_program_test_support import _obligation, _candidate
 from tests.test_numeric_subject_authority import authored_interpretation
+from tests.source_interpretation_fixture_support import authored_relationship_program
 
 
 def relate(owners, query="Use a common basis."):
@@ -57,14 +58,14 @@ class OutputRelationshipTests(unittest.TestCase):
         bindings = [{"obligation_id": row["obligation_id"], "candidate_id": candidate["candidate_id"],
             "source_interpretation": {**authored_interpretation(candidate, "Maple"), "scope": {"basis": "reported scope"}}}
             for row, candidate in zip(owners, catalog)]
-        result = validate_semantic_calculation_program(program={"direct_bindings": bindings}, obligations=owners,
+        program = authored_relationship_program({"direct_bindings": bindings}, owners, "Use a common basis.")
+        result = validate_semantic_calculation_program(program=program, obligations=owners,
             candidate_catalog=catalog, query="Use a common basis.")
         self.assertEqual(result["status"], "ready", result["errors"])
-        bindings[1]["source_interpretation"]["scope"]["basis"] = "different declaration"
-        result = validate_semantic_calculation_program(program={"direct_bindings": bindings}, obligations=owners,
+        program["direct_bindings"][1]["source_interpretation"]["scope"]["basis"] = "different local interpretation"
+        result = validate_semantic_calculation_program(program=program, obligations=owners,
             candidate_catalog=catalog, query="Use a common basis.")
-        self.assertEqual(result["status"], "invalid")
-        self.assertIn("relationship_interpretation_missing_or_inconsistent", [row["code"] for row in result["errors"]])
+        self.assertEqual(result["status"], "ready", result["errors"])
 
 
 class SharedBasisDeclarationTests(unittest.TestCase):
@@ -93,6 +94,7 @@ class SharedBasisDeclarationTests(unittest.TestCase):
                 "claims": [{"subject_binding_id": "s1", "text": text,
                     "fact_evidence_selections": [deepcopy(link)]}]})
         self.allowed = {"a": ["source_a"], "b": ["source_b"]}
+        self.program = authored_relationship_program(self.program, self.owners, self.query, self.basis)
 
     def validate(self):
         before = deepcopy((self.program, self.owners, self.catalog))
@@ -132,26 +134,26 @@ class SharedBasisDeclarationTests(unittest.TestCase):
         self.assertEqual([row["basis_interpretation"] for row in result["valid_narrative_bindings"]],
             [self.basis, self.basis])
 
-    def test_shared_prefix_paraphrase_and_layout_difference_are_not_agreement(self):
+    def test_local_interpretations_can_differ_without_changing_the_shared_declaration(self):
         for value in (self.basis + " One output has further detail.",
                       "Delivery methods as reported.", " " + self.basis, self.basis + "\n"):
             with self.subTest(value=value):
                 self.program["narrative_bindings"][1]["basis_interpretation"] = value
-                self.assert_relationship_failure("relationship_interpretation_missing_or_inconsistent")
+                self.assertEqual(self.validate()["status"], "ready")
 
     def test_absent_or_blank_declarations_fail_even_when_equal(self):
+        key = next(iter(self.program["relationship_declarations"]))
         for value in (None, "", " \n "):
             with self.subTest(value=value):
-                for row in self.program["narrative_bindings"]:
-                    if value is None:
-                        row.pop("basis_interpretation", None)
-                    else:
-                        row["basis_interpretation"] = value
-                self.assert_relationship_failure("relationship_interpretation_missing_or_inconsistent")
+                self.program["relationship_declarations"][key] = value
+                self.assert_relationship_failure("relationship_declaration_missing" if value is None
+                    else "invalid_relationship_declaration")
 
     def test_independent_outputs_do_not_require_agreement_or_matching_source_scope(self):
         for owner in self.owners:
             owner["output_relationships"] = []
+        self.program.pop("relationship_declarations")
+        self.program.pop("relationship_bindings")
         self.program["narrative_bindings"][1]["basis_interpretation"] = "A distinct interpretation."
         self.catalog[0]["consolidation_scope"] = "consolidated"
         self.catalog[1]["consolidation_scope"] = "separate"
@@ -161,6 +163,8 @@ class SharedBasisDeclarationTests(unittest.TestCase):
         # Deliberately wrong semantics: exact agreement is not source entailment.
         for row in self.program["narrative_bindings"]:
             row["basis_interpretation"] = "Both sources describe international delivery."
+        for key in self.program["relationship_declarations"]:
+            self.program["relationship_declarations"][key] = "Both sources describe international delivery."
         self.assertEqual(self.validate()["status"], "ready")
 
     def test_equal_declarations_cannot_authorize_hidden_evidence(self):
@@ -203,11 +207,13 @@ class SharedBasisDeclarationTests(unittest.TestCase):
                     self.catalog[1]["consolidation_scope"] = scope
                     self.assertEqual(self.validate()["status"], "ready")
 
-    def test_mixed_outputs_compare_numeric_proof_with_narrative_declaration(self):
+    def test_mixed_outputs_keep_local_interpretations_and_require_explicit_references(self):
         self.make_mixed()
         self.assertEqual(self.validate()["status"], "ready")
         self.program["narrative_bindings"][0]["basis_interpretation"] = "Different declaration."
-        self.assert_relationship_failure("relationship_interpretation_missing_or_inconsistent")
+        self.assertEqual(self.validate()["status"], "ready")
+        self.program["relationship_bindings"]["b"] = []
+        self.assert_relationship_failure("relationship_reference_missing_or_invalid")
 
 
 if __name__ == "__main__":

@@ -37,7 +37,9 @@ from src.agent.financial_compiler_debug import project_compiler_attempt
 from src.utils.request_diagnostics import diagnostic_location, diagnostics_enabled, record_diagnostic
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_source_interpretation import interpretation_axis_sources
-from src.agent.financial_output_relationships import output_relationships
+from src.agent.financial_output_relationships import (
+    output_relationships, relationship_proof_projection, validated_relationship_proofs,
+)
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
     project_prompt_cohort, project_prompt_retry_feedback, project_reading_payload,
@@ -1398,6 +1400,14 @@ def _merge_targeted_program_retry(
         seen_assertions.add(serialized)
         deduplicated_assertions.append(assertion)
 
+    preserved_ids = {row["obligation_id"] for rows in preserved_program.values() for row in rows}
+    preserved_proofs = validated_relationship_proofs(previous_validation, preserved_ids)
+    replacement_proofs = relationship_proof_projection(retry_program, targets)
+    # A declaration used by any accepted, untouched output is read-only.
+    declarations = {**replacement_proofs.get("relationship_declarations", {}),
+                    **preserved_proofs.get("relationship_declarations", {})}
+    bindings = {**preserved_proofs.get("relationship_bindings", {}),
+                **replacement_proofs.get("relationship_bindings", {})}
     return {
         "status": str(retry_program.get("status") or "incomplete"),
         "direct_bindings": merged_rows(
@@ -1408,6 +1418,8 @@ def _merge_targeted_program_retry(
             "valid_narrative_bindings", "narrative_bindings"
         ),
         "source_assertions": deduplicated_assertions,
+        "relationship_declarations": declarations,
+        "relationship_bindings": bindings,
         "missing_obligation_ids": [
             str(item) for item in previous_validation.get("missing_obligation_ids") or []
             if str(item).strip() not in targets
@@ -2021,11 +2033,21 @@ class FinancialAgentCalculationMixin:
                 }
                 try:
                     references = CompilerReferencesV1.build(catalog, obligations, query, active_prompt_payload)
+                    active_ids = {row["obligation_id"] for row in prompt_obligations}
+                    relationships = references.relationships_for(active_ids)
+                    frozen_declarations = validated_relationship_proofs(previous_validation,
+                        {row["obligation_id"] for row in obligations} - active_ids).get(
+                            "relationship_declarations", {}) if attempt else {}
+                    if relationships:
+                        compilation_scope["output_relationships"] = relationships
+                        compilation_scope["read_only_relationship_declarations"] = {
+                            key: value for key, value in frozen_declarations.items() if key in relationships}
                     attempt_visibility = _semantic_candidate_visibility(catalog,
                         visible_candidate_ids=active_prompt_candidate_ids,
                         candidate_ids_by_owner=active_cohort_plan["candidate_ids_by_owner"],
                         evidence_bundle_constraints=active_cohort_plan.get("evidence_bundle_constraints") or [])
-                    response_model = compiler_response_model(prompt_obligations, references, attempt_visibility)
+                    response_model = compiler_response_model(prompt_obligations, references, attempt_visibility,
+                        read_only_relationship_declarations=frozen_declarations)
                     serialized_schema_bytes = len(_compiler_json(response_model.model_json_schema()).encode("utf-8"))
                     structured_llm = self._llm_for_phase("program_compilation").with_structured_output(response_model)
                     wire_payload = references.project(active_prompt_payload)
@@ -2911,6 +2933,10 @@ class FinancialAgentCalculationMixin:
                 "ambiguous_obligation_ids": list(
                     island_validation.get("ambiguous_obligation_ids") or []
                 ),
+                "relationship_declarations": {},
+                "relationship_bindings": {},
+                **validated_relationship_proofs(island_validation,
+                    {owner_id for ids in valid_ids_by_program_key.values() for owner_id in ids}),
             }
             call_count = int(
                 dict(compiled.get("planner_debug_trace") or {}).get(
@@ -3041,6 +3067,9 @@ class FinancialAgentCalculationMixin:
                 "narrative_bindings"
             ),
             "source_assertions": merged_source_assertions,
+            **{key: {proof_id: value for result in island_results
+                     for proof_id, value in (result.get("program", {}).get(key) or {}).items()}
+               for key in ("relationship_declarations", "relationship_bindings")},
             "missing_obligation_ids": missing_ids,
             "ambiguous_obligation_ids": ambiguous_ids,
             "rationale": (

@@ -354,6 +354,8 @@ def _program_for_obligations(
         ],
         "rationale": str(raw_program.get("rationale") or ""),
     }
+    from src.agent.financial_output_relationships import relationship_proof_projection
+    projection.update(relationship_proof_projection(raw_program, owners))
     return SemanticCalculationProgram.model_validate(projection)
 
 

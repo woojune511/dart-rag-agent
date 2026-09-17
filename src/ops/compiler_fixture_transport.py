@@ -286,6 +286,8 @@ def project_offline_program_to_wire(program, model):
                             for claim in row.get("claims") or [] if claim["subject_binding_id"] == subject["subject_binding_id"]]})
                 result = {"subjects": subjects, "scope_applicability_fields": row.get("scope_applicability_fields") or [],
                     "basis_interpretation": row.get("basis_interpretation", "")}
+            if row["obligation_id"] in (program.get("relationship_bindings") or {}):
+                result["relationship_refs"] = deepcopy(program["relationship_bindings"][row["obligation_id"]])
             outputs[key] = {"status": "ready", "result": result}
     for source_field, status in (("missing_obligation_ids", "missing"), ("ambiguous_obligation_ids", "ambiguous")):
         for owner_id in program.get(source_field) or []:
@@ -293,4 +295,9 @@ def project_offline_program_to_wire(program, model):
             previous_content = outputs.get(key, {}).get("result")
             outputs[short_ref(owner_id, "o")] = {"status": "ready" if program.get("status") == "ready" else status,
                 "result": previous_content}
-    return {"outputs": outputs, "rationale": program.get("rationale", "")}
+    declarations = program.get("relationship_declarations") or {}
+    frozen = getattr(model, "__read_only_relationship_declarations__", {})
+    editable = {key: deepcopy(value) for key, value in declarations.items()
+                if key not in frozen or value != frozen[key]}
+    extra = {"relationship_declarations": editable} if editable or "relationship_declarations" in model.model_fields else {}
+    return {"outputs": outputs, "rationale": program.get("rationale", ""), **extra}

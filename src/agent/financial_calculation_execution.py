@@ -29,7 +29,9 @@ from src.agent.financial_source_scope import source_section_applicability, sourc
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
 from src.agent.financial_narrative_claims import validate_narrative_claims
 from src.agent.financial_source_interpretation import attached_context_quote, validate_source_interpretation
-from src.agent.financial_output_relationships import output_relationships
+from src.agent.financial_output_relationships import (
+    output_relationships, relationship_proof_projection, validate_relationship_proofs,
+)
 from src.agent.financial_graph_calculation_rendering import (
     render_grounded_operand_display,
 )
@@ -1035,6 +1037,8 @@ def validate_semantic_calculation_program(
         for item in obligation_rows
         if str(item.get("obligation_id") or "").strip()
     }
+    relationships, relationship_errors = output_relationships(obligation_rows, query)
+    related_owner_ids = {owner_id for row in relationships.values() for owner_id in row["output_ids"]}
     candidate_by_id = {
         str(item.get("candidate_id") or "").strip(): item
         for item in candidate_rows
@@ -1129,6 +1133,7 @@ def validate_semantic_calculation_program(
             interpretation = binding.get(interpretation_key)
             needs_interpretation = (candidate.get("kind") == "numeric" and (
                 declared_local_subjects(owner, parent)
+                or obligation_id in related_owner_ids
                 or any(scope.get(field) not in (None, "", "unknown") for field in ("segment", "basis"))))
             if needs_interpretation or interpretation is not None:
                 location = location.rsplit('.', 1)[0] + '.source_interpretation'
@@ -2398,9 +2403,12 @@ def validate_semantic_calculation_program(
         ]
         produced.difference_update(invalid_bundled)
 
-    relationships, relationship_errors = output_relationships(obligation_rows, query)
     errors.extend(relationship_errors)
     invalid_coupled = {issue["obligation_id"] for issue in relationship_errors}
+    proof_errors, invalid_proofs = validate_relationship_proofs(
+        program, relationships, produced, list(obligation_by_id))
+    errors.extend(proof_errors)
+    invalid_coupled.update(invalid_proofs)
     for relation_id, relation in relationships.items():
         obligation_ids = relation["output_ids"]
         if not all(owner_id in produced for owner_id in obligation_ids):
@@ -2416,23 +2424,6 @@ def validate_semantic_calculation_program(
                       location="output_relationship.consolidation_scope", repair_action="repair_program")
                 invalid_coupled.add(owner_id)
             continue
-        # The compiler's common-basis declaration is checked for consistency,
-        # not equated with sharing a chunk/table. Physical same-row rules above
-        # are independent. The truth of this interpretation is model-evaluated.
-        declarations = []
-        for owner_id in obligation_ids:
-            if obligation_by_id[owner_id].get("kind") == "narrative":
-                declarations.append(next((str(row.get("basis_interpretation") or "") for row in valid_narrative
-                                          if row["obligation_id"] == owner_id), ""))
-                continue
-            sources = resolved_sources_by_output.get(owner_id, [])
-            declarations.extend(str((source.get("source_interpretation_resolution") or {}).get("scope", {}).get("basis") or "")
-                                for source in sources if source.get("kind") == "numeric")
-        if not declarations or any(not value.strip() for value in declarations) or len(set(declarations)) != 1:
-            for owner_id in obligation_ids:
-                error("relationship_interpretation_missing_or_inconsistent", owner_id, relation_id,
-                      location="source_interpretation.scope.basis", repair_action="repair_program")
-                invalid_coupled.add(owner_id)
     if invalid_coupled:
         valid_direct = [
             item for item in valid_direct if str(item.get("obligation_id") or "") not in invalid_coupled
@@ -2666,6 +2657,7 @@ def validate_semantic_calculation_program(
         "valid_expressions": valid_expressions,
         "valid_narrative_bindings": valid_narrative,
         "valid_source_assertions": valid_source_assertions,
+        **{"valid_" + key: value for key, value in relationship_proof_projection(program, produced).items()},
         "missing_obligation_ids": missing,
         "ambiguous_obligation_ids": ambiguous,
         "selected_candidate_ids": selected_candidate_ids,
@@ -3215,6 +3207,9 @@ def _fail_closed_semantic_validation(
     failed["valid_expressions"] = []
     failed["valid_narrative_bindings"] = []
     failed["valid_source_assertions"] = []
+    for key in ("valid_relationship_declarations", "valid_relationship_bindings"):
+        if key in failed:
+            failed[key] = {}
     failed["selected_candidate_ids"] = []
     failed["source_candidate_ids_by_obligation"] = {}
     failed["inferred_units"] = {}

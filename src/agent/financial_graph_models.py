@@ -575,6 +575,8 @@ class SemanticCalculationProgram(_DeferredBaseModel):
     missing_obligation_ids: List[str] = Field(default_factory=list)
     ambiguous_obligation_ids: List[str] = Field(default_factory=list)
     rationale: str = ""
+    relationship_declarations: Dict[str, Optional[str]] = Field(default_factory=dict)
+    relationship_bindings: Dict[str, List[str]] = Field(default_factory=dict)
 
 
 NormalizedUnit = Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"]
@@ -798,12 +800,15 @@ def _input_groups(owner, refs, item_type, name, *, numeric_model=None):
     return create_model(name, __base__=WireModel, **fields)
 
 
-def compiler_response_model(obligations, refs, visibility):
+def compiler_response_model(obligations, refs, visibility, *, read_only_relationship_declarations=None):
     """Only the active outputs and their own kinds exist in the provider schema."""
     numeric_types = {}
     allowed = visibility.candidate_ids_by_owner()
     source_kinds = dict(refs.numeric_source_kinds)
     source_kinds_by_ref = {refs.ref(key): kind for key, kind in source_kinds.items()}
+    relationships = refs.relationships_for([row["obligation_id"] for row in obligations])
+    frozen = {key: value for key, value in (read_only_relationship_declarations or {}).items()
+              if key in relationships}
 
     def source_variant(expected_kind):
         def check(value):
@@ -914,11 +919,24 @@ def compiler_response_model(obligations, refs, visibility):
                 scope_applicability_fields=(list[Literal["segment", "basis", "consolidation_scope"]], Field(default_factory=list)))
         else:
             raise ValueError("unknown_output_kind")
+        related = [relation_id for relation_id, relation in relationships.items()
+                   if owner["obligation_id"] in relation["output_ids"]]
+        if related and result is not type(None):
+            result = create_model("Related_" + key, __base__=result,
+                relationship_refs=(list[str], Field(json_schema_extra={"items": {"type": "string", "enum": related}},
+                    description="Explicitly reference every shared-basis relationship owned by this ready output. Local source interpretations stay independent.")))
         reply = create_model("Reply_" + key, __base__=WireModel,
             status=(Literal["ready", "missing", "ambiguous"], ...), result=(Optional[result], ...))
         output_fields[key] = (reply, ...)
     outputs = create_model("CompilerOutputs", __base__=WireModel, **output_fields)
-    model = create_model("CompilerResponseV2", __base__=WireModel, outputs=(outputs, ...), rationale=(str, ""))
+    declaration_fields = {key: (Optional[str], Field(min_length=1, description=(
+        "Declare the common basis once for this relationship. Null only when all members abstain; "
+        "ready members explicitly reference this declaration. Agreement is not semantic proof.")))
+        for key in relationships if key not in frozen}
+    extra = {"relationship_declarations": (create_model("RelationshipDeclarations", __base__=WireModel,
+        **declaration_fields), ...)} if declaration_fields else {}
+    model = create_model("CompilerResponseV2", __base__=WireModel, outputs=(outputs, ...), rationale=(str, ""), **extra)
     model.__compiler_references__ = refs
     model.__compiler_visibility__ = visibility
+    model.__read_only_relationship_declarations__ = frozen
     return model

@@ -23,6 +23,10 @@ class CompilerReviewExpectationTests(unittest.TestCase):
         case["obligations"] = [case["obligations"][1]]
         case["obligations"][0].pop("output_relationships", None)
         case["program"]["expressions"] = []
+        # This authored case now has one independent output; discard the proof
+        # of the removed relationship along with its other member.
+        case["program"].pop("relationship_declarations", None)
+        case["program"].pop("relationship_bindings", None)
         case["expected"] = {
             "selection_policy": "runtime_validated_narrative",
             "outputs": [{"obligation_id": "credit_loss_reason", "kind": "narrative", "status": "ok"}],
