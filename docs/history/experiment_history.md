@@ -12,6 +12,13 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Shared-basis declaration characterization (2026-09-17)
+
+- Base `bc5116f0`; [provider-free characterization](../evaluation/shared_basis_characterization.md) replays four exact saved Compiler responses from their own preserved plans, catalogs and prompts. Complete payload/active-obligation projection, original program hashes and lowering match; validation remains invalid/ready/ready/ready. Two authored one-field/relationship diagnostic copies isolate declaration equality without rewriting any sampled response or constructing the interrupted run's final answer.
+- Twelve anonymous controls extend the relationship suite to 17. Initial **15 pass / 2 fail** identifies a separate omission: accepted narrative sources never reached the shared-basis known consolidation-scope check. One runtime assignment repairs narrative/narrative and numeric/narrative conflicts while retaining unknown scopes, independent outputs, original evidence and same-cohort repair.
+- **17/17** relationship, **147/147** focused contracts, domain audit **83**, documentation **2/2**, and four unchanged exact replays pass after the correction. No full-suite rerun; prior 1940 is historical evidence. No external test connections, provider calls, store client access or new cost. All **1432** predecessors, local settings and **24** original/selected store files remain unchanged; one of 172 source files changes.
+- Shared accounting remains **7.08344260 / 8**, remainder **0.91655740**, pending 0, not invoice. Current free-text equality and potential model repair remain; the next bounded design declares a relationship basis once with explicit member references and preserved local source proofs. No paid successor is scheduled and no semantic-equivalence, retry-reduction or unseen-accuracy claim is made.
+
 ## Counted narrative budget successor (2026-09-17)
 
 - Base `6ea17d40`; user requested a modest budget increase. Shared cap **7 → 8**, one fresh-run allowance **1.38441766**, manifest `bfe437b6...e846810b` consumed once. [Result](../evaluation/counted_narrative_budget_successor.md).

@@ -2292,6 +2292,7 @@ def validate_semantic_calculation_program(
             }
         )
         sources_by_output[obligation_id] = candidate_ids
+        resolved_sources_by_output[obligation_id] = selected
 
     invalid_bundled: set[str] = set()
     for constraint in (
