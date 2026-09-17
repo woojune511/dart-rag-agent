@@ -482,7 +482,8 @@ No new sampled response or measured retry reduction. Latest full 1,898 gate pred
 this and the Planner instruction change; focused gates cover this bounded seam.
 Shared estimate remains **USD 5.10658146 / 7**, remaining **1.89341854**, not invoice.
 
-The [three-question review set](independent_question_review.md) is now prepared below; no new model result is claimed.
+The frozen [three-question review set](independent_question_review.md) and its separate
+normal-app execution are recorded below; the earlier paid results retain their status.
 
 ## Independent-question review preparation (2026-09-17)
 
@@ -500,7 +501,39 @@ tables remain 1,872/59,477 rows. All 969 predecessor and 170 runtime files are
 unchanged. These are reference/pack checks, not normal retrieval, Compiler visibility
 or semantic accuracy measurements. Existing 241 runtime checks were not rerun.
 
-Next is a fresh immutable admission and one normal-app pass of the frozen requests
-under the remaining shared **USD 1.89341854** (accounted **5.10658146 / 7**, not
-invoice), preserving existing source/model settings and terminal-stop rules.
-No review-answer injection, consumed-manifest reuse, automatic rerun or fresh ingest.
+That preparation retained the shared **USD 1.89341854** remainder; the separately
+admitted normal-app pass below supplies the new execution evidence.
+
+## Independent-question application pass (2026-09-17)
+
+[One normal-app pass](../../benchmarks/results/independent_question_app_2026-09-17/RESULTS.md),
+clean `107a00de`, runtime `83dfc4c9`: **2/3 questions complete and fully accepted**.
+Standalone 2022 dividends received **468,978,562,474원** and standalone 2022→2023
+revenue growth **1.76%** preserve correct original cells, years, scope, citations,
+arithmetic and display. Each has one parsed/ready Compiler response, ledger ok and
+no feedback repair. The third narrative is **budget-interrupted**, not graded wrong
+or accepted: no final answer, API HTTP 500 from a local admission stop.
+
+Fresh manifest `0ec3c9dc...6c92db` consumed once after identical no-call rehearsals
+and mocked full-wrapper/terminal checks. All **46** transmitted requests complete:
+Terra 6, Astra 4, embeddings 36. Upstream provider errors 0; numeric parsing and
+validation errors 0. One further Astra request is denied before transmission:
+reserve **1.0099** exceeds the shared remainder **0.95556423** by **0.05433577**.
+Usage estimate **USD 0.93785431**, shared **6.04443577 / 7**, pending 0, not invoice;
+peak admitted with reservations **6.76731077**. No cap change or SDK/whole-query retry.
+
+The narrative's intermediate parsed attempts and phase identities were not saved.
+The caller writes agent/debug artifacts only after successful return and omitted
+existing capture_request_diagnostics() exception delivery. Usage records establish
+two completed Astra requests, not island/feedback identity or narrative quality.
+No reconstructed response or 3/3 accuracy claim. This is known-source assistant
+review, not a blind holdout or isolated model/prompt improvement.
+
+All **997** predecessor/22 admission files and original source bytes remain intact;
+logical original/working source tables are identical at 1,872/59,477 rows. Startup
+was ready; terminal failure skipped the ordinary final readiness step, while
+post-run read-only integrity checks passed. Runtime/model/config/ingest unchanged;
+current 241 checks retained, not rerun. Next: provider-free caller capture in finally
+with a mocked later-dispatch failure, preserving completed observations and the
+original stop. Keep the consumed packet unchanged; no paid rerun, cap increase,
+reservation weakening or fresh ingest. Repeated scope wording remains separate.

@@ -2,7 +2,8 @@
 
 Prepared 2026-09-17 from clean `d2f62aca`; runtime
 `83dfc4c93419d320709f237db8c070f6ae27efd4a82f8c451de894310c7cf0e4` is unchanged.
-Status: **prepared only**. No app queries or model responses were generated.
+The review packet was **prepared only** before dispatch. The subsequent normal-app
+pass below completed two questions and interrupted the narrative at the budget limit.
 
 The three questions below extend the recent cash/margin/payment/cloud examples
 to standalone statements, a comparative measurement year and environmental
@@ -81,7 +82,7 @@ do not certify correct subject attribution or semantic completeness.
   Current-runtime 241 passing checks are retained from the preceding guidance
   change, not rerun; this preparation adds reference validation and docs checks.
 
-## Frozen packet and next action
+## Frozen review packet and subsequent execution
 
 [Local review packet](../../benchmarks/results/independent_question_review_2026-09-17/RESULTS.md)
 contains questions, criteria, exact source references, controls and validation.
@@ -89,12 +90,40 @@ contains questions, criteria, exact source references, controls and validation.
 `89fe64e162f1919c19be88877124a1c02836b701cee061d528fc31d6ec621fd2`.
 It is a **review-set manifest, not a provider execution admission**.
 
-Next: create a fresh immutable admission for one normal-app pass of these three
-frozen questions with the existing models/source copy. Send only each request from
-questions.json; keep review references outside the app. Verify the frozen hashes,
-current source readiness and caller limits before dispatch. The shared estimate
-remains **USD 5.10658146 / 7**, remaining **1.89341854**, not invoice. Apply the
-existing reservation/terminal-stop rules within that remainder; do not reuse a
-consumed manifest, increase the cap or ingest fresh data. A semantic partial/missing
-result remains a result; any fix or rerun is a separate successor. Repeated scope
-wording remains separate presentation work.
+[Normal-app execution](../../benchmarks/results/independent_question_app_2026-09-17/RESULTS.md)
+ran once on clean `107a00de`, unchanged runtime `83dfc4c9`. Execution manifest
+`0ec3c9dcfb9712869c029ec37afbb3c24077b7ca84fe76ef78a233f17b6c92db` is consumed.
+Only unchanged ordinary requests entered the app; review IDs/answers stayed outside.
+
+| Question | Observed result | Frozen acceptance |
+| --- | --- | --- |
+| Standalone 2022 dividends received | **468,978,562,474원**; HTTP 200, ledger ok | Pass |
+| Standalone revenue growth | **1.76%**; HTTP 200, ledger ok | Pass |
+| Environmental methods/status | Local budget stop; HTTP 500, no final answer | Not assessed |
+
+Both numeric outputs use the correct full standalone cells and measurement years.
+Growth uses 2022 as denominator, 2023 as target and request-owned final rounding;
+answer/slot/trace retain two decimals. Each has one parsed Compiler response, no
+feedback repair and no numeric parsing/validation/execution error.
+
+All **46** transmitted requests completed: Terra 6, Astra 4, embeddings 36; upstream
+provider errors 0. One additional narrative Astra request was blocked before
+transmission by `budget_reservation_exceeded`: requested reserve **USD 1.0099**,
+remaining shared allowance **0.95556423**, shortfall **0.05433577**. Usage estimate
+**0.93785431**, shared **6.04443577 / 7**, pending 0; not invoice. No SDK/whole-query
+retry, cap increase or fresh ingest. Two identical no-call rehearsals and mocked
+success/terminal wrapper controls passed. Original bytes, **997** predecessor and
+22 frozen admission files remain intact; logical source tables stay 1,872/59,477.
+
+The interrupted narrative's two completed Astra usage records do not reveal their
+parsed outputs, island/repair identities or semantic quality. The caller saved
+agent/debug output only after successful return and did not use the existing
+`capture_request_diagnostics()` exception-delivery scope. No final narrative result
+or intermediate diagnostic snapshot was persisted. It is not a completed 3/3 eval.
+
+Next: correct the caller provider-free by capturing and saving diagnostics in
+`finally`, then exercise a mocked later-call budget stop with earlier responses
+preserved. Keep this consumed manifest and historical evidence unchanged. Narrative
+evaluation remains pending; any paid successor is separate and must fit a freshly
+verified budget. Do not weaken reservations or infer missing response contents.
+Repeated scope wording remains separate presentation work.
