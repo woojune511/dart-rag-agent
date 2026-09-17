@@ -12,6 +12,13 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Generic narrative clause instruction adoption (2026-09-18)
+
+- Base `891c9e80`; [implementation and verification](../evaluation/narrative_clause_policy.md). One policy instruction preserves every claim clause's action/object/qualifier relations while allowing paraphrase. Both existing templates add 418 UTF-8 bytes; schema, selection, execution, model settings and call count are unchanged. No domain terms or deterministic semantic rewrite.
+- Three baseline/adopted pairs exercise a saved raw narrative response plus narrative/general initial-and-repair calls. Only the instruction changes in actual prompts; schemas, source/input values, programs, validation, execution and retry counts match. Sixteen anonymous responses equal prior candidate receipts, with eight unsupported variants still structurally accepted. The 26 fixed-response adapter invocations are delivery/compatibility evidence, not model effectiveness or recall evidence.
+- Post-adoption focused **40/40**, full **2029/2029**, docs **4/4**, audit **83**, pycompile/diff pass. A CRLF patch-context application failure left source unchanged; the first 40/40 receipt is explicitly pre-adoption, separate from the successful direct insertion and post-adoption checks. Only policy changes among 173 sources; 172 sources, 2238 predecessor files, 24 stores, runtime owners/settings and consumed manifests are preserved.
+- Provider/count/embedding calls and added cost 0; shared **7.69277754 / 8**, remainder **0.30722246**, pending 0. Historical search/display qualification remains. Next: provider-free feasibility of a fresh semantic check with complete existing bounds and frozen controls; no silent limit/model change, paid admission or cap increase.
+
 ## Narrative paraphrase-fidelity diagnosis (2026-09-18)
 
 - Base `15db6a39`; [review](../evaluation/narrative_paraphrase_diagnosis.md). The disputed explanation already exists in the raw Compiler response and remains unchanged in lowering, execution and public answer. Source/subject/fact selection is intact. Current input values and instruction prefix reproduce; saved JSON key sorting prevents byte-identical prompt text. Production strict-schema projection matches the paid schema. An initial harness compared raw Pydantic schema and exact JSON ordering; its failed comparison remains, separate from the corrected verified run.

@@ -589,6 +589,7 @@ _COMPILER_NARRATIVE_INSTRUCTIONS = (
     "narrative result는 subjects입니다. 각 subject에 선택된 원문의 주체 표기, 별도 support, 그리고 text/evidence를 가진 claims를 중첩하세요. subject ID/requirement ID를 selection에 반복 작성하거나 expression을 만들지 않습니다.\n"
     "주체 철자·대소문자·문장부호·단어 경계·집단 범위를 보존하세요. 줄바꿈/연속 공백만 표시용으로 바꿀 수 있고 원문 위치가 유일해야 합니다. 제목에 이름과 본문에 사실이 각각 있다는 것만으로 그 주체의 사실이 되지는 않습니다. 대명사, 다른 주체, 부정과 전체/일부 범위를 원문 문맥으로 읽으세요.\n"
     "support와 fact evidence는 독립 선택입니다. 각 요구사항 키 안에 source_ref, surface_ref, first_piece_ref, last_piece_ref를 적고 시작/끝을 포함한 동일 partition의 연속 구간만 선택하세요. 공통 주체/보조 근거는 own에 둘 수 있지만 필수 requirement를 충족하지는 않습니다. 다른 셀/원문은 별도 selection으로 종합합니다.\n"
+    "각 claim의 모든 문장·절은 선택한 fact evidence가 뒷받침해야 합니다. 요약·비교·부연에서도 주체별 행위와 대상, 조건·정도·부정·시제를 유지하세요. 서로 다른 행위를 하나로 묶어 다른 대상에 적용하지 마세요. 원문 표현을 그대로 반복할 필요는 없지만, 요청 충족에 불필요한 재진술로 새 의미를 더하지 마세요.\n"
     "claim의 숫자는 그 claim의 fact evidence에 있는 표기만 사용하세요. 공유 support나 다른 claim/미선택 주변 값은 사실과 숫자의 대체 근거가 아닙니다. text에 주체가 없으면 코드가 그 주체 라벨을 붙이지만 관계를 검증했다고 주장하지는 않습니다.\n"
     "요청한 구분·관계·한계를 text에서 실제로 설명하세요. 전체/주요 구성을 한 사례로 대신하거나 한 구성원의 사실을 집단 전체로 넓히지 마세요. 인과를 말하려면 원문이 결과와 요인을 직접 연결해야 하며 일반 배경이나 동시 변화로 원인을 만들지 않습니다.\n"
     "kind=narrative 본문/읽기용 표 행은 일반 evidence로 읽습니다. numeric 셀을 행 설명으로만 읽을 때는 해당 셀의 전체 행 계층에 속하는 정확한 row_description_quote를 선택하고 숫자 operand로 재해석하지 마세요.\n"

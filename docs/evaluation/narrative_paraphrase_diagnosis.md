@@ -1,5 +1,9 @@
 # Narrative paraphrase fidelity: provider-free diagnosis
 
+The later [policy adoption](narrative_clause_policy.md) applies the reviewed instruction
+and verifies its delivery. This page retains the diagnosis and unadopted-proposal
+status at its original base; historical responses and qualifications are unchanged.
+
 Base `15db6a39`, 2026-09-18. The concern in the
 [fresh search/display answer](search_display_current_app.md) originates in the
 sampled Compiler response. Lowering, execution and public presentation preserve
