@@ -1,5 +1,9 @@
 # Narrative semantic-check budget feasibility
 
+Historical USD 8-cap assessment below. The later user-approved USD 1 increase
+funds the [one-source comparison](narrative_clause_pair.md), which finishes with
+both instructions faithful and tied; current accounting is **7.82139004 / 9**.
+
 Reviewed 2026-09-18 on clean `2a915ce3`, after [instruction adoption](narrative_clause_policy.md).
 The remaining **USD 0.30722246** cannot fully reserve a complete old/new comparison
 under the unchanged settings. A single generation is conditional on an unmeasured

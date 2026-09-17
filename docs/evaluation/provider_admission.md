@@ -172,3 +172,17 @@ contingency settles **0.30675649**, shared **7.69277754 / 8**, remainder
 **0.30722246**, pending **0**. All three measured inputs match generation usage.
 Tariff/invoice remain unobserved. The admission is consumed, source/stores/settings
 are unchanged, and no additional paid attempt or cap increase is scheduled.
+
+## One-source narrative comparison settlement (2026-09-18)
+
+The user accepts the proposed USD 1 increase and one anonymous old/new pair.
+Shared cap becomes **9**; the [pair](narrative_clause_pair.md) itself is capped
+at **1**, excluding the prior **0.30722246** remainder. Fresh `7a6a20d2...162b0f51`
+is consumed once on clean `9f9a26e5`. Both counts, **2644 / 2745**, precede
+generation, match usage, and fund both full 5120-output ceilings: **0.5993625**.
+All four requests return 200, with no repair or retry; both claims are faithful
+and identical, so this single sample shows no improvement or regression.
+Conservative usage estimate **0.1086125** plus **0.02** count contingency settles
+**0.1286125**; shared **7.82139004 / 9**, remainder **1.17860996**, pending **0**.
+Invoice/count tariff remain unobserved. No account billing setting, runtime,
+store or local setting changes. This manifest authorizes no further call.
