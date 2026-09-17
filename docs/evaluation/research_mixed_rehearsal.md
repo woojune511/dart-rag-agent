@@ -107,8 +107,9 @@ Local receipts: [`research_mixed_rehearsal_2026-09-17`](../../benchmarks/results
 
 ## Next bounded work
 
-Provider-free readiness and abstention review for the final frozen question,
-`missing_project_costs`: inspect stored evidence, current Planner/Compiler
-ownership, missing-output behavior and final answer/ledger. Preserve absent
-evidence instead of inferring per-project costs. No provider dispatch, consumed
+The [missing-project-cost review](missing_project_costs_readiness.md) is complete:
+its narrative period correction supports both authored abstention criteria while
+leaving the requested costs missing and final status partial. Next is provider-free
+integration regression of all three frozen questions on the current runtime,
+keeping saved and authored responses distinct. No provider dispatch, consumed
 manifest resume, fresh ingest or cap increase is scheduled.

@@ -371,7 +371,11 @@ class FinancialAgentPlanningMixin:
                     "location": "obligation.display_unit", "repair_action": "repair_requirements",
                     "detail": declared_unit,
                 })
-            scope = normalize_scope(obligation.get("scope"))
+            # Filing year constrains the document, not every described source
+            # period. Preserve an unspecified narrative measurement period;
+            # numeric outputs retain their existing filing-year default.
+            default_period = "" if obligation.get("kind") == "narrative" else report_period
+            scope = normalize_scope(obligation.get("scope"), default_period=default_period)
             obligation_concept_hints = list(obligation.get("concept_hints") or [])
             obligation_target = normalize_semantic_target(
                 obligation.get("semantic_target"),
@@ -403,7 +407,7 @@ class FinancialAgentPlanningMixin:
                         ),
                         "scope": normalize_scope(
                             requirement.get("scope"),
-                            default_period=str(scope.get("period") or report_period),
+                            default_period=str(scope.get("period") or default_period),
                             default_scope=scope,
                         ),
                         "retrieval_hints": list(
