@@ -144,3 +144,16 @@ The [read-only readiness review](counted_narrative_readiness.md) refreshes offic
 The later explicit user experiment request authorized the [concrete successor](counted_narrative_experiment.md), including one fixed question and the existing count contingency under the unchanged shared cap. Its fresh manifest binds the source/caller/policy and is consumed before app construction. Original mock/paid packets remain immutable. The live egress client forces official endpoints, no redirects/retries/proxies/hooks, and stores bodies without credentials/headers. It opens only a verified disposable existing-store copy, denies historical answer reads and ingest/context generation, and persists the original interruption diagnostics. A 30-second heartbeat does not wait on the in-flight count/generation budget lock. Observed endpoint access is separate from count tariff verification, conservative accounting and complete-answer acceptance. This packet stopped at its unchanged budget; it supplies no resume or runtime-default authority.
 
 The subsequent explicit request to increase the budget authorized a [fresh successor](counted_narrative_budget_successor.md) with shared cap USD 8, one dollar above the previous cap. Earlier accounting remains 6.61558234, so its single-run allowance is 1.38441766. Only that allowance and fresh output path change; all models, full output bounds, call limits, rates, count contingency and source/transport controls remain identical. The old run is not resumed. The successor completes one known-source question, accounting 0.46786026; shared total 7.08344260, remainder 0.91655740. Neither this approval nor its successful sample changes account billing settings or authorizes automatic additional runs.
+
+## First frozen new-question settlement (2026-09-17)
+
+The user-authorized [search/display run](search_display_app_probe.md) consumes
+fresh manifest `f896a23e...82ac8a` once with allowance **0.91655740**, without
+increasing the USD 8 shared cap. All 25 requests return 200; three measured inputs
+match usage. No budget request is blocked. Runtime ownership/completion defects
+produce an empty answer, and the ledger assertion stops the caller; HTTP success
+does not make this a successful application result. No paid retry follows.
+Usage estimate **0.27257845** plus **0.03** count contingency settles **0.30257845**,
+leaving shared accounting **7.38602105 / 8**, remainder **0.61397895**, pending 0.
+The count tariff/invoice remains unobserved. Next work is provider-free contract
+correction; this consumed admission cannot authorize another question or rerun.

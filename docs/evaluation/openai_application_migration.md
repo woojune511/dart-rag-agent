@@ -647,3 +647,15 @@ The [counted narrative experiment](counted_narrative_experiment.md) consumed fre
 ## Counted narrative budget successor (2026-09-17)
 
 The user-authorized [budget successor](counted_narrative_budget_successor.md) raised the shared cap **USD 7 → 8**, providing **1.38441766** for one fresh unchanged-question run. Manifest `bfe437b6...e846810b` is consumed once. **HTTP 200 / structured ok / 3 of 3 required outputs / ledger ok**; frozen known-source semantic review passes all **3** required criteria and optional PUE attribution. Chuncheon/Sejong activities stay separate and Sejong LEED Platinum stays pending as reported. All **26** HTTP calls succeeded: **18** embeddings, **4** counts and **2 Terra + 2 Astra** generations. All four input counts match usage; both Compiler islands pass first try. No model/output-bound/runtime/default change, validation-feedback repair, SDK/whole-query retry, Google, fallback or ingest. This run accounts **0.46786026** including **0.04** count contingency; shared **7.08344260 / 8**, remaining **0.91655740**, pending 0, not invoice. Count billing stays unverified. **23** local controls pass; **1327** predecessors, **172** sources, settings and original/selected store bytes are unchanged. Only a disposable store copy was opened. The previous 2/3 packet and budget-interrupted run stay unchanged; this closes the narrative sample, not a fresh three-question batch. Fresh planning/responses prevent a causal budget or repair-quality claim. Next: provider-free shared-basis declaration consistency characterization using the preserved failure and success; no more paid execution is scheduled.
+
+## New search/display question: application failure (2026-09-17)
+
+The [first frozen new-question run](search_display_app_probe.md) on `73a5b68c`
+returns 25/25 HTTP 200 responses and parses the current relationship schema, but
+the public answer is empty and ledger integrity fails. Optional child requirements
+have no candidate cohorts despite schema support keys; both outputs fail ownership
+checks, receive no repair, and empty final validation incorrectly becomes `ok`.
+Public acceptance is 0/4. Exact payload/lowering/error replay uses no network.
+Accounted USD 0.30257845; shared total 7.38602105 / 8, remaining 0.61397895.
+No paid retry or source change. The next correction is provider-free; provider
+migration alone does not establish application quality.

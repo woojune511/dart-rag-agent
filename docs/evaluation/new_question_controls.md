@@ -1,6 +1,11 @@
 # New question controls and budget readiness
 
 Prepared 2026-09-17 on `ef7772ae`, without a provider call or runtime change.
+Subsequent [first live query](search_display_app_probe.md) on `73a5b68c` failed:
+all 25 API requests returned 200, but optional-owner handling discarded both
+outputs and produced an empty `ok` result caught by the ledger. Public criteria
+0/4; the failure is frozen, not retried. Shared remainder is now **0.61397895**.
+The preparation facts and budget scenarios below retain their original boundary.
 Three exact questions and eight source-review criteria are frozen in the
 [local packet](../../benchmarks/results/new_question_controls_2026-09-17/).
 Questions contain only normal API request fields. Reviewer criteria and source
@@ -93,7 +98,7 @@ exists. All **1494** predecessors, **172** source files, settings and **24** sto
 files retain their hashes. Documentation checks pass **2/2**; the prior full
 **1968/1968** remains applicable source evidence and was not rerun.
 
-Next: execute only `search_display_comparison` first through the normal application
+Prepared next step (now executed, with failure recorded above): run only `search_display_comparison` through the normal application
 with a fresh single-query admission under the remaining cap, full output bounds,
 per-call counting and existing single internal repair. Stop on provider/budget
 failure without whole-query retry, and reassess remaining funds after settlement
