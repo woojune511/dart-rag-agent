@@ -329,3 +329,31 @@ protected predecessor files remain unchanged. Next is the separate cash query's
 requested-statement retrieval gap, followed by a bounded fresh normal-app check
 of source choice, calculation and fixed decimals. The shared budget remains
 unchanged; no consumed admission is reusable.
+
+## Cash source supplementation without API calls (2026-09-17)
+
+The [read-only source replay](../../benchmarks/results/cash_source_retrieval_2026-09-17/RESULTS.md)
+on baseline `4688a070` identifies a retrieval mechanism bug: numbered column names
+in a notes header received atomic-value priority, overriding the existing statement
+preference and displacing the requested full statement from the numeric supplement.
+The latest saved Planner had no explicit section binding; this correction does not
+invent one or change the Planner's semantic responsibilities.
+
+The retrieval owner now requires a complete finite numeric value cell on the same
+physical line, using shared number/unit parsing. Existing scores, source scope,
+statement ordering, supplement quotas and Compiler/source contracts remain.
+Replaying all 1,872 source chunks changes only the latest cash supplement to the
+full consolidated statement. The saved 32-source seed pool plus this supplement
+exposes **3,576,456,533,329원** in its output permissions, payload and schema choices.
+The old summary candidate remains in the catalog but is displaced from exposure;
+the original paid answer remains unchanged. Six other catalog/payloads are identical,
+including the now-exposed margin inputs. Cash payload is 22,810 → 24,137 UTF-8 bytes
+in local serialization, not SDK tokens or measured cost.
+
+Eight new contracts, focused **98/98**, full **1,898/1,898**, no skips (55.322s),
+and domain audit 83 pass. Provider/external connection attempts 0; all 790 protected
+predecessor files remain unchanged. Primary searches and model responses were not
+rerun, so this is retrieval/exposure evidence, not a new answer or semantic accuracy.
+Next is bounded fresh normal-app verification of requested source choice, margin
+calculation and fixed decimals. Accounting remains **USD 4.03709392 / 7**, remaining
+**2.96290608**, not invoice; use a new immutable admission, never a consumed packet.

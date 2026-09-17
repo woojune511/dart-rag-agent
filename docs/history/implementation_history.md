@@ -5,6 +5,31 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Numeric supplement value-cell recognition (2026-09-17)
+
+- Baseline `4688a070`: the latest paid cash question's primary/seed window omitted
+  its requested full-statement table. The preserved Planner had no explicit section
+  binding. Read-only replay of all 1,872 committed source chunks found that a notes
+  header's numbered column names received stronger atomic-value priority than the
+  actual statement row, displacing it from the one numeric supplement reservation.
+- The retrieval owner now recognizes complete finite pipe-delimited cells with
+  shared numeric/unit parsing. Header lines stay separate; label/reference digits
+  and values on another line cannot grant atomic priority. No domain vocabulary,
+  source permission, query enrichment, score, quota, parser or model change.
+- Eight anonymous contracts pass, focused **98/98**, full **1,898/1,898**, no skips
+  (55.322s), domain audit 83; external connection attempts/provider calls 0.
+  Initial anonymous seed-test setup omitted plan keys; corrected fixtures reproduce
+  baseline behavior with no test errors before validating the change.
+- [Frozen source/plan replay](../../benchmarks/results/cash_source_retrieval_2026-09-17/RESULTS.md)
+  changes only the latest cash supplement from `205:97` to `101:0`; the requested
+  3,576,456,533,329원 is cataloged, owner-authorized and in Compiler schema choices.
+  Replaying the existing seed-merge boundary adds one source to the saved 32-source
+  window. Six other catalog/payloads are byte-identical, retaining the prior margin
+  input repair and saved accepted evidence. The displaced summary cash remains in
+  the catalog, but no longer in the bounded exposure; its historical reply is intact.
+  All 790 protected predecessor files remain unchanged. This is no primary-search
+  rerun or new model answer; bounded fresh source/calculation/decimal checks remain.
+
 ## Numeric requirement exposure by declared source basis (2026-09-17)
 
 - Baseline `0d4f619d`: the last paid margin question retrieved both exact inputs,

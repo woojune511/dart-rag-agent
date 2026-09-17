@@ -31,7 +31,11 @@ from src.agent.financial_retrieval_hints import (
     retrieval_hint_from_topic,
     supplement_section_terms_for_query,
 )
-from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_normalization import (
+    _inline_numeric_unit_match,
+    _normalise_spaces,
+    _parse_number_text,
+)
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_source_scope import source_section_allowed_for_query
 from src.agent.financial_scope_policies import (
@@ -536,6 +540,21 @@ def _apply_semantic_query_budget(
     }
 
 
+def _has_numeric_value_cell(row_text: str) -> bool:
+    """Recognize complete finite value cells without interpreting their role."""
+
+    if "|" not in row_text:
+        return False
+    for cell in row_text.split("|"):
+        value = _normalise_spaces(cell)
+        if _parse_number_text(value) is not None:
+            return True
+        inline = _inline_numeric_unit_match(value)
+        if inline and _parse_number_text(inline.group("value")) is not None:
+            return True
+    return False
+
+
 def _numeric_atomic_declared_surface_priority(
     metadata: Dict[str, Any],
     body_text: str,
@@ -550,16 +569,17 @@ def _numeric_atomic_declared_surface_priority(
     """
 
     atomic_surfaces: List[tuple[int, str]] = []
-    header_context = _normalise_spaces(
-        str(metadata.get("table_header_context") or "")
-    )
-    if "|" in header_context and re.search(r"\d", header_context):
-        atomic_surfaces.append((2, header_context))
+    # Keep physical lines separate: another header row cannot lend a value.
+    # Digits embedded in labels or references are not numeric value cells.
+    for line in str(metadata.get("table_header_context") or "").splitlines():
+        surface = _normalise_spaces(line)
+        if _has_numeric_value_cell(surface):
+            atomic_surfaces.append((2, surface))
 
     source_body = strip_index_metadata_prefix(str(body_text or ""))
     for line in source_body.splitlines():
         surface = _normalise_spaces(line)
-        if "|" in surface and re.search(r"\d", surface):
+        if _has_numeric_value_cell(surface):
             atomic_surfaces.append((1, surface))
 
     best = (0, 0, 0, 0)

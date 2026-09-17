@@ -261,7 +261,7 @@ Finalize the merged summary before freezing the V2 envelope; its program fingerp
 
 ## 7. Retrieval boundary
 
-Retrieval runs `build_plan → execute_searches → select_evidence → build_trace` inside one owner without changing the external graph node or search-result order.
+Retrieval runs `build_plan → execute_searches → select_evidence → build_trace` inside one owner. Numeric sidecar supplementation recognizes a complete finite pipe-delimited value cell using shared numeric/unit parsing; digits embedded in column labels, references or dates grant no atomic-value priority. Each header/body line stands alone, so another header line cannot lend a value. This lexical relevance signal does not decide a cell's semantic role or grant source permission; statement ordering, quotas and physical source bytes remain unchanged.
 
 `retrieval_debug_trace` records query bundles, filters, executed and reused
 queries, selected chunks, policy decisions, and degraded mode. Seed evidence may
