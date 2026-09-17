@@ -12,6 +12,15 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Numeric application source/calculation/display verification (2026-09-17)
+
+- Clean `e0a7f40e`, runtime `24d97285`; [two unchanged known-source questions](../../benchmarks/results/numeric_final_app_2026-09-17/RESULTS.md) through normal ASGI/shared services. Both HTTP 200/ledger ok; runtime **1/2 complete, 1/2 incomplete**, **1/2 outputs**, **1/2 full frozen acceptance**. Source and model settings unchanged during this packet.
+- Margin uses correct 2023 consolidated revenue **9,670,643,576,585원** and operating profit **1,488,820,269,608원**. Sampled profit/revenue × 100 gives 15.395255319023432% before request-grounded rounding; actual answer, slot and trace preserve **15.40%**. No source-ratio display substitution or feedback repair. This confirms live fixed-decimal behavior for this question.
+- Cash now retrieves the exact full statement first; **3,576,456,533,329원** is cataloged and owner-visible. Planner instead blocks completion by putting the presentation instruction `원문 단위` in numeric `display_unit`; `invalid_obligation_unit` stops the island before a Compiler call. Direct child inputs remain empty. No final cash source-choice result exists; this is a requirement error, not API/parsing failure or Compiler refusal.
+- Provider-free diagnosis reproduces catalog/cohorts and merged visible membership. A copy changing only the unit to empty clears preflight, without a model call or answer; original records remain intact. Next: numeric Planner presentation/unit contract, retaining strict unit rejection and request/source boundaries, without a phrase-specific fallback.
+- Fresh `3b03b442...de07c7` consumed once after identical SDK rehearsals and full-wrapper controls. **22/22** requests completed: Terra 4, Astra 1, embeddings 17; API/parsing/unhandled runtime errors and all retries 0, requirement preflight errors 1. Estimate **USD 0.36485839**; shared aggregate **4.40195231 / 7**, remaining **2.59804769**, peak with reservations **5.18276481**, pending 0; not invoice.
+- All **820** predecessor/16 admission files and original source bytes preserved; working store ready/non-degraded and logical source/metadata tables unchanged at 1,872/59,477 rows. No ingest or source changes; matching-runtime full gate 1,898/audit 83 is reused, not rerun. Known-source assistant review and fresh plans/retrieval do not establish unseen accuracy or an isolated patch effect. Earlier paid results keep their original status.
+
 ## Numeric application verification after contract corrections (2026-09-17)
 
 - Clean `7326ae58`, runtime `c1d843d9`; [two unchanged known-source questions](../../benchmarks/results/corrected_numeric_app_2026-09-17/RESULTS.md) through normal ASGI/shared services and unchanged OpenAI settings. HTTP 200/ledger ok for both, runtime **1/2 complete, 1/2 incomplete**, **1/2 outputs**, full frozen acceptance **0/2**. No production source change during this packet.

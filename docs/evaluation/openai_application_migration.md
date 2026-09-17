@@ -357,3 +357,35 @@ rerun, so this is retrieval/exposure evidence, not a new answer or semantic accu
 Next is bounded fresh normal-app verification of requested source choice, margin
 calculation and fixed decimals. Accounting remains **USD 4.03709392 / 7**, remaining
 **2.96290608**, not invoice; use a new immutable admission, never a consumed packet.
+
+## Fresh numeric source and display verification (2026-09-17)
+
+The [fresh normal-application run](../../benchmarks/results/numeric_final_app_2026-09-17/RESULTS.md)
+on clean `e0a7f40e` returns HTTP 200 and ledger ok for both unchanged known-source
+questions: **1/2 runtime complete**, **1/2 outputs**, **1/2 full frozen acceptance**.
+Margin now uses exact consolidated 2023 revenue and operating profit, computes
+15.395255319023432% before request-grounded rounding and displays **15.40%** in the
+answer, slot and trace. No source-stated ratio display or feedback repair is used.
+This is live fixed-decimal evidence for the sampled question.
+
+Cash now retrieves the exact full statement, with **3,576,456,533,329원** cataloged
+and owner-visible. It remains incomplete because Planner puts `원문 단위` in the
+numeric `display_unit` field. The existing `invalid_obligation_unit` preflight
+blocks before any Compiler call; direct child inputs remain empty. Final cash
+source selection is unverified. This is a requirement-contract error, not an API
+failure or Compiler refusal. A provider-free diagnostic copy with empty unit clears
+preflight only; original plan/response bytes are unchanged and no answer is implied.
+
+Fresh `3b03b442...de07c7` consumed once after identical SDK rehearsals and full-wrapper
+controls. **22/22** requests complete: Terra 4, Astra 1, embeddings 17; API/parsing/
+unhandled runtime errors and all retries 0, requirement preflight error 1. Estimate
+**USD 0.36485839**; shared **4.40195231 / 7**, remaining **2.59804769**, pending 0;
+not invoice. All 820 predecessor and 16 admission files/original source bytes remain
+intact; the ready working store's 1,872 source/59,477 metadata rows match the original.
+Runtime did not change; its existing full 1,898/audit 83 gate was not rerun here.
+
+Next is provider-free numeric Planner presentation/unit characterization and
+correction. Preserve explicit units and unsupported-unit rejection; do not add a
+case-specific phrase alias or silently clear live requirements. New paid work needs
+a new immutable admission. These fresh plans and known sources do not establish
+unseen accuracy or isolate individual patch effects; older results remain unchanged.
