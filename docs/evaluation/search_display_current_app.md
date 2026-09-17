@@ -1,5 +1,9 @@
 # Current-source search/display application result
 
+A later [provider-free diagnosis](narrative_paraphrase_diagnosis.md) traces the
+wording to the Compiler and prepares an unadopted generic instruction. It leaves
+this paid result and its semantic qualification unchanged.
+
 Executed 2026-09-18 on clean `370b3f0b`. The single fresh application question
 completes with **2/2 runtime outputs**, HTTP 200 and ledger integrity `ok`.
 All **26/26** OpenAI requests return 200, without internal repair or whole-query retry.
