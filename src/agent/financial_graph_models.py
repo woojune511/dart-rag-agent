@@ -130,7 +130,10 @@ class EvidenceRequirement(_DeferredBaseModel):
 
     requirement_id: str = ""
     label: str
-    required: bool = True
+    required: bool = Field(default=True, description=(
+        "True when this input is necessary for the requested output. False permits its omission, "
+        "not ungrounded selections; any selected input must obey its own source restrictions."
+    ))
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
     source_sections: List[str] = Field(default_factory=list, description=(
         "Explicit query-requested section titles or paths, copied from the query. "
@@ -160,7 +163,10 @@ class AnswerObligation(_DeferredBaseModel):
         "Units may be shared. The label is a short name, not a replacement for "
         "the referenced request text. These are instructions, not source evidence."
     ))
-    required: bool = True
+    required: bool = Field(default=True, description=(
+        "True for an output requested by the user. False only for an optional supplement, "
+        "not because evidence availability or confidence is unknown before retrieval."
+    ))
     display_unit: str = Field(default="", description=(
         "Concrete measurement unit explicitly requested for a numeric output, "
         "including its scale. If the request leaves the unit to the source or "
@@ -577,6 +583,10 @@ class SemanticCalculationProgram(_DeferredBaseModel):
     rationale: str = ""
     relationship_declarations: Dict[str, Optional[str]] = Field(default_factory=dict)
     relationship_bindings: Dict[str, List[str]] = Field(default_factory=dict)
+    # Code-owned terminal failure disposition, never a provider response field.
+    # Omit the empty default to preserve healthy historical program projections.
+    failed_obligation_ids: SkipJsonSchema[List[str]] = Field(
+        default_factory=list, exclude_if=lambda value: not value)
 
 
 NormalizedUnit = Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"]
@@ -785,17 +795,17 @@ def _selection_list(item_type):
     return (list[item_type], ...) if item_type is not None else (list[None], Field(max_length=0))
 
 
-def _input_groups(owner, refs, item_type, name, *, numeric_model=None):
+def _input_groups(owner, refs, item_type, name, *, selection_model=None):
     requirements = owner.get("evidence_requirements") or []
     fields = {refs.ref(row["requirement_id"]): _selection_list(
-        numeric_model(row["requirement_id"], input=True) if numeric_model else item_type)
+        selection_model(row["requirement_id"], input=True) if selection_model else item_type)
         for row in requirements}
     if not requirements or item_type is ReadingSelection:
-        own_type = numeric_model(owner["obligation_id"], input=True,
-            dependencies=owner.get("depends_on") or ()) if numeric_model else item_type
+        own_type = selection_model(owner["obligation_id"], input=True,
+            dependencies=owner.get("depends_on") or ()) if selection_model else item_type
         fields["own"] = _selection_list(own_type)
     elif item_type is NumericInput and owner.get("depends_on"):
-        fields["dependencies"] = _selection_list(numeric_model(owner["obligation_id"], input=True,
+        fields["dependencies"] = _selection_list(selection_model(owner["obligation_id"], input=True,
             dependencies=owner["depends_on"], only_dependencies=True))
     return create_model(name, __base__=WireModel, **fields)
 
@@ -869,7 +879,7 @@ def compiler_response_model(obligations, refs, visibility, *, read_only_relation
                     "and cannot override source, owner or period conflicts."))))
                 if selection is not None else type(None))
         elif kind == "derived_value":
-            inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)
+            inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, selection_model=numeric_model)
             request_input = create_model("RequestOperand_" + key, __base__=WireModel,
                 value=(float, Field(strict=True, allow_inf_nan=False)),
                 request_unit_id=(str, Field(json_schema_extra={"enum": list(dict.fromkeys(
@@ -909,7 +919,8 @@ def compiler_response_model(obligations, refs, visibility, *, read_only_relation
                     "Explain selection or null from the request's display intent, not merely the presence of a reported value."))),
                 compatibility_refs=(list[str], Field(default_factory=list)))
         elif kind == "narrative":
-            evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key)
+            evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key,
+                selection_model=lambda owner_id, **_: ReadingSelection if allowed.get(owner_id) else None)
             claim = create_model("Claim_" + key, __base__=WireModel, text=(str, Field(min_length=1)), evidence=(evidence, ...))
             subject = create_model("Subject_" + key, __base__=WireModel,
                 subject=(str, Field(min_length=1)), support=(evidence, ...), claims=(list[claim], Field(min_length=1)))

@@ -155,5 +155,7 @@ produce an empty answer, and the ledger assertion stops the caller; HTTP success
 does not make this a successful application result. No paid retry follows.
 Usage estimate **0.27257845** plus **0.03** count contingency settles **0.30257845**,
 leaving shared accounting **7.38602105 / 8**, remainder **0.61397895**, pending 0.
-The count tariff/invoice remains unobserved. Next work is provider-free contract
-correction; this consumed admission cannot authorize another question or rerun.
+The count tariff/invoice remains unobserved. The subsequent
+[provider-free contract correction](optional_output_contract.md) passes offline
+replay with no additional cost or admission; this paid result remains failed.
+Its consumed admission cannot authorize another question or rerun.

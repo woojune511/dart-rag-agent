@@ -7,6 +7,10 @@ the public answer is empty and ledger integrity is `error`, despite HTTP 200
 and `structured_result.status=ok`. This is a runtime contract failure, not an
 OpenAI transport, schema-parsing or budget interruption. No paid retry followed.
 
+A later [provider-free contract correction](optional_output_contract.md) delivers the
+same saved response in offline replay. It does not change this paid run's failed
+result or establish fresh live application success.
+
 ## Execution and result
 
 Fresh single-use manifest

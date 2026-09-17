@@ -139,7 +139,10 @@ class NarrativeClaimRenderingTests(unittest.TestCase):
         retry_text = llm.prompts[1].to_messages()[0].content
         self.assertIn(history[0]["errors"][0]["detail"], retry_text)
         self.assertEqual(history[0]["visible_candidate_ids"], history[1]["visible_candidate_ids"])
-        self.assertEqual(compiled["semantic_program_validation"]["errors"], [])
+        self.assertEqual(compiled["semantic_program"]["failed_obligation_ids"], ["activity"])
+        self.assertEqual(compiled["semantic_program_validation"]["status"], "invalid")
+        self.assertEqual([row["code"] for row in compiled["semantic_program_validation"]["errors"]],
+            ["compiler_output_failed"])
 
 
 if __name__ == "__main__":

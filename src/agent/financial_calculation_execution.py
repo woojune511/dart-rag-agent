@@ -1275,10 +1275,13 @@ def validate_semantic_calculation_program(
         for item in (program.get("ambiguous_obligation_ids") or [])
         if str(item).strip()
     }
-    for obligation_id in sorted(declared_missing | declared_ambiguous):
+    failed = set(program.get("failed_obligation_ids") or [])
+    for obligation_id in sorted(declared_missing | declared_ambiguous | failed):
         if obligation_id not in obligation_by_id:
             error("unknown_program_obligation_id", obligation_id)
-    blocked = declared_missing | declared_ambiguous | invalid_evidence_obligation_ids
+        elif obligation_id in failed:
+            error("compiler_output_failed", obligation_id, location="failed_obligation_ids")
+    blocked = declared_missing | declared_ambiguous | failed | invalid_evidence_obligation_ids
     produced: set[str] = set()
     valid_direct: List[Dict[str, Any]] = []
     valid_expressions: List[Dict[str, Any]] = []
@@ -2629,8 +2632,12 @@ def validate_semantic_calculation_program(
         for obligation_id, obligation in obligation_by_id.items()
         if bool(obligation.get("required", True))
     }
-    missing = sorted((required - produced) | (declared_missing & required))
-    ambiguous = sorted(declared_ambiguous & required)
+    # Optional omission is allowed, but invalid selected outputs are not silently
+    # successful. If nothing was produced, preserve every unresolved disposition.
+    failed_outputs = {item.get("obligation_id") for item in errors} & obligation_by_id.keys()
+    completion_ids = (required | failed_outputs) if produced else set(obligation_by_id)
+    missing = sorted((completion_ids - produced) | (declared_missing & completion_ids))
+    ambiguous = sorted(declared_ambiguous & completion_ids)
     selected_candidate_ids = list(
         dict.fromkeys(
             candidate_id
@@ -2639,12 +2646,7 @@ def validate_semantic_calculation_program(
             for candidate_id in sources_by_output.get(obligation_id, [])
         )
     )
-    material_errors = [
-        item
-        for item in errors
-        if not item.get("obligation_id") or item.get("obligation_id") in required
-    ]
-    if not missing and not ambiguous and not material_errors:
+    if produced and not missing and not ambiguous and not errors:
         status = "ready"
     elif produced:
         status = "partial"
@@ -3614,9 +3616,12 @@ def execute_semantic_calculation_program(
         for item in obligation_rows
         if bool(item.get("required", True)) and str(item.get("obligation_id") or "")
     ]
-    missing_ids = [item for item in required_ids if item not in outputs]
+    unresolved_ids = set(required_ids) | set(validation.get("missing_obligation_ids") or []) | set(
+        validation.get("ambiguous_obligation_ids") or [])
+    missing_ids = [item["obligation_id"] for item in obligation_rows
+        if item["obligation_id"] not in outputs and (not outputs or item["obligation_id"] in unresolved_ids)]
     if (
-        not missing_ids
+        outputs and not missing_ids
         and not execution_errors
         and validation.get("status") == "ready"
     ):

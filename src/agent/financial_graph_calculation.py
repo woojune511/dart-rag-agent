@@ -833,9 +833,7 @@ def _semantic_candidate_cohorts(
                 }
             )
         for requirement in obligation.get("evidence_requirements") or []:
-            if not isinstance(requirement, Mapping) or not bool(
-                requirement.get("required", True)
-            ):
+            if not isinstance(requirement, Mapping):
                 continue
             requirement_id = str(requirement.get("requirement_id") or "").strip()
             if not requirement_id:
@@ -1287,7 +1285,8 @@ def _semantic_retry_target_ids(
                 return expanded
 
     # Row-atomic peers cannot be repaired by reopening a withheld member.
-    targets = bundled_owners(unresolved - bundled_owners(abstentions | planning_errors))
+    targets = bundled_owners((unresolved | (error_owners & set(owner_ids)))
+                             - bundled_owners(abstentions | planning_errors))
     return [owner_id for owner_id in owner_ids if owner_id in targets]
 
 
@@ -1420,6 +1419,10 @@ def _merge_targeted_program_retry(
         "source_assertions": deduplicated_assertions,
         "relationship_declarations": declarations,
         "relationship_bindings": bindings,
+        **({"failed_obligation_ids": [
+            owner for owner in (previous_program or {}).get("failed_obligation_ids", []) if owner not in targets
+        ] + [owner for owner in retry_program.get("failed_obligation_ids", []) if owner in targets]}
+           if "failed_obligation_ids" in (previous_program or {}) or "failed_obligation_ids" in retry_program else {}),
         "missing_obligation_ids": [
             str(item) for item in previous_validation.get("missing_obligation_ids") or []
             if str(item).strip() not in targets
@@ -2127,7 +2130,8 @@ class FinancialAgentCalculationMixin:
                     response_error_type = type(exc).__name__
                     safe_error = f"{response_error_type}: compiler response unavailable or invalid"
                     invocation_errors.append(safe_error)
-                    for owner_id in retry_target_ids if attempt else required_ids:
+                    failed_ids = [str(item["obligation_id"]) for item in prompt_obligations]
+                    for owner_id in failed_ids:
                         transport_errors.append({"code": "compiler_response_schema_error" if isinstance(exc, ValueError) else "compiler_invocation_error",
                             "obligation_id": owner_id, "owner_id": owner_id, "candidate_id": "",
                             "location": "compiler_response", "repair_action": "repair_program", "detail": safe_error})
@@ -2138,7 +2142,7 @@ class FinancialAgentCalculationMixin:
                         "narrative_bindings": [],
                         "source_assertions": [],
                         "missing_obligation_ids": (
-                            retry_target_ids if attempt else required_ids
+                            failed_ids
                         ),
                         "ambiguous_obligation_ids": [],
                         "rationale": safe_error,
@@ -2503,8 +2507,15 @@ class FinancialAgentCalculationMixin:
                 attempts=attempt_candidate_diagnostics,
             )
         )
-        # Transport failures belong to attempt diagnostics, not the reproducible
-        # execution validation fingerprint of the lowered final program.
+        # Keep detailed errors in attempt diagnostics, and bind unresolved output
+        # identities into the program so pruning cannot turn failures into success.
+        valid_ids = {row["obligation_id"] for key in (
+            "valid_direct_bindings", "valid_expressions", "valid_narrative_bindings")
+            for row in validation.get(key) or []}
+        failed_ids = {str(row.get("obligation_id") or "") for row in validation.get("errors") or []} - valid_ids
+        if failed_ids:
+            program_data["failed_obligation_ids"] = [row["obligation_id"] for row in obligations
+                if row["obligation_id"] in failed_ids]
         validation = validate_semantic_calculation_program(program=program_data, obligations=obligations,
             candidate_catalog=catalog, query=query, candidate_visibility=validation_visibility, require_narrative_claims=True)
         compilation_envelope = CompilationEnvelopeV2.create(
@@ -3067,6 +3078,9 @@ class FinancialAgentCalculationMixin:
                 "narrative_bindings"
             ),
             "source_assertions": merged_source_assertions,
+            **({"failed_obligation_ids": [owner_id for owner_id in order
+                if any(owner_id in result["program"].get("failed_obligation_ids", []) for result in island_results)]}
+               if any(result["program"].get("failed_obligation_ids") for result in island_results) else {}),
             **{key: {proof_id: value for result in island_results
                      for proof_id, value in (result.get("program", {}).get(key) or {}).items()}
                for key in ("relationship_declarations", "relationship_bindings")},

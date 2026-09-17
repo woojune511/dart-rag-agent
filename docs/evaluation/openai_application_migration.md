@@ -659,3 +659,7 @@ Public acceptance is 0/4. Exact payload/lowering/error replay uses no network.
 Accounted USD 0.30257845; shared total 7.38602105 / 8, remaining 0.61397895.
 No paid retry or source change. The next correction is provider-free; provider
 migration alone does not establish application quality.
+
+## Optional-output contract correction (2026-09-17)
+
+The [provider-free correction](optional_output_contract.md) aligns optional child visibility with owner restrictions, keeps invalid optional outputs eligible for bounded repair, preserves failed-output IDs through final pruning and rejects empty success. Full **1983/1983**, **15** new anonymous controls and domain audit **83** pass. The exact saved search/display response now delivers two outputs and four original claims in offline replay, with shared-basis validation and ledger `ok`; same-source criteria **4/4 offline**. The paid run remains failed **0/4**. No provider call, additional cost or fresh live acceptance claim. Shared accounting remains **7.38602105 / 8**, remainder **0.61397895**. Next is provider-free research count/source-scope readiness.
