@@ -101,10 +101,10 @@ Local receipts: [`missing_project_costs_readiness_2026-09-18`](../../benchmarks/
 
 ## Next bounded work
 
-Provider-free integration regression of the three frozen questions on the current
-runtime: preserve exact saved responses where available and label authored
-responses separately. Compare final answers, provenance, missing-output status and
-ledgers after the Planner period change. Paid search/display remains **0/4**;
-its earlier exact offline replay **4/4** and authored research controls are
-separate evidence. Both other questions remain live-unexecuted. No provider
-dispatch, consumed-manifest resume, fresh ingest or cap increase is scheduled.
+The [three-question integration regression](frozen_question_integration.md) now
+preserves all expected outputs and ledger states on the corrected source. This
+case retains its whole public answer and three SDK bodies/responses, with costs
+missing and status partial. Next is provider-free API response projection using
+these frozen results. Paid search/display remains **0/4** and both other questions
+remain live-unexecuted. No provider dispatch, consumed-manifest resume, fresh
+ingest or cap increase is scheduled.

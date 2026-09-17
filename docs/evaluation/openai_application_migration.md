@@ -683,3 +683,21 @@ The [provider-free rehearsal](research_mixed_rehearsal.md), base `ed3d9362`, com
 ## Missing-project-cost abstention and narrative periods (2026-09-18)
 
 The [provider-free review and correction](missing_project_costs_readiness.md), base `cde5d824`, preserves blank narrative measurement periods instead of filling them from filing year. Explicit periods, numeric defaults and report/section constraints remain unchanged. The actual Planner path now supports **2/2 authored abstention criteria** with one ready explanation, requested costs missing, final status **partial** and ledger `ok`; no internal scope override. New **9** contracts, focused **99/99**, full **2029/2029**, audit **83** and docs **4/4** pass. Invented numbers fail, while source-valid misattribution and global absence still require semantic review. One source file changes; stores/settings and historical paid outcomes remain intact. No provider call, admission or added cost; remainder **0.61397895**, live question and full-run budget fit still unverified. Next: provider-free integration regression of the three frozen questions, with saved/model-authored provenance kept separate.
+
+## Three frozen questions: current-runtime integration (2026-09-18)
+
+The [provider-free integration regression](frozen_question_integration.md), base
+`a57c5dfa`, runs current Planner/Compiler/final/ledger phases with two unchanged
+saved provider responses and six unchanged authored responses. All eight current
+strict-schema/SDK roundtrips pass. Search/display retains four original claims
+(**4/4 offline**), research retains **21건** and organization scope (**2/2 authored**),
+and missing costs retain a bounded explanation (**2/2 authored criteria**) while
+the requested costs stay missing. Runtime states **ok / ok / partial**, ledger
+integrity **3/3 ok**, 23 exact narrative support occurrences. Focused **70/70** and
+docs **4/4** pass; prior full **2029/2029** and audit **83** are unchanged-source
+evidence. No runtime change, provider call or added cost; all 173 source files,
+1993 predecessor artifacts, 24 store files and settings retain hashes. Paid
+search/display remains **0/4** and the other two questions remain live-unexecuted.
+Remainder **0.61397895**; no new admission or paid dispatch. Next: provider-free
+API response projection of these frozen results, with mocked services explicitly
+separate from live routing/retrieval and application acceptance.

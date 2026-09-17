@@ -107,9 +107,10 @@ Local receipts: [`research_mixed_rehearsal_2026-09-17`](../../benchmarks/results
 
 ## Next bounded work
 
-The [missing-project-cost review](missing_project_costs_readiness.md) is complete:
-its narrative period correction supports both authored abstention criteria while
-leaving the requested costs missing and final status partial. Next is provider-free
-integration regression of all three frozen questions on the current runtime,
-keeping saved and authored responses distinct. No provider dispatch, consumed
-manifest resume, fresh ingest or cap increase is scheduled.
+The [three-question integration regression](frozen_question_integration.md) is
+complete after the narrative period correction. This case retains its whole public
+answer and all three SDK bodies/responses; the separate missing-cost answer stays
+partial with supported abstention. Saved provider and authored responses remain
+distinct. Next is provider-free API response projection of these frozen results.
+No provider dispatch, consumed-manifest resume, fresh ingest or cap increase is
+scheduled.
