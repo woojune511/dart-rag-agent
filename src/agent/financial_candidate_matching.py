@@ -40,6 +40,7 @@ CANDIDATE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
     "owner_kind",
     "unit",
     "metric",
+    "source_basis",
     "structured_locality",
 )
 NARRATIVE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
@@ -239,7 +240,7 @@ class CandidateMatchV1:
     owner_kind_state: str
     metric_state: str
     unit_state: str
-    rank_vector: Tuple[int, int, int, int, int, int]
+    rank_vector: Tuple[int, ...]
     target_concept_keys: Tuple[str, ...]
     target_local_subjects: Tuple[str, ...]
     selection_mode: str = "numeric"
@@ -250,6 +251,7 @@ class CandidateMatchV1:
     reading_hint_state: str = ""
     reading_joint_hint_state: str = ""
     numeric_subject_hint: str = ""
+    numeric_basis_hint: str = ""
 
 
 def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
@@ -277,6 +279,7 @@ def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
                           reading_joint_hint_state=match.reading_joint_hint_state)
     else:
         projection["numeric_subject_hint"] = match.numeric_subject_hint
+        projection["numeric_basis_hint"] = match.numeric_basis_hint
     return projection
 
 
@@ -298,10 +301,10 @@ def summarize_candidate_match_ranking(
         if isinstance(raw_match, CandidateMatchV1):
             state = raw_match.state
             rank_vector = tuple(raw_match.rank_vector)
-            selection_modes.add(raw_match.selection_mode)
+            selection_mode = raw_match.selection_mode
         elif isinstance(raw_match, Mapping):
             state = str(raw_match.get("state") or "")
-            selection_modes.add(str(raw_match.get("selection_mode") or "numeric"))
+            selection_mode = str(raw_match.get("selection_mode") or "numeric")
             try:
                 rank_vector = tuple(
                     int(value) for value in (raw_match.get("rank_vector") or [])
@@ -311,9 +314,12 @@ def summarize_candidate_match_ranking(
         else:
             state = ""
             rank_vector = ()
+            selection_mode = "numeric"
+        selection_modes.add(selection_mode)
         if state == "explicit_conflict":
             continue
-        if len(rank_vector) != len(CANDIDATE_MATCH_RANK_FACTORS):
+        factors = NARRATIVE_MATCH_RANK_FACTORS if selection_mode == "narrative" else CANDIDATE_MATCH_RANK_FACTORS
+        if len(rank_vector) != len(factors):
             unresolved_count += 1
             continue
         rows.append((rank_vector, candidate_id, state))
@@ -692,6 +698,25 @@ def _reading_hint_terms(surfaces: Sequence[str]) -> frozenset[str]:
     )
 
 
+def _numeric_basis_hint(candidate: Mapping[str, Any], terms: frozenset[str]) -> str:
+    """Declared basis terms in one attached context only break relevance ties.
+
+    This lexical hint is not source-scope validation or subject interpretation.
+    Metadata labels, row bodies and separate contexts/cells cannot supply it.
+    """
+    if not terms:
+        return "unspecified"
+    for context in candidate.get("source_contexts") or []:
+        if context.get("relation") not in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}:
+            continue
+        text = str(context.get("source_text") or "")
+        segments = context.get("source_segments") or []
+        surfaces = [text[slice(*segment["text_span"])] for segment in segments] if segments else [text]
+        if any(all(term in surface.casefold() for term in terms) for surface in surfaces):
+            return "context_terms"
+    return "unknown"
+
+
 def _narrative_joint_hint(
     candidate: Mapping[str, Any], subject_terms: frozenset[str], hint_terms: frozenset[str],
 ) -> str:
@@ -802,6 +827,8 @@ def build_candidate_matches(
 
     target = resolve_owner_target(owner, parent_owner=parent_owner)
     owner_kind = str(owner.get("kind") or (parent_owner or {}).get("kind") or "")
+    effective_scope = {**dict((parent_owner or {}).get("scope") or {}), **dict(owner.get("scope") or {})}
+    basis_terms = _reading_hint_terms([str(effective_scope.get("basis") or "")]) if owner_kind != "narrative" else frozenset()
     facts = [project_candidate_fact(candidate) for candidate in catalog]
     candidate_by_id = {str(row.get("candidate_id") or ""): row for row in catalog}
     declared_subjects = declared_local_subjects(owner, parent_owner)
@@ -842,6 +869,11 @@ def build_candidate_matches(
                 _surface_contains(metric, observed)
                 for metric in declared_metric_surfaces
             )
+            # A numeric owner's declared document basis is not an inferred
+            # value subject. Compare whole observed surfaces, never strip a
+            # substring from a longer name or alter an explicit target.
+            and not (owner_kind != "narrative" and _surface_contains(
+                str(effective_scope.get("basis") or ""), observed))
             and not (
                 scope_company and _identity_matches(scope_company, observed)
             )
@@ -988,7 +1020,10 @@ def build_candidate_matches(
         )
         if owner_kind == "narrative":
             locality_rank = 0
-        rank_vector = (state_rank, subject_rank, owner_kind_rank, unit_rank, metric_rank, locality_rank)
+        numeric_basis_hint = (_numeric_basis_hint(candidate_by_id[fact.candidate_id], basis_terms)
+            if owner_kind != "narrative" and fact.kind == "numeric" else "")
+        rank_vector = (state_rank, subject_rank, owner_kind_rank, unit_rank, metric_rank,
+                       int(numeric_basis_hint == "context_terms"), locality_rank)
         reading_subject_state = reading_state = reading_hint_state = reading_joint_hint_state = ""
         if owner_kind == "narrative":
             reading_hint_state = "unknown"
@@ -1046,6 +1081,7 @@ def build_candidate_matches(
             reading_hint_state=reading_hint_state,
             reading_joint_hint_state=reading_joint_hint_state,
             numeric_subject_hint=numeric_subject_hint,
+            numeric_basis_hint=numeric_basis_hint,
         )
     return matches
 

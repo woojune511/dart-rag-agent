@@ -305,3 +305,27 @@ All **717** protected predecessor files, 19 frozen admission files and original
 source bytes remain unchanged; working source tables match at 1,872/59,477 rows.
 No production source code changed during verification. These known-source cases
 and fresh plans/retrieval are neither unseen holdout nor isolated patch/model proof.
+
+## Numeric input exposure correction without API calls (2026-09-17)
+
+The [frozen replay and anonymous contracts](../../benchmarks/results/numeric_requirement_exposure_2026-09-17/RESULTS.md)
+on baseline `0d4f619d` reproduce both missing exact margin inputs. Numeric matching
+now keeps declared basis fragments out of inferred subjects. Within the existing
+scope/subject/kind/unit/metric tiers, basis terms in one attached source-context
+partition rank before the arbitrary source-identity tie-break. Repeated words,
+metadata, row bodies and separate cells/contexts add no hint. Explicit subjects,
+source conditions, bundle atomicity/capacities and Compiler interpretation remain.
+
+Both exact inputs now appear in their requirement permissions, candidate payload
+and generated Compiler schema choices. All seven cases retain saved program
+source IDs; six payloads are byte-identical. The changed margin payload is
+94,416 → 48,421 UTF-8 bytes in the same local serialization, not SDK tokens or
+measured cost. Queries/plans, catalogs/source windows and historical replies are
+unchanged. The saved response still reports missing; no new answer is synthesized.
+
+Eight new contracts, focused **164/164**, full **1,890/1,890**, no skips (53.692s),
+and domain audit 83 pass with provider/external connection attempts 0. All 765
+protected predecessor files remain unchanged. Next is the separate cash query's
+requested-statement retrieval gap, followed by a bounded fresh normal-app check
+of source choice, calculation and fixed decimals. The shared budget remains
+unchanged; no consumed admission is reusable.

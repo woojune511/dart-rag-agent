@@ -5,6 +5,28 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Numeric requirement exposure by declared source basis (2026-09-17)
+
+- Baseline `0d4f619d`: the last paid margin question retrieved both exact inputs,
+  but implicit subject inference treated statement-type wording as a value subject.
+  Removing that diagnostic hint alone recovered profit, while equally ranked summary
+  rows still displaced exact revenue. This is a candidate-exposure bug.
+- The matching owner now excludes observed basis fragments from numeric inferred
+  subjects, retaining explicit targets and longer names. After metric rank, all
+  distinct non-temporal basis terms in one attached heading/caption/preceding
+  partition supply one relevance tier. No cross-context/cell joining, word-count
+  score, model call, source authority change or company/metric-specific vocabulary.
+  Existing two-bundle and 96/32 capacity/atomicity rules remain intact.
+- Eight anonymous contracts reproduce the former failures and pass after the
+  change. Focused **164/164**, full **1,890/1,890**, no skips (53.692s), and audit
+  83 pass; external connection attempts/provider calls 0.
+- [Frozen seven-case replay](../../benchmarks/results/numeric_requirement_exposure_2026-09-17/RESULTS.md)
+  exposes both exact margin cells in their input permissions and Compiler schema;
+  the other six payloads are byte-identical. All saved program source IDs, catalog,
+  query/plan/source-window bytes and 765 protected files are preserved. The current
+  missing answer stays unchanged; this is no new model response or live accuracy.
+  Cash full-statement retrieval and bounded real-answer/decimal verification remain.
+
 ## Final-round decimal presentation (2026-09-17)
 
 - Baseline `5ede1b83`: the saved calculation already contained a request-grounded
