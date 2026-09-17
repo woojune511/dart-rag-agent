@@ -482,4 +482,25 @@ No new sampled response or measured retry reduction. Latest full 1,898 gate pred
 this and the Planner instruction change; focused gates cover this bounded seam.
 Shared estimate remains **USD 5.10658146 / 7**, remaining **1.89341854**, not invoice.
 
-Next: prepare a small independent-question review set against the existing source-complete store, freezing request/source/arithmetic/display criteria before any new model responses. Preparation is provider-free; a later app packet needs its own immutable admission within the remaining shared cap. No consumed-manifest reuse or fresh ingest. Repeated scope wording remains a separate presentation task.
+The [three-question review set](independent_question_review.md) is now prepared below; no new model result is claimed.
+
+## Independent-question review preparation (2026-09-17)
+
+[Frozen review set](independent_question_review.md), manifest `89fe64e1...21fd2`:
+three newly authored known-report questions cover standalone prior-year dividends,
+standalone two-period revenue growth and Chuncheon/Sejong environmental attribution.
+References are **468,978,562,474원 / 1.76%**, three required narrative themes and one
+optional PUE criterion; Sejong LEED Platinum stays pending in the reported context.
+No app query or model response was generated. Reference selectors remain review-only.
+
+Three physical cells/four exact quotes, independent arithmetic and ordinary request
+schemas pass; 11 altered pack copies are rejected. All five primary/contrast chunks
+exist in the working store with exact text/filing scope; original/working logical
+tables remain 1,872/59,477 rows. All 969 predecessor and 170 runtime files are
+unchanged. These are reference/pack checks, not normal retrieval, Compiler visibility
+or semantic accuracy measurements. Existing 241 runtime checks were not rerun.
+
+Next is a fresh immutable admission and one normal-app pass of the frozen requests
+under the remaining shared **USD 1.89341854** (accounted **5.10658146 / 7**, not
+invoice), preserving existing source/model settings and terminal-stop rules.
+No review-answer injection, consumed-manifest reuse, automatic rerun or fresh ingest.
