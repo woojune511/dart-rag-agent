@@ -413,8 +413,44 @@ without a Compiler call or answer. All **863** predecessor files are preserved.
 One initial SDK test fixture lacked its required callback; fixing the fixture
 resolved that local error without any provider request or runtime change.
 
-Next: one bounded fresh normal-app verification of the same two questions,
-using a new immutable admission and the existing selected store/model settings.
-Shared estimate remains **4.40195231 / 7**, remaining **2.59804769**; no additional
-paid calls. Authored plans are not new model responses, and final cash selection
-remains unverified. No fresh ingest, automatic paid retry or old-admission reuse.
+This local turn made no paid calls: shared estimate at that point was
+**4.40195231 / 7**, remaining **2.59804769**. Authored plans are not new model
+responses. Fresh Planner behavior and cash selection are separately verified below.
+
+## Fresh verification after numeric Planner clarification (2026-09-17)
+
+The [normal-app run](../../benchmarks/results/planner_numeric_app_2026-09-17/RESULTS.md)
+on clean `930325f0` completes both unchanged known-source questions through real
+shared services and ASGI /api/query: HTTP 200/ledger ok **2/2**, runtime/output
+completion **2/2**, full frozen source/arithmetic/display acceptance **2/2**.
+
+Cash Planner emits empty display_unit and keeps 원문 단위로 in display_format
+and both owned request units. The final direct answer selects the full
+consolidated balance-sheet cell for 2023-12-31: **3,576,456,533,329원**, with
+original precision/unit and selected-source citation. Direct child inputs stay
+empty. Its first Compiler response already selects this cell, but adds a
+liquidity discussion from a different source context as compatibility support.
+The existing direct_compatibility_context_mismatch validator rejects it. One
+allowed feedback response removes only that witness; selected cell, interpretation,
+attached basis/date context and visible candidates remain identical.
+
+Margin uses the exact 2023 consolidated revenue/profit cells and computes
+profit/revenue × 100 with an owned final-round quantity 2. Answer, slot and
+trace display **15.40%**; no source-ratio substitution or feedback repair.
+This verifies the sampled Planner/source-choice/fixed-decimal path, not unseen
+accuracy or an isolated prompt effect; plans/retrieval differ from earlier runs.
+
+Fresh manifest `6857684d...e100df` consumed once. **22/22** requests complete:
+Terra 4, Astra 3, embeddings 15; API/parsing/unhandled runtime/requirement errors 0.
+One initial Compiler validation error/feedback repair; SDK and whole-query retries 0.
+Estimate **USD 0.70462915**; shared **5.10658146 / 7**, remaining **1.89341854**;
+peak including reservations **5.89606896**, pending 0, not invoice. All **891**
+predecessor/16 admission files and original bytes remain intact. Working source/metadata
+tables are identical at 1,872/59,477 rows and the source remains ready. No runtime,
+configuration or ingest change; same-runtime local 179 checks reused, not rerun.
+
+Next: provider-free characterization of direct compatibility-witness guidance
+versus its same-source-context contract, with anonymous positive/negative controls.
+Preserve source/owner/period validation and original first/repair responses; no
+automatic witness clearing or new paid packet. The preceding 1/2 result and all
+earlier failed/incomplete responses keep their original status.
