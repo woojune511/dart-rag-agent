@@ -329,6 +329,8 @@ def build_operand_value_slot(
         "aggregate_label": str(row.get("aggregate_label") or ""),
         "stated_change_raw_value": str(row.get("stated_change_raw_value") or ""),
         "stated_change_raw_unit": str(row.get("stated_change_raw_unit") or ""),
+        **({"source_unit_resolution": dict(row["source_unit_resolution"])}
+           if row.get("source_unit_resolution") else {}),
     }
 
 

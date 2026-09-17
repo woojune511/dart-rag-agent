@@ -7,6 +7,8 @@ import json
 from typing import Any, Mapping
 
 from src.agent.financial_request_units import build_request_units
+from src.agent.financial_runtime_normalization import resolve_structured_source_unit, resolve_unit_spec
+from src.config.retrieval_policy import SOURCE_COUNT_UNIT_POLICY, TABLE_COLUMN_UNIT_POLICY
 from src.utils.source_segments import source_quote_is_contiguous
 
 
@@ -29,6 +31,50 @@ def interpretation_axis_sources(candidate: Mapping[str, Any]) -> dict[str, dict[
         digest = hashlib.sha256(json.dumps(source, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         result[f"axis_{digest[:20]}"] = source
     return result
+
+
+def source_unit_options(candidate: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Offer located axis readings without changing a scalar or its known unit."""
+    if (candidate.get("kind") != "numeric" or candidate.get("candidate_kind") == "sentence_value"
+            or not candidate.get("physical_cell_id") or not candidate.get("physical_table_id")
+            or candidate.get("normalized_unit") != "UNKNOWN"
+            or candidate.get("raw_unit") or candidate.get("source_unit_hint")):
+        return []
+    unit, origin, _ = resolve_structured_source_unit(str(candidate.get("raw_value") or ""), "",
+        row_headers=candidate.get("row_headers") or [], column_headers=candidate.get("column_headers") or [],
+        source_contexts=candidate.get("source_contexts") or [])
+    if unit or origin == "ambiguous_column_unit":
+        return []
+    axes = interpretation_axis_sources(candidate)
+    normalize = lambda text: " ".join(text.split()).casefold()
+    labels = {normalize(label): row["unit"] for row in SOURCE_COUNT_UNIT_POLICY for label in row["labels"]}
+    conflicts = {normalize(label) for group in TABLE_COLUMN_UNIT_POLICY["column_groups"]
+                 if "COUNT" not in group["dimensions"] for label in group["headers"]}
+    if any(normalize(label) in conflicts for axis in axes.values() for label in axis["path"]):
+        return []
+    choices = []
+    for axis_id, axis in axes.items():
+        for index, label in enumerate(axis["path"]):
+            selected_unit = labels.get(normalize(label))
+            spec = resolve_unit_spec(selected_unit or "")
+            if not spec or spec.normalized_dimension != "COUNT" or spec.scale != 1:
+                continue
+            choice = {"candidate_id": candidate["candidate_id"], "axis_ref": axis_id,
+                      "label_index": index, "label": label, "unit": selected_unit,
+                      "normalized_unit": spec.normalized_dimension, "scale": spec.scale}
+            digest = hashlib.sha256(json.dumps(choice, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+            choices.append({"unit_option_id": "unit_" + digest[:20], **choice})
+    # Distinct counting units on the same cell need a less ambiguous source.
+    return choices if len({choice["unit"] for choice in choices}) <= 1 else []
+
+
+def apply_source_unit_resolution(candidate: Mapping[str, Any], proof: Mapping[str, Any]) -> dict[str, Any]:
+    """Project the validated dimension while retaining the original raw unit."""
+    resolution = proof.get("unit_resolution")
+    if not resolution:
+        return dict(candidate)
+    return {**dict(candidate), "normalized_unit": resolution["normalized_unit"],
+            "result_unit": resolution["unit"], "source_unit_resolution": dict(resolution)}
 
 
 def attached_context_quote(candidate: Mapping[str, Any], binding: Mapping[str, Any], *, subject=False) -> dict[str, Any]:
@@ -67,7 +113,7 @@ def validate_source_interpretation(
 ) -> dict[str, Any]:
     if not isinstance(interpretation, Mapping):
         raise ValueError("missing_source_interpretation")
-    allowed = {"request_unit_ids", "subject", "metric", "scope", "axis_refs", "context_evidence", "source_evidence_text"}
+    allowed = {"request_unit_ids", "subject", "metric", "scope", "axis_refs", "context_evidence", "source_evidence_text", "unit_option_id"}
     if set(interpretation) - allowed or any(
         not isinstance(interpretation.get(key), str) or not interpretation[key].strip()
         for key in ("subject", "metric")
@@ -102,5 +148,17 @@ def validate_source_interpretation(
                "span": [known[ref].start, known[ref].end]} for ref in dict.fromkeys(refs)],
               "subject": interpretation["subject"], "metric": interpretation["metric"], "scope": dict(scope),
               "evidence": evidence, "validation_scope": "source_linkage_not_semantic_equivalence"}
+    option_id = interpretation.get("unit_option_id")
+    if option_id is not None:
+        options = {row["unit_option_id"]: row for row in source_unit_options(candidate)}
+        if not isinstance(option_id, str) or option_id not in options:
+            raise ValueError("source_unit_option_mismatch")
+        option = options[option_id]
+        if option["axis_ref"] not in axis_refs:
+            raise ValueError("source_unit_axis_missing")
+        result["unit_resolution"] = {**option, "axis_source": axes[option["axis_ref"]],
+            "source_raw_unit": str(candidate.get("raw_unit") or ""),
+            "source_normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
+            "validation_scope": "source_linkage_not_semantic_equivalence"}
     result["fingerprint"] = hashlib.sha256(json.dumps(result, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     return result

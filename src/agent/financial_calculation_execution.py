@@ -28,7 +28,9 @@ from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
 from src.agent.financial_narrative_claims import validate_narrative_claims
-from src.agent.financial_source_interpretation import attached_context_quote, validate_source_interpretation
+from src.agent.financial_source_interpretation import (
+    apply_source_unit_resolution, attached_context_quote, validate_source_interpretation,
+)
 from src.agent.financial_output_relationships import (
     output_relationships, relationship_proof_projection, validate_relationship_proofs,
 )
@@ -1146,6 +1148,7 @@ def validate_semantic_calculation_program(
                 proof["fingerprint"] = hashlib.sha256(json.dumps(
                     proof, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
                 binding[proof_key] = proof
+                resolved = apply_source_unit_resolution(resolved, proof)
                 resolved["source_interpretation_resolution"] = proof
         except ValueError as exc:
             error(str(exc), obligation_id, owner_id=owner_id,
@@ -2684,6 +2687,7 @@ def project_semantic_program_operand(
     interpretation = dict(binding.get("source_interpretation_resolution") or {})
     if resolution:
         candidate = {**dict(candidate), **dict(resolution.get("scope") or {})}
+    candidate = apply_source_unit_resolution(candidate, interpretation)
     obligation_row = dict(obligation or {})
     obligation_scope = dict(obligation_row.get("scope") or {})
     period = str(candidate.get("period") or "")
@@ -2745,6 +2749,9 @@ def project_semantic_program_operand(
            if candidate.get("source_unit_provenance") else {}),
         "normalized_value": candidate.get("normalized_value"),
         "normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
+        **({"result_unit": candidate["result_unit"],
+            "source_unit_resolution": dict(candidate["source_unit_resolution"])}
+           if candidate.get("source_unit_resolution") else {}),
         "period": period,
         "source_period_surface": str(
             candidate.get("source_period_surface") or ""
@@ -3363,9 +3370,9 @@ def execute_semantic_calculation_program(
             "status": "ok",
             "value": candidate.get("normalized_value"),
             "normalized_value": candidate.get("normalized_value"),
-            "normalized_unit": str(candidate.get("normalized_unit") or "UNKNOWN"),
+            "normalized_unit": str(operand.get("normalized_unit") or "UNKNOWN"),
             "result_unit": str(
-                obligation.get("display_unit") or candidate.get("raw_unit") or ""
+                obligation.get("display_unit") or operand.get("result_unit") or candidate.get("raw_unit") or ""
             ),
             "rendered_value": render_grounded_operand_display(operand),
             "candidate_ids": [candidate_id, *compatibility_ids],

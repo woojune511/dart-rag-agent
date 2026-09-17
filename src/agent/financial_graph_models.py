@@ -342,6 +342,7 @@ class SourceInterpretationV1(_DeferredBaseModel):
     axis_refs: List[str] = Field(default_factory=list)
     context_evidence: List[SourceInterpretationContext] = Field(default_factory=list)
     source_evidence_text: Optional[str] = None
+    unit_option_id: Optional[str] = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class SemanticProgramDirectBinding(_DeferredBaseModel):
@@ -838,7 +839,9 @@ def compiler_response_model(obligations, refs, visibility, *, read_only_relation
             if not choices:
                 continue
             contexts = () if kind == "dependency" else refs.context_refs_for_owner(owner_id)
-            key = (kind, choices, contexts, input)
+            units = tuple(sorted({unit_ref for candidate_id in allowed.get(owner_id, ())
+                if refs.ref(candidate_id) in choices for unit_ref in refs.unit_refs_for_candidate(candidate_id)})) if kind == "cell" else ()
+            key = (kind, choices, contexts, units, input)
             if key not in numeric_types:
                 name = kind.title() + ("Input_" if input else "Selection_") + refs.ref(owner_id)
                 # The generation schema mirrors existing authority. Keep strings
@@ -852,6 +855,13 @@ def compiler_response_model(obligations, refs, visibility, *, read_only_relation
                         list[Literal["segment", "basis"]], Field(default_factory=list)))
                 if kind == "prose":
                     interpretation_type = ContextualProseInterpretation if contexts else ProseInterpretation
+                    fields["interpretation"] = (Optional[interpretation_type], None)
+                if units:
+                    interpretation_type = create_model("UnitInterpretation_" + name, __base__=NumericInterpretation,
+                        unit_ref=(Optional[str], Field(default=None, json_schema_extra={"enum": [*units, None]}, description=(
+                            "Select a unit option belonging to this source only when its observed axis label means a count. "
+                            "Use null if that reading is unsupported or inapplicable. This does not interpret a year, "
+                            "change the source number, or override an explicit source unit."))))
                     fields["interpretation"] = (Optional[interpretation_type], None)
                 if contexts:
                     context_type = create_model("ContextEvidence_" + name, __base__=WireModel,

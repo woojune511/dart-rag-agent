@@ -12,6 +12,13 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Source-grounded count-unit contract (2026-09-17)
+
+- Base `7d5c6ebe`; [contract review](../evaluation/source_count_unit_contract.md). Generic count labels live in declarative policy and offer finite readings only for located UNKNOWN-unit cells without explicit units. Compiler selects an option; lowering checks cell ownership, validation binds owned requests/full axes, and execution uses the selected dimension while retaining original scalar/unit provenance. No company/question/year branch or catalog/store mutation; quotas and UNKNOWN applicability remain.
+- **18** new anonymous controls, focused **128/128**, full **2001/2001** (56.717s, no skips), domain audit **83** and documentation **4/4** pass. One initial fixture used an unused company field to imply source exclusion; the corrected explicit-period fixture preserves runtime authority. Its failed receipt remains. The first frozen-source harness incorrectly expected unit resolution even after an invalid range context; final checks preserve that rejection and its secondary unit errors.
+- Production catalog reconstruction equals all 37 frozen entries and the organization projection is unchanged. Twenty-four authored selections show count-row exposure under the same quota and rendering with an explicit unit choice. Missing period and multi-year context still fail. The clipped 2023 quote lets both 2023/21 and 2022/21 render, so structural readiness does not establish semantic acceptance. Same-column year provenance is the next bounded provider-free seam.
+- Nine source files change; **163** other source files, **1683** predecessor files, **24** store files and local settings retain hashes. Provider/count/embedding calls, new admission, retries, ingest and cost are **0**. Shared **7.38602105 / 8**, remainder **0.61397895**, pending 0, includes count contingency rather than invoice. Paid search/display **0/4** and preceding offline replay **4/4** remain distinct; two other frozen questions remain unexecuted. No paid run or cap increase scheduled.
+
 ## Research count/source-scope readiness (2026-09-17)
 
 - Clean `852da9ef`; [provider-free review](../evaluation/research_count_readiness.md) reads five exact stored section nodes and hydrates existing table payloads without a store client. Production extraction creates 13 source candidates / 37 catalog entries. Twelve numeric cells in the count table include five years and seven counts; source cells `3:0:5`/`3:1:5` establish 2023/21 in column 5, separately from 2022/21 in column 4, total 154 and ongoing 152. Distinct physical identities survive.

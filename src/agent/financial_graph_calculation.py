@@ -36,7 +36,7 @@ from src.agent.financial_narrative_claims import project_narrative_retry_drafts
 from src.agent.financial_compiler_debug import project_compiler_attempt
 from src.utils.request_diagnostics import diagnostic_location, diagnostics_enabled, record_diagnostic
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
-from src.agent.financial_source_interpretation import interpretation_axis_sources
+from src.agent.financial_source_interpretation import interpretation_axis_sources, source_unit_options
 from src.agent.financial_output_relationships import (
     output_relationships, relationship_proof_projection, validated_relationship_proofs,
 )
@@ -1635,6 +1635,7 @@ class FinancialAgentCalculationMixin:
                 "column_headers": list(item.get("column_headers") or []),
                 **({"interpretation_axis_sources": interpretation_axis_sources(item)}
                    if item.get("kind") == "numeric" and item.get("candidate_kind") != "sentence_value" else {}),
+                **({"unit_options": unit_options} if (unit_options := source_unit_options(item)) else {}),
                 "raw_value": str(item.get("raw_value") or ""),
                 "raw_unit": str(item.get("raw_unit") or ""),
                 **({"source_unit_hint": item.get("source_unit_hint", ""),

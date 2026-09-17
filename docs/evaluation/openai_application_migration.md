@@ -667,3 +667,7 @@ The [provider-free correction](optional_output_contract.md) aligns optional chil
 ## Research count/source-scope readiness (2026-09-17)
 
 The [provider-free source review](research_count_readiness.md) confirms the 2023/21 same-column witness and both organization-scope passages, but authored direct-numeric selections expose an UNKNOWN-unit/rendering boundary. An explicit count unit also changes which bundles fit the owner quota; a table-only diagnostic still fails unit validation. An exact short year-context quote is not proof of the correct count column. **17** characterization and **37** existing focused controls pass with source/settings/store bytes unchanged and no provider request. The question stays unexecuted; source-grounded count-dimension work precedes paid evaluation. Shared accounting remains **7.38602105 / 8**, remainder **0.61397895**.
+
+## Source-grounded count units (2026-09-17)
+
+The [provider-free unit correction](source_count_unit_contract.md) lets the Compiler select a finite count reading from the selected cell's own axes; execution validates its request/source ownership and preserves original scalar/unit provenance. Full **2001/2001**, **18** new controls and audit **83** pass. Twenty-four authored frozen-source selections isolate the remaining same-column year problem: a clipped year quote still validates both equal-valued year columns. This question has no live result. No provider call or added cost; shared accounting remains **7.38602105 / 8**, remainder **0.61397895**. Next is provider-free year-column provenance.

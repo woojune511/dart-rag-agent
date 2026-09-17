@@ -193,6 +193,17 @@ TABLE_COLUMN_UNIT_POLICY: Dict[str, Any] = {
 }
 
 
+# Semantic count readings offered for exact, cell-owned axis labels. These are
+# choices for the Compiler, not automatic unit declarations or metric recipes.
+SOURCE_COUNT_UNIT_POLICY = (
+    {"labels": ("건수",), "unit": "건"},
+    {"labels": ("개수",), "unit": "개"},
+    {"labels": ("인원수",), "unit": "명"},
+    {"labels": ("count", "number of cases", "case count"), "unit": "COUNT"},
+    {"labels": ("item count", "number of items"), "unit": "items"},
+)
+
+
 STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
     "metric_terms": ("매출액", "매출", "영업수익", "수익"),
     "entity_surface_drop_terms": ("부문", "사업부", "사업"),

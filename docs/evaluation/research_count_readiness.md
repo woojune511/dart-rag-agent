@@ -70,7 +70,11 @@ no runtime contract, frozen source or old experiment was changed to pass a check
 The preceding paid search/display result remains failed **0/4**; its later offline
 replay remains a separate **4/4** result. This question has no live score.
 
-## Next bounded work
+## Follow-up
+
+The [count-unit contract](source_count_unit_contract.md) now completes the unit seam with provider-free validation. The failures and unchanged-source claims above describe this original readiness packet. Same-column year attribution remains open.
+
+## Next bounded work at this review
 
 Implement a provider-free, source-grounded dimension contract for bare numeric
 cells with count-label evidence. First choose the correct owner among evidence

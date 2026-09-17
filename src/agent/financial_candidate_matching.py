@@ -13,6 +13,7 @@ from dataclasses import dataclass, replace
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 
 from src.agent.financial_row_surfaces import strip_financial_label_annotations
+from src.agent.financial_source_interpretation import source_unit_options
 from src.agent.financial_scope_policies import is_period_only_surface
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
@@ -975,7 +976,11 @@ def build_candidate_matches(
         elif fact.normalized_unit == target.expected_unit_family:
             unit_state, unit_rank = "match", 2
         elif fact.normalized_unit == "UNKNOWN":
-            unit_state, unit_rank = "unknown", 1
+            # A source-linked option improves exposure, not applicability or
+            # execution authority. The Compiler still must select and ground it.
+            possible = any(option["normalized_unit"] == target.expected_unit_family
+                           for option in source_unit_options(candidate_by_id[fact.candidate_id]))
+            unit_state, unit_rank = "unknown", 2 if possible else 1
         else:
             unit_state, unit_rank = "conflict", 0
 

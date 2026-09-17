@@ -14,7 +14,7 @@ from typing import Any, Literal, Mapping, Optional, Sequence
 from src.agent.financial_graph_model_loaders import compiler_response_model, semantic_calculation_program_model
 from src.agent.financial_formula_wire import lower_formula_steps
 from src.agent.financial_request_units import RequestUnitV1, build_request_units
-from src.agent.financial_source_interpretation import interpretation_axis_sources
+from src.agent.financial_source_interpretation import interpretation_axis_sources, source_unit_options
 from src.agent.financial_source_bundles import SourceBundleV1, build_semantic_source_bundles
 from src.agent.financial_output_relationships import output_relationships
 
@@ -34,6 +34,7 @@ class CompilerReferencesV1:
     request_units: tuple[RequestUnitV1, ...]
     prose_bundles: tuple[SourceBundleV1, ...]
     relationships: tuple[tuple[str, tuple[str, ...], str, str], ...] = ()
+    candidate_unit_refs: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
     @classmethod
     def build(cls, catalog, obligations, query, payload):
@@ -51,6 +52,8 @@ class CompilerReferencesV1:
             add(candidate["candidate_id"], "c")
             for axis in interpretation_axis_sources(candidate):
                 add(axis, "a")
+            for option in source_unit_options(candidate):
+                add(option["unit_option_id"], "u")
             for context in candidate.get("source_contexts") or []:
                 add(context.get("context_id"), "x")
         bundles = build_semantic_source_bundles(catalog)
@@ -99,7 +102,9 @@ class CompilerReferencesV1:
                           else "cell") for key, row in numeric.items())), request_units,
             tuple(bundle for bundle in bundles if bundle.source_kind == "prose_sentence"),
             tuple((key, tuple(row["output_ids"]), row["request_unit_id"], row["request_text"])
-                  for key, row in output_relationships(obligations, query)[0].items()))
+                  for key, row in output_relationships(obligations, query)[0].items()),
+            tuple((key, tuple(entries[option["unit_option_id"]] for option in source_unit_options(row)))
+                  for key, row in sorted(numeric.items()) if source_unit_options(row)))
 
     def relationships_for(self, owner_ids):
         return {key: {"kind": "shared_basis", "output_ids": list(members),
@@ -111,6 +116,9 @@ class CompilerReferencesV1:
 
     def axis_refs_for_candidate(self, candidate_id):
         return dict(self.numeric_axes).get(candidate_id, ())
+
+    def unit_refs_for_candidate(self, candidate_id):
+        return dict(self.candidate_unit_refs).get(candidate_id, ())
 
     def ref(self, source_id):
         try:
@@ -192,6 +200,11 @@ def lower_compiler_response(response, *, model, refs, obligations, catalog, visi
                 raise ValueError("dependency_has_source_grounding")
         else:
             if interpretation is not None:
+                unit_id = interpretation.pop("unit_ref", None)
+                if unit_id is not None:
+                    if unit_id not in {option["unit_option_id"] for option in source_unit_options(candidates[source_id])}:
+                        raise CompilerReferenceError("unit_option_not_authorized_for_source", owner_id, source_id)
+                    interpretation["unit_option_id"] = unit_id
                 # Selection addresses exactly one cell: carry all its observed
                 # axes without asking the model to repeat (or invent) axis IDs.
                 interpretation.update(axis_refs=list(refs.axis_refs_for_candidate(source_id)),

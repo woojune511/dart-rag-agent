@@ -165,6 +165,7 @@ def project_reading_payload(
         if attached != set(bundles[row["source_bundle_id"]].get("context_ids", [])):
             row["attached_context_ids"] = sorted(attached)
         if narrative_only:
+            row.pop("unit_options", None)
             # Missing/empty values are not known matches. Explicit UNKNOWN and
             # applicability states remain; numeric/mixed projections stay complete.
             for key in list(row):
