@@ -568,6 +568,7 @@ _COMPILER_NUMERIC_INSTRUCTIONS = (
     "source_display는 필수 nullable 선택이며 선택하면 최종 주 표시값이 됩니다. 명시적인 요청이 원문 우선 기본값보다 우선합니다. 연결된 요청 구간에서 원하는 결과가 원문 보고값인지, 입력으로 계산한 값인지, 둘 다인지 먼저 판단하세요. 계산값만 요청하면 source_display=null로 두고 원문 보고값으로 대체하지 마세요. 두 값이 같아도 요청 의도에 따라 결정합니다.\n"
     "원문 보고값이 요청 결과와 부합할 때만 동일 의미의 원문 파생값을 선택하세요. 별도 표시 지시가 없으면 원문 우선·계산 병기를 적용합니다. source_display_reason에는 단순히 원문 값이 있다는 사실이 아니라 요청과 선택/null의 관계를 쓰세요. 선택해도 formula/원시 입력을 유지하고, 차이를 억지로 맞추거나 근거 없는 반올림 설명을 만들지 마세요.\n"
     "output_relationships의 shared_basis는 각 선택의 interpretation.scope.basis에 일관되게 선언하고 자기 원문으로 뒷받침하세요. 동일 기준의 의미 판단과 실제 동일 행 사용 여부는 별개입니다. compatibility_refs는 실제 호환성 근거만 가리키며 출처 충돌을 허용하지 않습니다.\n"
+    "직접 조회의 compatibility_refs는 선택값의 범위를 보완하는 owner 노출 narrative 후보에만 쓰세요. 선택한 셀의 축·메타데이터나 selection.context_evidence로 필요한 범위가 확인되면 []로 둡니다. 선택값과 동일 원문 문맥에 연결된 witness가 있어야 하며, 같은 보고서·주제·유사한 숫자를 반복하는 다른 절만으로는 충분하지 않습니다. context_evidence의 context_ref를 이 목록에 복사하거나 보조 근거로 선택값의 해석·명시적 출처·기간 충돌을 덮지 마세요.\n"
     "재시도의 read_only_dependency_outputs는 검증된 계산값이지 원문 표시값이 아닙니다. 허용된 dependency ID를 source_ref로 쓰고 상수로 복사하거나 accepted 출력을 다시 작성하지 마세요. 그 candidate IDs는 provenance일 뿐 선택 권한이 아닙니다.\n"
 )
 

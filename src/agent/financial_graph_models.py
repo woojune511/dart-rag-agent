@@ -856,7 +856,12 @@ def compiler_response_model(obligations, refs, visibility):
         if kind == "direct_value":
             selection = numeric_model(owner["obligation_id"])
             result = (create_model("Direct_" + key, __base__=WireModel,
-                selection=(selection, ...), compatibility_refs=(list[str], Field(default_factory=list)))
+                selection=(selection, ...), compatibility_refs=(list[str], Field(default_factory=list, description=(
+                    "Exposed narrative candidate refs supplying needed scope compatibility for this selected value. "
+                    "Use [] when selection axes, metadata or attached context_evidence already support its scope. "
+                    "A witness must share the selected value's source context; same filing, topic or similar value "
+                    "elsewhere alone is insufficient. These are not context_ref IDs or general corroborating citations "
+                    "and cannot override source, owner or period conflicts."))))
                 if selection is not None else type(None))
         elif kind == "derived_value":
             inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, numeric_model=numeric_model)

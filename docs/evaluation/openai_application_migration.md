@@ -449,8 +449,37 @@ predecessor/16 admission files and original bytes remain intact. Working source/
 tables are identical at 1,872/59,477 rows and the source remains ready. No runtime,
 configuration or ingest change; same-runtime local 179 checks reused, not rerun.
 
-Next: provider-free characterization of direct compatibility-witness guidance
-versus its same-source-context contract, with anonymous positive/negative controls.
-Preserve source/owner/period validation and original first/repair responses; no
-automatic witness clearing or new paid packet. The preceding 1/2 result and all
-earlier failed/incomplete responses keep their original status.
+The provider-free follow-up below preserves this paid result and its retry. The
+preceding 1/2 result and all earlier responses keep their original status.
+
+## Direct compatibility-witness clarification (2026-09-17)
+
+The [provider-free characterization](../../benchmarks/results/direct_compatibility_guidance_2026-09-17/RESULTS.md)
+reproduces the exact first cash rejection: the selected balance-sheet cell is
+already correct, while a separately located same-topic narrative is insufficient
+as direct compatibility support. The actual repair retains the cell, interpretation,
+attached basis/date and visibility; only its declared witness list becomes empty.
+
+Numeric Compiler instructions and the direct field description now distinguish
+needed scope support from general corroboration and attached context_ref IDs.
+Use [] when the selection's own axes/metadata/context already support scope.
+Existing validation still requires at least one same-context witness for a nonempty
+list and checks each witness's source/owner/company/period independently. Legitimate
+located scope support and derived cross-context compatibility remain available;
+invalid model refs are not cleared or repaired by code. No schema constraint,
+retrieval, store, model-setting or provider-call change is included.
+
+Six new anonymous/authored SDK contracts; focused **217/217**, import/topology
+**22/22**, docs **2/2**, domain audit **83** pass. All external test connections and
+provider calls are **0**. Exact replay preserves both catalogs/cohorts and all three
+original wire lowerings, first cash rejection and both final answers
+**3,576,456,533,329원 / 15.40%**. All **936** protected files remain intact.
+Direct strict schema grows 3,188→3,639 UTF-8 bytes with identical constraints after
+removing descriptions; derived schema remains 9,670 bytes. Numeric template grows
+13,240→13,824 bytes. These are local serializations, not SDK token or cost measures.
+
+No new sampled response or measured retry reduction. Latest full 1,898 gate predates
+this and the Planner instruction change; focused gates cover this bounded seam.
+Shared estimate remains **USD 5.10658146 / 7**, remaining **1.89341854**, not invoice.
+
+Next: prepare a small independent-question review set against the existing source-complete store, freezing request/source/arithmetic/display criteria before any new model responses. Preparation is provider-free; a later app packet needs its own immutable admission within the remaining shared cap. No consumed-manifest reuse or fresh ingest. Repeated scope wording remains a separate presentation task.
