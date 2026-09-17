@@ -1,5 +1,9 @@
 # Narrative clause fidelity instruction
 
+The later [budget feasibility review](narrative_semantic_feasibility.md) completes
+the next step below without API calls. A fully reserved comparison exceeds the
+remaining cap; semantic effectiveness stays unmeasured.
+
 Applied 2026-09-18 from clean `891c9e80`. The [reviewed proposal](narrative_paraphrase_diagnosis.md)
 is now part of `src/config/retrieval_policy.py::_COMPILER_NARRATIVE_INSTRUCTIONS`.
 The production diff adds one instruction: every claim sentence/clause must retain

@@ -12,6 +12,12 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Narrative semantic-check budget feasibility (2026-09-18)
+
+- Base `2a915ce3`; [review](../evaluation/narrative_semantic_feasibility.md). Official Standard Astra pricing matches pinned 12.5/50 input-reserve/output rates; 0.01/count remains contingency, not observed tariff. Unchanged 5120 output bound reserves 0.256; one output/count pair floors at 0.266 before input. Full-reserved old/new pair 0.532 exceeds remaining 0.30722246 by 0.22477754 before inputs. Eight-control old/new floor is 4.256, excluding inputs/repairs. These are reservation scenarios, not predicted invoices; sequential low actual usage can cost less but cannot guarantee completion.
+- Eighteen current SDK requests are serialized and stopped before HTTP: eight frozen anonymous inputs plus known search/display, each old/adopted. Good/bad expected statements and labels stay outside model input. Schemas/settings/source values are identical across modes; prompt adds only 418 UTF-8 bytes. Adopted anonymous bodies 12666–12693 bytes, schemas 2643, known request 35840; byte lengths are not provider counts. A single response needs at most 3297 measured input tokens; pure current preflight accepts hypothetical 3297 and rejects 3298. No exact count or live result was produced.
+- Budget contracts **27/27**, docs **4/4**, no skips/external attempts; 173 source files, 2269 protected predecessors, 24 stores/settings unchanged. Prior full 2029/2029 and audit 83 were not rerun. Provider/count/embedding calls, added cost, new admissions and cap/bound/model changes 0. Shared 7.69277754/8, remaining 0.30722246, pending 0. Feasibility complete; retain inputs/labels until an explicit budget/scope change, without counting alone or beginning an incompletely reserved comparison. Historical qualifications remain.
+
 ## Generic narrative clause instruction adoption (2026-09-18)
 
 - Base `891c9e80`; [implementation and verification](../evaluation/narrative_clause_policy.md). One policy instruction preserves every claim clause's action/object/qualifier relations while allowing paraphrase. Both existing templates add 418 UTF-8 bytes; schema, selection, execution, model settings and call count are unchanged. No domain terms or deterministic semantic rewrite.
