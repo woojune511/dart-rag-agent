@@ -604,12 +604,34 @@ complete narrative samples while retaining the 5120-token output bound. The lost
 datacenter request cannot be reconstructed or assigned these savings. Its paid
 result stays interrupted, and fresh narrative completion/quality remain unproven.
 
-Next is provider-free design and mocked-SDK validation of a separately guarded,
-opt-in OpenAI input-token-count admission path. The official
-[token-counting guide](https://developers.openai.com/api/docs/guides/token-counting)
-and installed SDK expose `responses.input_tokens.count`; neither was called here.
-Count/generation input and schema must match exactly, with the full output reserve,
-shared cap, independent count-call limit and explicit count-cost allowance retained.
-Existing byte-bound policies stay unchanged; no live count/generation, fallback,
-automatic retry, consumed-packet resume or assumed free counting. Endpoint pricing,
-model/account access and a fresh complete-run budget still require verification.
+The subsequent counted-admission extension is recorded below. The preceding
+wire-byte evidence does not establish live token costs or narrative completion.
+
+## OpenAI counted-admission implementation (provider-free, 2026-09-17)
+
+The [separate ops extension](provider_admission.md#openai-input-token-count-extension)
+is implemented and verified locally. Exact frozen SDK text/schema input is counted
+before its unchanged generation; the original full output bound, shared cap and
+separate count-call/allowance limits remain enforced. Old byte-bound policies and
+application defaults are unchanged. This does not activate or resume a paid packet.
+
+New contracts **19/19**, focused **99/99**, full **1,940/1,940** without skips, audit
+**83** pass. Real-SDK/mock-HTTP controls cover input/schema drift, caller mutation,
+cached clients, concurrent identities, counts/errors/redirects/usage overruns,
+exact budget thresholds, Terra/Astra plus embeddings and independent Google count
+limits. An authored Compiler invalid-then-ready pair retains complete generation
+bodies, V2 program/proof and execution. Four saved legacy descriptors, eight budget
+success/denial receipts and three Google count controls match exact baseline source.
+
+All **1118** protected files, **169** unchanged source files, settings and stores
+retain their bytes. Two ops files change and one is added, total **172** sources.
+Actual provider/count calls and new execution admissions **0**; shared estimate
+**6.04443577 / 7**, remaining **0.95556423**, pending 0, not invoice. Authored counts
+are test fixtures, not measured model tokens, endpoint access or a complete-run
+budget. The interrupted datacenter result and missing historical traces remain intact.
+
+Next: prepare a non-executable application-caller successor using this guard and
+finally-persisted diagnostics, with paired SDK/ASGI success/interruption controls
+and explicit question/phase, count and cost limits. No live calls, cap increase,
+consumed-packet reuse or assumption that counting is free. Endpoint tariffs and
+account/model acceptance remain unresolved before any live packet.

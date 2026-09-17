@@ -78,3 +78,57 @@ uses verified copies of existing stores, fresh routing/planning/retrieval and
 OpenAI only for Compiler. Runtime repair remains at most one per island, under
 the explicit call and cost caps. Source criteria and old answers are excluded
 from live reads. New manifest/cost approval is required before any provider work.
+
+## OpenAI input-token-count extension
+
+`src.ops.openai_server_token_count.guarded_counted_runtime_openai_responses` is a
+separate opt-in context for a caller-authorized runtime question/phase. It requires
+`openai_response_binding="runtime_generated_v1"`,
+`openai_input_counting="responses_input_tokens_v1"`, explicit
+`max_openai_response_calls`, `max_openai_count_calls`, positive finite
+`openai_count_allowance_usd_per_call`, `max_openai_request_bytes`, and a positive
+`max_openai_input_tokens` no greater than 200000. Fixed `request_settings` or
+`request_settings_by_model` and reviewed rates still govern each generation.
+This API does not authorize a run, install itself in the application, or supply
+a default count price. Policies without counting retain their existing behavior.
+
+- Freeze the final SDK request after conversion, `extra_body` and SDK preparation.
+  The count body preserves the complete `model`, `input`, `instructions`,
+  `reasoning` and `text` schema fields that are present. Only generation controls
+  absent from the count API are omitted: `max_output_tokens`, `store`,
+  `service_tier`, `stream`. Unknown top-level fields, external state, tools,
+  media and non-text inputs are rejected. Numeric source/proof semantics do not change.
+- Use the installed SDK's `responses.input_tokens.count` resource, verifying its
+  final body against the frozen projection before sending. A matching
+  `object="response.input_tokens"` and positive integer total are required. The
+  count method is `responses_input_tokens_v1`; hashes and the shared count index
+  connect each count receipt to its generation. Canonical hashes are not literal
+  HTTP byte-length or semantic-equivalence claims.
+- Build each generation once and use that request after counting. Cached SDK raw
+  wrappers use the same `SyncAPIClient.request` authorization boundary as new clients.
+  A caller receives a deep copy for approval and cannot rewrite the frozen request.
+  Count/generation pairs serialize on the shared budget. HTTP hooks/custom auth,
+  redirects, streaming, async and retries are outside this narrow private-SDK path.
+  An embedding still requires the enclosing shared provider guard; other endpoints
+  and unscoped direct counts fail before transmission.
+- Check known generation/count limits and output cost plus the count allowance
+  before counting. Recheck the full measured-input/output reservation afterwards.
+  The original full `max_output_tokens` bound remains in force, including reasoning;
+  no byte ratio, local-tokenizer correction or output-bound reduction is applied.
+  Each attempted count retains its separate allowance, including failure. Google
+  and OpenAI have independent count limits while allowances share the same cap.
+- Invalid/failed counts stop before generation without fallback. Measured input
+  above the explicit limit also stops. Unknown generation usage keeps the reserve;
+  actual usage above a bound closes subsequent work and the response is not returned
+  as accepted. These controls detect discrepancies; they do not guarantee that a
+  provider or bill never exceeds its estimate. Receipts omit credentials and
+  arbitrary provider error text. The legacy `openai_request_parameters` cannot
+  fabricate a counted generation reservation from a no-call descriptor.
+
+The official [token-counting guide](https://developers.openai.com/api/docs/guides/token-counting)
+documents the endpoint and inclusion of schema/formatting tokens. Compatibility is
+locally checked with OpenAI SDK 2.29.0, httpx 0.28.1 and langchain-openai 1.1.11;
+it is not a live account/model acceptance claim. Tests author their count/usage
+responses explicitly. Endpoint tariffs and billing remain unverified, so the test
+allowance is not a recommended live price or proof of budget feasibility.
+See [local verification](../../benchmarks/results/openai_input_count_admission_2026-09-17/RESULTS.md).

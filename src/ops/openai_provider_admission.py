@@ -13,8 +13,8 @@ from unittest.mock import patch
 from src.ops.provider_admission import BudgetStop, ProviderBudget, json_bytes
 
 
-def openai_request_parameters(policy, body):
-    """Reserve a conservative byte-based input estimate, never a server count."""
+def _openai_request(policy, body):
+    """Validate the fixed generation contract independently of input measurement."""
     settings = policy["request_settings"]
     allowed = {"model", "input", "instructions", "max_output_tokens", "reasoning", "text",
                "store", "service_tier", "stream"}
@@ -28,14 +28,24 @@ def openai_request_parameters(policy, body):
     if text_format.get("type") != "json_schema" or text_format.get("strict") is not True:
         raise BudgetStop("unapproved_request_config", "Strict structured output is required")
     bound = body.get("max_output_tokens")
+    if type(bound) is not int or bound <= 0:
+        raise BudgetStop("unapproved_request_config", "Explicit output and input reservation bounds are required")
+    return dict(kind="openai_response", model=body["model"], request=deepcopy(body), output_bound=bound)
+
+
+def openai_request_parameters(policy, body):
+    """Reserve a conservative byte-based input estimate, never a server count."""
+    if policy.get("openai_input_counting") is not None:
+        raise ValueError("server-count reservations require the separately guarded count path")
+    params = _openai_request(policy, body)
     overhead = policy["openai_input_overhead_tokens"]
-    if type(bound) is not int or bound <= 0 or type(overhead) is not int or overhead < 0:
+    if type(overhead) is not int or overhead < 0:
         raise BudgetStop("unapproved_request_config", "Explicit output and input reservation bounds are required")
     input_bound = len(json_bytes(body)) + overhead
     if input_bound > policy["max_openai_input_tokens"] or policy["max_openai_input_tokens"] > 200000:
         raise BudgetStop("unapproved_input_size", "Request exceeds the admitted short-context reservation")
-    return dict(kind="openai_response", model=body["model"], request=deepcopy(body),
-                input_bound=input_bound, output_bound=bound)
+    return dict(kind=params["kind"], model=params["model"], request=params["request"],
+                input_bound=input_bound, output_bound=params["output_bound"])
 
 
 def openai_usage(response):

@@ -79,6 +79,7 @@
 | `src/ops/application_diagnostics.py` | explicit caller persistence of opt-in run snapshots on return or exception; exclusive files, safe persistence-error reporting, no runtime-default import or provider dispatch |
 | `src/ops/provider_admission.py` | opt-in budget/first-cause ownership; explicit server-count call limits and separate allowances, measured input vs fixed output reservation; legacy policies unchanged, no HTTP credentials in receipts |
 | `src/ops/google_server_token_count.py` | final SDK body copied into count + generation, canonical hash-linked receipts; text-only Developer API, single HTTP attempts, no fallback/redirect/async or runtime-default installation |
+| `src/ops/openai_server_token_count.py` | opt-in counted stateless text Responses; frozen final SDK input/schema, independent count/generation limits and shared budget, cached wrappers, no default installation or fallback |
 | `src/utils/provider_errors.py` | dependency-light terminal admission error and safe code-only projection; no core-to-ops import or error-message capture |
 | `src/ops/adopt_store_manifest.py` | read-only legacy-store compatibility inspection and separately approved adoption |
 | `src/ops/plan_parser_store_successor.py` | socket-blocked full-filing reparse inventory, exact table/unit/header drift and index-text reuse candidates; no vector/store publication |

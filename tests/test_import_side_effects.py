@@ -18,6 +18,7 @@ DEFAULT_RUNTIME_OPTIONAL_MODULE_PREFIXES = (
     "src.agent.mas_types",
     "src.experimental.mas",
     "src.ops.application_diagnostics",
+    "src.ops.openai_server_token_count",
     "src.ops.benchmark_runner",
     "src.ops.evaluator",
     "src.ops.portfolio_review_gates",

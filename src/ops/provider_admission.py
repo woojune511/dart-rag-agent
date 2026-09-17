@@ -85,6 +85,17 @@ class ProviderBudget:
                 raise ValueError("server counting requires an explicit non-negative call limit")
             if (type(allowance) not in (int, float) or not math.isfinite(allowance) or allowance <= 0):
                 raise ValueError("server counting requires an explicit positive finite count allowance")
+        openai_mode = self.policy.get("openai_input_counting")
+        if openai_mode not in (None, "responses_input_tokens_v1"):
+            raise ValueError("unsupported openai_input_counting policy")
+        self.openai_server_counting = openai_mode == "responses_input_tokens_v1"
+        if self.openai_server_counting:
+            limit = self.policy.get("max_openai_count_calls")
+            allowance = self.policy.get("openai_count_allowance_usd_per_call")
+            if type(limit) is not int or limit < 0:
+                raise ValueError("OpenAI counting requires an explicit non-negative call limit")
+            if type(allowance) not in (int, float) or not math.isfinite(allowance) or allowance <= 0:
+                raise ValueError("OpenAI counting requires an explicit positive finite count allowance")
         self.count_allowance = 0.0
         self.count_records = []
         self.blocked_counts = []
@@ -139,7 +150,7 @@ class ProviderBudget:
             quote = self.preflight(kind=kind, model=model, request=request,
                                    input_bound=input_bound, output_bound=output_bound)
             if input_measurement is not None:
-                quote.update(input_reservation_method="server_count_tokens_v1",
+                quote.update(input_reservation_method=input_measurement.get("method", "server_count_tokens_v1"),
                              token_count_request_sha256=input_measurement["request_sha256"],
                              token_count_index=input_measurement["index"])
             if diagnostics_enabled():
@@ -183,20 +194,31 @@ class ProviderBudget:
         return response
 
     def count_google_input(self, *, model, generation_request, count_request, output_bound, invoke):
+        if not self.server_counting:
+            raise ValueError("server counting is not enabled")
+        return self._count_input(kind="google", provider="google", model=model,
+            generation_request=generation_request, count_request=count_request, output_bound=output_bound, invoke=invoke)
+
+    def count_openai_input(self, *, model, generation_request, count_request, output_bound, invoke):
+        if not self.openai_server_counting:
+            raise ValueError("OpenAI server counting is not enabled")
+        return self._count_input(kind="openai_response", provider="openai", model=model,
+            generation_request=generation_request, count_request=count_request, output_bound=output_bound, invoke=invoke)
+
+    def _count_input(self, *, kind, provider, model, generation_request, count_request, output_bound, invoke):
         """One count attempt, with an allowance rather than invented billed usage.
 
         Check known generation denial before counting; check the full generation
         reservation again after counting. Count failure never releases the allowance.
         """
-        if not self.server_counting:
-            raise ValueError("server counting is not enabled")
         with self.lock:
-            quote = self.preflight(kind="google", model=model, request=generation_request,
+            quote = self.preflight(kind=kind, model=model, request=generation_request,
                                    input_bound=0, output_bound=output_bound)
-            allowance = self.policy["google_count_allowance_usd_per_call"]
+            allowance = self.policy[f"{provider}_count_allowance_usd_per_call"]
+            count = sum(row.get("kind", "google") == kind for row in self.count_records)
             total = quote["total_with_reservation_usd"] + allowance
             code = (quote["blocked_code"] or
-                    ("provider_count_call_limit_reached" if len(self.count_records) >= self.policy["max_google_count_calls"] else
+                    ("provider_count_call_limit_reached" if count >= self.policy[f"max_{provider}_count_calls"] else
                      "budget_reservation_exceeded" if total > self.policy["cap_usd"] else ""))
             row = {"model": model, "index": len(self.count_records),
                    "request_sha256": hashlib.sha256(json_bytes(count_request)).hexdigest(),
@@ -205,6 +227,8 @@ class ProviderBudget:
                    "allowance_usd": allowance, "allowance_is_not_observed_billing": True,
                    "minimum_total_with_generation_usd": total,
                    "allowed": not code, "blocked_code": code}
+            if provider == "openai":
+                row.update(kind=kind, method="responses_input_tokens_v1")
             record_diagnostic("provider_token_count_request", row)
             if code:
                 self.blocked_counts.append(row)
@@ -235,12 +259,15 @@ class ProviderBudget:
                 "outstanding_reservation_usd": self.pending, "closed": self.closed,
                 "stop_reason": {"code": self.stop_reason.code, "message": str(self.stop_reason)} if self.closed else None,
                 "requests": self.records, "blocked_requests": self.blocked_requests, "billing_observed": False}
-            if self.server_counting:
-                snapshot.update(google_input_counting="server_count_tokens_v1",
-                    token_count_allowance_usd=self.count_allowance,
+            if self.server_counting or self.openai_server_counting:
+                snapshot.update(token_count_allowance_usd=self.count_allowance,
                     token_count_allowance_is_not_observed_billing=True,
                     total_with_allowance_and_pending_usd=self.charged + self.pending + self.count_allowance,
                     token_count_requests=self.count_records, blocked_token_count_requests=self.blocked_counts)
+                if self.server_counting:
+                    snapshot["google_input_counting"] = "server_count_tokens_v1"
+                if self.openai_server_counting:
+                    snapshot["openai_input_counting"] = "responses_input_tokens_v1"
             return deepcopy(snapshot)
 
 
