@@ -132,3 +132,7 @@ it is not a live account/model acceptance claim. Tests author their count/usage
 responses explicitly. Endpoint tariffs and billing remain unverified, so the test
 allowance is not a recommended live price or proof of budget feasibility.
 See [local verification](../../benchmarks/results/openai_input_count_admission_2026-09-17/RESULTS.md).
+
+## Mock-only application caller preparation
+
+[The local successor](../../benchmarks/results/counted_application_caller_2026-09-17/RESULTS.md) connects this counted guard to exact query envelopes, graph-owned phase bindings and finally-persisted diagnostics. It requires a fresh output path and an explicit mock transport, supplies no live dispatcher/admission/CLI, and never treats observations as execution authority. Its frozen USD 0.95556423 shared remainder includes up to 12 counts with an explicit USD 0.01 allowance each, 12 generations and 48 embeddings; output reserves remain Astra 5120/Terra 8192. These are proposed experimental limits, not measured costs or confirmed endpoint terms. Mock success cannot establish actual token savings, account access or a complete-run budget.
