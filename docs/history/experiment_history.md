@@ -12,6 +12,14 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Narrative-only budget feasibility (2026-09-17)
+
+- Clean `bbd30fbb`; [provider-free sizing](../../benchmarks/results/narrative_budget_feasibility_2026-09-17/RESULTS.md) reads immutable request metadata/usage and the unchanged admission policy. Official Standard rates were searched/fetched and match the pinned conservative cache-write estimates. No application, SDK, store client or consumed packet was executed.
+- All **46** prior request costs reconcile. With a cold bootstrap and the same observed narrative sequence/usage, the first Compiler request requires **USD 0.97860777**, exceeding the remaining **0.95556423** by **0.02304354**. A hypothetical path to the last blocked request needs **1.45023277**, short **0.49466854**; it does not establish a complete-run budget or authorize a higher shared cap. Its response and future calls remain unknown.
+- Four isolated `ProviderBudget` controls replay sizing metadata and observed usage callbacks: old sequence, cold narrative-only, warm narrative-only and blocked request alone. Each stops before the expected callback; no missing response is manufactured. Six preflight checks cover below/equal/above the two thresholds without mutating budget snapshots. All sockets/DNS blocked, attempted connections/provider calls **0**; docs **2/2** pass.
+- Warm-start sensitivity still needs **0.97839483** for the first Compiler request. At unchanged prefix/rates/output, its body would need at least **1,844** fewer canonical JSON bytes, with no demonstrated lossless savings or later-call admission. Missing historical bodies/parsed replies/island identities are not reconstructed from hashes or sizes.
+- All **1081** protected predecessor files, **171** source files, local settings and original/working store bytes remain unchanged. Shared estimate **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice. No new admission, cap/output/reservation change or historical resume. Next bounded work is generic narrative request-composition inspection with complete saved or explicitly authored diagnostics and preserved evidence/validation contracts; paid retesting remains infeasible for the observed shape.
+
 ## Caller-owned diagnostic persistence correction (2026-09-17)
 
 - Base `bba00dcb`; [provider-free correction](../../benchmarks/results/application_diagnostics_capture_2026-09-17/RESULTS.md) adds only the ops persistence helper and its tests/import boundary, plus a new local caller template. Existing capture delivery is reused; agent graph, compiler/prompt/schema, source stores, API result shape and all 170 prior source files remain unchanged. Frozen old callers/results are preserved.

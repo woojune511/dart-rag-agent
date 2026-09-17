@@ -147,8 +147,38 @@ and additional cost **0**; shared estimate remains **6.04443577 / 7**, remainder
 **0.95556423**. Authored fixtures do not recover the lost historical narrative or
 establish its accuracy; that paid question remains interrupted.
 
-Next: provider-free sizing/feasibility for a fresh narrative-only packet. The last
-observed **1.0099** request reservation exceeds the current remainder before any
-new planning/embedding costs. A paid successor needs a fresh feasible admission;
-no automatic rerun, cap increase, reservation weakening or inferred missing replies.
-Repeated scope wording remains separate presentation work.
+## Narrative budget feasibility (provider-free, 2026-09-17)
+
+[Recorded-request sizing](../../benchmarks/results/narrative_budget_feasibility_2026-09-17/RESULTS.md)
+on clean `bbd30fbb` finds that the observed narrative request shape does not fit
+the remaining **USD 0.95556423**. Current [official Standard pricing](https://developers.openai.com/api/docs/pricing)
+matches the pinned conservative rates; canonical JSON bytes + 1024 input overhead,
+the 5120-token Astra output reservation and the shared cap are unchanged.
+
+| Observed Compiler request | Settled prefix, cold start | Request reserve | Allowance needed | Shortfall |
+| --- | ---: | ---: | ---: | ---: |
+| First | 0.06143277 | 0.91717500 | **0.97860777** | **0.02304354** |
+| Second | 0.24603277 | 0.91717500 | 1.16320777 | 0.20764354 |
+| Last blocked | 0.44033277 | 1.00990000 | **1.45023277** | **0.49466854** |
+
+These thresholds assume the same historical request bounds and settled usage.
+The last row admits only the last known request; its response and subsequent calls
+are unknown, so this is not a complete-run budget. Even omitting bootstrap in an
+isolated sensitivity check leaves the first threshold at 0.97839483, still over
+budget. Merely excluding the two completed numeric questions is insufficient.
+At unchanged rates/prefix/output, the first body needs at least 1,844 fewer bytes;
+no lossless reduction or later-call feasibility is demonstrated. Missing bodies
+and island/feedback identities remain unavailable, and fresh plans may differ.
+
+All **46** old request costs reconcile. Four isolated real-budget controls using
+recorded metadata/usage and six exact-threshold checks pass, with all sockets/DNS
+blocked; provider calls **0**. These are sizing descriptors, not replayed SDK
+bodies or model responses. All **1081** predecessor files, **171** source files,
+local settings and original/working stores are unchanged. Documentation checks
+**2/2** pass; shared accounting remains **6.04443577 / 7**, pending 0, not invoice.
+
+Next: audit generic narrative request composition using complete saved or explicitly
+authored diagnostics, preserving exact requests, source evidence and validation.
+Paid retesting remains unadmitted until a fresh feasible packet exists; no consumed
+packet resume, cap increase, output-bound reduction, reservation weakening or assumed
+cache discount. Repeated scope wording remains separate presentation work.

@@ -556,6 +556,13 @@ files are intact. The new module is an explicit operational helper; no live
 admission/CLI is created and historical lost traces cannot be recovered.
 
 Shared estimate stays **6.04443577 / 7**, remainder **0.95556423**, new paid cost 0.
-Next: provider-free sizing/feasibility before a fresh narrative-only admission; the
-last observed 1.0099 reserve alone exceeds the remainder. No automatic paid rerun,
-cap increase or reservation weakening. Repeated scope wording remains separate.
+The [provider-free narrative budget review](independent_question_review.md#narrative-budget-feasibility-provider-free-2026-09-17)
+reconciles all 46 old requests with current official rates. With the same observed
+bounds/usage, cold-start first Compiler admission needs **0.97860777**, short
+**0.02304354**; admitting the last known request needs **1.45023277**, short
+**0.49466854**. This is not a completion budget, and fresh plans remain unknown.
+Four real-budget metadata controls and six threshold checks pass; provider calls
+and new admissions **0**, all **1081** predecessor and **171** source files preserved.
+Next: audit generic narrative request composition with complete saved or explicitly
+authored diagnostics, preserving requests/evidence/validation. No paid rerun, cap
+increase, output-bound reduction or reservation weakening. Scope wording stays separate.
