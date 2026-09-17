@@ -384,8 +384,37 @@ not invoice. All 820 predecessor and 16 admission files/original source bytes re
 intact; the ready working store's 1,872 source/59,477 metadata rows match the original.
 Runtime did not change; its existing full 1,898/audit 83 gate was not rerun here.
 
-Next is provider-free numeric Planner presentation/unit characterization and
-correction. Preserve explicit units and unsupported-unit rejection; do not add a
-case-specific phrase alias or silently clear live requirements. New paid work needs
-a new immutable admission. These fresh plans and known sources do not establish
-unseen accuracy or isolate individual patch effects; older results remain unchanged.
+This paid result remains unchanged after the provider-free clarification below.
+These fresh plans and known sources do not establish unseen accuracy or isolate
+individual patch effects; older results remain unchanged.
+
+## Numeric Planner unit/presentation clarification (2026-09-17)
+
+The [provider-free correction](../../benchmarks/results/planner_numeric_presentation_2026-09-17/RESULTS.md)
+updates Planner policy and field descriptions only. Concrete named units and
+their scale remain in display_unit, even when unsupported. Source-unit/notation
+preservation and precision requests go in display_format and exact owned requests;
+no unit is guessed before retrieval. Both fields may coexist. Numeric strings
+remain open so explicit unsupported requests reach the unchanged preflight;
+there is no phrase alias, silent clearing, new field/call or runtime classifier.
+
+Four new authored tests cover numeric presentation/source precision, explicit
+scaled units, misplaced/unsupported-unit blocking and actual SDK serialization.
+Focused **155/155**, import/topology and domain audit pass; provider calls and
+attempted external test connections **0**. Prior full 1,898 gate was not rerun
+for this instruction-only change. Strict schema constraints are identical after
+removing descriptions; local schema/template sizes grow 15,612→16,719 and
+10,553→11,323 UTF-8 bytes, not SDK token measurements.
+
+Exact two-case replay preserves catalog/cohorts and original cash rejection;
+the saved margin program and answer remain **15.40%**. The authored empty-unit
+cash copy clears preflight with exact source visible and unchanged permissions,
+without a Compiler call or answer. All **863** predecessor files are preserved.
+One initial SDK test fixture lacked its required callback; fixing the fixture
+resolved that local error without any provider request or runtime change.
+
+Next: one bounded fresh normal-app verification of the same two questions,
+using a new immutable admission and the existing selected store/model settings.
+Shared estimate remains **4.40195231 / 7**, remaining **2.59804769**; no additional
+paid calls. Authored plans are not new model responses, and final cash selection
+remains unverified. No fresh ingest, automatic paid retry or old-admission reuse.

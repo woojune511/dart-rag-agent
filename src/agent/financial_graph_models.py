@@ -162,13 +162,20 @@ class AnswerObligation(_DeferredBaseModel):
     ))
     required: bool = True
     display_unit: str = Field(default="", description=(
-        "Requested numeric display unit for direct_value or derived_value; "
-        "leave blank when unspecified. Narrative outputs have no scalar unit. "
-        "Preserve separately requested quantities as numeric outputs."
+        "Concrete measurement unit explicitly requested for a numeric output, "
+        "including its scale. If the request leaves the unit to the source or "
+        "names no unit, leave blank; put source-preservation, precision and "
+        "notation instructions in display_format. Do not infer a unit before "
+        "retrieval. Preserve an explicitly named unit even if unsupported: "
+        "never replace it with blank, UNKNOWN or a supported substitute. "
+        "Narrative outputs have no scalar unit."
     ))
     display_format: str = Field(default="", description=(
-        "Requested presentation format, separate from a numeric unit; "
-        "leave blank when unspecified."
+        "Presentation instructions for numeric or narrative outputs, including "
+        "source-unit/notation preservation and requested precision. These are "
+        "not measurement-unit names. Keep them here alongside any explicitly "
+        "named display_unit and retain the linked original request; leave blank "
+        "when unspecified."
     ))
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
     source_sections: List[str] = Field(default_factory=list, description=(

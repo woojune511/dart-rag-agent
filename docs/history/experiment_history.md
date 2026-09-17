@@ -12,6 +12,14 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Numeric Planner unit/presentation clarification (2026-09-17)
+
+- From clean `c7df8d5b`, [provider-free correction/replay](../../benchmarks/results/planner_numeric_presentation_2026-09-17/RESULTS.md) changes only Planner policy and schema field descriptions. Concrete named measurement units retain their scale, including unsupported requests; source-unit/notation preservation and precision belong in display_format and owned exact request text. Both may coexist. No pre-retrieval guess, phrase-specific runtime alias, invalid-value clearing, new field/call, model change or numeric enum.
+- Frozen before/after replay preserves both catalogs/cohorts, original cash invalid-unit rejection and exact saved margin program/answer **15.40%**. An authored cash copy changes only display_unit to empty; preflight clears and exact full-statement source remains visible with unchanged permissions. No fresh model output or final cash answer was produced.
+- Four new authored contracts and focused **155/155** pass; import/topology and domain audit pass. API calls/attempted external test connections **0**; source/history/store/config bytes protected across **863** predecessor files. Initial SDK fixture callback omission was corrected locally; it was not an application/provider failure. The previous full **1,898** gate was not rerun for description/prompt-only changes.
+- Strict schema shape is byte-identical after description removal. Strict schema/template UTF-8 bytes **15,612→16,719** / **10,553→11,323**; not SDK tokens or model-quality evidence. Raw unsupported numeric strings remain available for rejection.
+- No additional paid cost: shared estimate **4.40195231 / 7**, remaining **2.59804769**. Next is one fresh bounded same-two-question normal-app verification with a new immutable admission and existing source copy/model settings; no automatic paid retry, fresh ingest or consumed-manifest reuse. Existing paid outcomes remain unchanged; fresh Planner behavior and final cash selection remain unverified.
+
 ## Numeric application source/calculation/display verification (2026-09-17)
 
 - Clean `e0a7f40e`, runtime `24d97285`; [two unchanged known-source questions](../../benchmarks/results/numeric_final_app_2026-09-17/RESULTS.md) through normal ASGI/shared services. Both HTTP 200/ledger ok; runtime **1/2 complete, 1/2 incomplete**, **1/2 outputs**, **1/2 full frozen acceptance**. Source and model settings unchanged during this packet.
