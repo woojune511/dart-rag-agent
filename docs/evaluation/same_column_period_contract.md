@@ -83,7 +83,9 @@ Local receipts: [`same_column_period_contract_2026-09-17`](../../benchmarks/resu
 
 ## Next bounded work
 
-Provider-free rehearsal of the complete frozen research count/organization-scope
-question: current Planner/Compiler shapes, both answer types, final answer/ledger
-and input/budget fit. Keep authored responses separate from live acceptance.
-No provider call, paid retry, fresh ingest or cap increase is scheduled here.
+The [provider-free complete mixed-question rehearsal](research_mixed_rehearsal.md)
+now passes current Planner/Compiler SDK shapes, both final outputs and ledger
+with authored responses. Input sizes and frozen-rate budget limits are recorded
+separately from live feasibility. Next is the final frozen missing-project-cost
+question's source/abstention review. No provider call, paid retry, fresh ingest
+or cap increase is scheduled here.
