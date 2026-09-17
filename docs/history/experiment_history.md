@@ -12,6 +12,15 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Read-only counted narrative readiness (2026-09-17)
+
+- Base `82f1d698`; [readiness review](../evaluation/counted_narrative_readiness.md) and local immutable specification freeze the exact narrative request and existing policy without source, store, profile, cap or dispatcher changes. Seven official pages were fetched. Generation cache-write/full-output rates still match policy; public count-specific tariff/free status and exact permission are not established.
+- RBAC separates model listing and requesting; effective project key permissions also need applicable user role permissions. Only effective key presence was inspected locally, without recording credentials or querying the account. Prior generation success is historical evidence, not current count/access proof.
+- Three historical cold prefixes plus proposed USD 0.01/count and full Astra output reserve yield conditional measured-input maxima **48,650 / 33,082 / 16,738** for historical requests 45/46/47. Prior actual generation inputs **12,776 / 12,772** produce conditional reserves **0.50713277 / 0.70168277**, not fresh counts. The third and later input/output demand remains unknown.
+- Two Terra and three Astra requests at full output, plus five proposed count allowances, need **1.014608 before inputs/embeddings**, above the remainder by **0.05904377**. This is an illustrated maximum-output scenario, not actual cost or proof that every run fails. Dynamic settlement releases unused output reserves; call ceilings alone do not guarantee full completion.
+- **Nine** Decimal/Fraction/real-ProviderBudget preflight boundary checks pass without snapshot mutation or callbacks. Docs **2/2**, pycompile and diff checks pass. All **1209** predecessors and **172** sources, .env and store bytes stay intact. The earlier full 1940-test and audit-83 evidence is retained, not rerun. Provider/count/authenticated API calls and local attempted connections **0**.
+- Shared estimate stays **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice. The read-only review is complete; live dispatch remains unavailable until count-specific terms/access evidence and a separately bounded execution decision exist. No repeated-public-search/mock-preparation loop, paid resume, reconstructed response or new semantic-quality claim.
+
 ## Counted application caller preparation (2026-09-17)
 
 - Base `a201af08`; [local preparation](../../benchmarks/results/counted_application_caller_2026-09-17/RESULTS.md) connects the existing counted guard, shared embedding admission and finally-persisted diagnostics. No source/default setting/CLI/paid dispatcher change. Only an explicit mock HTTP transport is accepted; prior consumed packet code is not imported. The narrative request envelope is copied separately as a non-executable proposal without reference answers.
