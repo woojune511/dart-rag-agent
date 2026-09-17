@@ -701,3 +701,20 @@ search/display remains **0/4** and the other two questions remain live-unexecute
 Remainder **0.61397895**; no new admission or paid dispatch. Next: provider-free
 API response projection of these frozen results, with mocked services explicitly
 separate from live routing/retrieval and application acceptance.
+
+## Frozen results through the public API (2026-09-18)
+
+The [provider-free API rehearsal](frozen_api_boundary.md), base `b7d9c874`, uses
+the actual app/lifespan, ASGI endpoint and `FinancialAgent.run()` packaging with
+mocked services and frozen graph results. All **12** question/flag combinations
+preserve text, citations, full structured result and calculation/source trace.
+Review and debug remain independently opt-in; missing project costs stay missing
+with public/aggregate `partial` despite HTTP 200. Four injected failures return
+**503 / 422 / 503 / 500** with no fabricated answer or private exception text.
+Focused **35/35** and docs **4/4** pass; no runtime change, provider request, extra
+cost, store/settings change or new model-quality evidence. All **173** source
+files and **2029** predecessor artifacts retain hashes. Paid search/display
+remains **0/4**, its offline replay **4/4**; other questions remain live-unexecuted.
+Next is no-call admission preparation for one fresh search/display application
+run under the unchanged **0.61397895** remainder. No paid dispatch or cap increase
+is scheduled; complete live-run budget fit remains unknown.

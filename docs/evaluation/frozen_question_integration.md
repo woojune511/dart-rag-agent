@@ -87,9 +87,11 @@ Local receipts: [`frozen_question_integration_2026-09-18`](../../benchmarks/resu
 
 ## Next bounded work
 
-Provider-free API-boundary rehearsal of these frozen results: verify that
-`POST /api/query` preserves final text, source trace, missing-output status and
-review/ledger fields through its public response projection. Keep the replayed
-agent result and mocked services explicit; do not call this live retrieval or
-application acceptance. No paid dispatch, consumed-manifest resume, fresh ingest
-or cap increase is scheduled.
+The [API-boundary rehearsal](frozen_api_boundary.md) is complete: all three
+results survive four independent review/debug flag combinations, and four failure
+controls return errors without manufacturing answers. The real API/run wrapper
+uses explicit mocked services and frozen graph results; live routing/retrieval
+and application acceptance remain unverified. The next bounded step is no-call
+admission preparation for one fresh search/display application run under the
+existing remainder. No paid dispatch, consumed-manifest resume, fresh ingest or
+cap increase is scheduled.
