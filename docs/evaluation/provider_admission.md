@@ -246,3 +246,24 @@ by this preparation. A later funded run requires a separately verified batch
 caller and fresh single-use admission; existing two-call-per-kind limits are
 not silently expanded. Any count/provider/shape/usage failure stops the batch
 without retry, fallback, repair, resume or historical-response substitution.
+
+## Completed eight-control comparison settlement (2026-09-18)
+
+User continuation accepts the concrete **USD 5** additional allowance for the
+[eight-control comparison](narrative_eight_control_comparison.md): shared cap
+**9 to 14**, available **5.35228496**, experiment cap **5.056**, outside-run
+headroom **0.29628496**. The preceding preparation remains a historical no-call
+snapshot. The fresh batch caller passes **10** controls and **27** count/admission
+contracts before single-use `3b086419...e571` is consumed on clean `d10c51b1`.
+
+All sixteen exact counts (**2633-2745**) precede generation and fully reserve
+the fixed sixteen responses for **4.7938**, below the experiment cap. Every
+response completes; all **32 HTTP calls return 200**, with no repair/retry/resume.
+Observed-token estimate **0.79925** plus count contingency **0.16** accounts
+**0.95925**. Shared **9.60696504 / 14**, remaining **4.39303496**, pending **0**.
+This is conservative project accounting, not invoice or observed count tariff;
+historical unknown-usage failed-request reservations remain retained. No further
+paid request follows, and the consumed manifest cannot authorize another run.
+Current Compiler/execution and 32 source-span checks pass separately from the
+locked assistant review: both instructions 8/8 accepted, eight ties, mostly
+verbatim source copies; no independent blinded or general efficacy claim.

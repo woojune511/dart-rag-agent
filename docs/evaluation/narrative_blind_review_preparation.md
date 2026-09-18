@@ -1,5 +1,10 @@
 # Eight-control narrative review preparation
 
+Historical preparation snapshot: the later [completed comparison](narrative_eight_control_comparison.md)
+accepts the proposed USD 5 increase and collects all sixteen new responses.
+The no-call accounting and unfilled templates below describe preparation only;
+the sealed preparation artifacts remain unchanged.
+
 Prepared on 2026-09-18 from clean `70f70aa0` after the user continued the
 provider-free review/budget recommendation. **No API call, live admission,
 budget increase or new semantic score** is produced. Shared accounting remains
