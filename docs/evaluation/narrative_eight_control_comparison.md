@@ -1,5 +1,9 @@
 # Eight-control narrative comparison
 
+The later [multi-sentence design](narrative_multisentence_design.md) prepares six
+new passages/questions and twelve empty response slots without new provider calls.
+The completed sampled results below remain unchanged.
+
 Completed on 2026-09-18 from clean `d10c51b1`. All **16 responses complete**;
 assistant review accepts **8/8 for each instruction**, with **eight paired ties**.
 No improvement or regression is observed on these eight known, short sources.

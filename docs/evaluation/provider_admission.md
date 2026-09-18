@@ -267,3 +267,24 @@ paid request follows, and the consumed manifest cannot authorize another run.
 Current Compiler/execution and 32 source-span checks pass separately from the
 locked assistant review: both instructions 8/8 accepted, eight ties, mostly
 verbatim source copies; no independent blinded or general efficacy claim.
+
+## Multi-sentence comparison: bounded preparation (2026-09-18)
+
+The [new comparison design](narrative_multisentence_design.md), clean `6c6a2891`,
+prepares six fresh fictional sources/questions and twelve unsent SDK requests.
+No provider call, server count, response, live manifest or cap change occurs.
+The proposed twelve-count/twelve-response scope preserves Astra/medium/Standard/
+5120/`store=false`, with a caller-only input stop ceiling of 6000. Full reserve
+at that ceiling is **4.092**: outputs **3.072**, input **0.900**, count contingency
+**0.120**. It fits the unchanged **4.39303496** remainder with **0.30103496**
+outside the run and no additional allowance. These are planning bounds, not
+measured tokens, predicted consumption, an invoice or an observed count tariff.
+
+Shared **9.60696504 / 14**, pending **0**, retained historical failed reserve and
+all consumed manifests stay unchanged. A later continuation of this concrete
+scope requires a fresh verified caller and single-use admission, all twelve
+counts and all full reservations before generation. An oversized or invalid
+count stops before generation; any later provider/shape/usage/identity failure
+stops the batch. No trimming, replacement, retry, repair, resume, model/output
+substitution or automatic cap increase. Uncollected responses have no scores;
+authored structural rehearsals are not provider or semantic acceptance.
