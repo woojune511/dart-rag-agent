@@ -103,3 +103,8 @@ settings retain hashes. Only documentation is committed; local controls remain
 ignored. Added cost **0**; shared accounting **12.69919659 / 14**, remaining
 **1.30080341**, pending **0**, not invoice. No live runner or paid manifest exists,
 and production prompts, settings, schemas, limits and retry policies are unchanged.
+
+The subsequent [count-only result](compiler_compact_json_transfer_count.md) measures
+all four inputs: 15,882/15,965 numeric and 27,399/27,482 mixed tokens. The full
+comparison does not fit the remaining allowance; no generation was performed.
+The preparation's unmeasured estimates above remain historical, not new counts.

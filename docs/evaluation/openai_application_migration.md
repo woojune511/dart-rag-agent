@@ -836,3 +836,24 @@ At the previous 12,000-input-token ceiling, full reservation is 1.664, above the
 tokens to fit; none has been counted. Next is a count-only packet, at most 0.04
 contingency with zero generation, before reassessing full funding. No paid manifest,
 live dispatcher, cost increase or default change was created. Added cost remains 0.
+
+## Different-source input counts (2026-09-18)
+
+The [count-only successor](compiler_compact_json_transfer_count.md), clean
+`1663a54a`, completes four actual counts and zero generations. Numeric inputs are
+15,882/15,965 tokens; mixed inputs 27,399/27,482, total 86,728. Each candidate prefix
+adds 83 input tokens. No output/quality/reliability result follows from counting.
+All frozen request/source bytes and original store/settings hashes are preserved.
+
+An initial local logger argument collision stopped before HTTP; its premature
+sent flag and 0.01 entry remain in the raw record with a separate zero-transmission
+reconciliation. A fresh corrected caller, actual-recorder tests and two identical
+rehearsals precede the four successful counts. No provider retry, generation,
+runtime repair or consumed-manifest reuse. Corrected caller 11 and docs four pass.
+
+Actual counts retain 0.04 contingency, so shared accounting is 12.73919659/14,
+remaining 1.26080341, pending zero, not invoice. At the same future counts, full
+generation reserves are 2.1081; fresh counted generation needs 2.1481 including
+new count contingencies, short by 0.88729659. Propose shared cap 15 (+1), with a
+fresh manifest and input guard covering measured sizes; keep 5120 outputs and
+require full-batch funding. No cap increase or generation is included in this step.

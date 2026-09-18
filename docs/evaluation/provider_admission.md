@@ -3,6 +3,16 @@
 This is the experiment-only extension of the [runtime contract](../architecture/agent_runtime_contract.md#10-validation-and-release-gate).
 Default runtime behavior and policies without this option are unchanged.
 
+The [different-source count-only packet](compiler_compact_json_transfer_count.md)
+is a separate, locally frozen ops caller with four explicit input-count requests
+and zero generation authority. It admits only the exact count endpoint/bodies,
+retains one contingency per actual transmission, and stops on the first failure.
+It does not install or relax the runtime's coupled count/generation guard below.
+Its measured totals are budget-planning evidence; a generation successor still
+needs a fresh manifest, covered input limits, new counts and full output reserves.
+The preserved pre-send logger failure was reconciled separately from actual count
+attempts; historical failed-provider reserves are unchanged.
+
 ## Server-count input reservation
 
 `google_input_counting="server_count_tokens_v1"` explicitly enables one full-request
