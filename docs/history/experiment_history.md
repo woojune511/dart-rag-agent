@@ -1,5 +1,13 @@
 ﻿# Experiment History
 
+## Compact JSON normal-app mixed smoke stopped by budget (2026-09-18)
+
+- Clean `2879db60`; [full record](../evaluation/compiler_compact_json_app_smoke.md). One known-source Commerce-growth/acquisition question used fresh planning/retrieval, normal OpenAI routes and a verified disposable NAVER store. Fresh `9c86b2cf...dc9b7a7` consumed once; unchanged USD 15 shared cap, run allowance 0.89380341, conditional per-call funding without a completion guarantee.
+- Health/companies HTTP 200, ready/non-degraded, 1,872 chunks. All **26** provider transmissions returned HTTP 200: 19 embeddings, 4 counts, Terra 2, Astra 1. One numeric island validates, raw JSON has **zero outside-string whitespace**; 26,131 input/996 output tokens including 191 reasoning. Original cell/axis/context review and independent arithmetic support 41.3957043439745% → 41.4%, not a delivered application answer. Fresh inputs and no paired baseline preclude savings or isolated-policy claims.
+- Narrative input 17,529 plus unchanged 5,120 output requires 0.47511250 against 0.42222155 available: **0.05289095** short. Generation denied before transmission; app HTTP 500 is local `budget_reservation_exceeded`, not provider 503. No final answer/ledger, narrative review or public-output verification; no repair, SDK/HTTP/whole-query retry or resume. Original partial evidence is retained.
+- Controls **23/23** pass, external/provider calls 0; actual-store rehearsal uses authored replies/counts. Initial six local fixture errors from an omitted evidence label remain preserved; corrected labeled invocation passes without runtime changes. All **8913** predecessors, **174** sources, seven owners, **24** store files and settings match hashes. Documentation only committed.
+- Added estimate **0.43158186** plus count contingency **0.04** = **0.47158186**; shared **14.57777845/15**, remaining **0.42222155**, pending 0, not invoice. Peak admitted reserve 0.66778186 within run cap. Numeric Compiler estimate is 86.77% input: next inspect input size/repeated metadata provider-free, keeping sources/schema/limits intact. A paid successor requires fresh funding/admission; the point-in-time shortfall is not a rerun quote.
+
 > Internal experiment log, not a first-read portfolio document. Start with
 > [../../README.md](../../README.md) and
 > [../overview/portfolio_experiment_report.md](../overview/portfolio_experiment_report.md)

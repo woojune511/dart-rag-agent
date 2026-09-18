@@ -71,5 +71,8 @@ The prior two-case sample measured 13.19% and 23.21% fewer total output tokens w
 83 extra input tokens per case. Rationale/reasoning/wording also differed, so those
 reductions are neither pure whitespace attribution nor guaranteed future savings.
 Stored responses and authored controls do not measure new model behavior or accuracy.
-A future live application check requires a fresh funded admission; consumed manifests
-remain consumed. The policy is now enabled without another configuration step.
+The policy is enabled without another configuration step. The subsequent
+[application smoke](compiler_compact_json_app_smoke.md) received one valid compact
+numeric program, then stopped before narrative generation on its remaining-budget
+guard. No final mixed answer or new savings measurement was obtained. Its separate
+accounting leaves **USD 0.42222155** under the shared USD 15 cap.
