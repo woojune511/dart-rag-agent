@@ -1,5 +1,8 @@
 # Two-case v11 Compiler API probe
 
+The subsequent [normal-app replay](compiler_axis_app_rehearsal.md) completes once
+and exposes seed-window drift on its repeat; it does not change this paid result.
+
 Executed 2026-09-19 from clean `f67b0ccf`, following the
 [frozen preparation](compiler_axis_probe_preparation.md). Both first responses
 pass the original schema, source-lowering and deterministic execution contracts.
