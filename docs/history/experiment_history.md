@@ -12,6 +12,12 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Opt-in OpenAI failure metadata (2026-09-18)
+
+- Base `093cde70`; [implementation](../evaluation/openai_error_diagnostics.md). User continues the recommendation to record error.code, request ID and Retry-After before another attempt. One new ops helper selects reviewed overload/ramp-rate codes, locally accepted req_ IDs, bounded numeric/canonical-date retry hints and explicit availability states. No free-form error text, raw error body/header map, credentials, public projection or automatic retry. The original 503 cause remains unavailable.
+- A separate ignored successor runner records safe metadata for count/generation errors in calls[].http_error and an exclusive sidecar. Capture/persistence exceptions retain the original HTTP/admission stop; sidecar failure still leaves final-receipt metadata. Consumed caller/result bytes remain immutable; no live manifest or dispatch is created. Mock 503/429 evidence is not a new provider observation.
+- Projection **12/12**, SDK metadata transport **4/4**, caller **7/7**, import/API/request-diagnostic boundaries **24/24**, docs **4/4** pass (**51**), without external attempts; pycompile/diff pass. Tests retain failure reservations and no-next-arm behavior, reject private canaries/malformed/unknown fields, and preserve public errors. One new ops source makes 174; all 173 originals, 2659 predecessor artifacts, 24 stores/settings remain unchanged. Prior full 2029/2029 and audit 83 not rerun. Shared **8.20432754 / 9**, remaining **0.79567246**, pending 0; added cost/calls/cap increase 0. Next: fresh fully reserved pair under this remainder using the new caller; no consumed-manifest resume.
+
 ## Longer-source narrative comparison: provider-stopped attempt (2026-09-18)
 
 - Clean `a28cc398`; [attempt review](../evaluation/narrative_long_pair.md). User continues the already planned old/new comparison on frozen known search/display inputs. Shared cap 9 stays fixed; caller cap 1 is within remaining 1.17860996. Only the narrative instruction differs across inputs; four existing source criteria and the additional-fidelity review remain outside model input. New `a804af99...70b3c4b` consumed once; no retry/resume.

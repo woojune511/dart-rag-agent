@@ -202,3 +202,16 @@ remaining **0.79567246**, pending **0**. Invoice/count tariff remain unavailable
 No runtime, store, settings, account billing or shared-cap change. The consumed
 manifest permits no further transmission; any continuation needs a fresh fully
 reserved pair, with the same model/output bounds and the remaining cap.
+
+## Local error-metadata preparation (2026-09-18)
+
+The [diagnostic successor](openai_error_diagnostics.md) adds only opt-in local
+failure metadata: reviewed provider codes, restricted request IDs and normalized
+Retry-After, with explicit unavailable states. It preserves terminal admission,
+the original HTTP error, no retries and full unknown-usage reservations.
+Raw messages/bodies/header maps and credentials remain excluded; runtime/public
+error projections are unchanged. The prior consumed failure cannot gain new
+evidence retroactively. Mock tests do not establish its missing error code.
+No new live admission, request or cost; shared **8.20432754 / 9**, remaining
+**0.79567246**, pending **0**. A later continuation must bind a fresh pair and
+fully reserve both requests before generation, using the instrumented caller.

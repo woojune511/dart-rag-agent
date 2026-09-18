@@ -1,5 +1,9 @@
 # Known-source narrative comparison: provider-stopped attempt
 
+A later [local diagnostic improvement](openai_error_diagnostics.md) prepares
+safer metadata capture for a successor. It makes no new call and cannot recover
+this attempt's missing error details. The incomplete result below is unchanged.
+
 Attempted 2026-09-18 on clean `a28cc398`. Both input counts succeed and the
 complete pair fits its budget, but the first generation returns **HTTP 503**.
 **No new model answer is available; the old/new comparison remains incomplete.**
