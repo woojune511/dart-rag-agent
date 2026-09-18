@@ -100,12 +100,12 @@ ignored local evidence; the committed change is documentation only. Provider cal
 and added accounting are **zero**; shared accounting stays **15.22872845 / 16**,
 remaining **0.77127155**, pending zero. No cap increase or paid successor exists.
 
-Next implement an experiment-local replay of the captured dense results, bound
-to exact query vectors, filters, limits and source identity, then repeat the full
-application integration replay in two fresh processes. BM25 and downstream code
-should execute normally. This will validate integration under fixed retrieval
-fixtures; actual dense-search stability remains a separate measured property.
-Production search defaults and a fresh paid run require their own evidence.
+The subsequent [fixed-retrieval full-app replay](fixed_retrieval_app_replay.md)
+completes in two fresh processes with exact vector/filter/limit/source guards.
+BM25 and downstream owners execute normally; answers, catalogs and evidence agree,
+with only measured search durations differing. This validates fixed-input
+integration; actual dense-search stability remains a separate property. The next
+step is bounded fresh-run admission preparation, with its funding stop intact.
 
 Local evidence: [diagnosis](../../benchmarks/results/compiler_seed_drift_diagnosis_2026-09-19/diagnosis_review.json),
 [64 assertions](../../benchmarks/results/compiler_seed_drift_diagnosis_2026-09-19/checks.json),

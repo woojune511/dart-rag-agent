@@ -68,9 +68,10 @@ a narrative generation was made, and its original stopped result is retained.
 
 The matching rule was not relaxed, candidates were not changed to fit fixtures,
 and no further full-app repeats were run to obtain a favorable result. The
-diagnosis preserves both original outcomes. Next prepare an experiment-local
-dense-result fixture replay with exact query/vector/filter/source guards, then
-repeat full-app integration under those explicitly fixed retrieval inputs.
+diagnosis preserves both original outcomes. The subsequent
+[fixed-retrieval app replay](fixed_retrieval_app_replay.md) completes twice with
+exact query/vector/filter/source guards; only search duration measurements differ.
+This is fixed-input integration evidence, not native-search reproducibility.
 
 Only `chroma.sqlite3` changes inside each disposable copy during startup/use;
 other copied source files retain their bytes. Both original stores and local
