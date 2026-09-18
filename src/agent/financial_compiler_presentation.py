@@ -22,6 +22,11 @@ PROMPT_GROUP_FIELDS = (
     "required_candidate_ids", "policy_group_names",
 )
 DOCUMENT_FIELDS = ("company", "document_company", "year", "source_document_id", "source_anchor")
+_AXIS_SOURCE_PROVENANCE_FIELDS = (
+    "candidate_id", "source_document_id", "source_document_sha256", "source_anchor",
+    "physical_table_id", "physical_row_id", "physical_cell_id", "physical_value_id",
+    "source_row_id", "table_source_id",
+)
 RESPONSIBILITY_SCOPE_FIELDS = ("company", "period", "consolidation_scope", "segment", "basis")
 EMPTY_SCALAR_FIELDS = frozenset((
     "raw_value", "raw_unit", "value_year", "source_value_span", "period",
@@ -107,6 +112,43 @@ def project_wire_reading_payload(payload: Mapping[str, Any]) -> dict[str, Any]:
     if changed:
         return {"schema": "semantic_program_candidate_payload_v10", "piece_columns": list(columns),
                 **{key: value for key, value in result.items() if key != "schema"}}
+    return result
+
+
+def project_wire_axis_provenance(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Share exact provenance only across axes of the same projected candidate.
+
+    Apply after reference and piece projection. Axis addresses, full paths and
+    unknown fields remain local; canonical sources and selection authority never
+    change. A reserved-field collision fails instead of overwriting metadata.
+    """
+    result = deepcopy(dict(payload))
+    if result.get("schema") == "semantic_program_candidate_payload_v11":
+        raise ValueError("axis_provenance_already_projected")
+    changed = False
+    for row in result.get("candidates_by_id", {}).values():
+        if "axis_source_common" in row:
+            raise ValueError("reserved_axis_source_common")
+        axes = list((row.get("interpretation_axis_sources") or {}).values())
+        if len(axes) < 2:
+            continue
+        common = {}
+        for key in _AXIS_SOURCE_PROVENANCE_FIELDS:
+            if not all(key in axis for axis in axes):
+                continue
+            # JSON equality preserves type distinctions such as true, 1 and 1.0.
+            values = [json.dumps(axis[key], ensure_ascii=False, sort_keys=True,
+                                 separators=(",", ":"), allow_nan=False) for axis in axes]
+            if all(value == values[0] for value in values):
+                common[key] = axes[0][key]
+        if common:
+            row["axis_source_common"] = common
+            for axis in axes:
+                for key in common:
+                    del axis[key]
+            changed = True
+    if changed:
+        result["schema"] = "semantic_program_candidate_payload_v11"
     return result
 
 

@@ -44,7 +44,7 @@ from src.agent.financial_output_relationships import (
 from src.agent.financial_compiler_presentation import (
     project_output_responsibility_context,
     project_prompt_cohort, project_prompt_retry_feedback, project_reading_payload,
-    project_wire_reading_payload,
+    project_wire_reading_payload, project_wire_axis_provenance,
 )
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
@@ -2061,6 +2061,7 @@ class FinancialAgentCalculationMixin:
                     wire_payload = references.project(active_prompt_payload)
                     wire_payload["schema"] = "semantic_program_candidate_payload_v9"
                     wire_payload = project_wire_reading_payload(wire_payload)
+                    wire_payload = project_wire_axis_provenance(wire_payload)
                     active_prompt_catalog_json = _compiler_json(wire_payload)
                     if any(item.get("kind") == "narrative" for item in prompt_obligations):
                         active_responsibility_context_json = output_responsibility_context_json
@@ -2091,6 +2092,10 @@ class FinancialAgentCalculationMixin:
                             "obligations": _compiler_json(references.project(prompt_obligations)),
                             "output_responsibility_context": responsibility_prompt,
                             "candidate_catalog": active_prompt_catalog_json,
+                            "axis_source_instructions": (
+                                CALCULATION_PROMPT_POLICY["semantic_program_axis_source_instructions"]
+                                if wire_payload["schema"] == "semantic_program_candidate_payload_v11" else ""
+                            ),
                             "retry_feedback": prompt_retry_feedback,
                             "row_description_instructions": row_description_instructions,
                         }

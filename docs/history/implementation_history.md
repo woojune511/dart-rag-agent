@@ -5,6 +5,13 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Candidate-local Compiler axis provenance (2026-09-19)
+
+- Base `c8b325bf`; [production presentation and evidence](../evaluation/compiler_axis_provenance.md). The presentation owner now shares ten exactly equal present provenance fields within each candidate's axes after short-reference/piece projection. Changed payloads use v11 and a conditional 234-byte instruction; other requests retain their exact v9/v10 wire. Unknown/unequal/missing fields and all axis paths/addresses remain local; reserved fields fail closed.
+- No canonical catalog, source text, reference map, response schema, owner permission, lowering, arithmetic, V2 fingerprint or provider/retry setting changes. Ten new contracts plus Compiler regression 118, phase/API/import/topology 46 and documentation 2 pass (176 total); audit 83. Mocked SDK replies preserve programs, validation, execution and envelopes across direct/calculation/narrative/mixed/shared-basis/retry cases. An initial new-test fixture projection mismatch was corrected without changing runtime guards.
+- Both frozen app payloads restore exactly. Canonical request bytes, including production explanation/escaping, fall **97,309 → 89,817 (7.6992%)** and **65,447 → 65,090 (0.5455%)**. This is not sampled-model quality, actual tokens, billing savings or budget-fit evidence. Different-address repeated source text remains intact.
+- No provider/count/embedding/ingest calls or added cost. All 9050 predecessor files, 24 stores and settings retain hashes; three source files change, 171/174 do not. Shared **14.57777845/15**, remaining **0.42222155**, pending zero. The prior app stop and consumed manifests remain unchanged; future sampled v11 validation needs fresh funding/admission.
+
 ## Compact JSON Compiler default (2026-09-18)
 
 - Base `23e8ef8d`; user approved [default adoption](../evaluation/compiler_compact_json_default.md). The exact previously tested 466-character instruction now prefixes shared numeric/mixed/narrative initial and retry prompts. Only `src/config/retrieval_policy.py` changes in production; all other prompt text, schemas, source strings, validation and call/retry settings are preserved.

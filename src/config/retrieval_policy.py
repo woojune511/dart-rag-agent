@@ -614,11 +614,17 @@ _COMPILER_INPUT_FIELDS = (
     "Compilation scope:\n{compilation_scope}\n\n"
     "Answer obligations:\n{obligations}\n\n"
     "{output_responsibility_context}"
+    "{axis_source_instructions}"
     "Source bundles, candidate cohorts, and candidates_by_id:\n{candidate_catalog}\n\n"
     "재시도 피드백(없으면 -):\n{retry_feedback}\n"
 )
 
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
+    'semantic_program_axis_source_instructions': (
+        "Each interpretation_axis_sources entry inherits the exact provenance fields in its own "
+        "candidate's axis_source_common, when present. Its field and full path remain local. "
+        "This representation adds no evidence or selection permissions.\n"
+    ),
     'semantic_program_subject_selection_repair_invariant': (
         "source_selection_check compares your declared subject with only the exact text your selected addresses resolve to. "
         "It is read-only feedback, not evidence permissions, an attribution verdict or replacement addresses. "
