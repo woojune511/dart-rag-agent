@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Provider-free Compiler input payload audit (2026-09-19)
+
+- Base `1e052f05`; [audit record](../evaluation/compiler_input_payload_audit.md). Two immutable numeric/narrative app requests are decomposed by exact prompt UTF-8/compact JSON sizes. Numeric candidate payload 62,666 bytes contains 38,924 candidate-object bytes and 17,342 bytes of axis-provenance fields. Narrative payload 46,970 bytes contains 23,435 source-reading bytes. Original server counts 26,131/17,529 remain historical; no new count/generation/embedding/ingest calls or admission.
+- Experiment-only candidate-local sharing retains each axis field/path/reference, sharing only exactly equal present provenance. Including explanatory/version overhead, canonical request bytes **97,309 → 89,875 (7.640%)**, **65,447 → 65,149 (0.455%)**. Both expanded payloads are canonically identical; sources/axes/units/contexts/partitions/order/cohorts/schema/settings preserved. Seven anonymous positive/negative controls pass. Cached cl100k proxies are not Astra token measurements, billing, model quality or proof of budget fit; no production adoption.
+- Current source readings already reference 8/5 repeated surfaces. Remaining literal repetitions are 3/20 groups with different source-address contexts; 356/4,577 repeated value bytes, including two identical narrative piece arrays across distinct surfaces. No quote, location or context is removed or treated as interchangeable authority. Text sharing would need a separate presentation contract.
+- All **9022** predecessors, **174** sources, seven runtime owners, **24** original store files and local settings retain hashes. Source/defaults unchanged; documentation only committed. Added cost 0; shared **14.57777845/15**, remaining **0.42222155**, pending zero, not invoice. Prior app stop/no final answer remains unchanged. Next bounded seam is candidate-local axis provenance in prompt presentation, followed by provider-free numeric/mixed/narrative/shared-basis/retry contracts; any paid successor requires fresh funded admission.
+
 ## Compact JSON normal-app mixed smoke stopped by budget (2026-09-18)
 
 - Clean `2879db60`; [full record](../evaluation/compiler_compact_json_app_smoke.md). One known-source Commerce-growth/acquisition question used fresh planning/retrieval, normal OpenAI routes and a verified disposable NAVER store. Fresh `9c86b2cf...dc9b7a7` consumed once; unchanged USD 15 shared cap, run allowance 0.89380341, conditional per-call funding without a completion guarantee.
