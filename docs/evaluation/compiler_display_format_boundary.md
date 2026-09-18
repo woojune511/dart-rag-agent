@@ -87,3 +87,6 @@ remains **USD 14.10619659 / 15**, allowance **0.89380341**, pending zero; estima
 and contingencies are not invoices. Compact-JSON default adoption remains a separate
 decision. This fix neither changes its prompt nor establishes broad language,
 reliability, unseen-source or end-to-end application accuracy.
+
+Subsequent [approved default adoption](compiler_compact_json_default.md) enables the
+same tested prefix, preserving this boundary fix and all historical response bytes.

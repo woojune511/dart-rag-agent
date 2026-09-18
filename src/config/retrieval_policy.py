@@ -553,7 +553,17 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 }
 
 
+_COMPILER_COMPACT_JSON_INSTRUCTIONS = (
+    "Return one JSON object matching the schema. Omit optional whitespace, indentation "
+    "and line breaks outside JSON strings; do not add Markdown fences or text outside "
+    "the object. This is a serialization rule only: retain every required field, output, "
+    "claim, qualification and evidence reference. Do not shorten content to satisfy it. "
+    "Do not remove or normalize whitespace inside string values, especially spaces, "
+    "line breaks and punctuation in exact source quotations.\n\n"
+)
+
 _COMPILER_SHARED_INSTRUCTIONS = (
+    _COMPILER_COMPACT_JSON_INSTRUCTIONS +
     "검색된 원문을 읽고 CompilerResponseV2의 outputs를 작성하세요. 별도의 독해 호출이나 원문 이름의 허용 목록은 없습니다.\n"
     "Compilation scope의 active_obligation_ids만 출력하며 각 request_unit_ids의 정확한 요청 구간과 한정 조건을 보존하세요. label/rationale은 상세 요청이나 공개 답변을 대신하지 않습니다. 같은 설명의 공유 조건과 독립적으로 요청된 설명 주제를 구별하세요.\n"
     "Compilation scope의 output_relationships는 요청에 연결된 공통 기준 관계입니다. relationship_declarations의 해당 관계 키에 공통 해석을 한 번만 쓰고, 각 ready result의 relationship_refs에 자신이 속한 모든 관계를 명시하세요. 모든 구성원이 보류하면 선언은 null로 둘 수 있습니다. 개별 원문의 basis 해석을 같은 문장으로 바꾸지 마세요. read_only_relationship_declarations는 이미 통과한 출력과 공유하는 고정 선언이므로 다시 작성하지 말고 해당 관계를 참조하세요. 관계 참조는 원문·주체·범위 검증을 대체하지 않으며, 겹치는 관계의 해석은 각각 독립적입니다.\n"

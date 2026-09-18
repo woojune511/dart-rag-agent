@@ -5,6 +5,12 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Compact JSON Compiler default (2026-09-18)
+
+- Base `23e8ef8d`; user approved [default adoption](../evaluation/compiler_compact_json_default.md). The exact previously tested 466-character instruction now prefixes shared numeric/mixed/narrative initial and retry prompts. Only `src/config/retrieval_policy.py` changes in production; all other prompt text, schemas, source strings, validation and call/retry settings are preserved.
+- Three new policy/retry contracts plus focused 39, execution/source/public/ledger 45 and import/topology/docs 24 pass (108 total); audit 83. Four stored replies retain six outputs, 16 byte-identical API payloads, 20 canonical files and four schemas. The 32 mocked SDK requests match frozen candidate requests: 16 positives, 14 expected rejections, two retained semantic negatives.
+- No provider/count/embedding calls or added accounting. All 8683 predecessor files, seven runtime owners, 24 stores and settings retain hashes; 173/174 source files unchanged. Shared 14.10619659/15, remaining 0.89380341, pending zero. Default adoption is complete; prior sampled savings remain limited evidence, not a new accuracy or savings measurement.
+
 ## Compiler records at the public result boundary (2026-09-18)
 
 - Base `d4fab63f`; [contract and replay evidence](../evaluation/compiler_display_format_boundary.md). A saved mixed response's Japanese internal `display_format` appeared at six default API trace paths; final answer text remained Korean. The defect is caller projection, not calculation or source semantics.

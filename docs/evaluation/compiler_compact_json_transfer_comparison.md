@@ -111,4 +111,6 @@ decision. This consumed manifest permits no more provider calls.
 
 Follow-up: the [provider-free display-boundary audit](compiler_display_format_boundary.md)
 found six default API metadata paths, fixed their caller projection, and preserved
-all original responses, final answers and canonical records. Default adoption remains separate.
+all original responses, final answers and canonical records. The subsequent
+[approved default adoption](compiler_compact_json_default.md) applies the same prefix
+with provider-free regression; these historical sampled results remain unchanged.
