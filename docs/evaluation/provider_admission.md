@@ -231,3 +231,18 @@ reserves stay retained. Another unchanged pair exceeds the remainder even at
 its output/count-only floor **0.532**. No additional paid dispatch follows.
 Source/execution passes in both arms remain separate from assistant semantic
 review, which finds a baseline-only extra-clause error in this single pair.
+
+## Eight-control comparison: non-executable proposal (2026-09-18)
+
+The [masked review preparation](narrative_blind_review_preparation.md) preserves
+all eight controls and sixteen captured requests without a live manifest or call.
+Its proposed batch requires sixteen exact counts before any generation, every
+count at most 4000, unchanged 5120 output ceilings and the full measured reserve
+before dispatch. Maximum project reservation **5.056** includes **0.16** count
+contingency; it is not a bill or an observed count tariff. Current shared cap
+**9**, accounted **8.64771504**, remainder **0.35228496**, pending **0** are unchanged.
+Proposed additional allowance **5** (shared cap **14**) is not approved/applied
+by this preparation. A later funded run requires a separately verified batch
+caller and fresh single-use admission; existing two-call-per-kind limits are
+not silently expanded. Any count/provider/shape/usage failure stops the batch
+without retry, fallback, repair, resume or historical-response substitution.

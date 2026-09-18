@@ -1,5 +1,9 @@
 # Known-source narrative comparison: completed diagnostic successor
 
+The subsequent [eight-control preparation](narrative_blind_review_preparation.md)
+adds a masked review template and budget proposal, with no new samples or cost.
+The completed pair and its limitations below remain unchanged.
+
 Completed on 2026-09-18 from clean `1af0598d` after the user continued the
 recommendation for one fresh pair within the remaining **USD 0.79567246**.
 Both generations succeed. Assistant review finds a **sample-level difference**:

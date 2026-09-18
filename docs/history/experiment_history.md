@@ -12,6 +12,13 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Eight-control masked review preparation (2026-09-18)
+
+- Clean `70f70aa0`; [preparation](../evaluation/narrative_blind_review_preparation.md). User continues the provider-free review/budget recommendation. Eight original anonymous sources, their authored contrast labels/reasons and 16 SDK-captured requests are unchanged. Reviewer-only table/JSON/ZIP have 16 uncollected slots, null scores, no condition labels/expected examples or internal diagnostics. The condition key remains local and separate.
+- Fixed shuffled case order; each condition appears first in generation and as A four times, with two cases in each joint cell. Review decisions precede unmasking, with all clauses/coverage/qualifiers/abstention assessed and exact source/response quotes recorded. Missing or failed requests are not semantic scores. Preparers know the key and prior outcomes; this is label masking, not independent blinded review or fresh accuracy evidence.
+- Non-executable scope: 8 cases x 2 conditions x 1 response, 16 exact counts before any generation, full output bound 5120 unchanged, input ceiling 4000 as a stop condition (unmeasured). Full reserve 5.056 = outputs 4.096 + count contingency 0.16 + input ceiling 0.8. Additional allowance needed 4.70371504; practical proposal +5, shared cap 9 to 14, outside-suite headroom 0.29628496. No proposal applied: shared 8.64771504/9, remaining 0.35228496, pending 0; calls/new scores/added cost/cap change all zero. Count tariff/invoice unknown.
+- Input/label hashes, 4/4 and 2/2/2/2 balances, empty score records, archive exclusions and Decimal math pass. Eight negative checks reject leakage, premature score, changed source, missing slot and invalid count shapes/bounds; docs 4/4, external attempts zero. All 174 sources, 3067 predecessors, 24 stores/settings unchanged. Runtime/full suite not rerun; only docs committed. Existing pair caller remains two-count/two-response; future funded scope requires a verified batch caller and fresh admission. Prior sampled conclusions are unchanged.
+
 ## Completed longer-source diagnostic pair (2026-09-18)
 
 - Clean `1af0598d`; [result](../evaluation/narrative_long_pair_diagnostic.md). User authorizes one fresh pair under remaining 0.79567246; shared cap remains 9. Same frozen Compiler source/catalog/plan/schema/model/output bounds; only the reviewed narrative instruction differs. Verified diagnostic caller is byte-identical. New `e908e324...def77d1f` consumed once.
