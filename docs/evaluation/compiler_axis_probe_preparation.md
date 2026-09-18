@@ -1,5 +1,8 @@
 # Two-case axis-provenance probe preparation
 
+This point-in-time proposal was subsequently funded and executed in the
+[two-case API probe](compiler_axis_probe.md); its original preparation evidence remains unchanged.
+
 Prepared 2026-09-19 from clean `f2c14af4`, following the production
 [candidate-local axis projection](compiler_axis_provenance.md). Two current v11
 Compiler requests, their full count descriptors, review criteria and proposed
