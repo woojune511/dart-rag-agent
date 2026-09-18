@@ -1,5 +1,10 @@
 # Multi-sentence narrative comparison design
 
+The [subsequent bounded comparison](narrative_multisentence_comparison.md) is now
+complete: both instructions accept 4/6 answers and retain 23/25 required criteria,
+with four accepted ties and two shared omissions. The preparation below remains
+a historical no-call snapshot; its authored examples are not sampled results.
+
 Prepared on 2026-09-18 from clean `6c6a2891`, following the
 [eight-control comparison](narrative_eight_control_comparison.md). That run tied
 on all eight cases and mostly repeated one-sentence sources. This preparation

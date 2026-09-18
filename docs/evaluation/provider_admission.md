@@ -288,3 +288,29 @@ count stops before generation; any later provider/shape/usage/identity failure
 stops the batch. No trimming, replacement, retry, repair, resume, model/output
 substitution or automatic cap increase. Uncollected responses have no scores;
 authored structural rehearsals are not provider or semantic acceptance.
+
+## Multi-sentence comparison: consumed admission (2026-09-18)
+
+The user continued the concrete prepared twelve-response scope without a cap
+increase. Fresh manifest `5c190bd6...75bce`, clean `77791423`, was consumed once
+for the [six-case comparison](narrative_multisentence_comparison.md). All twelve
+exact counts (**3709-3859**, ceiling 6000) preceded generation; full 5120-output
+reservations plus inputs/count contingencies totaled **3.7580500 < 4.092**.
+All **24 HTTP calls returned 200**, producing twelve complete first responses.
+No retry, repair, resume, replacement or additional provider work followed.
+
+A preflight mock exposed float accumulation rejecting the exact 4.092 boundary.
+Its failed receipt is retained. Only the local caller's money arithmetic changed
+to Decimal, preserving the production admission contract, unchanged requests and
+cap. Exact equality admits; a cap of 4.091999999999999 rejects the same reserve.
+Final eleven caller controls and 27 existing admission/count contracts pass.
+
+Observed-token estimate **1.1066000** plus count contingency **0.12** adds
+**1.2266000**. Shared **10.83356504 / 14**, remaining **3.16643496**, pending **0**;
+authorized increase **0**. This is conservative accounting, not invoice or observed
+count tariff; previous unknown-usage reservations remain retained. Current raw
+Compiler/source/execution accepts 12/12 with 87 source-span support occurrences.
+Separately locked preparer review accepts **4/6 per condition**, with four accepted
+ties and two rejected ties caused by required omissions; source validity is not
+semantic completeness. No independent blinded, general or full-agent claim.
+The admission is closed to reuse; any later paid task needs a fresh scoped manifest.
