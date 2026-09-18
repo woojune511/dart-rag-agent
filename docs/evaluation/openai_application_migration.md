@@ -801,3 +801,19 @@ errors/repairs/retries. Added 1.0071250 includes 0.04 count contingency; shared
 reserves/evidence, source/store/settings and production defaults are preserved.
 Next is provider-free numeric/mixed/multiline-quotation compatibility; this
 consumed manifest cannot authorize another paid attempt.
+
+## Provider-free compact-JSON compatibility (2026-09-18)
+
+The [output-kind compatibility check](compiler_compact_json_compatibility.md),
+clean `292d3d0a`, covers eight numeric/narrative/mixed authored cases. All 32
+positive combinations preserve source, calculation, display and dependency
+results; all 28 invalid combinations remain rejected. Four deliberately wrong
+meanings remain structurally accepted. Exact model/source strings preserve
+multiline whitespace; existing final narrative display normalization is unchanged.
+
+The completed matrix uses 64 mocked SDK requests; 55 existing contracts and four
+docs checks pass with blocked external networking. No provider calls, new paid
+admission, runtime/default change or added cost. Remaining shared allowance is
+1.30080341, pending zero. This establishes local compatibility only. Next prepare
+a different-source numeric/mixed comparison and full budget feasibility before
+any broader model evidence or default-adoption decision.

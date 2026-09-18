@@ -117,3 +117,8 @@ establish rare-loop elimination or transfer to numeric/mixed requests. Next,
 characterize the same instruction provider-free across numeric, mixed and exact
 multiline-quotation fixtures before considering broader independent-source model
 evidence. No further paid run or default promotion follows from this batch.
+
+The subsequent [provider-free compatibility check](compiler_compact_json_compatibility.md)
+covers numeric, mixed and multiline-quotation controls with the same instruction.
+Its authored replies preserve execution and rejection boundaries; it adds no
+model samples, measured savings or reliability evidence to the comparison above.
