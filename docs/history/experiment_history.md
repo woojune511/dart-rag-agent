@@ -12,6 +12,14 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Completed longer-source diagnostic pair (2026-09-18)
+
+- Clean `1af0598d`; [result](../evaluation/narrative_long_pair_diagnostic.md). User authorizes one fresh pair under remaining 0.79567246; shared cap remains 9. Same frozen Compiler source/catalog/plan/schema/model/output bounds; only the reviewed narrative instruction differs. Verified diagnostic caller is byte-identical. New `e908e324...def77d1f` consumed once.
+- Both exact counts 8555/8656 fund the full 5120-output pair for 0.7471375 before generation. All four requests return 200 in about 61 seconds, output tokens 2104/2061 including reasoning 122/127. No repair, retry, resume or other provider request. Both schema/source/Compiler/V2 execution passes and 4/4 required contents; 12 exact supports per arm.
+- Assistant review: baseline extra search summary joins product/category with expansion/improvement, extending an action beyond its source object. Adopted sample preserves product improvement/category expansion/AI search advancement and all other required relations, with no observed unsupported extra claim. Sample-level difference only: one known input, one answer per arm, fixed order, unblinded review; no general/causal efficacy, unseen or full-agent result. Existing policy retained; short-source tie and original application/503 artifacts unchanged.
+- Conservative usage 0.4233875 plus 0.02 count contingency accounts **0.4433875**; shared **8.64771504 / 9**, remaining **0.35228496**, pending 0. Not invoice; retain earlier unknown-usage reservation. No cap increase. Another unchanged pair cannot fit even the output/count floor 0.532 before inputs.
+- Fresh caller 7/7, diagnostic transport 4/4, two historical Compiler rehearsals, two sampled-response replays and docs 4/4 pass. All 174 sources, 2848 predecessors, 187 sealed files, 24 stores/settings unchanged. Prior full 2029/2029 and audit 83 not rerun. Only docs committed; requests/results/receipts remain local. Next is provider-free preparation for a broader frozen-control comparison, without an automatic paid follow-up.
+
 ## Opt-in OpenAI failure metadata (2026-09-18)
 
 - Base `093cde70`; [implementation](../evaluation/openai_error_diagnostics.md). User continues the recommendation to record error.code, request ID and Retry-After before another attempt. One new ops helper selects reviewed overload/ramp-rate codes, locally accepted req_ IDs, bounded numeric/canonical-date retry hints and explicit availability states. No free-form error text, raw error body/header map, credentials, public projection or automatic retry. The original 503 cause remains unavailable.

@@ -1,5 +1,9 @@
 # Known-source narrative comparison: provider-stopped attempt
 
+A later [fresh diagnostic pair](narrative_long_pair_diagnostic.md) completes both
+responses and records a sample-level semantic difference. It does not change this
+consumed failure, reconstruct its missing metadata or repair the historical answer.
+
 A later [local diagnostic improvement](openai_error_diagnostics.md) prepares
 safer metadata capture for a successor. It makes no new call and cannot recover
 this attempt's missing error details. The incomplete result below is unchanged.

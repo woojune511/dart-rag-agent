@@ -215,3 +215,19 @@ evidence retroactively. Mock tests do not establish its missing error code.
 No new live admission, request or cost; shared **8.20432754 / 9**, remaining
 **0.79567246**, pending **0**. A later continuation must bind a fresh pair and
 fully reserve both requests before generation, using the instrumented caller.
+
+## Completed diagnostic pair settlement (2026-09-18)
+
+The [fresh diagnostic pair](narrative_long_pair_diagnostic.md), clean `1af0598d`,
+uses unchanged frozen requests and the verified instrumented caller. User continuation
+authorizes one pair under **0.79567246**, shared cap **9** unchanged. Both exact
+counts **8555 / 8656** and the complete reserve **0.7471375** precede generation.
+All four transmissions return 200, both samples complete, no repair/retry/resume.
+Manifest `e908e324...def77d1f` is consumed; prior failed manifests stay immutable.
+Conservative observed-token estimate **0.4233875** plus count contingency **0.02**
+accounts **0.4433875**. Shared **8.64771504 / 9**, remaining **0.35228496**,
+pending **0**; not invoice or observed count tariff. Earlier unknown-usage
+reserves stay retained. Another unchanged pair exceeds the remainder even at
+its output/count-only floor **0.532**. No additional paid dispatch follows.
+Source/execution passes in both arms remain separate from assistant semantic
+review, which finds a baseline-only extra-clause error in this single pair.
