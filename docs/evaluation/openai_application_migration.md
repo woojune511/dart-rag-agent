@@ -771,3 +771,16 @@ Added accounting **0.77268904** includes 0.04 count contingency; shared
 Runtime/settings/original stores and 6684 predecessor artifacts remain unchanged.
 Next inspect the frozen first response and output sizing provider-free; no
 automatic paid retry or output-limit change follows from this single sample.
+
+## Offline explanation of the saved output-limit event (2026-09-18)
+
+The [provider-free diagnosis](compiler_output_limit_diagnosis.md) finds a
+32,342-character whitespace suffix in the unfinished first response: 96.04%
+of its output text, not a measured token share. Only 162 of the 5120 output
+tokens are reasoning. The completed four-output answer fits the same schema
+and ceiling at 2176 tokens. Exact SDK replay preserves the raw text and rejects
+incomplete status; removing whitespace does not restore the missing JSON.
+Generation/decoder causes remain unestablished. No runtime/prompt/limit change,
+provider calls or added cost; remaining shared accounting stays **2.30792841**.
+Next is a controlled serialization-instruction candidate, without changing
+required content or grounding fields; no measured efficacy is claimed yet.

@@ -106,7 +106,8 @@ authored responses are not quality evidence. The unchanged runtime retains its
 previous **160 focused / 2,058 full-suite** pass; those suites were not rerun here.
 Documentation checks pass **4/4**, with no external calls during review/testing.
 
-Next inspect the frozen incomplete first response and output size without a
-provider call. Establish whether response verbosity/schema overhead explains
-the ceiling before proposing a generic change. This run alone does not justify
-raising output budgets, adding retries or promoting broader defaults.
+The subsequent [provider-free diagnosis](compiler_output_limit_diagnosis.md)
+finds 32,342 trailing whitespace characters after an unfinished first output,
+not evidence that the complete answer requires a larger ceiling. Exact SDK
+replay preserves rejection of the incomplete response. The upstream generation
+cause remains unknown; this historical paid result and its accounting are unchanged.
