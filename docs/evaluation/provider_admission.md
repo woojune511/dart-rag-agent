@@ -186,3 +186,19 @@ Conservative usage estimate **0.1086125** plus **0.02** count contingency settle
 **0.1286125**; shared **7.82139004 / 9**, remainder **1.17860996**, pending **0**.
 Invoice/count tariff remain unobserved. No account billing setting, runtime,
 store or local setting changes. This manifest authorizes no further call.
+
+## Longer-source pair: failed-generation reservation (2026-09-18)
+
+User continuation authorizes the [known-input comparison](narrative_long_pair.md)
+under shared cap **9**, with this caller capped at **1** from **1.17860996** remaining.
+New `a804af99...70b3c4b` is consumed once on clean `a28cc398`. Both counts return
+200 (**8555 / 8656**) and fund the complete pair for **0.7471375**. The first
+generation returns **HTTP 503** without usage; the other is not attempted.
+The comparison has no new model samples and no retry or repair.
+Retain **0.3629375** for the failed generation plus **0.02** count contingency:
+**0.3829375**, explicitly a conservative reserve rather than observed usage.
+Release the unsent generation reserve **0.3642**. Shared **8.20432754 / 9**,
+remaining **0.79567246**, pending **0**. Invoice/count tariff remain unavailable.
+No runtime, store, settings, account billing or shared-cap change. The consumed
+manifest permits no further transmission; any continuation needs a fresh fully
+reserved pair, with the same model/output bounds and the remaining cap.

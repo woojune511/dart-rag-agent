@@ -1,5 +1,8 @@
 # One-source narrative instruction comparison
 
+The later [longer-source attempt](narrative_long_pair.md) stops at the first
+generation with HTTP 503 and no new answer. This completed short-source tie is unchanged.
+
 Completed 2026-09-18 on clean `9f9a26e5`. Existing and adopted instructions both
 produce the same faithful claim. **This paired sample shows a tie, not an observed
 improvement or regression.** The earlier application fidelity concern remains.

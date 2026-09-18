@@ -2,7 +2,9 @@
 
 Historical USD 8-cap assessment below. The later user-approved USD 1 increase
 funds the [one-source comparison](narrative_clause_pair.md), which finishes with
-both instructions faithful and tied; current accounting is **7.82139004 / 9**.
+both instructions faithful and tied, accounting **7.82139004 / 9** at that point.
+The subsequent [longer-source attempt](narrative_long_pair.md) stops on HTTP 503;
+current conservative accounting is **8.20432754 / 9**, including unknown-usage reserve.
 
 Reviewed 2026-09-18 on clean `2a915ce3`, after [instruction adoption](narrative_clause_policy.md).
 The remaining **USD 0.30722246** cannot fully reserve a complete old/new comparison
