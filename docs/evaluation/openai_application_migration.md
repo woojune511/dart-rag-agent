@@ -837,23 +837,26 @@ tokens to fit; none has been counted. Next is a count-only packet, at most 0.04
 contingency with zero generation, before reassessing full funding. No paid manifest,
 live dispatcher, cost increase or default change was created. Added cost remains 0.
 
-## Different-source input counts (2026-09-18)
+## Different-source compact-JSON comparison (2026-09-18)
 
-The [count-only successor](compiler_compact_json_transfer_count.md), clean
-`1663a54a`, completes four actual counts and zero generations. Numeric inputs are
-15,882/15,965 tokens; mixed inputs 27,399/27,482, total 86,728. Each candidate prefix
-adds 83 input tokens. No output/quality/reliability result follows from counting.
-All frozen request/source bytes and original store/settings hashes are preserved.
+The [completed comparison](compiler_compact_json_transfer_comparison.md), clean
+`d55874fa`, consumes fresh `2d77084c...383e1af3` after the user's explicit $1 increase
+to shared cap 15. Four fresh counts precede all generation and reserve 2.1481 for
+the complete schedule. Eight HTTP 200s produce 4/4 first responses, 6/6 runtime
+outputs and 4/4 frozen assistant content passes, without retry or repair.
 
-An initial local logger argument collision stopped before HTTP; its premature
-sent flag and 0.01 entry remain in the raw record with a separate zero-transmission
-reconciliation. A fresh corrected caller, actual-recorder tests and two identical
-rehearsals precede the four successful counts. No provider retry, generation,
-runtime repair or consumed-manifest reuse. Corrected caller 11 and docs four pass.
+Numeric output tokens are 1092/948 baseline/candidate; mixed 1594/1224, reductions
+13.19%/23.21%. Structural whitespace falls from 1499/2142 to zero with +83 input
+tokens per case. Correct 226354918 thousand-KRW and -3789 hundred-million-KRW
+differences, periods/scales and separate cause/restatement claims remain. Four
+public narrative claims/eight support occurrences match source evidence. One
+mixed candidate internal display_format is Japanese; executed value/claims remain
+Korean, with end-to-end display untested. Two known excerpts and one sample per
+condition do not establish reliability, holdout quality or default adoption.
 
-Actual counts retain 0.04 contingency, so shared accounting is 12.73919659/14,
-remaining 1.26080341, pending zero, not invoice. At the same future counts, full
-generation reserves are 2.1081; fresh counted generation needs 2.1481 including
-new count contingencies, short by 0.88729659. Propose shared cap 15 (+1), with a
-fresh manifest and input guard covering measured sizes; keep 5120 outputs and
-require full-batch funding. No cap increase or generation is included in this step.
+Generation estimate 1.327 plus count contingency 0.04 settles 1.367. Shared
+14.10619659/15, remaining 0.89380341, pending zero, not invoice. All 8012 protected
+predecessors, sources, stores and settings retain hashes. Caller/transport 43 and
+docs four pass; two rehearsals give 36 identical files. No runtime/default change.
+Next provider-free work traces the display-format language through public output
+boundaries before a separate adoption decision; this manifest permits no more calls.

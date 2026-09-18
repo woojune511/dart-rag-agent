@@ -382,3 +382,20 @@ errors/repairs/retries. Added 1.0071250 includes 0.04 count contingency; shared
 reserves/evidence, source/store/settings and production defaults are preserved.
 Next is provider-free numeric/mixed/multiline-quotation compatibility; this
 consumed manifest cannot authorize another paid attempt.
+
+## Different-source four-response settlement (2026-09-18)
+
+The [fresh comparison](compiler_compact_json_transfer_comparison.md) follows explicit
+user approval to raise the experimental shared cap **14 -> 15** by one dollar.
+Manifest `2d77084c...383e1af3` fixes four count bodies and four generation bodies;
+all fresh counts complete before any generation. The 30000 input rejection guard
+covers observed 15882/15965/27482/27399 counts, while the whole measured batch plus
+all 5120 output ceilings reserves **2.1481**, within **2.26080341** available.
+No threshold-sized worst-case funding or reuse of prior count receipts is claimed.
+
+Eight HTTP 200s yield four schema-valid first responses without retry or repair.
+Usage estimate **1.327** plus count contingency **0.04** settles **1.367**; shared
+**14.10619659/15**, remaining **0.89380341**, pending zero. Prior failure reserves
+are retained; invoice/count tariff remain unobserved. The cap change is local
+experiment accounting, not an account billing setting. No runtime/default/store
+change, and the consumed manifest authorizes no further transmission.

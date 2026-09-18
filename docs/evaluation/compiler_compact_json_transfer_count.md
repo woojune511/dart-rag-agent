@@ -101,3 +101,8 @@ store files and local settings retain hashes. Only documentation is committed.
 Runtime prompts, source data, schemas, output limits and retry policies remain
 unchanged. The next bounded action is the proposed full two-case comparison under
 a fresh manifest and a proposed shared cap of 15, with new counts and full funding.
+
+The subsequently approved [full comparison](compiler_compact_json_transfer_comparison.md)
+raises the shared cap to 15 and completes all four first responses. Its current
+shared accounting is 14.10619659/15, remaining 0.89380341. The proposal and
+count-only figures above describe this earlier step, not the later settlement.
