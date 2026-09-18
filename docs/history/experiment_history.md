@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Two-case v11 Compiler probe preparation (2026-09-19)
+
+- Base `f2c14af4`; [preparation record](../evaluation/compiler_axis_probe_preparation.md). Two current v11 numeric/narrative requests from the same known-source app question are frozen with exact schemas/count descriptors, order and source-review criteria. One first response each is proposed; no paired baseline or new Planner/retrieval/app claim. Model, reasoning, output limit and source bytes are unchanged.
+- At a proposed 30,000-input/5,120-output ceiling for each case, conservative input/output reservation plus two $0.01 count contingencies is **1.282**. Current **0.42222155** leaves **0.85977845** unfunded; minimum cent increase 0.86, recommendation 1.00. No increase or paid call was authorized/applied. New counts remain unknown; old counts and byte reductions are not substituted as measurements. The later full-app smoke is outside this budget.
+- Two fresh-process SDK rehearsals produce five byte-identical files/four request bodies using dummy credentials, explicit mock transport and blocked sockets. Authored counts/usage at the maximum and missing-output responses are controls only. Nine new controls, 38 existing admission contracts and two docs checks pass (49 total); underfunded batches, changed/order/size/extra requests, invalid counts, 503 and usage overruns stop as specified.
+- All 9079 predecessor files, 174 sources, seven owners, 24 stores and settings retain hashes. Documentation only; mock packet remains ignored. Added cost 0, shared **14.57777845/15**, pending zero. No live runner or paid manifest; future fresh funding/admission and exact-source execution review are separate. Prior app failure and consumed manifests stay unchanged.
+
 ## Provider-free Compiler input payload audit (2026-09-19)
 
 - Base `1e052f05`; [audit record](../evaluation/compiler_input_payload_audit.md). Two immutable numeric/narrative app requests are decomposed by exact prompt UTF-8/compact JSON sizes. Numeric candidate payload 62,666 bytes contains 38,924 candidate-object bytes and 17,342 bytes of axis-provenance fields. Narrative payload 46,970 bytes contains 23,435 source-reading bytes. Original server counts 26,131/17,529 remain historical; no new count/generation/embedding/ingest calls or admission.
