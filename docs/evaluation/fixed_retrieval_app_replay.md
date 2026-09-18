@@ -93,12 +93,12 @@ New cost is **$0**. Shared accounting remains **15.22872845 / 16**, remaining
 **1.70**, exceeding that remainder by **0.92872845**; the suggested +1.00 has not
 been approved or applied. Replayed usage is neither a new charge nor a forecast.
 
-The fixed-input integration task is complete. Next prepare a fresh bounded
-full-app admission packet using native retrieval and unchanged runtime settings,
-with exact source identity, runtime-generated request counting and the existing
-whole-batch funding stop before bootstrap. The dense fixture remains offline-only.
-Preparation grants no paid execution or budget increase. Native search stability
-and fresh end-to-end model quality remain separate evidence boundaries.
+The fixed-input integration task is complete. The subsequent [native application
+execution preparation](native_application_admission.md) is now complete, with
+whole-batch funding before bootstrap and native-search failure controls.
+The dense fixture remains offline-only. Paid execution and a budget increase
+remain unapproved; native search stability and fresh end-to-end model quality
+remain separate evidence boundaries.
 
 Local evidence: [integration review](../../benchmarks/results/compiler_fixed_retrieval_app_2026-09-19/integration_review.json),
 [guard controls](../../benchmarks/results/compiler_fixed_retrieval_app_2026-09-19/dense_controls.json),

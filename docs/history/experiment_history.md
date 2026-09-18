@@ -9544,3 +9544,7 @@ References:
   plans/retrieval differ from prior runs; 3/3 is not causal provider/patch evidence.
   Google remains the default/routing/planning provider. Earlier paid 2/3 runs and
   Google HTTP 400 are unchanged. No automatic paid rerun or default/release promotion.
+
+## 2026-09-19: Native application execution preparation
+
+Provider-free successor preparation on `b09e1d35` completes with 58 tests, two native-search failure controls, 20 evidence assertions and two docs checks. Each fresh app process performs 17 native Chroma queries; exact HTTP prefixes stop on injected count/generation 503 after 24/25 mock attempts. Diagnostics retain provider 503 while the app returns 500; no retry or final answer. Generation unknown usage retains its 0.5518 simulated reserve in accounted estimates, not pending. Local logging/assertion mistakes were corrected in verification only, without production changes or repeating the native generation run. The proposal is one question, four counts, four generations, 48 embeddings and first Compiler responses only, with whole-batch funding before bootstrap and separate exact-draft single-use authorization. Current 0.77127155 cannot fund 1.70; +1 remains unapproved. New cost/calls 0; shared 15.22872845/16 and pending zero. All 9531 predecessors, 174 sources, seven owners, 24 original store files and settings remain unchanged. [Review and next step](../evaluation/native_application_admission.md).
