@@ -748,3 +748,26 @@ Added accounting **0.08581751** includes two count contingencies; shared
 **10.91938255 / 14**, remainder **3.08061745**, pending **0**, not invoice.
 All source/store/settings and older results remain unchanged. Next is a bounded
 provider-free review of Planner section-reference representation; no paid retry follows.
+
+## Planner request-range real application check (2026-09-18)
+
+The [fresh application check](planner_section_range_app_check.md), clean
+`5f68bff4`, completes **4/4 outputs**, ledger `ok`; separate assistant review
+passes all four frozen final-answer contents with 12 exact source supports.
+All four generated owned ranges resolve the requested section and expose the
+same known-source paragraph. Product improvement and category expansion remain
+distinct. Fresh grouping and one known-source sample preclude a general or
+isolated causal quality claim; earlier failures retain their original results.
+
+All 36 HTTP requests return 200, including four input counts. The first Compiler
+draft is incomplete at its unchanged 5120-token output ceiling (162 reasoning).
+It is rejected; the existing one feedback repair completes at 2176 tokens with
+the same schema/candidates/ceiling. No HTTP error or SDK/whole-query retry; this
+is not error-free first-attempt evidence. Final validation has no errors.
+
+Fresh `280f7bd6...38c957` is consumed under 1.50 without a cap increase.
+Added accounting **0.77268904** includes 0.04 count contingency; shared
+**11.69207159 / 14**, remainder **2.30792841**, pending zero, not invoice.
+Runtime/settings/original stores and 6684 predecessor artifacts remain unchanged.
+Next inspect the frozen first response and output sizing provider-free; no
+automatic paid retry or output-limit change follows from this single sample.

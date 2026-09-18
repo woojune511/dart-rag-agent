@@ -334,3 +334,24 @@ No retry, repair, extra question or paid successor follows. Usage estimate
 tariff observation or release of historical failed-request reserves. The consumed
 manifest cannot authorize another attempt. Local authored binding contrasts are
 not a repaired paid result or evidence of answer quality.
+
+## Planner request-range application: consumed admission (2026-09-18)
+
+Fresh `280f7bd6...38c957`, clean `5f68bff4`, permits one known-source question
+under **1.50** inside the unchanged **3.08061745** remainder. The user continued
+the previously specified real-question check. All 38 sealed admission files,
+6684 predecessors and source/store/settings hashes were verified before dispatch.
+Preflight 87 checks and two identical nine-request actual-store mock rehearsals pass.
+
+The [result](planner_section_range_app_check.md) completes **4/4 outputs** and
+passes the four frozen final-answer criteria under separate assistant review.
+All 36 HTTP calls return 200; the first Astra response is nevertheless incomplete
+at 5120 output tokens. The existing one in-cap feedback repair completes at
+2176 tokens. Both full inputs are counted and full output bounds reserved;
+incomplete text is not accepted. No SDK/transport/whole-query retry or new cap.
+
+Usage estimate **0.73268904** plus count contingency **0.04** adds **0.77268904**.
+Shared **11.69207159 / 14**, remaining **2.30792841**, pending **0**; historical
+failed-request reserves retained, no invoice or observed count tariff. The
+manifest is consumed and cannot authorize another attempt. Further work is
+provider-free inspection of the saved output-limit event, without new admission.

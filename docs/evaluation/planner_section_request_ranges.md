@@ -89,7 +89,9 @@ Provider/count/embedding calls, store writes and added cost are **0**. Shared
 accounting remains **10.91938255 / 14**, remaining **3.08061745**, pending **0**,
 not an invoice. The prior consumed manifest cannot be reused.
 
-Next prepare a fresh bounded real-question check to evaluate the generated
-range choice, retrieval exposure and final answer separately. Use the same
-known-source question and frozen content criteria; preserve the old incomplete
-result and review semantic completeness independently of contract validity.
+The subsequent [fresh real-question check](planner_section_range_app_check.md)
+on `5f68bff4` records generated range choices, retrieval exposure and final
+content separately: 4/4 completed outputs and four assistant-reviewed content
+criteria after one existing repair of an incomplete Compiler draft. Its paid
+accounting and limitations are separate from this provider-free checkpoint;
+the earlier incomplete answer and local authored contrasts remain unchanged.
