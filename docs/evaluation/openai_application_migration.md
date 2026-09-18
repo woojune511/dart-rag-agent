@@ -731,3 +731,20 @@ an isolated causal claim about the old optional-owner failure, which stays 0/4.
 No runtime/model/store/settings change. Accounted **0.30675649**, shared
 **7.69277754 / 8**, remainder **0.30722246**, pending 0; estimate/contingency, not invoice.
 Next is provider-free diagnosis of this wording-fidelity concern, with no new paid admission.
+
+## Current-instruction real-DART pipeline check (2026-09-18)
+
+The [fresh application check](dart_narrative_pipeline_check.md), clean `74fb36d2`,
+uses the same known-source search/display question and four frozen criteria after
+the narrative instruction work. Fresh `331b8c2c...971d73` is consumed once under
+cap **1.50**, with no budget increase. All six HTTP calls return 200, but the
+result is **incomplete / 0 of 2 outputs / ledger ok**: the Planner adds an opening
+quote to a section-restriction request excerpt, triggering two
+`invalid_source_section_request` errors. Retrieval scope is empty and no Compiler
+call occurs. This does not evaluate the current narrative instruction or replace
+the prior paid wording-fidelity finding. Local authored quote contrasts establish
+the section-link boundary without repairing the sampled plan or producing an answer.
+Added accounting **0.08581751** includes two count contingencies; shared
+**10.91938255 / 14**, remainder **3.08061745**, pending **0**, not invoice.
+All source/store/settings and older results remain unchanged. Next is a bounded
+provider-free review of Planner section-reference representation; no paid retry follows.

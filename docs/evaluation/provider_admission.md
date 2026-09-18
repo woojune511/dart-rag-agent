@@ -314,3 +314,23 @@ Separately locked preparer review accepts **4/6 per condition**, with four accep
 ties and two rejected ties caused by required omissions; source validity is not
 semantic completeness. No independent blinded, general or full-agent claim.
 The admission is closed to reuse; any later paid task needs a fresh scoped manifest.
+
+## Real-DART pipeline check: consumed admission (2026-09-18)
+
+The user continued a small real-filing retrieval-to-answer check. Fresh
+`331b8c2c...971d73`, clean `74fb36d2`, admits one unchanged known-source
+search/display question under **1.50**, inside the **3.16643496** remainder,
+without increasing the shared cap. Each final Responses body is counted and its
+full configured output bound reserved before generation. The ordinary application
+uses a verified disposable copy of the existing store, with no source/default change.
+
+All **six HTTP calls return 200**: two embeddings, two counts and two Terra
+generations. The [result](dart_narrative_pipeline_check.md) is nevertheless
+**incomplete**: the Planner adds a quote to an owned request excerpt, causing two
+invalid source-section bindings, empty retrieval scope and zero Compiler calls.
+No retry, repair, extra question or paid successor follows. Usage estimate
+**0.06581751** plus count contingency **0.02** adds **0.08581751**. Shared
+**10.91938255 / 14**, remaining **3.08061745**, pending **0**; no invoice/count
+tariff observation or release of historical failed-request reserves. The consumed
+manifest cannot authorize another attempt. Local authored binding contrasts are
+not a repaired paid result or evidence of answer quality.
