@@ -103,3 +103,8 @@ later sampled comparison needs a fresh bounded admission. There is no evidence
 here to raise the output ceiling, strip or complete provider responses, remove
 grounding fields, shorten required content or add retries. A serialization
 instruction remains a hypothesis until model behavior is separately measured.
+
+The separate [compact-JSON comparison](compiler_compact_json_comparison.md) now
+records four newly scheduled first responses under a fresh bounded manifest.
+It observes compact output in both candidate samples; both baselines also
+complete, so the original failure and its unknown upstream cause remain unchanged.

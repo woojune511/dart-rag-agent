@@ -355,3 +355,20 @@ Shared **11.69207159 / 14**, remaining **2.30792841**, pending **0**; historical
 failed-request reserves retained, no invoice or observed count tariff. The
 manifest is consumed and cannot authorize another attempt. Further work is
 provider-free inspection of the saved output-limit event, without new admission.
+
+## Compact-JSON comparison: consumed admission (2026-09-18)
+
+The [fresh comparison](compiler_compact_json_comparison.md), clean `76b89b5c`,
+uses one frozen first Compiler request and a serialization-only prefix, with
+unchanged schema/model/5120 ceiling. Both conditions complete 2/2 first responses
+and pass separate content and execution checks. Candidate structural whitespace
+is 0/0 versus 3501/3298; mean output tokens 2135 -> 1858. This small known-input
+sample does not establish failure prevention or default suitability.
+
+Fresh `f3baae2c...e2f0f200` consumed once under 1.70: four exact counts before
+four generations, all full ceilings funded at 1.6318250; eight HTTP 200, no
+errors/repairs/retries. Added 1.0071250 includes 0.04 count contingency; shared
+12.69919659/14, remaining 1.30080341, pending zero, not invoice. Prior failed
+reserves/evidence, source/store/settings and production defaults are preserved.
+Next is provider-free numeric/mixed/multiline-quotation compatibility; this
+consumed manifest cannot authorize another paid attempt.
