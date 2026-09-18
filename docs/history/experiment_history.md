@@ -12,6 +12,13 @@ remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
 
+## Different-source compact-JSON comparison preparation (2026-09-18)
+
+- Clean `6ddd37d5`; [preparation record](../evaluation/compiler_compact_json_transfer_preparation.md). Two newly authored numeric/mixed questions use the previously piloted CJ CheilJedang 2025 filing, separate from the earlier NAVER advertising paragraph. Complete selected table/source groups retain 149 and 17 unchanged catalog objects. Fixed criteria cover cash-flow difference, liquidity difference, attributed principal cause and separate comparison-restatement reason; no current model samples or untouched-source claim.
+- Four prefix-only baseline/candidate request bodies, unchanged Astra/medium/strict schema/5120 output ceiling. Two fresh-process SDK rehearsals produce 15 byte-identical files, eight mocked missing-output responses; token usage is synthetic metadata. Six raw-source witnesses use the existing parser/sanitizer and table context attachments, retaining original text and duplicated-footnote locations. Failed strict/recovery-only preparation scripts remain preserved; no parser, source or runtime repair.
+- Transport/count contracts **29**, docs **4** pass; all **7673 predecessors plus three original-source artifacts**, 174 sources, seven runtime owners, 24 store files and local settings preserve hashes. Provider/count/generation/embedding calls and added cost are **0**. Only documentation is committed.
+- Shared **12.69919659/14**, remainder **1.30080341**, pending **0**, not invoice. Full four-response reservation at the old 12000-input ceiling is **1.664**, shortfall **0.36319659**. Actual counts unknown: total measured input must be at most **18944** tokens at retained conservative rates to fit. Next prepare count-only measurement of the four frozen bodies, at most **0.04** contingency and zero generation, then reassess. No paid manifest, runner, cap increase, smaller output ceiling or default adoption.
+
 ## Provider-free compact-JSON output-kind compatibility (2026-09-18)
 
 - Clean `292d3d0a`; [compatibility record](../evaluation/compiler_compact_json_compatibility.md). User continued the specified numeric/mixed/multiline-quotation step. Eight authored cases, baseline/candidate prefix and pretty/compact replies: **32/32 positive combinations**, **56 output instances**, identical compiled programs, validation, source/units/formulas/dependencies and execution. Installed SDK with dummy credentials and mocked HTTP, blocked external sockets; no new model samples, runtime/default/prompt/schema/limit change or paid admission.

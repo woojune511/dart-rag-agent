@@ -109,3 +109,8 @@ evidence beyond the one known narrative input. Next prepare a small contrast on
 different frozen source material with numeric/mixed outputs and content criteria,
 then assess whether its complete request/output reserves fit the existing budget.
 No paid successor, larger ceiling or default promotion is part of this step.
+
+The [different-source comparison preparation](compiler_compact_json_transfer_preparation.md)
+now freezes numeric/mixed inputs and paired SDK bodies. Its two rehearsals agree;
+actual input counts remain unknown and the old full input ceiling exceeds the
+remaining allowance. It adds no paid sample to the evidence above.

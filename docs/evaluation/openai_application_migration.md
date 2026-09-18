@@ -817,3 +817,22 @@ admission, runtime/default change or added cost. Remaining shared allowance is
 1.30080341, pending zero. This establishes local compatibility only. Next prepare
 a different-source numeric/mixed comparison and full budget feasibility before
 any broader model evidence or default-adoption decision.
+
+## Different-source comparison preparation (2026-09-18)
+
+The [prepared comparison](compiler_compact_json_transfer_preparation.md), clean
+`6ddd37d5`, freezes two CJ CheilJedang 2025 questions: a numeric cash-flow change
+and a liquidity calculation with cause/restatement explanation. These known-source
+excerpts and manually authored plans are outside the earlier NAVER advertising
+input; they are not unseen or full-application evidence. Four SDK request bodies
+retain the exact serialization-only treatment, source objects and production
+settings. Two fresh-process rehearsals produce 15 identical files, with eight
+mocked abstentions and no paid counts/generations. Transport/count 29 and docs four
+pass; originals and settings retain hashes.
+
+The four full output reserves plus count contingencies require 1.064 before input.
+At the previous 12,000-input-token ceiling, full reservation is 1.664, above the
+1.30080341 remainder. The actual four inputs would need to total at most 18,944
+tokens to fit; none has been counted. Next is a count-only packet, at most 0.04
+contingency with zero generation, before reassessing full funding. No paid manifest,
+live dispatcher, cost increase or default change was created. Added cost remains 0.
