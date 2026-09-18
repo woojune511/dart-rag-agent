@@ -58,17 +58,19 @@ run A includes chunk 76; run B includes chunk 96 in its place. The catalogs cont
 candidates are unchanged, including the six candidates supporting Run A's answer.
 The numeric Compiler body still matches exactly; the narrative body does not.
 
-The first observed data difference is in retrieval/seed selection. Existing traces
-do not isolate whether dense search, BM25 ranking, merging or another selection
-step causes it. No backend cause or quality degradation is asserted. Run B's
+Those initial traces located the difference in retrieval/seed selection. The
+subsequent [provider-free diagnosis](retrieval_seed_drift_diagnosis.md) isolates
+Chroma HNSW membership and reproduces both catalogs by exchanging only one
+query's observed dense results. No quality degradation is established. Run B's
 `provider_token_count_failed` is the local guard's classification of the mock
 identity rejection, **not an observed provider failure**. Neither a new count nor
 a narrative generation was made, and its original stopped result is retained.
 
 The matching rule was not relaxed, candidates were not changed to fit fixtures,
-and no further full-app repeats were run to obtain a favorable result. Next,
-capture each query's dense, BM25 and merged results in a provider-free diagnostic
-to locate the changing seed boundary before preparing a paid successor.
+and no further full-app repeats were run to obtain a favorable result. The
+diagnosis preserves both original outcomes. Next prepare an experiment-local
+dense-result fixture replay with exact query/vector/filter/source guards, then
+repeat full-app integration under those explicitly fixed retrieval inputs.
 
 Only `chroma.sqlite3` changes inside each disposable copy during startup/use;
 other copied source files retain their bytes. Both original stores and local
