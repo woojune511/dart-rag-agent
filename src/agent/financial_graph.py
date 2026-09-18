@@ -12,6 +12,7 @@ from src.agent.financial_agent_run_projection import (
     augment_citations_from_runtime_evidence,
     enrich_runtime_evidence_metadata,
     project_agent_answer,
+    project_caller_agent_answer,
     project_debug_bundle,
     project_debug_traces,
     project_review_trace,
@@ -818,7 +819,7 @@ class FinancialAgent(
         include_review_trace: bool = False,
         include_debug_bundle: bool = False,
     ) -> FinancialRunResultV1:
-        """Execute the graph and expose its canonical result without numeric repair."""
+        """Execute the graph and project caller fields without numeric repair."""
 
         usage_callback = getattr(self, "llm_usage_callback", None)
         if usage_callback is not None:
@@ -862,7 +863,7 @@ class FinancialAgent(
         )
         return FinancialRunResultV1(
             schema_version=FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
-            agent_answer=final["agent_answer"],
+            agent_answer=project_caller_agent_answer(final["agent_answer"]),
             review_trace=review_trace,
             debug_bundle=debug_bundle,
         )

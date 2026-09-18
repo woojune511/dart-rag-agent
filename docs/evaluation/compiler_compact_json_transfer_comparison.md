@@ -108,3 +108,7 @@ case/condition, not retrieval, Planner, unseen-source or end-to-end application
 validation. Next is a provider-free trace of whether the internal display-format
 language can reach public output, followed by a separate compact-JSON adoption
 decision. This consumed manifest permits no more provider calls.
+
+Follow-up: the [provider-free display-boundary audit](compiler_display_format_boundary.md)
+found six default API metadata paths, fixed their caller projection, and preserved
+all original responses, final answers and canonical records. Default adoption remains separate.

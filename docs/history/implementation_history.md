@@ -5,6 +5,13 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Compiler records at the public result boundary (2026-09-18)
+
+- Base `d4fab63f`; [contract and replay evidence](../evaluation/compiler_display_format_boundary.md). A saved mixed response's Japanese internal `display_format` appeared at six default API trace paths; final answer text remained Korean. The defect is caller projection, not calculation or source semantics.
+- Two runtime owners now omit whole Compiler program/validation/history records from the two public trace copies after final/ledger assembly. Canonical program, validation, execution, final graph answer and ledger stay byte-identical; explicit review/debug retain original records. Source text, Planner display intent, formulas, periods, amounts and citations are preserved without language filtering or numeric repair.
+- Three new contracts fail before and pass after; focused caller/API 25, execution/ledger/evaluator/portfolio 135, import/topology/docs 24 (184 total), domain audit 83 pass. Four stored responses yield six outputs and 16 in-memory HTTP 200 responses on each version. Only eight specified record paths are removed per API response; all other fields, opt-in payloads and 20 canonical files are identical.
+- No provider/count/embedding calls, added cost, store/settings mutation or compact-JSON default adoption. All 8589 predecessor files and 24 stores retain hashes; 172/174 source files are unchanged. Shared accounting remains 14.10619659/15, allowance 0.89380341, pending zero. This replay does not establish new Planner/retrieval/provider/browser or unseen-source accuracy.
+
 ## Planner section request ranges (2026-09-18)
 
 - Base `34cd0068`; [contract and evidence](../evaluation/planner_section_request_ranges.md). Production section bindings select owned first/last request-unit IDs and observed section IDs. Code copies the contiguous whole range, retaining punctuation and qualifiers without changing request segmentation. Source-group inputs preserve the new typed references.

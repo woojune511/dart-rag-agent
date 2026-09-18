@@ -60,7 +60,7 @@ edges:
 phase key 하나만 쓴다. Numeric/narrative node는 계산 결과와 검증된 근거만
 반환한다. `assemble_final`만 answer, citation, structured result를 조립하고,
 `assemble_ledger`는 이 확정된 결과로 ledger를 한 번 만든다. `run()`은 완성된
-결과와 opt-in review/debug를 포장할 뿐 답변이나 근거를 다시 계산하지 않는다.
+결과의 공개 trace 사본에서 내부 Compiler/검증 기록을 제외하고 opt-in review/debug를 포장한다. 원본·ledger·답변·근거는 다시 계산하거나 수정하지 않는다.
 
 ## Numeric compilation boundary
 

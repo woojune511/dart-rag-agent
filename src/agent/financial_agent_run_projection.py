@@ -231,6 +231,44 @@ def project_agent_answer(
     }
 
 
+def _project_caller_calculation_trace(trace: RuntimeCalculationTrace) -> RuntimeCalculationTrace:
+    """Omit whole compiler records without editing their fingerprint-bound content."""
+    projected = trace.copy()
+    plan = trace.get("calculation_plan")
+    if isinstance(plan, dict):
+        projected["calculation_plan"] = {
+            key: value for key, value in plan.items()
+            if key not in ("semantic_program", "program_validation", "program_validation_history")
+        }
+    result = trace.get("calculation_result")
+    if isinstance(result, dict):
+        projected["calculation_result"] = {
+            key: value for key, value in result.items() if key != "validation"
+        }
+    return projected
+
+
+def project_caller_agent_answer(answer: AgentAnswer) -> AgentAnswer:
+    """Project the two public trace paths after canonical final/ledger assembly.
+
+    Evidence, request intent and result values are copied unchanged. This is not
+    a recursive field-name or language filter; review/debug keep full records.
+    """
+    projected = answer.copy()
+    trace = answer.get("resolved_calculation_trace")
+    if isinstance(trace, dict):
+        projected["resolved_calculation_trace"] = _project_caller_calculation_trace(trace)
+    structured = answer.get("structured_result")
+    if isinstance(structured, dict):
+        projected["structured_result"] = structured.copy()
+        nested_trace = structured.get("resolved_calculation_trace")
+        if isinstance(nested_trace, dict):
+            projected["structured_result"]["resolved_calculation_trace"] = (
+                _project_caller_calculation_trace(nested_trace)
+            )
+    return projected
+
+
 def project_review_trace(
     final: Dict[str, Any],
     *,

@@ -13,7 +13,7 @@
 | `src/api/services.py` | `AppServices`, strict readiness, dependency assembly |
 | `src/config/llm_profiles.py` | reviewed opt-in application LLM routes; shared API/Streamlit profile selection, no benchmark inputs or credentials |
 | `src/api/financial_router.py` | HTTP schema, readiness gate, threadpool dispatch |
-| `src/agent/financial_graph.py` | `FinancialAgent`, explicit phase inputs/provider controls, final assembly then ledger; run packages only |
+| `src/agent/financial_graph.py` | `FinancialAgent`, explicit phase inputs/provider controls, final assembly then ledger; run applies caller projection without recomputing answers |
 | `src/agent/financial_graph_state.py` | concrete phase input/output TypedDicts and `FinancialAgentStateV2` |
 | `src/agent/financial_runtime_contracts.py` | immutable visibility and V2 full execution-content fingerprint |
 | `src/agent/financial_run_result.py` | versioned `FinancialRunResultV1` |
@@ -50,7 +50,7 @@
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_numeric_surface.py` | shared numeric surfaces plus catalog-only standalone scalar exposure; legacy identity order and evaluation extraction preserved |
 | `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |
-| `src/agent/financial_agent_run_projection.py` | answer/review/debug projection functions |
+| `src/agent/financial_agent_run_projection.py` | answer/review/debug projections; caller trace copies omit whole Compiler/validation records after ledger assembly, preserving canonical records and evidence |
 | `src/agent/financial_task_artifacts.py` | artifact/ledger projection; aggregate status follows finalized public result |
 | `src/routing/query_router.py`, `src/config/query_routing_prompt.py` | validated canonical success cache, scale-stable similarity, anonymous declarative routing prompt |
 
