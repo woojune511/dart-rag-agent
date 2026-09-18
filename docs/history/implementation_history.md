@@ -5,6 +5,13 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Planner section request ranges (2026-09-18)
+
+- Base `34cd0068`; [contract and evidence](../evaluation/planner_section_request_ranges.md). Production section bindings select owned first/last request-unit IDs and observed section IDs. Code copies the contiguous whole range, retaining punctuation and qualifiers without changing request segmentation. Source-group inputs preserve the new typed references.
+- Legacy quote records retain exact validation and are absent from generation; no automatic conversion, quote repair, source widening, title/company rule or extra model call. Range ownership and copied text/spans are revalidated; V2 binds them through execution. Physical linkage does not certify the selected restriction or section meaning.
+- Six anonymous controls frozen before edits; baseline 47 and current focused 160 pass. Seventeen new contracts cover schema/SDK, exact copying, malformed/foreign refs, source intersection, preflight isolation, final answer/ledger, retry and tampering. The saved response retains two errors; an explicitly authored range recovers only the known graph-node eligibility. Four malformed variants stay blocked. Prior model answer and semantic judgments are unchanged.
+- Full suite **2058/2058**, no skips/external connections, domain audit **83**, documentation/compilation/diff checks pass; receipts are in the local packet. Initial integration fixture company scope and a one-line documentation limit failure were corrected without weakening runtime guards or tests. Four runtime/policy source files change; 6659 predecessor files, 24 stores and settings retain hashes. Provider/count/embedding calls and added cost zero; shared 10.91938255/14, remaining 3.08061745, pending zero. No new paid admission.
+
 ## Numeric supplement value-cell recognition (2026-09-17)
 
 - Baseline `4688a070`: the latest paid cash question's primary/seed window omitted

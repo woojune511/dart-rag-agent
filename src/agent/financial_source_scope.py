@@ -12,7 +12,7 @@ import json
 import re
 from typing import Any, Mapping, Sequence
 
-from src.agent.financial_request_units import build_request_units
+from src.agent.financial_request_units import build_request_units, owned_request_unit_span
 
 
 _ORDINAL = re.compile(r"^(?:[IVXLCDM]+|[0-9]+(?:\.[0-9]+)*|[A-Z])[.)]\s+", re.I)
@@ -94,6 +94,14 @@ def build_source_section_inventory(
 
 
 def _request_span(binding: Mapping[str, Any], query: str, owner: Mapping[str, Any]) -> list[int]:
+    if "first_request_unit_id" in binding or "last_request_unit_id" in binding:
+        if "request_unit_id" in binding:
+            return []  # Mixed declarations never fall back to a legacy quote.
+        span = owned_request_unit_span(query, owner.get("request_unit_ids") or [],
+            binding.get("first_request_unit_id"), binding.get("last_request_unit_id"))
+        if span and ("requested_text" not in binding or binding["requested_text"] == query[slice(*span)]):
+            return span
+        return []
     unit_id, text = binding.get("request_unit_id"), binding.get("requested_text")
     if not isinstance(text, str) or not text.strip() or unit_id not in (owner.get("request_unit_ids") or []):
         return []
@@ -111,8 +119,9 @@ def resolve_source_section_bindings(
 ) -> list[dict[str, Any]]:
     """Copy planner references into source-qualified authority, without inference.
 
-    Model schema supplies only request text/unit and selected IDs. Observed paths,
-    offsets and the inventory fingerprint are added here, never by the model.
+    Generation supplies whole request-range endpoints and selected section IDs.
+    Code copies text, offsets, paths and inventory fingerprint. Legacy internal
+    excerpts keep their strict checks and are never converted or repaired.
     """
     result = deepcopy(list(obligations))
     known = {row["section_id"]: row for row in inventory.get("sections") or []}
@@ -121,6 +130,8 @@ def resolve_source_section_bindings(
             for binding in owner.get("source_section_bindings") or []:
                 ids = binding.get("section_ids") or []
                 span = _request_span(binding, query, obligation)
+                if span and "first_request_unit_id" in binding:
+                    binding["requested_text"] = query[slice(*span)]
                 binding.update(request_span=span, resolved_sections=[deepcopy(known[key]) for key in dict.fromkeys(ids) if key in known],
                     inventory_fingerprint=str(inventory.get("fingerprint") or ""))
                 if not span:
@@ -235,13 +246,14 @@ def source_section_requirement_errors(obligations: Sequence[Mapping[str, Any]], 
             bindings = raw_bindings if isinstance(raw_bindings, (list, tuple)) else [raw_bindings]
             for index, binding in enumerate(bindings):
                 if (_binding_valid(binding) and (span := _request_span(binding, query, obligation))
-                        and span == binding.get("request_span")):
+                        and span == binding.get("request_span")
+                        and query[slice(*span)] == binding.get("requested_text")):
                     continue
                 errors.append({"code": str(binding.get("resolution_error") or "invalid_source_section_binding")
                     if isinstance(binding, Mapping) else "invalid_source_section_binding",
                     "obligation_id": obligation_id, "owner_id": owner_id, "candidate_id": "",
                     "location": f"source_section_bindings[{index}]", "repair_action": "repair_requirements",
-                    "detail": "Use an owned exact request excerpt and section IDs from the observed inventory; unresolved restrictions cannot be dropped."})
+                    "detail": "Use an owned contiguous request-unit range and section IDs from the observed inventory; unresolved restrictions cannot be dropped."})
             clauses = _clauses(owner)
             if not clauses:
                 continue

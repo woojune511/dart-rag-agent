@@ -29,6 +29,7 @@
 
 2. **LLM은 semantics, code는 execution.**
    - LLM은 intent, concept, evidence interpretation처럼 의미 판단에 쓴다.
+   - Planner의 절 제한은 소유한 연속 요청 구간의 시작·끝 ID와 관측된 절 ID로 연결한다. 코드는 전체 원문과 한정 조건을 그대로 복사하며, 범위 안 모든 구간의 소유권을 검증한다. 기존 인용형 기록의 잘못된 문장 부호를 보정하거나 새 참조로 자동 변환하지 않는다. 요청 연결은 올바른 절 해석의 증명이 아니다.
    - 산술, 단위 변환, dependency binding, dedupe, ordering, validation은 deterministic code로 처리한다.
    - Compiler는 연산·인수·요청 수량의 근거를 선택하고, 코드는 명시된 단계 연결을 기존 계산식으로 옮긴다. 괄호 생성은 의미 보정이 아니며, 빠진 연산·인수·근거를 추정해서 채우지 않는다.
    - deterministic fallback은 없는 근거를 만들어내는 답변 생성이 아니라, 이미 구조화된 row/evidence를 조립하는 경우에만 허용한다.

@@ -47,6 +47,22 @@ def project_request_units(
     }
 
 
+def owned_request_unit_span(
+    query: str, owned_ids: Sequence[str], first_unit_id: str, last_unit_id: str,
+) -> list[int]:
+    """Resolve a whole contiguous range only when every included unit is owned."""
+    units = build_request_units(query)
+    indices = {unit.request_unit_id: index for index, unit in enumerate(units)}
+    if (not isinstance(first_unit_id, str) or not isinstance(last_unit_id, str)
+            or first_unit_id not in indices or last_unit_id not in indices
+            or not isinstance(owned_ids, (list, tuple))):
+        return []
+    first, last = indices[first_unit_id], indices[last_unit_id]
+    if first > last or any(unit.request_unit_id not in owned_ids for unit in units[first:last + 1]):
+        return []
+    return [units[first].start, units[last].end]
+
+
 def request_unit_errors(
     units: Sequence[RequestUnitV1], obligations: Sequence[Mapping[str, Any]],
 ) -> list[dict[str, str]]:

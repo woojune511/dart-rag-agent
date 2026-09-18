@@ -189,6 +189,8 @@ class SourceSectionBindingTests(unittest.TestCase):
 
     def test_planner_receives_only_scoped_metadata_and_copies_model_inputs(self):
         raw = {**requested(), "scope": {"company": "Issuer", "period": "2042"}}
+        raw["source_section_bindings"] = [{"first_request_unit_id": "request_001",
+            "last_request_unit_id": "request_001", "section_ids": [section_id()]}]
         response = RequirementPlannerOutput.model_validate({"obligations": [raw]})
         before = deepcopy(response.model_dump())
         agent = FinancialAgent.__new__(FinancialAgent)

@@ -1,6 +1,6 @@
 """Structured-output models for narrative evidence and semantic calculation programs."""
 
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, create_model
 from pydantic.json_schema import SkipJsonSchema
@@ -123,6 +123,22 @@ class SourceSectionBindingV1(_DeferredBaseModel):
     ))
 
 
+class SourceSectionReferenceV2(_DeferredBaseModel):
+    """Select existing request addresses; exact wording is copied by code."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    first_request_unit_id: str = Field(description=(
+        "First provided request unit containing this source restriction. Select a whole contiguous "
+        "range, including the full section path and its qualifiers; every included unit must be "
+        "owned by the output. Code copies the exact original text, without a model-written quote."
+    ))
+    last_request_unit_id: str = Field(description=(
+        "Last provided request unit of the same restriction, inclusive. Use the first ID again "
+        "for a single unit. Numbered or quoted headings may span several mechanical units."
+    ))
+    section_ids: List[str] = SourceSectionBindingV1.model_fields["section_ids"]
+
+
 class EvidenceRequirement(_DeferredBaseModel):
     """One non-rendered evidence input required to produce an answer obligation."""
 
@@ -140,7 +156,7 @@ class EvidenceRequirement(_DeferredBaseModel):
         "Alternatives within this list; intersects the parent output's restriction. "
         "Use > between path components. Empty means no additional restriction."
     ))
-    source_section_bindings: List[SourceSectionBindingV1] = Field(default_factory=list, description=(
+    source_section_bindings: List[Union[SourceSectionBindingV1, SourceSectionReferenceV2]] = Field(default_factory=list, description=(
         "Source restrictions linked to observed inventory IDs. Each binding intersects the parent "
         "and the other bindings; leave empty when there is no additional source restriction."
     ))
@@ -153,6 +169,7 @@ class AnswerObligation(_DeferredBaseModel):
     """One user-visible output requirement, independent of an operation taxonomy."""
 
     model_config = ConfigDict(defer_build=True, extra="forbid")
+    _source_group_requirement_type: ClassVar[type[EvidenceRequirement]] = EvidenceRequirement
 
     obligation_id: str = ""
     kind: Literal["direct_value", "derived_value", "narrative"]
@@ -189,7 +206,7 @@ class AnswerObligation(_DeferredBaseModel):
         "Copy title components from the query, using > for hierarchy. Entries are "
         "alternatives; empty means unrestricted. Applies to all supporting inputs."
     ))
-    source_section_bindings: List[SourceSectionBindingV1] = Field(default_factory=list, description=(
+    source_section_bindings: List[Union[SourceSectionBindingV1, SourceSectionReferenceV2]] = Field(default_factory=list, description=(
         "Link explicit requested source restrictions to observed section IDs. "
         "Use these bindings rather than source_sections for informal or differently worded titles. "
         "An empty list means no such restriction; a binding with no selected IDs remains unresolved."
@@ -229,7 +246,7 @@ class AnswerObligation(_DeferredBaseModel):
             return self
         if self.kind != "narrative":
             raise ValueError("A source-defined group must be a narrative obligation")
-        requirement = EvidenceRequirement(
+        requirement = self._source_group_requirement_type(
             label=self.label,
             scope=self.scope.model_copy(deep=True),
             source_sections=list(self.source_sections),
@@ -260,7 +277,19 @@ class OutputRelationshipV1(_DeferredBaseModel):
     request_text: str = Field(min_length=1, description="Exact request substring requiring these outputs to share a basis, not merely a company or topic.")
 
 
-class NumericAnswerObligation(AnswerObligation):
+class PlannerEvidenceRequirement(EvidenceRequirement):
+    """Generation selects request ranges; legacy quotations remain internal only."""
+
+    source_section_bindings: List[SourceSectionReferenceV2] = EvidenceRequirement.model_fields["source_section_bindings"]
+
+
+class PlannerAnswerObligation(AnswerObligation):
+    _source_group_requirement_type: ClassVar[type[EvidenceRequirement]] = PlannerEvidenceRequirement
+    source_section_bindings: List[SourceSectionReferenceV2] = AnswerObligation.model_fields["source_section_bindings"]
+    evidence_requirements: List[PlannerEvidenceRequirement] = Field(default_factory=list)
+
+
+class NumericAnswerObligation(PlannerAnswerObligation):
     """Numeric generation keeps its declared unit for deterministic validation."""
 
     kind: Literal["direct_value", "derived_value"]
@@ -271,7 +300,7 @@ class DirectValueAnswerObligation(NumericAnswerObligation):
 
     kind: Literal["direct_value"]
     evidence_mode: Literal["declared_inputs"] = "declared_inputs"
-    evidence_requirements: List[EvidenceRequirement] = Field(
+    evidence_requirements: List[PlannerEvidenceRequirement] = Field(
         default_factory=list, max_length=0, description=(
             "Always empty for direct_value. The output itself owns the source lookup; "
             "preserve its requested subject, scope and retrieval hints on this obligation."
@@ -285,7 +314,7 @@ class DerivedValueAnswerObligation(NumericAnswerObligation):
     kind: Literal["derived_value"]
 
 
-class NarrativeAnswerObligation(AnswerObligation):
+class NarrativeAnswerObligation(PlannerAnswerObligation):
     """A narrative's presentation is not a scalar measurement unit."""
 
     kind: Literal["narrative"]
