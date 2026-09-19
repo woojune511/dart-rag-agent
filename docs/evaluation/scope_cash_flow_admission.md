@@ -1,5 +1,10 @@
 # Single cash-flow question admission
 
+Execution update: the user accepted **+USD 0.73 and one attempt**. The draft is
+now consumed; the [live result](scope_cash_flow_result.md) is **0/2 outputs** with
+no API errors. The sections below retain the original preparation evidence and
+budget snapshot; current accounting and the next provider-free seam are in that result.
+
 The first [frozen additional question](independent_question_criteria.md) now has
 a dedicated single-use caller and provider-free rehearsal. **62 focused tests**,
 **three application failure rehearsals** and **40 saved-evidence checks** pass.
@@ -17,7 +22,7 @@ Its question, scope and two diagnostic flags exactly match the frozen input.
 The original two numeric source witnesses and acceptance criteria are unchanged.
 The dividend and unsupported-2024 questions remain outside this execution scope.
 
-The future run uses the actual health/companies/query endpoints and native Chroma
+The prepared run uses the actual health/companies/query endpoints and native Chroma
 with normal BM25/RRF retrieval on a verified disposable copy of the selected
 store. The caller and admission helpers are byte-identical to the prior reviewed
 engine. The native runner changes only its dedicated output directory; no
@@ -50,8 +55,8 @@ reservation as accounted cost; outstanding reservation becomes zero. These
 simulated amounts are never added to the real experiment ledger.
 
 The scope ends at the first routing request: **no Planner, native search or
-Compiler runs in these rehearsals**. A fresh paid plan, selected cells, semantic
-accuracy and native-search variation remain unobserved for this question.
+Compiler runs in these rehearsals**. These rehearsals provide no fresh paid plan,
+selected-cell, semantic-accuracy or native-search-variation evidence for this question.
 The existing unchanged caller's later-phase constraints retain their prior
 evidence; no new question-specific success fixture is supplied.
 
@@ -70,7 +75,7 @@ rates of **12.5/50 for Astra**, **2.5/12 for Terra**, and **0.13 for embeddings*
 Input ceilings use the published short-context cache-write rates. Four count
 allowances of 0.01 remain an explicit contingency, not a verified endpoint tariff.
 
-| Retained budget | USD |
+| Budget at preparation, before the accepted increase | USD |
 | --- | ---: |
 | Shared accounted / approved cap | 16.02259344 / 17 |
 | Remaining, pending zero | 0.97740656 |
@@ -91,10 +96,11 @@ accounting. An exclusive consumption marker precedes transport creation; any
 attempt consumes it. There is no SDK/HTTP/whole-query retry, provider fallback,
 fresh ingest or automatic run of the two other questions.
 
-The current balance fails the real draft entrypoint before any transport,
-bootstrap, output or consumption. **No budget increase or paid execution has
-been authorized.** The next action is the user's acceptance of additional
-funding and this one question, after which the frozen attempt can execute once.
+The preparation balance failed the real draft entrypoint before any transport,
+bootstrap, output or consumption. Subsequently, the user accepted the proposed
+0.73 increase and this one question. The authorized attempt has now executed
+and consumed the draft; it must not be reused. See the [result](scope_cash_flow_result.md)
+for the failure boundary, current accounting and next provider-free work.
 
 ## Preservation and local artifacts
 

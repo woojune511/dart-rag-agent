@@ -3,7 +3,7 @@
 Three questions and their source/semantic review criteria are frozen on clean
 `2cb90b59`, following the [native application result](native_application_result.md).
 This preparation made **zero API calls**, attempted no network connections and
-added **USD 0**. These questions have not been run through retrieval or the app.
+added **USD 0**. All three questions were unexecuted at that preparation boundary.
 The work changes evaluation documentation only, with no runtime or store change.
 
 All requests select NAVER's 2023 annual report, receipt **20240318000844**.
@@ -59,8 +59,9 @@ or evidence of improved accuracy.
 
 ## Budget and next step
 
-The retained accounting remains **16.02259344 / 17 USD**, leaving **0.97740656**,
-with pending zero. No budget increase or paid execution is authorized here.
+At preparation, retained accounting was **16.02259344 / 17 USD**, leaving
+**0.97740656**, pending zero. This criteria preparation authorized no increase or run.
+Current accounting follows the separate [cash-flow result](scope_cash_flow_result.md).
 
 | Planning envelope using the previous frozen policy | USD |
 | --- | ---: |
@@ -76,14 +77,16 @@ Terra calls, at most two Astra calls, four counts and 48 embeddings under the
 unchanged full output limits. A fresh plan needing more calls must stop at the
 limit, so funding that ceiling does not guarantee task completion.
 
-The subsequent [single cash-flow admission](scope_cash_flow_admission.md) now
-binds the first question and these unchanged criteria. Its provider-free
-rehearsals and current pricing check are complete. The current balance still
-cannot fund its 1.70 cap; proposed additional funding of 0.73 and one paid run
-require user acceptance. The other two questions remain unexecuted. Do not
-lower production limits, reuse a consumed admission or silently run all three.
+The subsequent [single cash-flow admission](scope_cash_flow_admission.md) bound
+the first question and these unchanged criteria. After the user accepted +0.73
+and one attempt, its draft was consumed: **0/2 outputs**, with both source-section
+bindings unresolved and no API error. [Saved-evidence review](scope_cash_flow_result.md)
+identifies located table-heading/parent-section exposure as the next provider-free
+seam. Current shared accounting is **16.09071086 / 17.73 USD**, leaving **1.63928914**,
+pending zero. The other two questions remain unexecuted. Do not lower production
+limits, reuse the consumed admission or automatically run another question.
 This original criteria preparation created no live caller or authorization;
-the separate successor owns the new unconsumed draft.
+the separate execution owns the accepted increase and consumed attempt.
 
 ## Verification and artifacts
 
