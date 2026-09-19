@@ -98,8 +98,8 @@ Local evidence: [live/source review](../../benchmarks/results/compiler_native_ap
 [run receipt](../../benchmarks/results/compiler_native_app_2026-09-19/run_receipt.json),
 [actual API result](../../benchmarks/results/compiler_native_app_2026-09-19/commerce_growth_acquisition/api_result.json).
 
-This once-only task is complete. Next prepare a small independent-question
-evaluation set and freeze its source/semantic acceptance criteria without
-provider calls, then assess its budget separately. Do not automatically repeat
-the consumed known-source question. General semantic accuracy, native-search
-stability and presentation refinements remain separate validation questions.
+This once-only task is complete. The subsequent [additional question criteria](independent_question_criteria.md)
+freeze three questions and source/semantic acceptance without API calls or new
+cost. They remain unexecuted and need a new funded admission before paid use.
+Do not repeat this consumed question automatically. General semantic accuracy,
+native-search stability and presentation refinements remain separate questions.
