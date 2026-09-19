@@ -89,9 +89,10 @@ remain unchanged, and no other frozen question is executed.
 
 **New provider calls/cost: 0.** Retained shared accounting is **16.09071086 /
 17.73 USD**, remaining **1.63928914**, pending zero; these are estimates, not an
-invoice. Next prepare a fresh bounded single-question admission and no-call
-rehearsal for this changed build before any provider verification. The consumed
-draft cannot be reused, and no paid retry is implied by this correction.
+invoice. A [fresh single-question admission](scope_cash_flow_heading_admission.md)
+now verifies this changed input through actual-app no-call rehearsals. Its proposed
++0.07 funding and one paid attempt remain unaccepted; the consumed draft cannot
+be reused, and no paid retry is implied by this correction.
 
 Local artifacts: [focused tests](../../benchmarks/results/planner_table_heading_offline_2026-09-19/focused_final.json),
 [final saved-input review](../../benchmarks/results/planner_table_heading_offline_2026-09-19/final_replay/review.json),
