@@ -84,8 +84,9 @@ returned application HTTP 500 after a numeric payment-status binding failed;
 all 23 external calls succeeded and a repair request was blocked locally.
 Its partial policy/period claims are not a final answer. Current accounting
 is 17.11707679/18.27, remaining 1.15292321, pending zero. The unsupported-2024
-question remains unexecuted; consumed drafts cannot be reused. The next seam
-is provider-free characterization of generic Planner output kinds.
+question remains unexecuted; consumed drafts cannot be reused. The
+[Planner output-kind clarification](planner_output_kind_boundary.md) is now
+tested locally; the next seam is provider-free exact quote-source characterization.
 
 Local evidence: [source review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/source_review.json),
 [92-check review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/live_review.json),

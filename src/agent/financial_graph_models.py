@@ -298,7 +298,11 @@ class NumericAnswerObligation(PlannerAnswerObligation):
 class DirectValueAnswerObligation(NumericAnswerObligation):
     """A source lookup is its own evidence owner, without calculation inputs."""
 
-    kind: Literal["direct_value"]
+    kind: Literal["direct_value"] = Field(description=(
+        "Return a requested scalar numeric value as reported in the source. "
+        "An explicit or brief fact is not necessarily numeric: use narrative for "
+        "status or occurrence, and do not substitute an associated amount for a requested state."
+    ))
     evidence_mode: Literal["declared_inputs"] = "declared_inputs"
     evidence_requirements: List[PlannerEvidenceRequirement] = Field(
         default_factory=list, max_length=0, description=(
@@ -311,13 +315,21 @@ class DirectValueAnswerObligation(NumericAnswerObligation):
 class DerivedValueAnswerObligation(NumericAnswerObligation):
     """A calculation may declare the evidence inputs its formula requires."""
 
-    kind: Literal["derived_value"]
+    kind: Literal["derived_value"] = Field(description=(
+        "Return a requested calculated scalar from source or declared dependency values. "
+        "Explanations and status facts remain narrative; preserve any separately requested numeric result."
+    ))
 
 
 class NarrativeAnswerObligation(PlannerAnswerObligation):
     """A narrative's presentation is not a scalar measurement unit."""
 
-    kind: Literal["narrative"]
+    kind: Literal["narrative"] = Field(description=(
+        "Report a fact, status, occurrence, condition, relationship, or explanation with "
+        "source-grounded claims, including a brief yes/no answer. Numbers in the question "
+        "or supporting evidence do not make the requested output a scalar; preserve "
+        "independently requested numeric outputs separately."
+    ))
     display_unit: Literal[""] = Field(default="", description=(
         "Always empty for narrative outputs. Use display_format for presentation "
         "instructions and retain requested facts in the narrative requirements."

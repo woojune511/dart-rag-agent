@@ -13306,3 +13306,12 @@ are complete. It remains only as an audit record, not an active priority.
   or Chroma opening. New calls/cost zero; retained 16.09071086/17.73 USD, remaining
   1.63928914 and pending zero. Next fresh bounded admission/rehearsal, no automatic
   paid retry or consumed-draft reuse. [Details](../evaluation/planner_table_heading_exposure.md).
+
+
+## 2026-09-19: Clarify Planner status facts versus scalar outputs
+
+- The saved dividend failure exposes ambiguous Planner wording: payment status was direct_value despite a relevant future-payment sentence, and an associated amount was selected. This is a generic output-kind contract seam, not a missing domain alias.
+- Policy now reserves direct_value for a requested source scalar and derived_value for a calculated scalar; facts/status/occurrence/conditions/relationships, including brief yes/no answers, use narrative. Numbers in context do not set the output kind; separately requested quantities stay independent. Three production kind descriptions carry the same boundary. No keyword classifier, output-count rule, state/ledger change, old-plan rewrite or source-validation weakening.
+- Six new authored controls were added; the initial SDK instruction assertion failed on the old prompt while five behavior/limit controls passed. All six now pass within 82 focused tests. Domain audit remains 83 reviewed literals; import/topology/documentation checks pass separately. Counterfactual source-linked claims and authored misclassification remain explicit semantic negatives, not accuracy evidence.
+- Blocked-network saved-question SDK replay passes 25 checks: 72,014 -> 73,374 bytes, only intended instructions and three schema descriptions changed. Structural local/strict schemas, original request/scope/inventories and model settings stay unchanged. A review-only dictionary-order mismatch was isolated and corrected using actual API serialization; no live request. The old sampled response remains misclassified and its three saved validation errors remain exact.
+- All 10208 predecessors, 24 original store files, seven protected owners and settings are preserved. Only two of 174 source files change; no Chroma open, provider calls, added cost, budget increase or consumed-draft reuse. Shared accounting stays 17.11707679/18.27, remaining 1.15292321, pending zero. Prior paid HTTP 500 and partial claims remain unchanged. Next characterize bundle/sentence quote ownership provider-free; no new classification or answer success is claimed. [Details](../evaluation/planner_output_kind_boundary.md).

@@ -88,12 +88,13 @@ All **10132 predecessor files**, **174 source files**, seven runtime owners,
 **24 original store files** and settings are unchanged. Only the disposable
 copy's SQLite bytes changed during loading. Experiment artifacts remain local.
 
-The next bounded work is provider-free characterization of the generic Planner
-boundary between a nonnumeric status fact and a scalar lookup, with the separate
-quote-source alignment mismatch retained. No particular fix has been validated;
-trimming one quote would not make an amount a status answer. Preserve strict
-source validation and avoid dividend-specific routing rules. The unsupported-2024
-question remains unexecuted; this consumed draft authorizes no additional paid run.
+The [generic Planner output-kind contract](planner_output_kind_boundary.md) is
+now clarified and tested provider-free. No fresh model classification or completed
+answer is established; this original failure remains unchanged. Next characterize
+the separate bundle/sentence quote-source mismatch, preserving exact source bytes
+and ownership. Trimming a quote would not make an amount a status answer.
+The unsupported-2024 question remains unexecuted; this consumed draft authorizes
+no additional paid run.
 
 Local evidence: [source review](../../benchmarks/results/dividend_policy_execution_2026-09-19/source_review.json),
 [failure analysis](../../benchmarks/results/dividend_policy_execution_2026-09-19/failure_analysis.json),

@@ -88,8 +88,10 @@ Two source-supported policy/period claims remain partial internal drafts; no
 final answer passed these three required meanings. Shared accounting is
 **17.11707679 / 18.27 USD**, leaving **1.15292321**, pending zero.
 The dividend draft is consumed and unsupported-2024 remains unexecuted.
-Next characterize the generic Planner output-kind boundary provider-free;
-preserve strict validation and do not automatically run another paid question.
+The [Planner output-kind clarification](planner_output_kind_boundary.md) is
+implemented and tested provider-free; no new sampled answer is established.
+Next characterize the separate exact quote-source boundary, preserving strict
+validation and making no automatic paid run.
 This original criteria preparation created no live caller or authorization;
 the separate execution owns the accepted increase and consumed attempt.
 
