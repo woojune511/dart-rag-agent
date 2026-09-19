@@ -79,12 +79,13 @@ no unchanged runtime suite or paid experiment is rerun. Tracked edits are docs o
 
 ## Next bounded step
 
-The next frozen `dividend_policy_status` question now has a
-[provider-free admission and rehearsal](dividend_policy_admission.md), retaining
-its separate policy/period/payment criteria. The proposed +0.47 funding and one
-attempt remain unaccepted. The unsupported-2024 question also remains unexecuted;
-the consumed cash-flow draft cannot be reused. This result authorizes no further
-paid execution or increase.
+The subsequently authorized [dividend-policy attempt](dividend_policy_result.md)
+returned application HTTP 500 after a numeric payment-status binding failed;
+all 23 external calls succeeded and a repair request was blocked locally.
+Its partial policy/period claims are not a final answer. Current accounting
+is 17.11707679/18.27, remaining 1.15292321, pending zero. The unsupported-2024
+question remains unexecuted; consumed drafts cannot be reused. The next seam
+is provider-free characterization of generic Planner output kinds.
 
 Local evidence: [source review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/source_review.json),
 [92-check review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/live_review.json),

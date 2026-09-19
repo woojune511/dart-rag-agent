@@ -61,7 +61,7 @@ or evidence of improved accuracy.
 
 At preparation, retained accounting was **16.02259344 / 17 USD**, leaving
 **0.97740656**, pending zero. This criteria preparation authorized no increase or run.
-Current accounting follows the separate [cash-flow successor](scope_cash_flow_heading_result.md).
+Current accounting follows the separate [dividend-policy result](dividend_policy_result.md).
 
 | Planning envelope using the previous frozen policy | USD |
 | --- | ---: |
@@ -81,11 +81,15 @@ The first [cash-flow result](scope_cash_flow_result.md) remains **0/2 outputs**,
 with unresolved section bindings and no API error. After the located table-heading
 correction, a separately authorized [successor](scope_cash_flow_heading_result.md)
 now passes **2/2 outputs** against these same criteria, without retry. Both drafts
-are consumed. Current shared accounting is **16.56583531 / 17.80 USD**, leaving
-**1.23416469**, pending zero. The [dividend-policy admission](dividend_policy_admission.md)
-is now prepared provider-free; proposed +0.47 funding and one attempt are unaccepted.
-Both other questions remain unexecuted. Do not lower production limits, reuse
-consumed admissions or automatically run another question.
+are consumed. The separately authorized [dividend-policy attempt](dividend_policy_result.md)
+returned application HTTP 500 after a numeric payment-status binding failed,
+with all 23 external calls successful and the subsequent repair blocked locally.
+Two source-supported policy/period claims remain partial internal drafts; no
+final answer passed these three required meanings. Shared accounting is
+**17.11707679 / 18.27 USD**, leaving **1.15292321**, pending zero.
+The dividend draft is consumed and unsupported-2024 remains unexecuted.
+Next characterize the generic Planner output-kind boundary provider-free;
+preserve strict validation and do not automatically run another paid question.
 This original criteria preparation created no live caller or authorization;
 the separate execution owns the accepted increase and consumed attempt.
 

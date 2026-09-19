@@ -1,6 +1,13 @@
 # Dividend-policy question admission
 
-The next frozen question has a dedicated execution proposal and provider-free
+The user subsequently accepted +USD 0.47 and one attempt on `526965ca`.
+The draft is consumed: [the result](dividend_policy_result.md) is application
+HTTP 500 after invalid payment-status binding and a blocked repair request,
+while all 23 external calls succeeded. Current shared accounting is
+17.11707679/18.27, remaining 1.15292321, pending zero. The following describes
+the preserved preparation boundary, not an unconsumed execution proposal.
+
+At preparation, the next frozen question has a dedicated execution proposal and provider-free
 rehearsal on `20d03bd7`. **62 focused tests**, **three actual-app Planner failure
 rehearsals** and **91 saved-evidence checks** pass. Five original prose witnesses
 retain their exact spans and report identity. **Real provider calls and new cost
@@ -75,7 +82,7 @@ not a verified endpoint tariff; accounting is not an invoice.
 | Exact one-question envelope | 1.69972608 |
 | Rounded run cap | 1.70 |
 | Shortfall to rounded cap | 0.46583531 |
-| Proposed cent-rounded increase, not applied | **0.47** |
+| Increase proposed at preparation, subsequently accepted | **0.47** |
 | Available if accepted, shared cap 18.27 | 1.70416469 |
 
 The unchanged ceiling permits two Terra and at most two disjoint-owner Astra
@@ -89,8 +96,9 @@ provider fallback, fresh ingest or automatic execution of another question.
 Whole-batch funding precedes transport and bootstrap. The fresh draft binds the
 clean documentation commit, unchanged sources, exact question and current balance.
 At that balance its real entrypoint stops before transport, bootstrap, output or
-consumption. No authorization or consumed marker is created. Next obtain explicit
-acceptance of **+USD 0.47 and one dividend-question attempt** against this draft.
+consumption. At preparation no authorization or consumed marker was created.
+The later accepted **+USD 0.47 and one attempt** consumed this exact draft;
+see the linked result for current accounting and failure evidence.
 
 ## Preservation and artifacts
 
