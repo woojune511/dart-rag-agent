@@ -759,6 +759,8 @@ INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
 PLANNING_POLICY: Dict[str, Any] = {
     'source_section_inventory_max_sections': 256,
     'source_section_inventory_max_bytes': 65536,
+    'source_section_heading_max_hints': 64,
+    'source_section_heading_max_bytes': 16384,
     'source_axis_inventory_max_axes': 64,
     'source_axis_inventory_max_bytes': 16384,
     'requirement_planner_prompt_template': "당신은 DART 재무 질문의 검색 전 의미 요구사항을 정리합니다.\n"
@@ -776,6 +778,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- 같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고 관련 request_unit_ids를 모두 연결하세요. 조건이 다른 request unit에 있다는 이유만으로 별도 출력을 만들지 마세요.\n"
             "- 같은 주어·문장·request unit을 공유한다는 이유로 독립적인 설명을 합치지 마세요. 출력 개수를 미리 정하지 마세요.\n"
             "- 질문이 근거를 특정 문서 절로 명시적으로 제한하면 source_section_bindings로 요청과 실제 위치를 연결하세요. first_request_unit_id와 last_request_unit_id는 그 제한이 담긴 연속 요청 구간의 처음과 마지막 ID입니다. 한 구간이면 같은 ID를 쓰세요. 번호·따옴표가 있는 제목은 여러 구간에 걸칠 수 있으므로 전체 경로와 한정 조건을 모두 포함하고 사이의 모든 구간을 해당 출력의 request_unit_ids에 소유하세요. 코드는 선택된 구간 전체의 원문·공백·문장 부호를 그대로 복사합니다. 요청 인용문이나 위치 숫자를 새로 쓰지 마세요. section_ids는 source_section_inventory에서 의미에 맞는 관측된 절 ID 목록입니다. 목록 안 ID는 대안이며 각 binding과 상위 obligation·근거 입력의 제한은 교집합입니다. 명시적으로 지정된 제목·경로는 다른 절로 바꿀 수 없습니다. 같은 제한을 source_sections에도 중복 작성하지 마세요.\n"
+            "- source_section_inventory.table_heading_hints는 표에 직접 연결된 가장 가까운 상위 제목과 기존 section_id의 관계를 보여 주는 독해 참고 자료입니다. 요청한 표 제목이 독립 절로 없더라도 이 관계를 읽고 그 표가 속한 관측 절을 선택할 수 있습니다. 제목이나 context_id를 새 section_id로 만들지 마세요. 상위 절을 선택해도 요청한 표·범위·제외 조건은 원문 요청에 그대로 남기며, 같은 절의 모든 표가 요청에 맞는다는 뜻은 아닙니다. 실제 표와 값의 의미 대응은 검색 후 Compiler가 근거와 함께 판단합니다. 제목은 인용 근거나 후보 권한이 아니고, omitted_heading_count 또는 빈 목록은 원문 부재의 증명이 아닙니다.\n"
             "- 관측된 위치를 결정할 수 없거나 목록에서 찾지 못하면 요청 범위 ID를 유지하고 section_ids를 비워 unresolved로 남기세요. 제한을 삭제하거나 다른 절로 대체하지 마세요. inventory는 저장된 위치 목록일 뿐 본문이나 보고서 전체의 완전성 증명이 아니며 omitted_section_count가 있으면 일부 위치가 생략됐습니다. 명시적 절 제한이 없으면 source_section_bindings와 source_sections를 비우세요. 추정 검색 위치·본문 주제·ontology hint를 제한으로 만들지 마세요. source_sections는 질문이 정확히 명명한 제목·경로를 그대로 지정하는 기존 형식에만 쓰며, retrieval_hints와 label은 선택 권한이 아닙니다.\n"
             "- 질문이 특정 하위 항목 이름을 열거하지 않고 원문 표의 요약·구성·주요 항목처럼 source schema가 항목을 정하는 묶음을 요청하면 관행적인 표준 항목을 추정해 여러 direct_value obligation으로 만들지 마세요. 그 묶음은 하나의 narrative obligation으로 보존하고, 실제 원문 항목과 값은 검색 후 compiler가 선택하게 하세요. 질문에 명시된 개별 수치만 별도 direct_value 또는 derived_value obligation으로 만듭니다.\n"
             "- 위처럼 원문이 항목을 정하는 narrative 요약은 evidence_mode를 source_defined_group으로 지정하고 evidence_requirements는 비워 두세요. 런타임이 그 obligation의 label·scope·retrieval_hints·concept_hints를 보존한 하나의 필수 원문 그룹 requirement를 만듭니다. evidence_requirements나 검색 힌트에 관행적인 개별 항목을 추정해 넣지 마세요.\n"

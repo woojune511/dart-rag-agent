@@ -647,7 +647,8 @@ class FinancialAgentPlanningMixin:
         plan_loop_count = int(state.get("plan_loop_count") or 0)
         # Reuse the retrieval owner's source boundary, before any semantic
         # selection. BM25 metadata is already-loaded committed source metadata;
-        # section/axis projections read no source bodies, embeddings, database or provider.
+        # Only paths, attached titles and axes reach the Planner here;
+        # no embeddings, database or provider reads are added.
         where_filter = self._build_scope_plan(state)["where_filter"]
         metadata = getattr(getattr(self, "vsm", None), "bm25_metadatas", []) or []
         scoped_metadata = [row for row in metadata if metadata_matches_filter(row, where_filter)]
@@ -655,6 +656,8 @@ class FinancialAgentPlanningMixin:
             scoped_metadata,
             max_sections=int(PLANNING_POLICY["source_section_inventory_max_sections"]),
             max_bytes=int(PLANNING_POLICY["source_section_inventory_max_bytes"]),
+            max_heading_hints=int(PLANNING_POLICY["source_section_heading_max_hints"]),
+            max_heading_bytes=int(PLANNING_POLICY["source_section_heading_max_bytes"]),
         )
         axis_inventory = build_source_axis_inventory(scoped_metadata, query=query,
             max_axes=int(PLANNING_POLICY["source_axis_inventory_max_axes"]),

@@ -13282,3 +13282,27 @@ are complete. It remains only as an audit record, not an active priority.
   saved-input sizing, source review criteria, prior answers or authored witnesses.
 - [Prepared exact-manifest/cost approval packet](../../benchmarks/results/openai_compiler_exposure_admission_2026-09-16_v2/PREPARED.md).
   Provider calls 0; separate approval is still required for its single execution.
+
+## 2026-09-19: Located table-title hints for Planner section selection
+
+- On baseline `223115af`, add bounded nearest ancestor TITLE hints from hydrated,
+  report-scoped table metadata to the existing section inventory. Check table
+  path/identity agreement, document/context hash, exact span and physical attachment;
+  retain one deterministic source example and rotate across visible parent sections.
+  Separate 64-entry/16,384-byte bounds and omission/fingerprint fields preserve
+  existing section IDs, membership fingerprint, request linkage and all rejection gates.
+- Fifteen anonymous controls and 98 focused tests pass; runtime domain audit remains
+  83 reviewed literals. Final blocked-network SDK replay passes 25 assertions:
+  both formerly absent cash-flow headings reach the actual request, within 24/85
+  visible titles and 16,070 hint bytes. Schema/settings/source axes are unchanged;
+  only hints and their instruction change the prompt, growing request bytes
+  54,189 to 72,967. No provider-token or model-success inference follows.
+- The untouched saved response still yields two unresolved restrictions, an empty
+  search filter and no Compiler call. Original paid 0/2 remains failed; authored
+  valid-parent controls establish linkage only, with same-parent siblings still
+  requiring semantic selection. No keyword fallback or section-authority promotion.
+- All 9862 predecessor artifacts, seven protected owners, 24 original store files
+  and settings are preserved. Three source files change, no source-store mutation
+  or Chroma opening. New calls/cost zero; retained 16.09071086/17.73 USD, remaining
+  1.63928914 and pending zero. Next fresh bounded admission/rehearsal, no automatic
+  paid retry or consumed-draft reuse. [Details](../evaluation/planner_table_heading_exposure.md).

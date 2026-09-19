@@ -105,12 +105,12 @@ All **9819 predecessor files**, **174 sources**, seven runtime owners,
 store remains ready, source-complete and non-degraded with 1,872 chunks. Only
 the disposable copy's SQLite bytes changed. Tracked changes are documentation.
 
-Next characterize generic exposure of located table headings and their parent
-sections, using the saved failure and anonymous positive/negative controls.
-The relevant owner is `build_source_section_inventory` in
-`src/agent/financial_source_scope.py`, called by `financial_graph_planning.py`.
-Preserve request ownership, source identity and rejection of unresolved
-restrictions; add no question/title-specific fallback. No paid retry is implied.
+The subsequent [provider-free correction](planner_table_heading_exposure.md)
+exposes attached table headings for the existing parent sections and passes
+anonymous controls plus saved-input replay. It retains request ownership, source
+identity and rejection of unresolved choices. This original paid result stays
+**0/2**; the correction has not received a new provider response. A future live
+check needs a fresh bounded admission/rehearsal, not reuse of this consumed draft.
 
 This additional same-report question overlaps known topics and is not a blind
 holdout. Retrieval/Compiler effectiveness and semantic operand accuracy were

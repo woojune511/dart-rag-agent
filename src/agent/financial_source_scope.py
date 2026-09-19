@@ -61,8 +61,105 @@ def _section_id(document_id: str, path: Sequence[str]) -> str:
     return "section_" + hashlib.sha256(_json_bytes([document_id, list(path)])).hexdigest()[:24]
 
 
+def _table_heading_hints(
+    metadata_rows: Sequence[Mapping[str, Any]], sections: Sequence[Mapping[str, Any]], *,
+    max_hints: int, max_bytes: int,
+) -> dict[str, Any]:
+    """Read attached nearest ancestor titles as hints for existing parent IDs.
+
+    Physical attachment and content identity are checked without opening a store.
+    Neither these titles nor their context IDs establish section membership.
+    """
+    tables: dict[str, Any] = {}
+    records: dict[bytes, dict[str, Any]] = {}
+    for metadata in metadata_rows:
+        document_id, path = _document_identity(metadata), candidate_section_path(metadata)
+        raw = metadata.get("table_object_json")
+        if not document_id or not path or not isinstance(raw, (str, Mapping)) or not raw:
+            continue
+        key = raw if isinstance(raw, str) else _json_bytes(raw).decode("utf-8")
+        if key not in tables:
+            try:
+                tables[key] = json.loads(raw) if isinstance(raw, str) else raw
+            except (TypeError, ValueError):
+                tables[key] = None
+        table = tables[key]
+        if not isinstance(table, Mapping) or _path(table.get("source_section_path")) != path:
+            continue
+        table_id, locator, digest = (table.get(field) for field in
+            ("table_id", "source_table_locator", "source_document_sha256"))
+        if (not isinstance(table_id, str) or table_id.strip().casefold() in {"", "unknown", "?"}
+                or not isinstance(locator, str) or not locator.startswith("/")
+                or not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None
+                or any(metadata.get(field) and metadata[field] != table_id
+                    for field in ("table_source_id", "source_table_id", "table_id"))
+                or any(metadata.get(field) and metadata[field] != table[field]
+                    for field in ("source_table_locator", "source_document_sha256"))):
+            continue
+        contexts = table.get("source_contexts")
+        if not isinstance(contexts, list):
+            continue
+        attached = []
+        for context in contexts:
+            if not isinstance(context, Mapping) or context.get("relation") != "ancestor_heading":
+                continue
+            text, span = context.get("source_text"), context.get("source_span")
+            parent, source = context.get("parent_locator"), context.get("source_locator")
+            if (context.get("document_sha256") != digest or not isinstance(text, str) or not text.strip()
+                    or not isinstance(span, list) or len(span) != 2 or any(type(n) is not int for n in span)
+                    or span[0] < 0 or span[1] - span[0] != len(text)
+                    or not isinstance(parent, str) or not parent.startswith("/")
+                    or not isinstance(source, str) or source.rsplit("/", 1)[0] != parent
+                    or re.fullmatch(r"TITLE(?:\[[1-9][0-9]*\])?", source.rsplit("/", 1)[-1]) is None
+                    or not locator.startswith(parent + "/")):
+                continue
+            identity = {field: context[field] for field in
+                ("document_sha256", "source_locator", "source_span", "source_text")}
+            # Match parser context identity; do not invent/rekey old fragments.
+            encoded = json.dumps(identity, ensure_ascii=False, sort_keys=True).encode("utf-8")
+            if context.get("context_id") != "ctx_" + hashlib.sha256(encoded).hexdigest()[:24]:
+                continue
+            attached.append(context)
+        depth = max((context["parent_locator"].count("/") for context in attached), default=-1)
+        for context in attached:
+            if (context["parent_locator"].count("/") != depth
+                    or _surface(context["source_text"]) in {_surface(part) for part in path}):
+                continue
+            section_id = _section_id(document_id, path)
+            reference = {field: deepcopy(context[field]) for field in
+                ("context_id", "document_sha256", "source_locator", "parent_locator", "source_span", "relation")}
+            reference.update(table_source_id=table_id, source_table_locator=locator)
+            key = _json_bytes([section_id, context["context_id"]])
+            row = {"section_id": section_id, "heading": context["source_text"], "example_reference": reference}
+            old = records.get(key)
+            if old is None or _json_bytes(reference) < _json_bytes(old["example_reference"]):
+                records[key] = row
+    # Round-robin over visible parents prevents a large section from consuming
+    # every hint slot. Keep one deterministic example per located title.
+    groups = []
+    for section in sections:
+        rows = [row for row in records.values() if row["section_id"] == section["section_id"]]
+        rows.sort(key=lambda row: (row["example_reference"]["source_locator"],
+            row["example_reference"]["source_span"], row["heading"]))
+        if rows:
+            groups.append(rows)
+    ordered = [rows[index] for index in range(max(map(len, groups), default=0)) for rows in groups if index < len(rows)]
+    visible = []
+    for row in ordered:
+        if len(visible) >= max_hints or len(_json_bytes([*visible, row])) > max_bytes:
+            break
+        visible.append(row)
+    encoded = _json_bytes(visible)
+    return {"schema": "source_table_heading_hints_v1", "authority": "planning_hint_only", "headings": visible,
+        "fingerprint": hashlib.sha256(encoded).hexdigest(), "serialized_heading_bytes": len(encoded),
+        "observed_heading_count": len(records), "visible_heading_count": len(visible),
+        "omitted_heading_count": len(records) - len(visible), "truncated": len(records) != len(visible),
+        "coverage": "observed_nearest_ancestor_headings_only"}
+
+
 def build_source_section_inventory(
     metadata_rows: Sequence[Mapping[str, Any]], *, max_sections: int = 256, max_bytes: int = 65536,
+    max_heading_hints: int = 64, max_heading_bytes: int = 16384,
 ) -> dict[str, Any]:
     """Index observed filing-qualified paths, not body mentions or inferred titles.
 
@@ -90,7 +187,9 @@ def build_source_section_inventory(
         "fingerprint": hashlib.sha256(_json_bytes(visible)).hexdigest(),
         "observed_section_count": len(ordered), "visible_section_count": len(visible),
         "omitted_section_count": len(ordered) - len(visible), "unlocated_metadata_count": unlocated,
-        "coverage": "observed_paths_only", "truncated": len(visible) != len(ordered)}
+        "coverage": "observed_paths_only", "truncated": len(visible) != len(ordered),
+        "table_heading_hints": _table_heading_hints(metadata_rows, visible,
+            max_hints=max_heading_hints, max_bytes=max_heading_bytes)}
 
 
 def _request_span(binding: Mapping[str, Any], query: str, owner: Mapping[str, Any]) -> list[int]:
