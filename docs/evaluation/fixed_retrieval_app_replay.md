@@ -96,9 +96,10 @@ been approved or applied. Replayed usage is neither a new charge nor a forecast.
 The fixed-input integration task is complete. The subsequent [native application
 execution preparation](native_application_admission.md) is now complete, with
 whole-batch funding before bootstrap and native-search failure controls.
-The dense fixture remains offline-only. Paid execution and a budget increase
-remain unapproved; native search stability and fresh end-to-end model quality
-remain separate evidence boundaries.
+The dense fixture remains offline-only. A subsequently authorized +USD 1
+funded the [native app result](native_application_result.md), with two complete
+source-reviewed outputs. Native-search stability and unseen accuracy remain
+separate evidence boundaries.
 
 Local evidence: [integration review](../../benchmarks/results/compiler_fixed_retrieval_app_2026-09-19/integration_review.json),
 [guard controls](../../benchmarks/results/compiler_fixed_retrieval_app_2026-09-19/dense_controls.json),

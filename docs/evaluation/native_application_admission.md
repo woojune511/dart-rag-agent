@@ -2,7 +2,9 @@
 
 Provider-free preparation on `b09e1d35` is complete. The proposal is one fresh,
 store-fixed full-application attempt with native Chroma retrieval and unchanged
-OpenAI routes/settings. It is **not funded or authorized for paid execution**.
+OpenAI routes/settings. At preparation handoff it was **not funded or authorized**.
+The subsequently approved +USD 1 and [native execution](native_application_result.md)
+completed once with two source-reviewed outputs; the draft is now consumed.
 The [fixed-retrieval replay](fixed_retrieval_app_replay.md) remains separate
 offline integration evidence; its dense fixtures are not used by this proposal.
 
@@ -100,7 +102,7 @@ Local evidence: [preparation review](../../benchmarks/results/compiler_native_ap
 [draft manifest](../../benchmarks/results/compiler_native_app_preparation_2026-09-19/draft_manifest.json),
 [native review criteria](../../benchmarks/results/compiler_native_app_preparation_2026-09-19/native_review_criteria.json).
 
-The next action is the separately funded, once-only native application attempt
-described above, followed by source/semantic review of its actual output. The
-current user authorization covers preparation only; an additional allowance
-and paid execution remain unapproved.
+The [authorized follow-up](native_application_result.md) completed this attempt
+and its source review after the user approved +USD 1. The above preparation
+and mock evidence remain unchanged; the separately appended authorization
+and consumption records permit no further paid run.

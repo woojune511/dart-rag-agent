@@ -1,5 +1,9 @@
 # OpenAI application migration
 
+Current execution evidence and next work: [native full-app result](native_application_result.md)
+(2026-09-19), two source-reviewed outputs, no error or retry. The experiments
+below retain their original scope and accounting.
+
 `DART_LLM_PROFILE=openai` selects OpenAI for shared API/Streamlit LLM calls:
 Terra/low/8192 for default routing/planning, the unchanged reviewed
 Astra/medium/5120 Compiler, and Luna/none/512 for ingest context sentences.
