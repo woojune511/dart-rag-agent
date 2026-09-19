@@ -76,13 +76,14 @@ Terra calls, at most two Astra calls, four counts and 48 embeddings under the
 unchanged full output limits. A fresh plan needing more calls must stop at the
 limit, so funding that ceiling does not guarantee task completion.
 
-Next prepare a **new, provider-free admission and rehearsal for scope_cash_flow**
-first, binding this frozen question and criteria. Before a subsequent paid run,
-recheck current rates and secure sufficient authorized funding. The current
-balance cannot fund even one unchanged ceiling. Do not lower production limits,
-reuse a consumed admission, or silently run the whole three-question set.
-No live caller, execution manifest, authorization or consumption record was
-created by this preparation.
+The subsequent [single cash-flow admission](scope_cash_flow_admission.md) now
+binds the first question and these unchanged criteria. Its provider-free
+rehearsals and current pricing check are complete. The current balance still
+cannot fund its 1.70 cap; proposed additional funding of 0.73 and one paid run
+require user acceptance. The other two questions remain unexecuted. Do not
+lower production limits, reuse a consumed admission or silently run all three.
+This original criteria preparation created no live caller or authorization;
+the separate successor owns the new unconsumed draft.
 
 ## Verification and artifacts
 
