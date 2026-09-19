@@ -9,6 +9,7 @@ from typing import Any, Mapping
 from src.agent.financial_request_units import build_request_units
 from src.agent.financial_column_periods import source_period_options
 from src.agent.financial_scope_policies import annual_period_evidence
+from src.agent.financial_source_bundles import build_semantic_source_bundles
 from src.agent.financial_runtime_normalization import resolve_structured_source_unit, resolve_unit_spec
 from src.config.retrieval_policy import SOURCE_COUNT_UNIT_POLICY, TABLE_COLUMN_UNIT_POLICY
 from src.utils.source_segments import source_quote_is_contiguous
@@ -109,6 +110,43 @@ def attached_context_quote(candidate: Mapping[str, Any], binding: Mapping[str, A
             "quote_span": [start, start + len(quote)]}
 
 
+def _prose_quote_evidence(candidate: Mapping[str, Any], quote: Any) -> dict[str, Any]:
+    """Locate a quote on this value's retained surface, without text repair."""
+    if (candidate.get("candidate_kind") != "sentence_value"
+            or not isinstance(quote, str) or not quote.strip()):
+        raise ValueError("source_interpretation_quote_mismatch")
+    window = candidate.get("source_bundle_context_span")
+    value_span = candidate.get("source_bundle_value_span")
+    if window is not None or value_span is not None:
+        def valid_span(span):
+            return (isinstance(span, (list, tuple)) and len(span) == 2
+                    and all(type(offset) is int for offset in span) and 0 <= span[0] < span[1])
+
+        text = candidate.get("source_bundle_text")
+        if (not isinstance(text, str) or not valid_span(window) or not valid_span(value_span)
+                or window[1] - window[0] != len(text) or value_span[1] > len(text)):
+            raise ValueError("source_interpretation_quote_mismatch")
+        bundle, = build_semantic_source_bundles([candidate])
+        if (bundle.source_kind != "prose_sentence"
+                or not source_quote_is_contiguous(text, quote, bundle.segment_projection())):
+            raise ValueError("source_interpretation_quote_mismatch")
+        partitions = [row["text_span"] for row in bundle.segment_projection()] or [[0, len(text)]]
+        start = min(index for a, b in partitions if (index := text.find(quote, a, b)) >= 0)
+        return {"candidate_id": candidate["candidate_id"], "evidence_text": quote,
+                "source_field": "source_bundle_text", "source_bundle_id": bundle.source_bundle_id,
+                "source_span": [start, start + len(quote)], "source_bundle_context_span": list(window),
+                "source_candidate_id": str(candidate.get("source_candidate_id") or ""),
+                "source_candidate_span": [window[0] + start, window[0] + start + len(quote)]}
+    # Historical unlocated rows retain their old exact surface; a different
+    # bundle string alone cannot grant new quote authority or inferred offsets.
+    text = str(candidate.get("source_text") or "")
+    if not source_quote_is_contiguous(text, quote, []):
+        raise ValueError("source_interpretation_quote_mismatch")
+    start = text.index(quote)
+    return {"candidate_id": candidate["candidate_id"], "evidence_text": quote,
+            "source_span": [start, start + len(quote)]}
+
+
 def validate_source_interpretation(
     candidate: Mapping[str, Any], interpretation: Any, *, owner: Mapping[str, Any],
     query: str, parent_owner: Mapping[str, Any] | None = None,
@@ -139,13 +177,7 @@ def validate_source_interpretation(
     evidence = [axes[ref] for ref in dict.fromkeys(axis_refs)]
     evidence.extend(attached_context_quote(candidate, row, subject=True) for row in contexts)
     if source_quote is not None:
-        source_text = str(candidate.get("source_text") or "")
-        if (candidate.get("candidate_kind") != "sentence_value" or not isinstance(source_quote, str)
-                or not source_quote.strip() or not source_quote_is_contiguous(source_text, source_quote, [])):
-            raise ValueError("source_interpretation_quote_mismatch")
-        start = source_text.index(source_quote)
-        evidence.append({"candidate_id": candidate["candidate_id"], "evidence_text": source_quote,
-                         "source_span": [start, start + len(source_quote)]})
+        evidence.append(_prose_quote_evidence(candidate, source_quote))
     result = {"request_units": [{"request_unit_id": ref, "text": known[ref].text,
                "span": [known[ref].start, known[ref].end]} for ref in dict.fromkeys(refs)],
               "subject": interpretation["subject"], "metric": interpretation["metric"], "scope": dict(scope),

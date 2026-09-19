@@ -54,8 +54,8 @@ an offline comparison isolated that difference. Using the real API request
 serialization restored the expected bytes. Three local SDK interceptions were
 used during this review; no external request was made.
 
-Replaying the unchanged old response still produces the wrong `direct_value`
-status plan. Its saved Compiler program still fails the exact same three errors:
+On `3a8ae0e2`, replaying the unchanged old response retained the wrong
+`direct_value` status plan and the exact same three Compiler errors:
 `source_interpretation_quote_mismatch`, `candidate_scope_mismatch` and
 `source_assertion_candidate_not_selected`. The original application HTTP 500,
 partial claims, consumed draft and cost remain unchanged. No new Planner choice,
@@ -73,10 +73,10 @@ New provider calls and cost are **zero**. Shared accounting remains
 **17.11707679 / 18.27 USD**, with **1.15292321 remaining**, pending zero.
 No paid successor or budget increase is authorized by this work.
 
-Next characterize the separate visible-bundle versus selected-sentence quote
-boundary provider-free. Preserve exact original bytes and physical source
-ownership; silently trimming a quote or relaxing period validation would not
-make a monetary selection a status answer. Any later paid successor requires a
+The separate [exact quote-source correction](numeric_quote_source_boundary.md)
+now removes the false quote rejection provider-free while preserving period
+rejection, exact bytes and physical source ownership. Next prepare a fresh
+provider-free application admission/rehearsal for both fixes. Any later paid successor requires a
 fresh admission/rehearsal and sufficient funding; consumed drafts cannot be
 reused. The unsupported-2024 question remains unexecuted.
 

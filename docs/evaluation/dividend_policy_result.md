@@ -90,9 +90,10 @@ copy's SQLite bytes changed during loading. Experiment artifacts remain local.
 
 The [generic Planner output-kind contract](planner_output_kind_boundary.md) is
 now clarified and tested provider-free. No fresh model classification or completed
-answer is established; this original failure remains unchanged. Next characterize
-the separate bundle/sentence quote-source mismatch, preserving exact source bytes
-and ownership. Trimming a quote would not make an amount a status answer.
+answer is established; this original failure remains unchanged. The separate
+[exact quote-source correction](numeric_quote_source_boundary.md) removes only
+the false quote error in offline replay; period rejection and the old monetary
+selection remain. Next prepare fresh provider-free application admission/rehearsal.
 The unsupported-2024 question remains unexecuted; this consumed draft authorizes
 no additional paid run.
 

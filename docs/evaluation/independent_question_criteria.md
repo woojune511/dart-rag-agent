@@ -90,8 +90,7 @@ final answer passed these three required meanings. Shared accounting is
 The dividend draft is consumed and unsupported-2024 remains unexecuted.
 The [Planner output-kind clarification](planner_output_kind_boundary.md) is
 implemented and tested provider-free; no new sampled answer is established.
-Next characterize the separate exact quote-source boundary, preserving strict
-validation and making no automatic paid run.
+The [exact quote-source correction](numeric_quote_source_boundary.md) is also verified provider-free; only the false quote rejection clears, with period checks and old failure intact. Next prepare fresh provider-free application admission/rehearsal on the new source identity. No automatic paid successor, budget increase or consumed-draft reuse; unsupported-2024 remains unexecuted.
 This original criteria preparation created no live caller or authorization;
 the separate execution owns the accepted increase and consumed attempt.
 
