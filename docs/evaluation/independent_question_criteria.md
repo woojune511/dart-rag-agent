@@ -61,7 +61,7 @@ or evidence of improved accuracy.
 
 At preparation, retained accounting was **16.02259344 / 17 USD**, leaving
 **0.97740656**, pending zero. This criteria preparation authorized no increase or run.
-Current accounting follows the separate [cash-flow result](scope_cash_flow_result.md).
+Current accounting follows the separate [cash-flow successor](scope_cash_flow_heading_result.md).
 
 | Planning envelope using the previous frozen policy | USD |
 | --- | ---: |
@@ -77,14 +77,14 @@ Terra calls, at most two Astra calls, four counts and 48 embeddings under the
 unchanged full output limits. A fresh plan needing more calls must stop at the
 limit, so funding that ceiling does not guarantee task completion.
 
-The subsequent [single cash-flow admission](scope_cash_flow_admission.md) bound
-the first question and these unchanged criteria. After the user accepted +0.73
-and one attempt, its draft was consumed: **0/2 outputs**, with both source-section
-bindings unresolved and no API error. [Saved-evidence review](scope_cash_flow_result.md)
-identifies located table-heading/parent-section exposure as the next provider-free
-seam. Current shared accounting is **16.09071086 / 17.73 USD**, leaving **1.63928914**,
-pending zero. The other two questions remain unexecuted. Do not lower production
-limits, reuse the consumed admission or automatically run another question.
+The first [cash-flow result](scope_cash_flow_result.md) remains **0/2 outputs**,
+with unresolved section bindings and no API error. After the located table-heading
+correction, a separately authorized [successor](scope_cash_flow_heading_result.md)
+now passes **2/2 outputs** against these same criteria, without retry. Both drafts
+are consumed. Current shared accounting is **16.56583531 / 17.80 USD**, leaving
+**1.23416469**, pending zero. Next prepare the dividend-policy question's admission
+and rehearsal provider-free; both other questions remain unexecuted. Do not lower
+production limits, reuse consumed admissions or automatically run another question.
 This original criteria preparation created no live caller or authorization;
 the separate execution owns the accepted increase and consumed attempt.
 

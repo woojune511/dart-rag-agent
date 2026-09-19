@@ -1,5 +1,10 @@
 # Cash-flow admission after table-heading exposure
 
+Execution update: the user accepted **+USD 0.07 and one attempt**. The draft is
+now consumed; the [live result](scope_cash_flow_heading_result.md) passes **2/2
+outputs** with no API error or retry. Below is the original preparation evidence
+and budget snapshot; current accounting and next work are in that result.
+
 The [Planner input correction](planner_table_heading_exposure.md) now has a fresh
 single-question execution proposal. **62 focused tests**, **three actual-app
 failure rehearsals** and **63 saved-evidence checks** pass. The changed Planner
@@ -66,7 +71,7 @@ proves input delivery and failure handling, not semantic selection or answer
 accuracy. Existing 98 focused / 30 integration / 25 saved-input checks for the
 correction remain separately recorded; unchanged source hashes bind that evidence.
 
-## Current funding boundary
+## Funding boundary at preparation
 
 [Official pricing](https://developers.openai.com/api/docs/pricing) was fetched on
 2026-09-19. Unchanged conservative per-million-token input/output ceilings use
@@ -90,9 +95,10 @@ clean documentation commit and current source identity. Its real entrypoint at
 the current balance rejects execution before transport, bootstrap, output or
 consumption. No authorization or consumed marker is created.
 
-Next obtain explicit acceptance of **+USD 0.07 and one attempt** against this new
-draft. That funds the existing ceiling; it neither predicts completion nor permits
-automatic retries or additional questions. Model and output limits are retained.
+The user subsequently accepted **+USD 0.07 and one attempt**, funding the existing
+ceiling. The draft is now consumed and cannot be reused. Model/output limits were
+retained; no retry or additional question was run. See the
+[result](scope_cash_flow_heading_result.md) for the fresh answer and accounting.
 
 ## Preservation and artifacts
 

@@ -4,8 +4,9 @@ The Planner now receives located table titles linked to the existing parent
 section IDs. This corrects the missing-input boundary observed in the
 [cash-flow attempt](scope_cash_flow_result.md), using existing stored metadata.
 It adds no provider call and changes no section authority or source store.
-The original paid answer remains **incomplete, 0/2 outputs**; model behavior with
-the new input has not been sampled.
+The original paid answer remains **incomplete, 0/2 outputs**. At this offline
+correction boundary, model behavior with the new input had not been sampled;
+the separately authorized successor is linked below.
 
 ## Mechanism and boundary
 
@@ -90,9 +91,10 @@ remain unchanged, and no other frozen question is executed.
 **New provider calls/cost: 0.** Retained shared accounting is **16.09071086 /
 17.73 USD**, remaining **1.63928914**, pending zero; these are estimates, not an
 invoice. A [fresh single-question admission](scope_cash_flow_heading_admission.md)
-now verifies this changed input through actual-app no-call rehearsals. Its proposed
-+0.07 funding and one paid attempt remain unaccepted; the consumed draft cannot
-be reused, and no paid retry is implied by this correction.
+verified this changed input through actual-app no-call rehearsals. The separately
+authorized [successor result](scope_cash_flow_heading_result.md) now passes 2/2
+outputs; its consumed draft cannot be reused. This correction's original offline
+evidence and preceding paid 0/2 result remain unchanged.
 
 Local artifacts: [focused tests](../../benchmarks/results/planner_table_heading_offline_2026-09-19/focused_final.json),
 [final saved-input review](../../benchmarks/results/planner_table_heading_offline_2026-09-19/final_replay/review.json),
