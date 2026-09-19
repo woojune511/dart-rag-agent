@@ -82,9 +82,10 @@ with unresolved section bindings and no API error. After the located table-headi
 correction, a separately authorized [successor](scope_cash_flow_heading_result.md)
 now passes **2/2 outputs** against these same criteria, without retry. Both drafts
 are consumed. Current shared accounting is **16.56583531 / 17.80 USD**, leaving
-**1.23416469**, pending zero. Next prepare the dividend-policy question's admission
-and rehearsal provider-free; both other questions remain unexecuted. Do not lower
-production limits, reuse consumed admissions or automatically run another question.
+**1.23416469**, pending zero. The [dividend-policy admission](dividend_policy_admission.md)
+is now prepared provider-free; proposed +0.47 funding and one attempt are unaccepted.
+Both other questions remain unexecuted. Do not lower production limits, reuse
+consumed admissions or automatically run another question.
 This original criteria preparation created no live caller or authorization;
 the separate execution owns the accepted increase and consumed attempt.
 

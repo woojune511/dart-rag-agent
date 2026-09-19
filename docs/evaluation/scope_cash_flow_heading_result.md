@@ -79,12 +79,12 @@ no unchanged runtime suite or paid experiment is rerun. Tracked edits are docs o
 
 ## Next bounded step
 
-Prepare a fresh provider-free admission and no-call rehearsal for the next frozen
-`dividend_policy_status` question, retaining its separate policy/period/payment
-review criteria. The unsupported-2024 question also remains unexecuted. No new
-paid execution or increase is authorized here, and the consumed cash-flow draft
-cannot be reused. Current available funding must be checked against that next
-question's documented envelope before a paid attempt.
+The next frozen `dividend_policy_status` question now has a
+[provider-free admission and rehearsal](dividend_policy_admission.md), retaining
+its separate policy/period/payment criteria. The proposed +0.47 funding and one
+attempt remain unaccepted. The unsupported-2024 question also remains unexecuted;
+the consumed cash-flow draft cannot be reused. This result authorizes no further
+paid execution or increase.
 
 Local evidence: [source review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/source_review.json),
 [92-check review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/live_review.json),
