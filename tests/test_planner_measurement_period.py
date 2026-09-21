@@ -183,7 +183,7 @@ class PlannerMeasurementPeriodTests(unittest.TestCase):
 
     def test_generation_retains_open_period_strings_and_declares_source_separation(self):
         schema = RequirementPlannerOutput.model_json_schema()
-        field = schema['$defs']['AnswerObligationScope']['properties']['period']
+        field = schema['$defs']['PlannerAnswerObligationScope']['properties']['period']
         self.assertEqual(field['type'], 'string')
         self.assertNotIn('enum', field)
         self.assertIn('measurement period', field.get('description', ''))

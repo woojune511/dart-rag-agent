@@ -97,6 +97,7 @@ class PlannerNumericPresentationTests(unittest.TestCase):
                     self.assertEqual(plan.model_dump(), before)
 
     def test_real_sdk_keeps_open_numeric_units_and_both_field_descriptions(self):
+        from tests.planner_period_wire_test_support import unspecified_period_payload
         query = 'Return the requested quantity with its original notation.'
         value = authored_plan(query, '', 'Preserve source notation and unit.')
         value.obligations.append(authored_plan(query, 'unsupported-unit', 'Two decimal places.',
@@ -110,7 +111,7 @@ class PlannerNumericPresentationTests(unittest.TestCase):
         sent = []
         def send(request, **kwargs):
             sent.append(json.loads(request.content))
-            body = response_body(value.model_dump())
+            body = response_body(unspecified_period_payload(value))
             body['model'] = route['model']
             return httpx.Response(200, request=request, json=body)
         with patch.object(socket.socket, 'connect', side_effect=AssertionError('Network forbidden')), \
@@ -127,7 +128,7 @@ class PlannerNumericPresentationTests(unittest.TestCase):
         self.assertIn(query, json.dumps(body['input']))
         self.assertTrue(body['text']['format']['strict'])
         schema = body['text']['format']['schema']
-        Draft202012Validator(schema).validate(value.model_dump())
+        Draft202012Validator(schema).validate(unspecified_period_payload(value))
         local = RequirementPlannerOutput.model_json_schema()
         for branch in ('DirectValueAnswerObligation', 'DerivedValueAnswerObligation'):
             props = schema['$defs'][branch]['properties']

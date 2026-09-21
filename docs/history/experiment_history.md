@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Uniform Planner period declaration (2026-09-22)
+
+- Clean `041c0d1d`; [contract and evidence](../evaluation/planner_period_wire.md). Replace six generation period objects with one seven-field declaration separating precision, reference year/offset, coverage, exact dates and request refs. A generic adapter maps only explicit choices to existing internal kinds. Required/inactive field conflicts, invalid dates/year arithmetic and refs are rejected; no query interpretation, fiscal defaults, keyword repair, extra call or source/execution change.
+- **13** new tests; **132** focused, **43** additional transport/presentation, full **2238/2238**, audit83 and import/topology/docs/syntax/diff pass. Initial focused/full failures exposed old wire fixtures in six existing SDK/schema tests; explicit test payloads were updated while original internal-result/rejection assertions and failure logs remain. Fixed nullable fields move cross-field consistency to typed validation, which still rejects invalid combinations before accepted planning.
+- Five before bodies exactly reproduce the last paid requests. After bodies change only period schema/instructions and are **2265 bytes smaller** each; no token estimate. Lossless projection of original decisions to the new wire preserves all five normalized plans and historical model dumps, including four wrong year-coverage choices. Paid periods **2/6**, scopes **6/6**, coverage **0/4**, combined **1/5** stay unchanged; no new model sample or accuracy improvement claim.
+- All **13416** predecessors, **174** unrelated existing production sources and **24** stores/settings retain hashes. Only the period owner, Planner scope integration, declarative instructions, tests and docs are committed; packet `planner_period_wire_2026-09-22` stays ignored. Added calls/accounting **0**; shared **19.73502393/20.32**, remaining **0.58497607**, pending zero. Next prepare a smaller new diagnostic with frozen criteria and fresh whole-batch admission. No paid retry, ingest or funding increase.
+
 ## Planner period/scope diagnostic: five first responses (2026-09-22)
 
 - Clean `c68d7e73`; [result](../evaluation/planner_period_scope_probe_result.md). The user authorized the prepared whole batch under USD 0.75. Frozen manifest `9dd3ce6b...06d15a7` was consumed before transport; **5/5** structured first plans, **10/10 HTTP 200**, no API/parsing/requirement errors, repair or retry. Five counts plus five generations; about62s with30s heartbeat.

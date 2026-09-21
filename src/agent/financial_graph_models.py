@@ -9,6 +9,7 @@ from typing_extensions import TypeAliasType
 from src.agent.financial_program_projection import narrative_candidate_ids, project_narrative_claims
 from src.agent.financial_formula_wire import FORMULA_LITERALS, FORMULA_OPERATION_GROUPS, MAX_FORMULA_STEPS
 from src.agent.financial_measurement_periods import period_contract_error
+from src.agent.financial_planner_period_wire import PlannerMeasurementPeriod
 
 
 def _normalise_optional_planner_text(value: Any) -> str:
@@ -371,15 +372,43 @@ class OutputRelationshipV1(_DeferredBaseModel):
     request_text: str = Field(min_length=1, description="Exact request substring requiring these outputs to share a basis, not merely a company or topic.")
 
 
+class PlannerAnswerObligationScope(AnswerObligationScope):
+    """Generation uses one explicit shape; internal and historical scopes stay typed."""
+
+    measurement_period: Union[
+        UnspecifiedMeasurementPeriod, YearMeasurementPeriod, RelativeYearMeasurementPeriod,
+        DateMeasurementPeriod, IntervalMeasurementPeriod, UnresolvedMeasurementPeriod,
+        SkipJsonSchema[None],
+    ] = Field(default=None, exclude_if=lambda value: value is None, description=(
+        "One explicit period declaration per output/input. Separate requested precision, "
+        "reference year plus offset and coverage from exact dates. Fill every field; unused "
+        "values are null. Original owned request units support the choice. The report year "
+        "supplies no default, and source availability is checked only after planning."
+    ))
+
+    @field_validator("measurement_period", mode="before", json_schema_input_type=PlannerMeasurementPeriod)
+    @classmethod
+    def lower_generated_period(cls, value):
+        if isinstance(value, PlannerMeasurementPeriod):
+            return value.to_internal()
+        if isinstance(value, dict) and "precision" in value:
+            return PlannerMeasurementPeriod.model_validate(value).to_internal()
+        # Saved internal plans retain their original period object, including
+        # omitted historical coverage. Strict generation rejects that old wire.
+        return value
+
+
 class PlannerEvidenceRequirement(EvidenceRequirement):
     """Generation selects request ranges; legacy quotations remain internal only."""
 
     source_section_bindings: List[SourceSectionReferenceV2] = EvidenceRequirement.model_fields["source_section_bindings"]
+    scope: PlannerAnswerObligationScope = Field(default_factory=PlannerAnswerObligationScope)
 
 
 class PlannerAnswerObligation(AnswerObligation):
     _source_group_requirement_type: ClassVar[type[EvidenceRequirement]] = PlannerEvidenceRequirement
     source_section_bindings: List[SourceSectionReferenceV2] = AnswerObligation.model_fields["source_section_bindings"]
+    scope: PlannerAnswerObligationScope = Field(default_factory=PlannerAnswerObligationScope)
     evidence_requirements: List[PlannerEvidenceRequirement] = Field(default_factory=list)
 
 

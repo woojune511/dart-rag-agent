@@ -267,6 +267,7 @@ class AppLLMProfileTests(unittest.TestCase):
         from jsonschema import Draft202012Validator
         from src.agent.financial_graph_models import RequirementPlannerOutput
         from src.routing.types import QueryRoutingDecision
+        from tests.planner_period_wire_test_support import unspecified_period_payload
 
         self.prepare_services()
         os.environ["DART_LLM_PROFILE"] = "openai"
@@ -289,7 +290,7 @@ class AppLLMProfileTests(unittest.TestCase):
             def send(request, **kwargs):
                 self.assertEqual(str(request.url), "https://api.openai.com/v1/responses")
                 calls.append(json.loads(request.content))
-                body = response_body(value.model_dump())
+                body = response_body(unspecified_period_payload(value))
                 body["model"] = "gpt-5.6-terra"
                 return httpx.Response(200, request=request, json=body)
 
@@ -314,11 +315,11 @@ class AppLLMProfileTests(unittest.TestCase):
             self.assertEqual(set(nested["required"]), set(nested["properties"]))
             self.assertFalse(nested["additionalProperties"])
         validator = Draft202012Validator(schema)
-        payload = values[1].model_dump()
+        payload = unspecified_period_payload(values[1])
         validator.validate(payload)
         payload["obligations"][0]["display_unit"] = "text"
         self.assertFalse(validator.is_valid(payload))
-        payload = values[1].model_dump()
+        payload = unspecified_period_payload(values[1])
         payload["obligations"][1]["evidence_requirements"] = payload["obligations"][0]["evidence_requirements"]
         self.assertFalse(validator.is_valid(payload))
         direct_branch = next(schema["$defs"][branch["$ref"].rsplit("/", 1)[1]] for branch in branches

@@ -84,6 +84,7 @@ class PlannerOutputKindBoundaryTests(unittest.TestCase):
         return state
 
     def test_actual_sdk_carries_output_kind_meaning_and_unchanged_structural_choices(self):
+        from tests.planner_period_wire_test_support import unspecified_period_payload
         subject, query, _ = STATUS_CASES[0]
         rows = [authored_owner(kind, kind, query, subject=subject, key=kind)
                 for kind in ('narrative', 'direct_value', 'derived_value')]
@@ -97,7 +98,7 @@ class PlannerOutputKindBoundaryTests(unittest.TestCase):
         sent = []
         def send(request, **kwargs):
             sent.append(json.loads(request.content))
-            body = response_body(response.model_dump())
+            body = response_body(unspecified_period_payload(response))
             body['model'] = route['model']
             return httpx.Response(200, request=request, json=body)
         with patch.object(httpx.Client, 'send', side_effect=send):
@@ -113,7 +114,7 @@ class PlannerOutputKindBoundaryTests(unittest.TestCase):
         self.assertIn('별도로 요청한 수치 출력', prompt)
         schema = body['text']['format']['schema']
         self.assertTrue(body['text']['format']['strict'])
-        Draft202012Validator(schema).validate(response.model_dump())
+        Draft202012Validator(schema).validate(unspecified_period_payload(response))
         local = RequirementPlannerOutput.model_json_schema()
         for branch, kind, meaning in (
             ('DirectValueAnswerObligation', 'direct_value', 'scalar numeric'),

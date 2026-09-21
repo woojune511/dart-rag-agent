@@ -93,7 +93,7 @@ Only docs are committed; raw requests/responses and reviewed artifacts remain in
 ignored packets `planner_period_scope_probe_2026-09-22/live` and
 `planner_period_scope_run_2026-09-22`.
 
-Next examine a simpler period representation in a provider-free Planner contract
-change, separating target year/coverage from exact-date geometry. Preserve these
-raw failures as semantic negatives; do not infer missing fields through keywords,
-rewrite historical answers or repeat the same paid prompt-only approach.
+The subsequent [uniform period declaration](planner_period_wire.md) implements
+the provider-free representation change. Its new wire preserves these original
+failures in replay; model accuracy remains unverified on the changed contract.
+Next prepare a smaller fresh diagnostic within the remaining allowance.

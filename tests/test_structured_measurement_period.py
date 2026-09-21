@@ -248,15 +248,18 @@ class StructuredMeasurementPeriodTests(unittest.TestCase):
                 with self.assertRaises(ValidationError):
                     AnswerObligationScope(measurement_period=spec)
 
-    def test_wire_requires_nonnull_structure_and_preserves_supported_anyof(self):
+    def test_wire_requires_nonnull_uniform_structure(self):
+        from tests.planner_period_wire_test_support import declared_period
         schema=strict_openai_schema(RequirementPlannerOutput)
-        scope=schema['$defs']['AnswerObligationScope']
+        scope=schema['$defs']['PlannerAnswerObligationScope']
         self.assertIn('measurement_period',scope['required'])
         field=scope['properties']['measurement_period']
-        self.assertEqual(len(field['anyOf']),6)
-        self.assertNotIn({'type':'null'},field['anyOf'])
+        self.assertEqual(field['$ref'],'#/$defs/PlannerMeasurementPeriod')
+        self.assertNotIn('anyOf',field)
         # Defaults keep old internal fixtures readable, never an on-wire fallback.
         raw=RequirementPlannerOutput(obligations=[owner('year',period('year',year=2042,coverage='whole_year'))]).model_dump()
+        raw['obligations'][0]['scope']['measurement_period']=declared_period(
+            'year',reference_year=2042,year_offset=0,coverage='whole_year')
         validator=Draft202012Validator(schema)
         validator.validate(raw)
         for mutation in ('missing','null'):
@@ -277,23 +280,32 @@ class StructuredMeasurementPeriodTests(unittest.TestCase):
         context=project_output_responsibility_context(state['request']['query'],state['requirements']['answer_obligations'])
         self.assertEqual(context['outputs'][0]['scope']['measurement_period'],spec)
 
-    def test_actual_sdk_serializes_period_union_and_returns_original_structures(self):
+    def test_actual_sdk_serializes_uniform_periods_and_returns_original_structures(self):
         import httpx
         from src.config.llm_profiles import app_llm_routing_config
         from src.utils.gemini_usage import GeminiUsageCallbackHandler
         from tests.test_openai_compiler_transport import response_body
+        from tests.planner_period_wire_test_support import declared_period
         specs=[period('unspecified'),period('unresolved'),period('year',year=2041,coverage='whole_year'),
                period('relative_year',anchor_year=2042,year_offset=-1,coverage='within_year'),
                period('date',date='2042-06-30'),
                period('date_interval',start_date='2041-07-01',end_date='2042-06-30')]
         response=RequirementPlannerOutput(obligations=[owner('authored period',spec) for spec in specs])
+        wire=response.model_dump()
+        declarations=[declared_period('unspecified'),declared_period('unresolved'),
+            declared_period('year',reference_year=2041,year_offset=0,coverage='whole_year'),
+            declared_period('year',reference_year=2042,year_offset=-1,coverage='within_year'),
+            declared_period('date',start_date='2042-06-30'),
+            declared_period('date_interval',start_date='2041-07-01',end_date='2042-06-30')]
+        for row,declaration in zip(wire['obligations'],declarations):
+            row['scope']['measurement_period']=declaration
         agent=agent_for(None)
         agent.llm_usage_callback=GeminiUsageCallbackHandler()
         route=dict(app_llm_routing_config('openai')['llm_routes']['default'],api_key='offline-placeholder')
         sent=[]
         def send(request, **kwargs):
             sent.append(json.loads(request.content))
-            body=response_body(response.model_dump())
+            body=response_body(wire)
             body['model']=route['model']
             return httpx.Response(200,request=request,json=body)
         with patch.object(httpx.Client,'send',side_effect=send):
@@ -304,7 +316,8 @@ class StructuredMeasurementPeriodTests(unittest.TestCase):
         self.assertEqual([row['scope']['measurement_period'] for row in result['answer_obligations']],specs)
         body,=sent
         self.assertTrue(body['text']['format']['strict'])
-        Draft202012Validator(body['text']['format']['schema']).validate(response.model_dump())
+        Draft202012Validator(body['text']['format']['schema']).validate(wire)
+        self.assertEqual([row.scope.measurement_period.model_dump() for row in response.obligations],specs)
 
     def test_v2_rejects_changed_period_after_compilation(self):
         agent,state,llm=self.plan([owner('year',period('year',year=2041))])

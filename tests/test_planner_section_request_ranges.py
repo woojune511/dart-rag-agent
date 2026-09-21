@@ -168,6 +168,7 @@ class SectionRequestRangeTests(unittest.TestCase):
         self.assertTrue(source_section_requirement_errors([changed], PIPELINE_QUERY))
 
     def test_generation_has_only_range_fields_at_output_and_input_owners(self):
+        from tests.planner_period_wire_test_support import declared_period, unspecified_period_payload
         schema = strict_openai_schema(RequirementPlannerOutput)
         self.assertNotIn('SourceSectionBindingV1', schema['$defs'])
         props = schema['$defs']['SourceSectionReferenceV2']['properties']
@@ -176,12 +177,12 @@ class SectionRequestRangeTests(unittest.TestCase):
         self.assertFalse(schema['$defs']['SourceSectionReferenceV2']['additionalProperties'])
         local_validator = Draft202012Validator(RequirementPlannerOutput.model_json_schema())
         for kind in ('direct_value', 'derived_value', 'narrative'):
-            raw = {**range_owner(), 'kind': kind, 'scope': dict(measurement_period=dict(kind='unspecified'))}
+            raw = {**range_owner(), 'kind': kind, 'scope': dict(measurement_period=declared_period('unspecified'))}
             if kind != 'direct_value':
                 raw['evidence_requirements'] = [dict(label='detail', source_section_bindings=[reference()],
-                    scope=dict(measurement_period=dict(kind='unspecified')))]
+                    scope=dict(measurement_period=declared_period('unspecified')))]
             parsed = RequirementPlannerOutput(obligations=[raw])
-            Draft202012Validator(schema).validate(parsed.model_dump())
+            Draft202012Validator(schema).validate(unspecified_period_payload(parsed))
             for location in ('output', 'input') if kind != 'direct_value' else ('output',):
                 changed = deepcopy(raw)
                 target = changed if location == 'output' else changed['evidence_requirements'][0]
@@ -264,6 +265,7 @@ class SectionRequestRangeTests(unittest.TestCase):
         self.assertEqual(owner, before)
 
     def test_real_sdk_sends_only_range_schema_and_preserves_returned_ids(self):
+        from tests.planner_period_wire_test_support import unspecified_period_payload
         value = RequirementPlannerOutput(obligations=[range_owner(scope=dict(measurement_period=dict(kind='unspecified')))])
         agent = agent_for(None)
         agent.vsm = SimpleNamespace(bm25_metadatas=[metadata()])
@@ -273,7 +275,7 @@ class SectionRequestRangeTests(unittest.TestCase):
 
         def send(http_request, **kwargs):
             calls.append(json.loads(http_request.content))
-            body = response_body(value.model_dump())
+            body = response_body(unspecified_period_payload(value))
             body['model'] = route['model']
             return httpx.Response(200, request=http_request, json=body)
 
@@ -285,7 +287,7 @@ class SectionRequestRangeTests(unittest.TestCase):
         self.assertEqual(planned['semantic_plan']['requirement_errors'], [])
         self.assertEqual(len(calls), 1)
         schema = calls[0]['text']['format']['schema']
-        Draft202012Validator(schema).validate(value.model_dump())
+        Draft202012Validator(schema).validate(unspecified_period_payload(value))
         self.assertNotIn('SourceSectionBindingV1', schema['$defs'])
         original, = value.obligations[0].source_section_bindings
         actual, = planned['answer_obligations'][0]['source_section_bindings']

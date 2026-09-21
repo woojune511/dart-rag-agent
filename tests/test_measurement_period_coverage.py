@@ -134,17 +134,22 @@ class MeasurementPeriodCoverageTests(unittest.TestCase):
                     AnswerObligationScope(measurement_period=spec)
 
     def test_generation_requires_explicit_nonnull_coverage_for_both_year_kinds(self):
+        from tests.planner_period_wire_test_support import declared_period
         schema = strict_openai_schema(RequirementPlannerOutput)
         validator = Draft202012Validator(schema)
-        for kind, args, model_name in (
-                ('year', dict(year=2042), 'YearMeasurementPeriod'),
-                ('relative_year', dict(anchor_year=2043, year_offset=-1), 'RelativeYearMeasurementPeriod')):
-            shape = schema['$defs'][model_name]
+        for kind, args, reference, offset in (
+                ('year', dict(year=2042), 2042, 0),
+                ('relative_year', dict(anchor_year=2043, year_offset=-1), 2043, -1)):
+            shape = schema['$defs']['PlannerMeasurementPeriod']
             self.assertIn('coverage', shape['required'])
-            self.assertEqual(set(shape['properties']['coverage']['enum']), {'whole_year', 'within_year'})
+            choices = shape['properties']['coverage']['anyOf']
+            self.assertEqual(set(next(c['enum'] for c in choices if 'enum' in c)), {'whole_year', 'within_year'})
             for coverage in ('whole_year', 'within_year'):
                 raw = RequirementPlannerOutput(obligations=[owner('period', period(kind, **args, coverage=coverage))]).model_dump()
+                raw['obligations'][0]['scope']['measurement_period'] = declared_period(
+                    'year', reference_year=reference, year_offset=offset, coverage=coverage)
                 validator.validate(raw)
+                self.assertEqual(RequirementPlannerOutput.model_validate(raw).obligations[0].scope.measurement_period.coverage, coverage)
                 for invalid in ('missing', None):
                     changed = deepcopy(raw)
                     target = changed['obligations'][0]['scope']['measurement_period']
@@ -152,8 +157,13 @@ class MeasurementPeriodCoverageTests(unittest.TestCase):
                         target.pop('coverage')
                     else:
                         target['coverage'] = invalid
-                    with self.assertRaises(SchemaError):
-                        validator.validate(changed)
+                    if invalid == 'missing':
+                        with self.assertRaises(SchemaError):
+                            validator.validate(changed)
+                    # The uniform schema permits inactive nulls. The typed
+                    # cross-field guard rejects a null for active year coverage.
+                    with self.assertRaises(ValidationError):
+                        RequirementPlannerOutput.model_validate(changed)
 
     def test_coverage_inherits_only_with_owned_parent_period_and_reaches_compiler(self):
         spec = period('year', year=2042, coverage='whole_year')
