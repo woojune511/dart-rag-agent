@@ -43,11 +43,10 @@ parameter, request ID and error message were therefore **not recorded** and cann
 be recovered from these artifacts. The root cause remains **unknown**; the new
 schema has not been proven responsible.
 
-The existing opt-in `src/ops/openai_error_diagnostics.py` helper is unused by this
-caller, and its reviewed error-code list covers overload/rate-limit cases. The
-next bounded work is provider-free diagnostic capture for HTTP400 in a new local
-caller, including tests that retain useful bounded metadata without exposing
-credentials or changing the original failure. Any later count needs a new frozen
+The frozen caller did not use the existing v1 error-metadata helper. The new
+[provider-free HTTP400 diagnostic extension](openai_request_error_diagnostics.md)
+now records bounded code/type/parameter metadata in a separate mock-only caller.
+It cannot recover this run's missing details. Any later count needs a new frozen
 manifest and recomputed funding. This consumed run cannot be retried or resumed.
 
 ## Accounting and evidence

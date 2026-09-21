@@ -399,3 +399,15 @@ Usage estimate **1.327** plus count contingency **0.04** settles **1.367**; shar
 are retained; invoice/count tariff remain unobserved. The cap change is local
 experiment accounting, not an account billing setting. No runtime/default/store
 change, and the consumed manifest authorizes no further transmission.
+
+## Bounded request-error metadata (2026-09-22)
+
+The [HTTP400 diagnostic extension](openai_request_error_diagnostics.md) adds an
+explicit v2 projector for reviewed exact code/type/parameter names and existing
+bounded headers. Existing v1 and public projections remain unchanged; unknown
+values, dynamic paths, raw messages/bodies and credentials remain excluded.
+The separate mock-only caller keeps metadata in its receipt and an exclusive
+sidecar before SDK error handling. Capture/persistence failure cannot replace the
+original HTTP error, terminal stop or reserved accounting. No live entry, paid
+authority, provider call or budget increase is created. Prior HTTP400 details
+remain unavailable; future count-only diagnosis needs fresh complete admission.

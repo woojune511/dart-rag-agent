@@ -88,3 +88,80 @@ def openai_http_error_metadata(*, status_code: int, headers: Mapping[str, str], 
     return {"schema_version": "openai_http_error_metadata_v1", "http_status": status_code,
             "error_code": code, "request_id": request_id, "retry_after": retry,
             "availability": {"error_code": code_state, "request_id": id_state, "retry_after": retry_state}}
+
+
+# These are local disclosure choices, not an exhaustive provider error taxonomy.
+# Keep v1 and its existing callers unchanged; request diagnostics explicitly opt in.
+_REQUEST_ERROR_CODES = _ERROR_CODES | frozenset({
+    "invalid_json_schema", "invalid_value", "invalid_type", "missing_required_parameter",
+    "unknown_parameter", "unsupported_parameter", "unsupported_value",
+    "context_length_exceeded", "model_not_found",
+})
+_REQUEST_ERROR_TYPES = frozenset({"invalid_request_error", "server_error", "rate_limit_error"})
+_REQUEST_ERROR_PARAMS = frozenset({
+    "model", "input", "instructions", "reasoning", "reasoning.effort", "text", "text.format",
+    "text.format.type", "text.format.name", "text.format.schema", "text.format.strict",
+    "max_output_tokens", "service_tier", "store", "stream",
+})
+
+
+def _request_error_object(body: bytes | None):
+    if body is None:
+        return None, "unavailable"
+    if not isinstance(body, bytes):
+        return None, "invalid_body"
+    if len(body) > _MAX_BODY_BYTES:
+        return None, "body_too_large"
+
+    def unique_object(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError("Ambiguous error object")
+            result[key] = value
+        return result
+
+    try:
+        payload = json.loads(body, object_pairs_hook=unique_object)
+    except (ValueError, RecursionError):
+        return None, "unreadable_json"
+    if not isinstance(payload, dict):
+        return None, "invalid_shape"
+    error = payload.get("error")
+    if error is None:
+        return None, "absent"
+    return (error, "present") if isinstance(error, dict) else (None, "invalid_shape")
+
+
+def _request_error_value(error, state, field, allowed):
+    if error is None:
+        return None, state
+    value = error.get(field)
+    if value is None:
+        return None, "absent"
+    return (value, "captured") if isinstance(value, str) and value in allowed else (None, "unrecognized")
+
+
+def openai_request_error_metadata(*, status_code: int, headers: Mapping[str, str], body: bytes | None) -> dict | None:
+    """Opt-in v2 request diagnostics from an already received error; no I/O.
+
+    Keep only reviewed exact code/type/parameter values and v1's bounded headers.
+    Request values, schema-internal paths, indexed input paths and messages are
+    never copied. Missing/null fields stay absent; status and prose infer nothing.
+    Ambiguous JSON and unknown fields remain visibly unavailable. Callers own
+    persistence and must preserve the original HTTP outcome if capture fails.
+    """
+    result = openai_http_error_metadata(status_code=status_code, headers=headers, body=body)
+    if result is None:
+        return None
+    error, state = _request_error_object(body)
+    result["schema_version"] = "openai_http_error_metadata_v2"
+    for field, output, allowed in (
+        ("code", "error_code", _REQUEST_ERROR_CODES),
+        ("type", "error_type", _REQUEST_ERROR_TYPES),
+        ("param", "error_param", _REQUEST_ERROR_PARAMS),
+    ):
+        value, availability = _request_error_value(error, state, field, allowed)
+        result[output] = value
+        result["availability"][output] = availability
+    return result

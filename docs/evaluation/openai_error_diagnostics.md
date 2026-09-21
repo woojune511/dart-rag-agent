@@ -4,6 +4,9 @@ The subsequent [authorized diagnostic pair](narrative_long_pair_diagnostic.md)
 uses the unchanged caller and completes successfully. The local-only scope and
 historical verification described below remain unchanged.
 
+The additive [HTTP400 request diagnostics](openai_request_error_diagnostics.md)
+provide an explicit v2 projection; the v1 behavior described here stays unchanged.
+
 Implemented from `093cde70` on 2026-09-18 after the user continued the logging
 recommendation. A new opt-in ops helper and a separate successor experiment runner
 retain selected metadata from failed HTTP responses. **No new provider call or
