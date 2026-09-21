@@ -9656,3 +9656,29 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
 - Next: a fresh fully funded one-use validation packet using the new gate;
   never resume consumed history or force fewer Planner outputs. Unsupported-2024
   remains unexecuted. [Contract/evidence](../evaluation/compilation_plan_admission.md).
+
+## 2026-09-21 — Three-slot dividend execution packet, provider-free
+
+- On unchanged `14ede748` runtime, prepared a fresh one-use application caller
+  with the actual-plan admission gate: routing/Planner once each and up to three
+  complete first Compiler groups, five final-input counts, no feedback repair.
+  Question/scope and three independent review meanings remain frozen; all five
+  original source witnesses retain exact unique spans. No forced plan cardinality.
+- 78 focused contracts pass. Two actual-app/native-store replays use 25/26 mock
+  HTTP requests and 14 native queries each. Both retain the first 24 SDK inputs,
+  recorded responses and two Compiler programs. Third-count and third-generation
+  injected 503 faults stop without retry; unknown generation usage keeps its full
+  reservation. The new live transport class is exercised with all 26 sends mocked.
+  Its third input count is an explicit synthetic 17,000 fixture, not measurement.
+- 111 saved-evidence checks and two documentation authority gates pass. All
+  10635 predecessors, 175 sources, seven owners, 24 original store files/settings
+  retain hashes. Only disposable SQLite copies change; artifacts stay local.
+- Real provider calls/added expense 0. Shared 17.71533922/18.82, remaining
+  1.10466078, pending zero. Full ceiling 2.34072608, rounded cap 2.35, proposed
+  +1.25 would leave 2.35466078 available; no increase or paid authority applied.
+  Current funds stop before transport/bootstrap/consumption. Fresh draft remains
+  unconsumed; old paid HTTP 500/zero-output result remains unchanged.
+- Next: separately accepted funding and one execution bound to the exact new
+  draft, then review all three meanings. No sampled third answer, fresh-token or
+  semantic-success claim; no consumed-draft resume or unsupported-2024 run.
+  [Prepared scope and evidence](../evaluation/dividend_policy_three_slot_admission.md).

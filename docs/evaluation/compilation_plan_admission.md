@@ -81,8 +81,10 @@ At unchanged model/token/embedding limits, two routing/Planner responses plus
 three first Compiler responses and five counts have a hypothetical full ceiling
 of **USD 2.34072608**, rounded to **2.35**. Existing funds do not cover that whole
 ceiling; this work neither raises the real budget nor prepares a paid manifest.
-The next paid validation needs a fresh, fully funded, one-use admission using
-this gate. Normal planning can still produce more groups than an admitted cap;
+A separate [three-slot application packet](dividend_policy_three_slot_admission.md)
+is now prepared and verified without provider calls. It needs a separately accepted
+USD 1.25 increase and one execution bound to its exact new draft; it is unconsumed
+and uses this gate. This earlier mock-only implementation packet stays immutable. Normal planning can still produce more groups than an admitted cap;
 the gate now detects that before Compiler expense. Unsupported-2024 remains
 unexecuted, and consumed drafts cannot be resumed.
 
