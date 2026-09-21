@@ -65,10 +65,11 @@ stored data and historical responses remain unchanged. Added API calls/cost are
 zero; shared accounting remains **18.74967693 / 20.07 USD**, remaining
 **1.32032307**, pending zero.
 
-The next semantic check should distinguish a report-only year, a requested
-measurement period, a relative period and comparison inputs. Existing wrong/blank
-period controls cannot be counted as semantic passes. Any fresh provider run
-needs its own bounded admission; no consumed draft is resumed by this correction.
+The [provider-free semantic-probe preparation](planner_period_probe_preparation.md)
+now fixes eight questions across report-only/requested years, shifted intervals,
+relative periods and comparison inputs, with separate review criteria and a
+proposed USD 1.27 cap. Existing wrong/blank controls are not semantic passes.
+Fresh execution needs its own bounded admission; no consumed draft is resumed.
 
 Local evidence: [focused](../../benchmarks/results/planner_measurement_period_2026-09-21/focused.json),
 [full unittest](../../benchmarks/results/planner_measurement_period_2026-09-21/full.json),
