@@ -26,6 +26,10 @@ from src.agent.financial_formula_constants import (
 )
 from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
+from src.agent.financial_measurement_periods import (
+    date_period_state, legacy_period_label, measurement_period_requirement_errors,
+    period_contract_error, scope_period,
+)
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
 from src.agent.financial_narrative_claims import validate_narrative_claims
 from src.agent.financial_source_interpretation import (
@@ -488,18 +492,33 @@ def _candidate_value_period(candidate: Mapping[str, Any]) -> Tuple[bool, Optiona
 
 
 def _period_scope_state(
-    expected: str, candidate: Mapping[str, Any], *, allow_filing_scope: bool = True,
+    expected: Any, candidate: Mapping[str, Any], *, allow_filing_scope: bool = True,
 ) -> str:
-    wanted = _normalise_spaces(str(expected or "")).lower()
-    if not wanted or wanted == "unknown":
-        return "match"
-
-    expected_years = explicit_period_years(wanted)
-    if not expected_years:
-        _, expected_year = annual_period_evidence(wanted, report_year=candidate.get("year"))
-        if expected_year is not None:
-            expected_years = {expected_year}
     has_period, value_year = _candidate_value_period(candidate)
+    wanted = ""
+    if isinstance(expected, Mapping):
+        if period_contract_error(expected):
+            return "unknown"
+        kind = expected["kind"]
+        if kind == "unspecified":
+            return "match"
+        if kind == "unresolved":
+            return "unknown"
+        if kind in {"date", "date_interval"}:
+            return date_period_state(expected, candidate, has_year=value_year is not None)
+        expected_years = {expected["year"] if kind == "year"
+                          else expected["anchor_year"] + expected["year_offset"]}
+    else:
+        wanted = _normalise_spaces(str(expected or "")).lower()
+        if not wanted or wanted == "unknown":
+            return "match"
+        if not legacy_period_label(wanted):
+            return "unknown"
+        expected_years = explicit_period_years(wanted)
+        if not expected_years:
+            _, expected_year = annual_period_evidence(wanted, report_year=candidate.get("year"))
+            if expected_year is not None:
+                expected_years = {expected_year}
     if value_year is not None and expected_years:
         return "match" if value_year in expected_years else "conflict"
     if has_period and value_year is None and candidate.get("period_source") == "fiscal_period":
@@ -557,7 +576,7 @@ def _scope_errors(
         if state == "match" or (state == "unknown" and field in applicable):
             continue
         errors.append(f"scope mismatch: {field}")
-    period_state = _narrative_period_scope_state(scope.get("period"), candidate, row_description=row_description)
+    period_state = _narrative_period_scope_state(scope_period(scope), candidate, row_description=row_description)
     if period_state != "match" and (not conflicts_only or period_state == "conflict"):
         errors.append("scope mismatch: period")
     return errors
@@ -645,7 +664,7 @@ def _same_source_context(
 
 def _direct_scope_gap_is_bridgeable(
     candidate: Mapping[str, Any], detail: str, *,
-    witnesses: Sequence[Mapping[str, Any]] = (), expected_period: str = "",
+    witnesses: Sequence[Mapping[str, Any]] = (), expected_period: Any = "",
 ) -> bool:
     field = str(detail or "").rsplit(":", 1)[-1].strip()
     if field == "period":
@@ -668,11 +687,11 @@ def _scope_match_state(
     expected: Any,
     candidate: Mapping[str, Any],
 ) -> str:
+    if field == "period":
+        return _period_scope_state(expected, candidate)
     wanted = _normalise_spaces(str(expected or "")).lower()
     if not wanted or wanted == "unknown":
         return "match"
-    if field == "period":
-        return _period_scope_state(wanted, candidate)
     if field == "company":
         actual = _normalise_spaces(str(candidate.get("document_company") or candidate.get("company") or "")).lower()
         return ("match" if wanted == actual else "conflict") if actual and actual != "unknown" else "unknown"
@@ -724,8 +743,8 @@ def semantic_candidate_applicability(
         local_subject_state = "segment_match"
 
     for field in ("company", "period", "consolidation_scope", "segment", "basis"):
-        expected = _normalise_spaces(str(scope.get(field) or ""))
-        if not expected or expected.lower() == "unknown":
+        expected = scope_period(scope) if field == "period" else _normalise_spaces(str(scope.get(field) or ""))
+        if not expected or expected == "unknown":
             continue
         state = _scope_match_state(field, expected, candidate_row)
         explicit_candidate_segment = _normalise_spaces(
@@ -780,9 +799,12 @@ def source_candidate_applicability(
     interpretation. Input periods override output periods, while source-section
     restrictions always intersect their parent's restrictions.
     """
-    scope = {**dict((parent_owner or {}).get("scope") or {}), **dict(owner.get("scope") or {})}
+    input_scope = dict(owner.get("scope") or {})
+    scope = {**dict((parent_owner or {}).get("scope") or {}), **input_scope}
+    if input_scope.get("measurement_period") is None and str(input_scope.get("period") or "").strip():
+        scope.pop("measurement_period", None)
     hard_owner = {"scope": {key: scope[key] for key in
-                  ("company", "period", "consolidation_scope") if key in scope}}
+                  ("company", "period", "measurement_period", "consolidation_scope") if key in scope}}
     result = semantic_candidate_applicability(candidate, hard_owner)
     section = source_section_applicability(candidate, owner, parent_owner)["state"]
     if section not in {"unrestricted", "match"}:
@@ -853,9 +875,8 @@ def _collective_narrative_scope_errors(
     }
     errors: List[str] = []
     for field in ("company", "consolidation_scope", "segment", "basis", "period"):
-        expected = scope.get(field)
-        wanted = _normalise_spaces(str(expected or "")).lower()
-        if not wanted or wanted == "unknown":
+        expected = scope_period(scope) if field == "period" else scope.get(field)
+        if not expected or expected == "unknown":
             continue
         states = [
             _narrative_period_scope_state(expected, candidate,
@@ -1178,7 +1199,8 @@ def validate_semantic_calculation_program(
     requirement_by_id: Dict[str, Dict[str, Any]] = {}
     requirement_owner_by_id: Dict[str, str] = {}
     requirement_count = 0
-    section_errors = source_section_requirement_errors(obligation_rows, query)
+    section_errors = [*source_section_requirement_errors(obligation_rows, query),
+                      *measurement_period_requirement_errors(obligation_rows, query)]
     errors.extend(section_errors)
     invalid_evidence_obligation_ids = {item["obligation_id"] for item in section_errors}
     for obligation_id, obligation in obligation_by_id.items():
@@ -1444,7 +1466,7 @@ def validate_semantic_calculation_program(
                     for detail in scope_details
                     if not _direct_scope_gap_is_bridgeable(
                         candidate, detail, witnesses=compatibility_candidates,
-                        expected_period=str((obligation.get("scope") or {}).get("period") or ""),
+                        expected_period=scope_period(obligation.get("scope") or {}),
                     )
                 ]
             for detail in scope_details:
@@ -2101,7 +2123,7 @@ def validate_semantic_calculation_program(
                 candidate_id = str(candidate.get("candidate_id") or "")
                 if candidate.get("kind") != "numeric" or candidate_id in description_only_ids:
                     continue
-                period_state = _period_scope_state((obligation.get("scope") or {}).get("period"), candidate,
+                period_state = _period_scope_state(scope_period(obligation.get("scope") or {}), candidate,
                     allow_filing_scope=False)
                 if period_state != "match":
                     error("candidate_scope_mismatch", obligation_id, "scope mismatch: period",
@@ -2704,6 +2726,10 @@ def project_semantic_program_operand(
     period = str(candidate.get("period") or "")
     period_source = str(candidate.get("period_source") or "")
     value_year = candidate.get("value_year")
+    requested_period = obligation_scope.get("measurement_period") or {}
+    if not period and requested_period.get("kind") in {"date", "date_interval"}:
+        period = str(candidate.get("source_period_surface") or " / ".join(candidate.get("column_headers") or []))
+        period_source = "source_date_axis" if period else period_source
     if not period and value_year not in (None, ""):
         period = str(value_year)
         period_source = period_source or "candidate_value_year"

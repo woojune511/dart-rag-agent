@@ -4,7 +4,10 @@ Provider-free characterization on clean `571d87fb` finds two downstream period
 defects in the [eight actual Planner plans](planner_period_probe_result.md): an
 anchored previous-year request uses its anchor as the target, and complete date
 intervals are checked as sets of years. Production source is unchanged. These
-defects are reproduced, **not fixed** by this documentation-only change.
+defects were reproduced, **not fixed** by that documentation-only change. The
+subsequent [structured-period implementation](structured_measurement_period.md)
+fixes execution for explicit new constraints and blocks unsupported legacy guesses;
+the original diagnosis and paid responses below remain unchanged.
 
 ## Evidence and limits
 

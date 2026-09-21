@@ -27,7 +27,7 @@ _AXIS_SOURCE_PROVENANCE_FIELDS = (
     "physical_table_id", "physical_row_id", "physical_cell_id", "physical_value_id",
     "source_row_id", "table_source_id",
 )
-RESPONSIBILITY_SCOPE_FIELDS = ("company", "period", "consolidation_scope", "segment", "basis")
+RESPONSIBILITY_SCOPE_FIELDS = ("company", "period", "measurement_period", "consolidation_scope", "segment", "basis")
 EMPTY_SCALAR_FIELDS = frozenset((
     "raw_value", "raw_unit", "value_year", "source_value_span", "period",
     "source_period_surface", "period_role", "period_label_surfaces", "period_source",

@@ -176,9 +176,10 @@ class SectionRequestRangeTests(unittest.TestCase):
         self.assertFalse(schema['$defs']['SourceSectionReferenceV2']['additionalProperties'])
         local_validator = Draft202012Validator(RequirementPlannerOutput.model_json_schema())
         for kind in ('direct_value', 'derived_value', 'narrative'):
-            raw = {**range_owner(), 'kind': kind}
+            raw = {**range_owner(), 'kind': kind, 'scope': dict(measurement_period=dict(kind='unspecified'))}
             if kind != 'direct_value':
-                raw['evidence_requirements'] = [dict(label='detail', source_section_bindings=[reference()])]
+                raw['evidence_requirements'] = [dict(label='detail', source_section_bindings=[reference()],
+                    scope=dict(measurement_period=dict(kind='unspecified')))]
             parsed = RequirementPlannerOutput(obligations=[raw])
             Draft202012Validator(schema).validate(parsed.model_dump())
             for location in ('output', 'input') if kind != 'direct_value' else ('output',):
@@ -263,7 +264,7 @@ class SectionRequestRangeTests(unittest.TestCase):
         self.assertEqual(owner, before)
 
     def test_real_sdk_sends_only_range_schema_and_preserves_returned_ids(self):
-        value = RequirementPlannerOutput(obligations=[range_owner()])
+        value = RequirementPlannerOutput(obligations=[range_owner(scope=dict(measurement_period=dict(kind='unspecified')))])
         agent = agent_for(None)
         agent.vsm = SimpleNamespace(bm25_metadatas=[metadata()])
         agent.llm_usage_callback = GeminiUsageCallbackHandler()

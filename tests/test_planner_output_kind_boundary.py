@@ -87,6 +87,9 @@ class PlannerOutputKindBoundaryTests(unittest.TestCase):
         subject, query, _ = STATUS_CASES[0]
         rows = [authored_owner(kind, kind, query, subject=subject, key=kind)
                 for kind in ('narrative', 'direct_value', 'derived_value')]
+        for row in rows:
+            for target in [row, *row.get('evidence_requirements', [])]:
+                target['scope'] = dict(measurement_period=dict(kind='unspecified'))
         response = RequirementPlannerOutput(obligations=rows)
         agent = agent_for(None)
         agent.llm_usage_callback = GeminiUsageCallbackHandler()

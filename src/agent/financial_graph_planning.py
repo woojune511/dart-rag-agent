@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from src.agent.financial_graph_model_loaders import requirement_planner_output_model
@@ -13,6 +14,7 @@ from src.agent.financial_retrieval_hints import infer_statement_and_section_hint
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
 from src.agent.financial_scope_policies import explicit_query_consolidation_scopes
+from src.agent.financial_measurement_periods import measurement_period_requirement_errors
 from src.agent.financial_source_scope import (
     build_source_section_inventory, resolve_source_section_bindings, source_section_requirement_errors,
 )
@@ -314,6 +316,14 @@ class FinancialAgentPlanningMixin:
         ) -> Dict[str, Any]:
             scope = dict(raw_scope or {})
             inherited = dict(default_scope or {})
+            inherit_period = (not str(scope.get("period") or "").strip()
+                              and scope.get("measurement_period") in (None, {"kind": "unspecified"}))
+            if inherit_period and inherited.get("measurement_period") is not None:
+                scope["measurement_period"] = deepcopy(inherited["measurement_period"])
+            # Keep historical normalized shapes unchanged when no structure was
+            # supplied. An explicit child label cannot inherit a parent's target.
+            if scope.get("measurement_period") is None:
+                scope.pop("measurement_period", None)
             scope["company"] = (
                 report_company
                 or _normalise_optional_scope_value(scope.get("company"))
@@ -322,7 +332,7 @@ class FinancialAgentPlanningMixin:
             scope["period"] = _normalise_spaces(
                 str(
                     scope.get("period")
-                    or inherited.get("period")
+                    or (inherited.get("period") if inherit_period else "")
                     or ""
                 )
             )
@@ -496,6 +506,7 @@ class FinancialAgentPlanningMixin:
         request_errors = request_unit_errors(request_units, obligations)
         requirement_errors.extend(request_errors)
         requirement_errors.extend(source_section_requirement_errors(obligations, query))
+        requirement_errors.extend(measurement_period_requirement_errors(obligations, query))
         retrieval_queries = [query]
         retrieval_queries.extend(
             _normalise_spaces(str(item))

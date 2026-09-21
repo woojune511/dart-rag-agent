@@ -2,12 +2,13 @@
 
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, create_model
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator, create_model
 from pydantic.json_schema import SkipJsonSchema
 from typing_extensions import TypeAliasType
 
 from src.agent.financial_program_projection import narrative_candidate_ids, project_narrative_claims
 from src.agent.financial_formula_wire import FORMULA_LITERALS, FORMULA_OPERATION_GROUPS, MAX_FORMULA_STEPS
+from src.agent.financial_measurement_periods import period_contract_error
 
 
 def _normalise_optional_planner_text(value: Any) -> str:
@@ -69,6 +70,51 @@ class CompressionOutput(_DeferredBaseModel):
     )
 
 
+class MeasurementPeriodBase(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if error := period_contract_error(self.model_dump()):
+            raise ValueError(error)
+        return self
+
+
+class UnspecifiedMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["unspecified"]
+
+
+class UnresolvedMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["unresolved"]
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
+class YearMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["year"]
+    year: StrictInt = Field(ge=1, le=9999)
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
+class RelativeYearMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["relative_year"]
+    anchor_year: StrictInt = Field(ge=1, le=9999)
+    year_offset: StrictInt
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
+class DateMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["date"]
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
+class IntervalMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["date_interval"]
+    start_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
 class AnswerObligationScope(_DeferredBaseModel):
     """Semantic scope that every grounded answer obligation must preserve."""
 
@@ -81,6 +127,20 @@ class AnswerObligationScope(_DeferredBaseModel):
         "Leave blank when no measurement period is requested. A blank child inherits its "
         "declared parent period only; comparisons must specify each input's own period. "
         "Use the report year only when the request actually asks for that measurement period."
+    ))
+    measurement_period: Union[
+        UnspecifiedMeasurementPeriod, YearMeasurementPeriod, RelativeYearMeasurementPeriod,
+        DateMeasurementPeriod, IntervalMeasurementPeriod, UnresolvedMeasurementPeriod,
+        SkipJsonSchema[None],
+    ] = Field(default=None, exclude_if=lambda value: value is None, description=(
+        "Execution constraint interpreted from the owned original request. Always choose an object: "
+        "unspecified when there is no measurement constraint; year for a year-granularity target; "
+        "relative_year for an explicit anchor_year and signed year_offset (code adds them); "
+        "date or date_interval for full ISO dates with inclusive endpoints; unresolved when unknown. "
+        "A report year alone does not create a measurement constraint. Link every constrained period "
+        "to this output's request_unit_ids, including anchor/relative instructions. Keep period text "
+        "unchanged. Each comparison input declares its own constraint; do not use its output's two "
+        "years as interchangeable source permissions. Source years do not prove date endpoints."
     ))
     consolidation_scope: Literal["consolidated", "separate", "unknown"] = "unknown"
     segment: str = ""

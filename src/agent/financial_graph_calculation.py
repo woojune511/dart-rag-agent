@@ -36,6 +36,7 @@ from src.agent.financial_narrative_claims import project_narrative_retry_drafts
 from src.agent.financial_compiler_debug import project_compiler_attempt
 from src.utils.request_diagnostics import diagnostic_location, diagnostics_enabled, record_diagnostic
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
+from src.agent.financial_measurement_periods import measurement_period_requirement_errors
 from src.agent.financial_source_interpretation import interpretation_axis_sources, source_unit_options
 from src.agent.financial_column_periods import source_period_options
 from src.agent.financial_output_relationships import (
@@ -126,7 +127,8 @@ def build_semantic_compilation_islands(
     errors_by_id: Dict[str, List[Dict[str, str]]] = {
         obligation_id: [] for obligation_id in order
     }
-    for section_error in source_section_requirement_errors(rows, query):
+    for section_error in [*source_section_requirement_errors(rows, query),
+                          *measurement_period_requirement_errors(rows, query)]:
         errors_by_id[section_error["obligation_id"]].append(section_error)
     dependency_edges: List[tuple[str, str]] = []
     for obligation_id, obligation in obligation_by_id.items():

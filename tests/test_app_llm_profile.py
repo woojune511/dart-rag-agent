@@ -276,11 +276,12 @@ class AppLLMProfileTests(unittest.TestCase):
             RequirementPlannerOutput(obligations=[
                 dict(kind="narrative", label="anonymous activity", request_unit_ids=["q1"],
                      display_unit="", display_format="paragraph",
-                     evidence_requirements=[dict(label="anonymous source")]),
+                     scope=dict(measurement_period=dict(kind="unspecified")),
+                     evidence_requirements=[dict(label="anonymous source", scope=dict(measurement_period=dict(kind="unspecified")))]),
                 dict(kind="direct_value", label="anonymous quantity", request_unit_ids=["q1"],
-                     display_unit="COUNT"),
+                     display_unit="COUNT", scope=dict(measurement_period=dict(kind="unspecified"))),
                 dict(kind="derived_value", label="anonymous rate", request_unit_ids=["q1"],
-                     display_unit="%"),
+                     display_unit="%", scope=dict(measurement_period=dict(kind="unspecified"))),
             ]),
         ]
         calls = []

@@ -101,6 +101,9 @@ class PlannerNumericPresentationTests(unittest.TestCase):
         value = authored_plan(query, '', 'Preserve source notation and unit.')
         value.obligations.append(authored_plan(query, 'unsupported-unit', 'Two decimal places.',
                                               'derived_value').obligations[0])
+        from src.agent.financial_graph_models import UnspecifiedMeasurementPeriod
+        for output in value.obligations:
+            output.scope.measurement_period = UnspecifiedMeasurementPeriod(kind='unspecified')
         agent = agent_for(None)
         agent.llm_usage_callback = GeminiUsageCallbackHandler()
         route = dict(app_llm_routing_config('openai')['llm_routes']['default'], api_key='offline-placeholder')
