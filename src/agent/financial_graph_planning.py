@@ -13,7 +13,6 @@ from src.agent.financial_langchain_loaders import chat_prompt_template_from_temp
 from src.agent.financial_retrieval_hints import infer_statement_and_section_hints
 from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
 from src.agent.financial_runtime_normalization import _normalise_spaces, resolve_unit_spec
-from src.agent.financial_scope_policies import explicit_query_consolidation_scopes
 from src.agent.financial_measurement_periods import measurement_period_requirement_errors
 from src.agent.financial_source_scope import (
     build_source_section_inventory, resolve_source_section_bindings, source_section_requirement_errors,
@@ -267,8 +266,6 @@ class FinancialAgentPlanningMixin:
         )
         source_companies = _report_scope_source_companies(report_scope)
         report_company = source_companies[0] if len(source_companies) == 1 else scope_company
-        query_consolidation_scopes = explicit_query_consolidation_scopes(query)
-        allowed_query_consolidation_scopes = set(query_consolidation_scopes)
         target_notes: List[str] = []
         dependency_notes: List[str] = []
         requirement_errors: List[Dict[str, str]] = []
@@ -342,14 +339,14 @@ class FinancialAgentPlanningMixin:
             inherited_consolidation = _normalise_spaces(
                 str(inherited.get("consolidation_scope") or "")
             ).lower()
-            if len(query_consolidation_scopes) == 1:
-                consolidation = query_consolidation_scopes[0]
-            elif consolidation in allowed_query_consolidation_scopes:
-                pass
-            elif inherited_consolidation in allowed_query_consolidation_scopes:
-                consolidation = inherited_consolidation
-            else:
-                consolidation = "unknown"
+            # The Planner interprets the owned request. Query substrings and
+            # filing metadata cannot create, replace or erase that choice.
+            if consolidation not in {"consolidated", "separate"}:
+                consolidation = (
+                    inherited_consolidation
+                    if inherited_consolidation in {"consolidated", "separate"}
+                    else "unknown"
+                )
             scope["consolidation_scope"] = consolidation
             scope["segment"] = (
                 _normalise_optional_scope_value(scope.get("segment"))
@@ -563,8 +560,8 @@ class FinancialAgentPlanningMixin:
                 )
         preferred_statement_types, preferred_sections = infer_statement_and_section_hints(query)
         consolidation_scopes = {
-            str(dict(item.get("scope") or {}).get("consolidation_scope") or "unknown")
-            for item in obligations
+            str(dict(item.get("binding_policy") or {}).get("consolidation_scope") or "unknown")
+            for item in required_evidence
         }
         consolidation_scope = (
             next(iter(consolidation_scopes))

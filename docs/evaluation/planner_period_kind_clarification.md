@@ -57,6 +57,7 @@ Added provider calls/accounting **0**; shared **19.54154943/20.32**, remaining
 This is an instruction hypothesis, consistent with OpenAI's distinction between
 structured output and correct content in its
 [handling-mistakes guidance](https://developers.openai.com/api/docs/guides/structured-outputs#handling-mistakes).
-Next address the ordinary-word consolidation override as a separate contract
-seam. Any later model comparison requires fresh whole-batch admission and frozen
-criteria; the consumed probe and its four failures remain unchanged.
+The subsequent [scope-ownership correction](consolidation_scope_ownership.md)
+addresses the ordinary-word override separately. Any later model comparison needs
+fresh admission and frozen criteria; this instruction change still has no new
+model result, and the consumed probe's four period failures remain unchanged.

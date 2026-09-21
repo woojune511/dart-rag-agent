@@ -103,9 +103,10 @@ source availability or full-application correctness is claimed.
 The [provider-free period-kind clarification](planner_period_kind_clarification.md)
 now explains that year plus coverage needs no fiscal endpoints and within_year is
 not exact-interval equality. Its saved-plan replay preserves all four failures;
-there is no new model result. The ordinary-word consolidation override remains a
-separate contract seam. Any later model experiment requires fresh whole-batch
-admission; do not retry or repair this consumed run.
+there is no new model result. The subsequent [scope-ownership correction](consolidation_scope_ownership.md)
+retains c04's raw unknown scope in a new offline replay; the paid run remains
+unchanged. Any later model experiment requires fresh whole-batch admission;
+do not retry or repair this consumed run.
 
 Local evidence: [frozen criteria](../../benchmarks/results/measurement_coverage_probe_2026-09-22/review_criteria.json),
 [run receipt](../../benchmarks/results/measurement_coverage_probe_2026-09-22/live/run_receipt.json),

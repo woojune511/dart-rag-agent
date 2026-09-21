@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Planner consolidation-scope ownership correction (2026-09-22)
+
+- Clean `70784547`; [result](../evaluation/consolidation_scope_ownership.md). Two runtime owners change: Planner preserves declared scope, with known parent inheritance for unknown children; retrieval preference aggregates actual source-owner declarations and is neutral for mixed/unknown scope. Query substrings and filing metadata no longer overwrite/erase request scope or supply ranking defaults. No model/schema/prompt change, new keyword rule or automatic semantic repair.
+- Exact six-response SDK replay retains every request body. Only c04 changes: eight normalized projections keep original unknown instead of forced separate. The other five plans and all six periods/report filters are identical. The old period score stays **2/6**, coverage **0/4**; no new model sample or historical answer rewrite. Old generic wrong-scope fixtures remain unchanged and are explicitly tested as semantic negatives, not keyword-repair successes. Known source conflicts still fail.
+- Twelve new regressions (ten failures before the edit), **170/170** focused, full **2225/2225** in70.512s, audit83 and import/topology/docs pass; no skips or external test connections. Removing an obsolete caller mock initially left two stale tuple indexes; test-only correction and failed log retained. Syntax/diff checks pass. All **13040** predecessor files, **174** unrelated sources, **24** stores/settings and old fixtures retain hashes.
+- Packet `consolidation_scope_ownership_2026-09-22` remains ignored; only source/tests/docs committed. Added provider calls/accounting **0**, shared **19.54154943/20.32**, remaining **0.77845057**, pending zero. Next prepare a bounded new Planner comparison with frozen period/scope criteria and fresh admission within the remaining allowance. No paid retry, ingest or funding increase; no new full-app/general accuracy claim.
+
 ## Planner period-kind instruction clarification (2026-09-22)
 
 - Clean `d2b73b8b`; [details](../evaluation/planner_period_kind_clarification.md). Provider-free prompt and field-description clarification distinguishes known year/coverage from exact dates, without inferred fiscal endpoints or unnecessary unresolved choices. Two source owners change; no fields, validators, normalization, execution or case-specific rules change.

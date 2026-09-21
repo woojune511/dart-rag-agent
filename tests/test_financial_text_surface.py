@@ -2029,7 +2029,6 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patch.object(financial_retrieval_pipeline, "_metric_terms_from_topic", return_value=set()),
             patch.object(financial_retrieval_pipeline, "_active_preferred_sections", return_value=[]),
             patch.object(financial_retrieval_pipeline, "_active_preferred_statement_types", return_value=[]),
-            patch.object(financial_retrieval_pipeline, "desired_consolidation_scope", return_value="unknown"),
             patch.object(financial_retrieval_pipeline, "metadata_period_match_strength", return_value=0),
             patch.object(financial_retrieval_pipeline, "NARRATIVE_RERANK_POLICY", {"causal_markers": ()}),
         )
@@ -2040,7 +2039,6 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patches[3],
             patches[4],
             patches[5],
-            patches[6],
             patch.object(financial_retrieval_pipeline, "query_focus_markers", marker_owner),
         ):
             reranked = agent._rerank_docs(docs, state)
@@ -2063,7 +2061,6 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patches[3],
             patches[4],
             patches[5],
-            patches[6],
             patch.object(financial_retrieval_pipeline, "query_focus_markers", marker_owner),
         ):
             self.assertEqual(agent._rerank_docs([], non_narrative_state), [])
@@ -2082,7 +2079,6 @@ class FinancialTextSurfaceTests(unittest.TestCase):
             patches[3],
             patches[4],
             patches[5],
-            patches[6],
             patch.object(financial_retrieval_pipeline, "query_focus_markers", marker_owner),
         ):
             with self.assertRaisesRegex(RuntimeError, "marker failed"):

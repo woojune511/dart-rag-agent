@@ -282,14 +282,14 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             {
                 "company": "",
                 "period": "2023",
-                "consolidation_scope": "unknown",
+                "consolidation_scope": "consolidated",
                 "segment": "service",
                 "basis": "gross",
             },
         )
         self.assertEqual(
             result["answer_obligations"][1]["scope"]["consolidation_scope"],
-            "unknown",
+            "consolidated",
         )
         self.assertEqual(
             task["constraints"]["consolidation_scope"],
@@ -448,7 +448,7 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         )
         self.assertEqual(result["companies"][:2], ["Source Company", "Display Company"])
 
-    def test_requirement_planner_rejects_hard_scope_without_query_provenance(self) -> None:
+    def test_requirement_planner_keeps_wrong_authored_scopes_as_semantic_negatives(self) -> None:
         fixture = _contract_residual_fixture()["scope_provenance"][
             "implicit_query"
         ]
@@ -465,29 +465,25 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             report_scope=fixture["report_scope"],
         )
 
-        self.assertEqual(
-            [
-                item["scope"]["consolidation_scope"]
-                for item in result["answer_obligations"]
-            ],
-            fixture["expected_obligation_scopes"],
-        )
+        # This old fixture supplies unrequested hard scopes. A keyword scan is
+        # not provenance validation: preserve the bad interpretation instead of
+        # silently repairing it or counting structural acceptance as semantics.
+        observed = [item["scope"]["consolidation_scope"] for item in result["answer_obligations"]]
+        self.assertEqual(observed, [row["scope"]["consolidation_scope"] for row in fixture["planner_obligations"]])
+        self.assertNotEqual(observed, fixture["expected_obligation_scopes"])
         self.assertEqual(
             result["answer_obligations"][1]["evidence_requirements"][0][
                 "scope"
             ]["consolidation_scope"],
-            fixture["expected_requirement_scope"],
+            fixture["planner_obligations"][1]["evidence_requirements"][0]["scope"]["consolidation_scope"],
         )
-        self.assertEqual(
-            result["tasks"][0]["constraints"]["consolidation_scope"],
-            fixture["expected_task_scope"],
-        )
+        self.assertEqual(result["tasks"][0]["constraints"]["consolidation_scope"], "consolidated")
         self.assertIn(
             "report_scope의 문서 metadata",
             str(PLANNING_POLICY.get("requirement_planner_prompt_template") or ""),
         )
 
-    def test_requirement_planner_uses_only_query_explicit_hard_scope(self) -> None:
+    def test_requirement_planner_preserves_interpretations_without_keyword_repair(self) -> None:
         fixture = _contract_residual_fixture()["scope_provenance"]
         single = fixture["single_explicit_query"]
         single_response = RequirementPlannerOutput.model_validate(
@@ -529,14 +525,16 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             single_result["answer_obligations"][0]["scope"][
                 "consolidation_scope"
             ],
-            single["expected_scope"],
+            single["planner_scope"],
         )
         self.assertEqual(
             single_result["answer_obligations"][0][
                 "evidence_requirements"
             ][0]["scope"]["consolidation_scope"],
-            single["expected_scope"],
+            single["planner_scope"],
         )
+        self.assertNotEqual(single["planner_scope"], single["expected_scope"],
+                            "The deliberately wrong interpretation remains a semantic negative.")
 
         multiple = fixture["multiple_explicit_query"]
         multiple_response = RequirementPlannerOutput.model_validate(

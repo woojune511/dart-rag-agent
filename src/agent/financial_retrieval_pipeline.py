@@ -39,7 +39,6 @@ from src.agent.financial_runtime_normalization import (
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.agent.financial_source_scope import source_section_allowed_for_query
 from src.agent.financial_scope_policies import (
-    desired_consolidation_scope,
     is_scope_only_period_surface,
     metadata_period_match_strength,
     report_scope_source_receipts,
@@ -1002,7 +1001,11 @@ class FinancialRetrievalPipelineMixin:
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
         preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
         desired_statement_types = set(_active_preferred_statement_types(state, state["query"], state.get("topic") or ""))
-        desired_consolidation = desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
+        desired_consolidation = str(
+            dict(active_subtask.get("constraints") or {}).get("consolidation_scope") or "unknown"
+        )
+        if desired_consolidation not in {"consolidated", "separate"}:
+            desired_consolidation = "unknown"
         query_years = sorted(years)
         narrative_path = not _semantic_program_required(state)
         query_focus_marker_values = (
