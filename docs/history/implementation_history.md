@@ -13342,3 +13342,20 @@ are complete. It remains only as an audit record, not an active priority.
   24/24 pass. The first full-discovery command failed before tests because of a
   namespace-directory top-level argument; the corrected harness passes and both
   records remain. [Contract and verification](../evaluation/missing_evidence_presentation.md).
+
+
+## 2026-09-21 — Preserve Planner measurement periods without filing-year defaults
+
+- On `15fee58b`, classify the blank numeric period substitution as a Planner
+  normalization contract bug. Keep every unspecified output period empty, while
+  retaining explicit parent inheritance and child overrides. Report selection and
+  year hints remain separate; prompt/schema descriptions reinforce this without
+  new fields, calls, keyword extraction or inferred year repair.
+- 14 new contracts / 94 focused tests / domain audit 83 pass. Full unittest
+  2144/2144, no skips (63.810s); import/topology/docs 24/24. Initial test-only
+  field/key/constructor errors were corrected without weakening product checks.
+- No-period lookups remain supported, explicit foreign periods remain incomplete,
+  and two-period arithmetic/ledger behavior passes. Authored wrong/omitted periods
+  remain semantic negatives even when source validation accepts them. This is no
+  general guarantee against Planner interpretation errors.
+  [Contract and evidence](../evaluation/planner_measurement_period.md).

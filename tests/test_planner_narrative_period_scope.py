@@ -67,13 +67,13 @@ class PlannerNarrativePeriodScopeTests(unittest.TestCase):
                 self.assertEqual(owner['scope']['period'], period)
                 self.assertEqual(owner['evidence_requirements'][0]['scope'], owner['scope'])
 
-    def test_numeric_default_period_and_child_inheritance_are_unchanged(self):
+    def test_numeric_unspecified_period_and_child_are_not_filled_from_filing_year(self):
         for kind, child in [('direct_value', None), ('derived_value', '')]:
             with self.subTest(kind=kind):
                 owner = self.plan(kind=kind, child_period=child)['requirements']['answer_obligations'][0]
-                self.assertEqual(owner['scope']['period'], '2047')
+                self.assertEqual(owner['scope']['period'], '')
                 if child is not None:
-                    self.assertEqual(owner['evidence_requirements'][0]['scope']['period'], '2047')
+                    self.assertEqual(owner['evidence_requirements'][0]['scope']['period'], '')
 
     def test_no_filing_year_does_not_invent_a_period(self):
         for kind in ('narrative', 'direct_value'):

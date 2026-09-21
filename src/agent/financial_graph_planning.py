@@ -265,7 +265,6 @@ class FinancialAgentPlanningMixin:
         )
         source_companies = _report_scope_source_companies(report_scope)
         report_company = source_companies[0] if len(source_companies) == 1 else scope_company
-        report_period = _normalise_spaces(str(report_scope.get("year") or ""))
         query_consolidation_scopes = explicit_query_consolidation_scopes(query)
         allowed_query_consolidation_scopes = set(query_consolidation_scopes)
         target_notes: List[str] = []
@@ -311,7 +310,6 @@ class FinancialAgentPlanningMixin:
         def normalize_scope(
             raw_scope: Any,
             *,
-            default_period: str = report_period,
             default_scope: Optional[Dict[str, Any]] = None,
         ) -> Dict[str, Any]:
             scope = dict(raw_scope or {})
@@ -325,7 +323,7 @@ class FinancialAgentPlanningMixin:
                 str(
                     scope.get("period")
                     or inherited.get("period")
-                    or default_period
+                    or ""
                 )
             )
             consolidation = _normalise_spaces(
@@ -371,11 +369,9 @@ class FinancialAgentPlanningMixin:
                     "location": "obligation.display_unit", "repair_action": "repair_requirements",
                     "detail": declared_unit,
                 })
-            # Filing year constrains the document, not every described source
-            # period. Preserve an unspecified narrative measurement period;
-            # numeric outputs retain their existing filing-year default.
-            default_period = "" if obligation.get("kind") == "narrative" else report_period
-            scope = normalize_scope(obligation.get("scope"), default_period=default_period)
+            # Filing year constrains the document, not the requested measurement
+            # period. Only a declared parent period can fill a blank child scope.
+            scope = normalize_scope(obligation.get("scope"))
             obligation_concept_hints = list(obligation.get("concept_hints") or [])
             obligation_target = normalize_semantic_target(
                 obligation.get("semantic_target"),
@@ -407,7 +403,6 @@ class FinancialAgentPlanningMixin:
                         ),
                         "scope": normalize_scope(
                             requirement.get("scope"),
-                            default_period=str(scope.get("period") or default_period),
                             default_scope=scope,
                         ),
                         "retrieval_hints": list(

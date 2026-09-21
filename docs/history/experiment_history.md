@@ -9802,3 +9802,19 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
 - All 11061 predecessor artifacts, 24 original store files and settings preserve
   hashes. Added cost zero, accounting 18.74967693/20.07, remaining 1.32032307,
   pending zero. [Local correction](../evaluation/missing_evidence_presentation.md).
+
+
+## 2026-09-21 — Saved Planner-response replay after period-default removal
+
+- 24 provider-free assertions replay three original Planner response bodies with
+  saved source inventories. Normalized obligations/errors remain identical for
+  missing-evidence, cash-flow and dividend cases; exact programs/catalogs revalidate
+  and run through V2 execution/final assembly/ledger. Entire final projections equal
+  the prior presentation replay; no fresh response or causal/accuracy claim.
+- All 11087 predecessor files, 24 original store files and local settings retain
+  hashes. No native query, Chroma open, provider call or added cost. Shared accounting
+  stays 18.74967693/20.07 USD, remaining 1.32032307, pending zero. Prior paid partial
+  and consumed manifests remain unchanged. Next semantic evaluation distinguishes
+  report-only years from requested/relative/comparison periods, retaining wrong or
+  omitted period controls as semantic failures.
+  [Replay and limits](../evaluation/planner_measurement_period.md).

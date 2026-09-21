@@ -70,7 +70,8 @@ retain their hashes. Only four runtime/config owners and the new tests change.
 New API calls and added accounting are **zero**; shared accounting remains
 **18.74967693 / 20.07 USD**, with **1.32032307** remaining and zero pending.
 
-The remaining Planner blank-period/default-year concern is independent. Future
+The later [Planner period correction](planner_measurement_period.md) removes numeric
+filing-year substitution; model omission/wrong-period semantics remain separate. Future
 coverage should distinguish a true missing source, an ambiguous interpretation
 and a contract/provider failure; none should be converted to an unsupported
 number or full-report absence. This change grants no fresh ingest or paid retry.

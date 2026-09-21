@@ -75,7 +75,13 @@ class AnswerObligationScope(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     company: str = ""
-    period: str = ""
+    period: str = Field(default="", description=(
+        "Requested measurement period, distinct from the selected document's report_scope.year. "
+        "Preserve explicit dates, ranges and relative periods; do not substitute the filing year. "
+        "Leave blank when no measurement period is requested. A blank child inherits its "
+        "declared parent period only; comparisons must specify each input's own period. "
+        "Use the report year only when the request actually asks for that measurement period."
+    ))
     consolidation_scope: Literal["consolidated", "separate", "unknown"] = "unknown"
     segment: str = ""
     basis: str = ""

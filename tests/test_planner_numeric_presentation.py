@@ -44,7 +44,7 @@ class PlannerNumericPresentationTests(unittest.TestCase):
         self.assertEqual((compiled_owner['display_unit'], compiled_owner['display_format']), (unit, form))
         self.assertEqual(compiled_owner['request_unit_ids'], planned.obligations[0].request_unit_ids)
         self.assertEqual(compiled_owner['scope']['company'], 'Issuer')
-        self.assertEqual(compiled_owner['scope']['period'], '2042')
+        self.assertEqual(compiled_owner['scope']['period'], '')
         self.assertIn(query, llm.prompts[1].to_messages()[0].content)
         state.update(agent._execute_numeric_phase(state))
         state.update(agent._assemble_final_phase(state))
