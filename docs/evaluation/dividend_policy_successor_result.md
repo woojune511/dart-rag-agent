@@ -99,11 +99,12 @@ disposable copy's SQLite bytes change. Experimental artifacts remain local.
 
 ## Next bounded work
 
-Characterize a generic, provider-free caller admission that checks the actual
-planned island count before paid compilation. First-response capacity, global
-generation/count limits and whole-run funding must agree. Keep repeated-owner
-repair distinct from a new owner; preserve normal Planner choices, source checks,
-and terminal errors. Do not force a two-output plan to fit an experimental cap.
+The generic [compilation-plan admission](compilation_plan_admission.md) is now
+implemented and verified provider-free: the same three-owner plan stops before
+any Compiler expense at a two-response cap. A three-slot mock envelope reaches
+the third count and preserves its injected terminal fault. Group membership,
+source checks and historical outputs remain unchanged; no new final answer
+repairs this paid failure. Future paid validation needs a fresh funded packet.
 This result authorizes no rerun or resume of the consumed draft. Unsupported-2024
 remains unexecuted; another paid attempt needs a separately prepared, funded
 execution boundary.

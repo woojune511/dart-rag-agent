@@ -9626,3 +9626,33 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
   resume consumed drafts or execute unsupported-2024.
 - [Result](../evaluation/dividend_policy_successor_result.md);
   [local review](../../benchmarks/results/dividend_policy_successor_execution_2026-09-21/live_review.json).
+
+
+## 2026-09-21 — Actual-plan compilation admission, provider-free
+
+- On `84184294`, added opt-in `src.ops.compilation_plan_admission`: inspect the
+  actual runtime island-builder result after physical-bundle discovery before
+  any Compiler call. Dependencies/relationships/bundles retain membership; valid
+  groups need coherent first-response, remaining generation/count and full
+  input/output/count funding bounds. Each complete group is admitted once;
+  subset repair/regrouping/repeats fail before counting. No product default change.
+- 14 new contracts and combined 86 focused/import/topology tests pass. Real SDK
+  mocked transport covers three first count/generation pairs and a terminal third
+  count fault. Two documentation authority gates pass separately.
+- Actual application replay on disposable native stores: two-slot mode stops
+  before every Compiler prompt/count/generation after 20 recorded-response mocks;
+  three-slot mode retains 24 original SDK bodies/two sampled Compiler programs,
+  then reaches an injected third-count 503 as request 25 and stops without retry.
+  Each retains the complete saved requirements/catalog and 14 native query results.
+  No new answer or live token/model-quality result is inferred from the fixtures.
+- 115 saved-evidence checks pass. All 10499 predecessors, 174 preexisting sources,
+  seven protected owners, 24 original store files and settings retain hashes;
+  only disposable SQLite bytes change. One new ops module and one test module;
+  experimental caller/replay artifacts stay local and their live entrypoint is disabled.
+- Real API calls/cost 0; accounting stays 17.71533922/18.82, remaining 1.10466078,
+  pending zero. Historical paid HTTP 500 and zero delivered outputs are unchanged.
+  Unchanged three-slot limits imply a hypothetical full ceiling of 2.34072608,
+  rounded 2.35; current funds cannot cover it. No real increase or paid manifest.
+- Next: a fresh fully funded one-use validation packet using the new gate;
+  never resume consumed history or force fewer Planner outputs. Unsupported-2024
+  remains unexecuted. [Contract/evidence](../evaluation/compilation_plan_admission.md).

@@ -78,6 +78,7 @@
 | `src/ops/evaluator.py` | evaluator-only numeric variants; canonical identity separate from answer labels; interrupted-run observations exported separately, never scoring input |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
 | `src/ops/application_diagnostics.py` | explicit caller persistence of opt-in run snapshots on return or exception; exclusive files, safe persistence-error reporting, no runtime-default import or provider dispatch |
+| `src/ops/compilation_plan_admission.py` | opt-in experimental preflight of actual runtime groups before Compiler calls; full remaining count/generation/funding bounds and one first request per complete group; no plan rewriting, default installation or paid authority |
 | `src/ops/provider_admission.py` | opt-in budget/first-cause ownership; explicit server-count call limits and separate allowances, measured input vs fixed output reservation; legacy policies unchanged, no HTTP credentials in receipts |
 | `src/ops/google_server_token_count.py` | final SDK body copied into count + generation, canonical hash-linked receipts; text-only Developer API, single HTTP attempts, no fallback/redirect/async or runtime-default installation |
 | `src/ops/openai_server_token_count.py` | opt-in counted stateless text Responses; frozen final SDK input/schema, independent count/generation limits and shared budget, cached wrappers, no default installation or fallback |
