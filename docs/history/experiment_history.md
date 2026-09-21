@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## One-count Planner error diagnostic preparation (2026-09-22)
+
+- Clean `eca4ea64`; [one-count preparation](../evaluation/planner_count_error_probe.md). Copy the consumed probe's exact40,444-byte `u01` count body, full model/input/reasoning/text schema intact. Freeze criteria, identity, policy and versions before authored mocks. Fresh manifest binds the final clean docs commit; **one count, zero generations**, no Planner/Compiler/retrieval/embedding/ingest calls or schema adjustment.
+- Full **USD0.01** attempted-count contingency is covered by remaining **0.57497607**; no generation authority/reserve or budget increase. This is not a verified tariff or invoice. Actual dispatch retains the allowance even on uncertain failure; proved pre-dispatch failure retains0.00. SDK/transport retries, redirects, second calls and resume are denied. Runtime coupled counting guards remain unchanged.
+- V2 bounded code/type/parameter/header observation is saved before SDK failure in receipt and exclusive sidecar. Capture/write failure retains the original HTTP/SDK result and metadata when available; existing files and private-data boundaries survive. **20** caller tests/27 execution scenarios, **29** metadata contracts and docs2 pass; two fresh SDK mocks produce6 identical files with six assertions each. Their14000-token counts are authored. Actual unadmitted entry stops before credentials/transport/consume/live output.
+- All **13874** predecessors, **177** production sources and **24** stores/settings retain hashes. Five docs only committed; ignored packet `planner_count_error_probe_2026-09-22`. Prior full2238/2238 and audit83 not rerun. Actual calls/added accounting0; shared **19.74502393/20.32**, remaining **0.57497607**, pending0. Next one newly admitted count and separate metadata review, without automatic retry/generation. Earlier HTTP400 cause remains unknown, six Planner meanings unassessed; historical period2/6 and scope6/6 unchanged.
+
 ## Bounded HTTP400 request-error diagnostics (2026-09-22)
 
 - Clean `7772dc2a`; [provider-free logging extension](../evaluation/openai_request_error_diagnostics.md). Add one explicit v2 projection for reviewed exact code/type/parameter names plus existing bounded headers. Preserve v1/public behavior. Missing/null/unknown fields stay explicit; duplicate or malformed JSON, free messages, raw failed bodies, request values and dynamic paths do not enter body metadata. No HTTP status/prose inference or reconstruction of the earlier400 cause.

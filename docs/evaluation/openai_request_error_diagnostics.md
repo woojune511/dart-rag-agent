@@ -91,6 +91,7 @@ partial filesystem writes and a final receipt failure are not made recoverable.
 Added provider calls/accounting are **0**. Shared accounting stays
 **USD19.74502393/20.32**, remaining **0.57497607**, pending0. The previous one-count
 HTTP400 failure, zero generations and unassessed six meanings remain unchanged.
-Next prepare a minimal count-only diagnostic with a new immutable caller/manifest
-and complete funding. Do not reuse the consumed batch or infer its cause from
-authored error fixtures.
+The [one-count diagnostic](planner_count_error_probe.md) is now prepared from
+this implementation with the exact failed body, a fresh immutable manifest and
+a funded USD0.01 cap. It has no paid authority or live output yet. Do not reuse
+the consumed batch or infer its cause from authored error fixtures.
