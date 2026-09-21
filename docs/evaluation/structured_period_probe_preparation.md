@@ -1,10 +1,15 @@
 # Structured measurement-period Planner probe preparation
 
+The separately authorized [live result](structured_period_probe_result.md) now
+records the USD 0.25 addition and eight completed first responses. Period review
+passes 8/8, but two comparison plans broaden report scope. The preparation-time
+funding assessment and evidence below are preserved as historical context.
+
 Prepared from clean `d4d4df10` on 2026-09-21. The new
 [measurement-period contract](structured_measurement_period.md) has a frozen,
-provider-free eight-question probe. **Execution remains unfunded:** the unchanged
+provider-free eight-question probe. **Execution was unfunded at preparation:** the unchanged
 USD **1.27** run cap exceeds the remaining **1.05143757** by **0.21856243**.
-No funding increase, provider request, live dispatcher or paid authority is added.
+This preparation added no funding, provider request, live dispatcher or paid authority.
 
 ## Fixed questions and separate semantic review
 

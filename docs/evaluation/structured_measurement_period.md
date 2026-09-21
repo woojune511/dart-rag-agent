@@ -103,11 +103,11 @@ client opens for the replay. Added provider calls/accounting **0**; shared
 **USD 19.01856243 / 20.07**, remaining **1.05143757**, pending **0**, not an invoice.
 Experiment files stay ignored. No ingest, paid retry or consumed-manifest reuse.
 
-The [new-schema probe preparation](structured_period_probe_preparation.md) now
-freezes eight exact SDK requests and separate semantic criteria. Offline gates
-pass, but the unchanged USD 1.27 run cap exceeds remaining allowance by 0.21856243;
-resolve funding before fresh single-use admission. No added calls or budget.
-Local schema/replay success is not provider acceptance.
+The [new-schema live probe](structured_period_probe_result.md) completes eight
+valid first responses after the approved USD 0.25 addition. Separate period review
+passes 8/8, but comparison-year hints broaden the report filter in two cases;
+combined period/report acceptance is 6/8. Next correct the explicit document-year
+filter boundary with saved-plan replays. No full-app or general accuracy claim.
 
 Local evidence: [replay checks](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_review.json),
 [42 outcomes](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_summary.json),
