@@ -86,7 +86,7 @@ Its partial policy/period claims are not a final answer. Current accounting
 is 17.11707679/18.27, remaining 1.15292321, pending zero. The unsupported-2024
 question remains unexecuted; consumed drafts cannot be reused. The
 [Planner output-kind clarification](planner_output_kind_boundary.md) is now
-tested locally, and the [exact quote-source correction](numeric_quote_source_boundary.md) now removes only the false quote rejection offline. Next prepare fresh provider-free application admission/rehearsal.
+tested locally, and the [exact quote-source correction](numeric_quote_source_boundary.md) now removes only the false quote rejection offline. The [fresh provider-free successor admission/rehearsal](dividend_policy_successor_admission.md) is now complete; its unfunded draft is separate from consumed history.
 
 Local evidence: [source review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/source_review.json),
 [92-check review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/live_review.json),

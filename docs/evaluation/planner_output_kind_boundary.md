@@ -75,8 +75,9 @@ No paid successor or budget increase is authorized by this work.
 
 The separate [exact quote-source correction](numeric_quote_source_boundary.md)
 now removes the false quote rejection provider-free while preserving period
-rejection, exact bytes and physical source ownership. Next prepare a fresh
-provider-free application admission/rehearsal for both fixes. Any later paid successor requires a
+rejection, exact bytes and physical source ownership. The [fresh application
+admission/rehearsal](dividend_policy_successor_admission.md) is complete provider-free
+for both fixes. Any later paid successor requires a
 fresh admission/rehearsal and sufficient funding; consumed drafts cannot be
 reused. The unsupported-2024 question remains unexecuted.
 

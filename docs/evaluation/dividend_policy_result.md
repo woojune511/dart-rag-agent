@@ -93,7 +93,8 @@ now clarified and tested provider-free. No fresh model classification or complet
 answer is established; this original failure remains unchanged. The separate
 [exact quote-source correction](numeric_quote_source_boundary.md) removes only
 the false quote error in offline replay; period rejection and the old monetary
-selection remain. Next prepare fresh provider-free application admission/rehearsal.
+selection remain. The [fresh provider-free successor rehearsal](dividend_policy_successor_admission.md)
+is complete; its unfunded draft is separate from this consumed failure.
 The unsupported-2024 question remains unexecuted; this consumed draft authorizes
 no additional paid run.
 

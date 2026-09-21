@@ -69,8 +69,8 @@ artifacts are excluded from the commit.
 
 New provider calls and added cost are **zero**. Shared accounting remains
 **17.11707679 / 18.27 USD**, with **1.15292321 remaining**, pending zero.
-Next prepare a fresh provider-free application admission/rehearsal on the new
-source identity, covering both this fix and the [Planner clarification](planner_output_kind_boundary.md).
+The [fresh provider-free application admission/rehearsal](dividend_policy_successor_admission.md)
+is now complete for both this fix and the [Planner clarification](planner_output_kind_boundary.md).
 Fresh model classification and answer delivery remain unverified. No automatic
 paid successor, budget increase, consumed-draft reuse or unsupported-2024 run.
 
