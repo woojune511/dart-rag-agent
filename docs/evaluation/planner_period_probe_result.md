@@ -39,8 +39,9 @@ Output and child period fields are identical between raw responses and normalize
 plans. Canonical IDs and parent-basis inheritance still apply; no period is
 repaired after generation. The p05 expression is accepted because frozen criteria
 allow an anchored relative period instead of requiring a literal resolved year.
-Its downstream source-period compatibility remains untested. Comparison request
-preservation likewise does not establish Compiler endpoint binding or arithmetic.
+The later [provider-free source-selection diagnosis](planner_period_source_selection.md)
+finds that downstream code treats its anchor as the requested year. Comparison
+request preservation alone does not establish Compiler endpoint binding or arithmetic.
 
 This is unblinded assistant review of one first response per synthetic question,
 not independent human gold, an A/B effect, general accuracy or unseen full-app
@@ -104,9 +105,10 @@ store files** and local settings preserve hashes. No store was opened for planni
 Only documentation is committed; execution artifacts remain ignored. The consumed
 manifest cannot authorize another run.
 
-Next verify saved plans against downstream source-period selection without
-provider calls, particularly anchored relative expressions and full intervals.
-Do not infer numeric or source-selection correctness from this Planner result.
+The [saved-plan source-selection diagnosis](planner_period_source_selection.md)
+now reproduces anchored-relative and full-interval defects without provider calls.
+Next implement a structured measurement-period contract; this paid Planner result
+does not establish numeric or source-selection correctness.
 
 Local evidence: [run receipt](../../benchmarks/results/planner_period_probe_execution_2026-09-21/live/run_receipt.json),
 [semantic review](../../benchmarks/results/planner_period_probe_execution_2026-09-21/semantic_review.json),
