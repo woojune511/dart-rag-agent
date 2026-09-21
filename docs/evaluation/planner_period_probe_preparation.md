@@ -1,5 +1,8 @@
 # Planner measurement-period probe preparation
 
+The separately authorized [live result](planner_period_probe_result.md) now completes
+all eight first responses and four contrast pairs. The preparation evidence below is preserved.
+
 Prepared on 2026-09-21 from clean `e1369d0a`. This is a provider-free proposal
 for checking the Planner's interpretation after the
 [measurement-period correction](planner_measurement_period.md). No runtime,
