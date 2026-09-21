@@ -94,6 +94,9 @@ pending0. The two old count manifests remain consumed; original HTTP400 records
 and unassessed Planner meanings are unchanged. Historical periods2/6 and scopes6/6
 are not improved by authored responses.
 
-Next validate the corrected schema with one separately frozen count request,
-fully funded within the existing balance. No generation, automatic retry,
-consumed-manifest reuse or budget increase is authorized by this local change.
+The subsequent [one-count verification](planner_corrected_schema_count_result.md)
+succeeded with HTTP200 and8417 measured input tokens on clean `5fb9558c`.
+Its fresh manifest is consumed, with zero generations and USD0.01 contingency.
+This adds actual count-endpoint acceptance for the corrected body; generation
+acceptance and semantic accuracy remain unassessed. The zero-call figures
+above describe this earlier local correction, not the later verification.

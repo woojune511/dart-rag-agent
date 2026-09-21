@@ -83,5 +83,7 @@ The subsequent [local compatibility investigation](openai_schema_reference_compa
 identified one newly annotated local reference that the project wrapper did
 not expand as the installed SDK does. That transport gap is now corrected
 with constraints preserved. It is not proof of the sole historical400 cause
-or corrected provider acceptance. A later paid diagnostic still requires a
-fresh fully funded manifest; this consumed run grants no retry or generation.
+or generation acceptance. A subsequent [corrected-body count](planner_corrected_schema_count_result.md)
+used a fresh funded manifest and succeeded with HTTP200 and8417 input tokens.
+This original rejection remains unchanged, and its consumed manifest grants
+no retry or generation.
