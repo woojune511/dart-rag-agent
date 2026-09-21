@@ -93,7 +93,7 @@ Added provider calls and accounting are **0**. Shared accounting remains
 **USD 19.73502393 / 20.32**, remaining **0.58497607**, pending zero. Old manifests
 remain consumed; no fresh paid authority, ingest or funding increase was created.
 
-The [smaller four-question diagnostic](planner_uniform_period_probe.md) is now
-prepared with six frozen period/scope meanings, full modeled envelope USD0.573216
-and run cap0.58. Actual interpretation remains untested; the next step is one
-freshly admitted whole batch, retaining every failure without paid retry.
+The [four-question diagnostic result](planner_uniform_period_probe_result.md)
+records HTTP400 at its first input count, zero generations and a consumed manifest.
+Actual interpretation remains untested, and the provider cause is unknown. Next
+prepare bounded error diagnostics without retrying the failed batch.

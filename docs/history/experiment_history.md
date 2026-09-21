@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Uniform-period Planner probe: first count HTTP400 (2026-09-22)
+
+- Clean `251db717`; user authorized the [prepared whole batch](../evaluation/planner_uniform_period_probe_result.md), cap **USD0.58**, without funding increase. Manifest `01c674fc...923afe` consumed before transport. First `responses/input_tokens` request returned **HTTP400**, SDK `BadRequestError`; `provider_token_count_failed` closed the run. **1 HTTP attempt, 0 generations, 0 completed plans**, no retry/repair; other counts not attempted. HTTP return about8.2s, final verification about12.9s.
+- Exact frozen request identity and local admission confirmed; local SDK fields/JSON schema/authored fixtures pass but do not prove provider acceptance or the cause. Frozen caller saves only2xx bodies and count error class/status; no detailed error code/parameter/request ID/message was retained. Root cause remains unknown, with no measured input overflow or budget denial. Six meanings are unassessed, not0/6; historical paid periods2/6, scopes6/6, coverage0/4, combined1/5 remain unchanged.
+- **34** offline evidence checks, docs2 and syntax/diff/link checks pass; consumed replay stops before credentials/transport. All **13726** predecessors, **177** production sources and **24** stores/settings retain hashes. No runtime/default/source/store changes; prior focused132, controls72, full2238/2238, audit83 not rerun. Only six docs committed; failure packet `planner_uniform_period_run_2026-09-22` stays ignored.
+- **USD0.01** attempted-count contingency, generation estimate0, shared **19.74502393/20.32**, remaining **0.57497607**, pending0; no invoice/count tariff or budget increase. Next provider-free bounded HTTP400 metadata capture for a new local caller; any future paid diagnostic requires new exact-manifest funding and cannot reuse the old0.58 cap or consumed batch.
+
 ## Uniform-period Planner diagnostic preparation (2026-09-22)
 
 - Clean `d0c034fb`; [prepared batch](../evaluation/planner_uniform_period_probe.md). Four new synthetic questions preserve six separately reviewed period/scope meanings: absolute whole/within-year, a mixed-scope relative-year pair, and exact point/interval. Questions and criteria are frozen before authored seven-field replies. One current condition, no A/B, holdout, human gold or fixed fixture decomposition as semantic authority.

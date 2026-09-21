@@ -1,5 +1,9 @@
 # Prepared uniform-period Planner diagnostic
 
+**Attempted once; manifest consumed:** the [execution result](planner_uniform_period_probe_result.md)
+records HTTP400 on the first input count and zero generations. The preparation
+record below describes the pre-execution state; no semantic result was obtained.
+
 Preparation baseline **`d0c034fb`**, 2026-09-22. After the
 [seven-field period schema change](planner_period_wire.md), the user's continuation
 requests the smaller bounded diagnostic preparation. **No live token count or
@@ -106,6 +110,6 @@ those broad gates were not rerun for this docs/experiment preparation. Only five
 documentation files are committed. The frozen manifest binds the final clean
 documentation commit; every predecessor and new packet file is sealed separately.
 
-Next run the four frozen questions once under fresh exact-manifest admission,
-then review the six meanings and accounting separately. No new model semantic
-accuracy, provider schema acceptance or general quality result exists yet.
+The single admitted attempt is closed by the linked count failure. Preserve its
+records; do not retry or resume this consumed manifest. Error diagnostics for a
+new caller must precede any separately admitted successor.
