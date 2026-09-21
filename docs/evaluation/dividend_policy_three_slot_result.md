@@ -96,10 +96,12 @@ No SDK/HTTP/whole-query retry, Google fallback, fresh ingest or second question.
 
 ## Next boundary
 
-Prepare a provider-free check for the still-unexecuted frozen question asking
-for actual 2024 cash flow using only the selected 2023 report. Review absence of
-the requested evidence separately from correct values found for another period;
-do not substitute a source year or invent a value. This result authorizes no
+The [provider-free unsupported-2024 check](unavailable_2024_boundary.md) is now
+complete: 47 boundary assertions and 70 contracts pass with unchanged runtime.
+Its authored 2024 target excludes the staged earlier-period cells and returns no
+amount. Actual model interpretation and fresh retrieval remain unassessed; the
+live question is still unexecuted. Next prepare a fresh single-question admission
+with full funding and actual-plan capacity checks. This result authorizes no
 additional paid execution, ingest or resume. Broader coverage and concise answer
 presentation remain separate work.
 

@@ -61,7 +61,7 @@ or evidence of improved accuracy.
 
 At preparation, retained accounting was **16.02259344 / 17 USD**, leaving
 **0.97740656**, pending zero. This criteria preparation authorized no increase or run.
-Current accounting follows the separate [dividend-policy result](dividend_policy_result.md).
+Current accounting follows the [completed three-slot dividend result](dividend_policy_three_slot_result.md).
 
 | Planning envelope using the previous frozen policy | USD |
 | --- | ---: |
@@ -77,26 +77,24 @@ Terra calls, at most two Astra calls, four counts and 48 embeddings under the
 unchanged full output limits. A fresh plan needing more calls must stop at the
 limit, so funding that ceiling does not guarantee task completion.
 
-The first [cash-flow result](scope_cash_flow_result.md) remains **0/2 outputs**,
-with unresolved section bindings and no API error. After the located table-heading
-correction, a separately authorized [successor](scope_cash_flow_heading_result.md)
-now passes **2/2 outputs** against these same criteria, without retry. Both drafts
-are consumed. The separately authorized [dividend-policy attempt](dividend_policy_result.md)
-returned application HTTP 500 after a numeric payment-status binding failed,
-with all 23 external calls successful and the subsequent repair blocked locally.
-Two source-supported policy/period claims remain partial internal drafts; no
-final answer passed these three required meanings. The separate [paid successor](dividend_policy_successor_result.md)
-now correctly plans payment status as narrative, with three independent outputs.
-Two ready Compiler islands contain three source-supported partial claims; the
-third first request is blocked by the frozen two-response caller. No delivered
-answer passes full acceptance, despite all 24 provider requests succeeding.
-Accepted +USD 0.55 raises the cap to 18.82; shared accounting is
-**17.71533922 / 18.82 USD**, leaving **1.10466078**, pending zero.
-Both dividend drafts are consumed. The numeric quote fix remains locally
-verified but is not exercised by this narrative successor. Next is provider-free
-plan-cardinality admission work; unsupported-2024 remains unexecuted.
-This original criteria preparation created no live caller or authorization;
-the separate execution owns the accepted increase and consumed attempt.
+The first [cash-flow result](scope_cash_flow_result.md) remains **0/2 outputs**;
+its separately authorized [heading successor](scope_cash_flow_heading_result.md)
+passes **2/2** against the same criteria. The original [dividend attempt](dividend_policy_result.md)
+and [two-response successor](dividend_policy_successor_result.md) remain failed,
+consumed attempts. The separately authorized [three-slot run](dividend_policy_three_slot_result.md)
+now delivers **3/3 outputs**, with all three frozen meanings accepted by known-source
+assistant review, 26 successful external requests and no retry. Its draft is consumed.
+
+The [unsupported-2024 boundary check](unavailable_2024_boundary.md) passes 47
+provider-free assertions and 70 contracts. A staged graph with an authored 2024
+target withholds the 2021–2023 row and returns an incomplete answer without a
+numeric value. Blank numeric Planner periods still default to 2023; therefore
+sampled period interpretation and fresh retrieval remain unassessed, and the
+live negative question is still unexecuted. No frozen criterion was changed.
+Current accounting is **18.54510435 / 20.07 USD**, remaining **1.52489565**,
+pending zero. Next prepare a fresh single-question admission with full funding
+and actual-plan capacity checks before separately authorized live execution.
+This original criteria packet and the boundary check grant no new paid authority.
 
 ## Verification and artifacts
 

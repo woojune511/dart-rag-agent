@@ -9713,3 +9713,31 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
   restricted to the 2023 report. Repeated subject prefixes/policy conditions are
   a separate presentation issue. No additional paid run, fresh ingest or resume.
   [Observed result](../evaluation/dividend_policy_three_slot_result.md).
+
+## 2026-09-21 — Unsupported-2024 provider-free boundary characterization
+
+- On clean source base `e5edaab2`, preserved the original question asking for
+  2024 actual consolidated cash flow using only the selected 2023 report.
+  Rechecked the original 2023 cell, unit, attached period, table/document identity;
+  staged only its existing 2021–2023 row. No original Chroma open or fresh retrieval.
+- 47 assertions and 70 focused contracts pass. The authored 2024 Planner target
+  survives phase inputs; receipt filtering excludes other filings. Direct 2023
+  selection and relabeled context declarations fail source/scope validation.
+  The real graph/API returns HTTP 200 / incomplete with no scalar or citations,
+  one missing output, zero Compiler calls, ledger ok with zero issues. Only the
+  authored Planner response is consumed; no sampled semantic PASS is claimed.
+- Blank numeric Planner periods still default to 2023. A deliberately wrong
+  2023 output scope accepts the source despite the original 2024 request, showing
+  that source linkage is not requested-period correctness. Admission/timeout/
+  runtime errors remain 500 and readiness remains 503, without an answer.
+- Initial harness expectations were corrected after observing receipt priority,
+  the precise rejection code and zero-Compiler empty-cohort behavior. A fixture
+  exception constructor was corrected. Windows asyncio loopback was exempted
+  from the external-network guard; the initial 14 harness failures and all
+  corrections remain in the local packet. No runtime contract was weakened.
+- All 10875 predecessor artifacts, 175 sources, seven owners, 24 original store
+  files/settings retain hashes. External attempts/provider calls/new cost zero;
+  accounting unchanged at 18.54510435/20.07, remaining 1.52489565, pending zero.
+  Next prepare a fully funded fresh single-question admission with actual-plan
+  capacity checks; no paid call, ingest, consumed-draft resume or general/release
+  claim. [Boundary report](../evaluation/unavailable_2024_boundary.md).
