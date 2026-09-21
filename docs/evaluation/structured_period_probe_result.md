@@ -50,10 +50,10 @@ that an out-of-report source was actually retrieved: no search/store was opened.
 
 The saved-evidence review retains **106/108 passing checks and these two genuine
 failures**. No criterion, response, normalized plan or runtime code was rewritten
-to make them pass. Next fix the generic source-filter boundary so an explicit
-caller document year constrains Planner search hints, while preserving declared
-measurement periods and existing receipt/multiple-report authority. Start with
-anonymous contracts and exact saved-plan replays; no paid rerun is implied.
+to make them pass during this probe. The subsequent [report-year scope correction](report_year_scope.md)
+changes only the source-filter boundary and verifies the same saved plans against
+authored metadata: local filter acceptance is 8/8. This probe's paid 6/8 result
+and two failures remain unchanged; no new provider or full-app result is implied.
 
 ## Admission, usage and preserved evidence
 

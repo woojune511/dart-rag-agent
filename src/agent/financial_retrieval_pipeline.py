@@ -1791,6 +1791,9 @@ class FinancialRetrievalPipelineMixin:
                     "[retrieve] multi-report source scope detected; skipping strict metadata year filter and using source receipts only: %s",
                     scope_source_receipts,
                 )
+            elif scope_year is not None:
+                # Explicit document scope constrains sources without rewriting period hints.
+                conditions.append({"year": scope_year})
             elif intent in {"comparison", "trend"} and len(int_years) > 1:
                 logger.info(
                     "[retrieve] multi-period %s query detected; skipping strict metadata year filter and keeping years in query text only: %s",

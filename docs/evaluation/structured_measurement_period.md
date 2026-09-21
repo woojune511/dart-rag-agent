@@ -106,8 +106,8 @@ Experiment files stay ignored. No ingest, paid retry or consumed-manifest reuse.
 The [new-schema live probe](structured_period_probe_result.md) completes eight
 valid first responses after the approved USD 0.25 addition. Separate period review
 passes 8/8, but comparison-year hints broaden the report filter in two cases;
-combined period/report acceptance is 6/8. Next correct the explicit document-year
-filter boundary with saved-plan replays. No full-app or general accuracy claim.
+combined period/report acceptance is 6/8. The subsequent [report-year correction](report_year_scope.md)
+passes all eight saved-plan filter replays. No new full-app or general accuracy claim.
 
 Local evidence: [replay checks](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_review.json),
 [42 outcomes](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_summary.json),
