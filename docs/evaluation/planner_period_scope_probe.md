@@ -1,5 +1,9 @@
 # Prepared Planner period and scope diagnostic
 
+**Executed once:** see the [result](planner_period_scope_probe_result.md). The
+preparation record below describes the pre-execution state; its manifest is now
+consumed. Period semantics were 2/6 and reporting scope 6/6, with all failures kept.
+
 Preparation baseline **`60ec339f`**, 2026-09-22. The user's continuation requests
 the next bounded experiment preparation after the period-instruction and scope
 ownership fixes. **No live token count or generation has been performed.**
@@ -91,6 +95,6 @@ Documentation/syntax/diff checks and the final manifest's no-authority stop are
 recorded in the packet. Only documentation is committed. The fresh manifest stays
 unconsumed; there is no model accuracy result, budget increase or store mutation.
 
-Next execute the whole frozen five-question batch once under fresh exact-manifest
-admission, then review all six period/scope meanings and account actual usage.
-Preserve every failure and the original criteria; do not retry the consumed old run.
+The planned whole-batch execution and separate review are now complete in the
+linked result. Preserve the frozen criteria and raw failures; the consumed
+manifest cannot authorize another run.

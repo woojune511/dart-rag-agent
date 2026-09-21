@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Planner period/scope diagnostic: five first responses (2026-09-22)
+
+- Clean `c68d7e73`; [result](../evaluation/planner_period_scope_probe_result.md). The user authorized the prepared whole batch under USD 0.75. Frozen manifest `9dd3ce6b...06d15a7` was consumed before transport; **5/5** structured first plans, **10/10 HTTP 200**, no API/parsing/requirement errors, repair or retry. Five counts plus five generations; about62s with30s heartbeat.
+- Frozen semantics: periods **2/6**, reporting scope **6/6**, combined questions **1/5**, year coverage **0/4**, exact point/interval **2/2**. n01/n02 invent January-December endpoints; n03/n04 choose unnecessary unresolved despite known anchor/coverage. All six raw scope/period objects survive normalization unchanged; the clarified prompt and reachable year/relative-year coverage schema reached the provider. Correct prose does not repair fields. Scope covers ordinary/negated/English wording and mixed output ownership; all five filters retain the selected report, without actual search. This is a new synthetic sample, not A/B, hidden holdout, human gold or general/full-app accuracy.
+- **113** evidence checks, consumed-entrypoint stop before credentials/transport, docs/syntax/diff pass. No source change; prior119 focused/57 controls and full2225/audit83 are preserved, not rerun. All **13361** predecessors, **176** sources, **24** stores/settings retain hashes. Prepared artifacts and raw failures remain immutable; only docs committed, packets ignored.
+- Usage **42409 input / 3121 output**, including648 reasoning; generation estimate **0.14347450** plus0.05 count contingencies gives added accounting **0.19347450**. Shared **19.73502393/20.32**, remaining **0.58497607**, pending zero; no invoice, funding increase or verified count tariff. Next provider-free period-representation simplification separating year/coverage from exact dates. No keyword repair, repeated paid prompt-only attempt, ingest or historical-answer rewrite.
+
 ## Prepared five-question Planner period/scope diagnostic (2026-09-22)
 
 - Clean source `60ec339f`; [preparation](../evaluation/planner_period_scope_probe.md). Five new questions and criteria are frozen before model responses: six period/scope meanings across absolute/relative coverage, ordinary/negated/English reporting-basis wording and a mixed exact point/interval question. One current-runtime condition; the relative cases change two axes, so no isolated A/B or hidden-holdout claim. No runtime, schema, prompt or source-store change.
