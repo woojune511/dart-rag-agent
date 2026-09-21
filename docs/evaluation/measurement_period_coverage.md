@@ -5,6 +5,10 @@ The provider-free implementation on baseline `da30a50e` blocks the two preserved
 alone no longer lets a finer source period satisfy an annual request. Historical
 plans, sampled provider responses and source catalogs are not rewritten.
 
+This is the historical baseline. The [real-source successor](real_source_period_coverage.md)
+adds physically linked column-label/declaration geometry and a bounded annual
+interval check; the original evidence and conservative unlinked-interval rule below remain.
+
 ## Contract
 
 New Planner `year` and `relative_year` objects require nonnull `coverage` on the
@@ -86,10 +90,10 @@ calls/accounting **0**; shared **USD 19.31603993 / 20.32**, remaining **1.003960
 pending **0**. These are experiment allowances/estimates, not an invoice. No fresh
 ingest, budget change, paid retry, full-app acceptance or release claim.
 
-Next inspect saved real-source axes against the conservative coverage contract,
-then prepare an independent Planner coverage probe with exact SDK bodies and
-whole-batch budget admission. Do not reuse a consumed manifest or turn authored
-coverage choices into a model-quality result.
+The saved real-source inspection is complete in the successor above. Next prepare
+an independent Planner coverage probe with exact SDK bodies and whole-batch budget
+admission. Do not reuse a consumed manifest or turn authored coverage choices into
+a model-quality result.
 
 Local evidence: [final replay](../../benchmarks/results/period_coverage_2026-09-21/verified_replay/replay_review.json),
 [37 outcomes](../../benchmarks/results/period_coverage_2026-09-21/verified_replay/replay_summary.json),

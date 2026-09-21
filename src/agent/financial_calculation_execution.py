@@ -28,7 +28,7 @@ from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from src.agent.financial_measurement_periods import (
     date_period_state, legacy_period_label, measurement_period_requirement_errors,
-    period_contract_error, scope_period, year_coverage_state,
+    period_contract_error, scope_period, source_period_context_evidence, year_coverage_state,
 )
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
 from src.agent.financial_narrative_claims import validate_narrative_claims
@@ -2799,6 +2799,8 @@ def project_semantic_program_operand(
         "source_period_surface": str(
             candidate.get("source_period_surface") or ""
         ),
+        **({"source_period_context_evidence": period_evidence}
+           if (period_evidence := source_period_context_evidence(candidate)) else {}),
         "period_source": period_source,
         "period_label_surfaces": list(candidate.get("period_label_surfaces") or []),
         "period_label_scope": str(candidate.get("period_label_scope") or ""),

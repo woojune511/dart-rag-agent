@@ -1,11 +1,13 @@
 """Typed request periods and literal source-date geometry, not intent inference."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 import re
 from typing import Any, Mapping, Sequence
 
 from src.agent.financial_request_units import build_request_units
+from src.agent.financial_scope_policies import is_period_only_surface
+from src.agent.financial_source_interpretation import attached_context_quote
 from src.config.retrieval_policy import MEASUREMENT_PERIOD_POLICY
 
 
@@ -129,12 +131,74 @@ def _source_period_surfaces(candidate: Mapping[str, Any]) -> list[str]:
     return surfaces
 
 
-def source_date_shape(candidate: Mapping[str, Any]) -> tuple[str, ...] | None:
+def source_period_context_evidence(candidate: Mapping[str, Any]) -> list[dict[str, Any]]:
+    """Link a complete column label to its own attached period-declaration line.
+
+    Whitespace is the only permitted label difference. The original header and
+    quote/coordinates remain in the witness. No source is selected or rewritten,
+    and an attached block's other columns never supply this cell's endpoints.
+    """
+    raw_headers = candidate.get("column_headers") or []
+    headers = [raw_headers] if isinstance(raw_headers, str) else raw_headers
+    axes = [(index, str(header)) for index, header in enumerate(headers)
+            if is_period_only_surface(str(header))]
+    labels = {re.sub(r"\s+", "", header) for _, header in axes}
+    evidence = []
+    for index, header in axes:
+        compact = re.sub(r"\s+", "", header)
+        # A bare year cannot match the leading year of an unlabelled ISO date.
+        separator = r"\s+" if compact[-1:].isdigit() else r"\s*"
+        label_pattern = r"\s*".join(re.escape(char) for char in compact) + separator
+        for context in candidate.get("source_contexts") or []:
+            if context.get("relation") not in {"preceding_block", "following_block", "caption"}:
+                continue
+            text = str(context.get("source_text") or "")
+            for line in text.splitlines():
+                quote = line.strip()
+                marker = re.match(label_pattern, quote)
+                if marker is None:
+                    continue
+                tail = quote[marker.end():]
+                dates = list(re.finditer(MEASUREMENT_PERIOD_POLICY["source_date_pattern"], tail))
+                if not dates and not any(re.search(pattern, tail)
+                        for pattern in MEASUREMENT_PERIOD_POLICY["source_subannual_patterns"]):
+                    continue
+                try:
+                    witness = attached_context_quote(candidate, dict(context_id=context.get("context_id"), evidence_text=quote))
+                except ValueError:
+                    continue
+                shape = _source_date_shape(tail)
+                if (len(labels) != 1 or text.count(quote) != 1 or not dates or dates[0].start() != 0
+                        or not re.fullmatch(MEASUREMENT_PERIOD_POLICY["source_period_declaration_suffix"], tail[dates[-1].end():])):
+                    shape = ("unknown",)
+                evidence.append(dict(**witness, column_header=header, column_header_index=index,
+                    label_quote_span=[0, marker.end()], period_quote_span=[marker.end(), len(quote)],
+                    source_table_locator=candidate.get("source_table_locator"),
+                    physical_cell_id=candidate.get("physical_cell_id"), date_shape=shape or ("unknown",)))
+    return evidence
+
+
+def _source_date_shape_with_context(candidate: Mapping[str, Any], evidence: Sequence[Mapping[str, Any]]) -> tuple[str, ...] | None:
     shapes = {_source_date_shape(item) for item in _source_period_surfaces(candidate)}
+    shapes.update(tuple(row["date_shape"]) for row in evidence)
     shapes.discard(None)
     if not shapes:
         return None
     return next(iter(shapes)) if len(shapes) == 1 else ("unknown",)
+
+
+def source_date_shape(candidate: Mapping[str, Any]) -> tuple[str, ...] | None:
+    return _source_date_shape_with_context(candidate, source_period_context_evidence(candidate))
+
+
+def _complete_annual_interval(shape: tuple[str, ...]) -> bool:
+    if shape[0] != "date_interval":
+        return False
+    try:
+        start, end = date.fromisoformat(shape[1]), date.fromisoformat(shape[2])
+        return end + timedelta(days=1) == start.replace(year=start.year + 1)
+    except (ValueError, OverflowError):
+        return False
 
 
 def year_coverage_state(
@@ -144,11 +208,18 @@ def year_coverage_state(
 
     An annual label retains its existing reading, not a proof of fiscal dates.
     Neither a missing historical declaration nor whole_year licenses a finer
-    source period. Even twelve-month endpoints need an explicit interval or a
-    separately supported calendar binding; never invent that relation here.
+    source period. A complete annual interval is supported only when its dates
+    are explicitly linked to this column's own period label in attached source
+    text. Neither January nor the fiscal year's endpoints are assumed.
     """
-    shape = source_date_shape(candidate)
+    evidence = source_period_context_evidence(candidate)
+    shape = _source_date_shape_with_context(candidate, evidence)
     if shape is not None:
+        if (shape != ("unknown",) and expected_years
+                and not any(int(shape[1][:4]) <= year <= int(shape[-1][:4]) for year in expected_years)):
+            return "conflict"
+        if evidence and _complete_annual_interval(shape) and coverage in (None, "whole_year"):
+            return "match"
         if shape == ("unknown",) or coverage != "within_year":
             return "unknown"
         return "match" if all(int(endpoint[:4]) in expected_years for endpoint in shape[1:]) else "conflict"

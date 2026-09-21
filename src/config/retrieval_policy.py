@@ -748,6 +748,7 @@ MEASUREMENT_PERIOD_POLICY = {
         r"(?P<day>\d{1,2})(?:\s*일|\.)?(?!\d)"
     ),
     "source_range_separator": r"(?i)\s*(?:~|～|–|—|-|to|through|부터)\s*",
+    "source_period_declaration_suffix": r"(?i)\s*(?:현재|까지|as\s+(?:of|at))?\s*",
     "source_partial_range_pattern": r"(?i)(?:\d|~|～|–|—|부터|까지|\bto\b|\bthrough\b)",
     # Located source-axis grammar, never a request-intent classifier. A year
     # projection must not erase explicit month/quarter/partial-period markers.
