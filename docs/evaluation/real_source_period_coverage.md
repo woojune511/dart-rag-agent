@@ -87,9 +87,9 @@ Added provider calls/accounting **0**; shared allowance/accounting
 **USD 19.31603993 / 20.32**, remaining **1.00396007**, pending **0**; not an invoice.
 No fresh ingest, paid retry, budget change or consumed-manifest reuse.
 
-Next prepare an independent Planner coverage-semantics probe with frozen criteria,
-exact SDK request bodies and whole-batch budget admission. Correct authored periods
-do not establish that the model selects those periods correctly.
+The subsequent [six-question live probe](measurement_coverage_probe_result.md)
+retains period semantics **2/6**, including **0/4** coverage choices. Correct authored
+periods here do not establish that the model selects those periods correctly.
 
 Local evidence: [source review](../../benchmarks/results/real_source_period_coverage_2026-09-21/final_selected_source_review.json),
 [corrected real replay](../../benchmarks/results/real_source_period_coverage_2026-09-21/successor_verified/replay_review.json),
