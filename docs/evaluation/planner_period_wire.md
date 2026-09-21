@@ -93,7 +93,7 @@ Added provider calls and accounting are **0**. Shared accounting remains
 **USD 19.73502393 / 20.32**, remaining **0.58497607**, pending zero. Old manifests
 remain consumed; no fresh paid authority, ingest or funding increase was created.
 
-Next prepare a smaller new Planner-only diagnostic under the remaining allowance,
-with frozen period/scope criteria and a fresh complete-batch admission. Test the
-new wire's actual interpretation separately from these no-call contracts; retain
-every failure without retrying a consumed batch.
+The [smaller four-question diagnostic](planner_uniform_period_probe.md) is now
+prepared with six frozen period/scope meanings, full modeled envelope USD0.573216
+and run cap0.58. Actual interpretation remains untested; the next step is one
+freshly admitted whole batch, retaining every failure without paid retry.
