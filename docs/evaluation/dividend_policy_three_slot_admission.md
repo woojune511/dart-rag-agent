@@ -1,10 +1,13 @@
 # Three-slot dividend application admission
 
-A fresh execution packet is prepared for the unchanged dividend-policy question,
-using the [actual-plan capacity gate](compilation_plan_admission.md). It permits
-up to three first Compiler responses for complete runtime groups. The packet is
-**not funded, authorized or consumed**. Preparation makes no provider calls and
-does not change the [previous paid failure](dividend_policy_successor_result.md).
+This packet was prepared without provider calls, then **authorized and consumed
+once** after the user accepted the proposed USD 1.25 increase. The separate
+[paid result](dividend_policy_three_slot_result.md) on `c06b7704` returns HTTP 200,
+three complete outputs and all frozen meanings accepted in known-source review.
+The original preparation bytes and [previous paid failure](dividend_policy_successor_result.md)
+remain unchanged. The draft cannot be resumed; figures below describe preparation.
+The [actual-plan gate](compilation_plan_admission.md) permits up to three complete
+first Compiler groups.
 
 ## Frozen execution scope
 
@@ -31,13 +34,13 @@ does not change the [previous paid failure](dividend_policy_successor_result.md)
   consumes the exact draft before constructing transport. It emits a heartbeat
   every 30 seconds. Failure does not permit a resume.
 
-## Budget
+## Preparation budget
 
 | Item | USD |
 | --- | ---: |
-| Current approved shared cap | 18.82 |
-| Current accounted amount | 17.71533922 |
-| Current remaining / pending | 1.10466078 / 0 |
+| Approved shared cap before execution | 18.82 |
+| Accounted amount before execution | 17.71533922 |
+| Remaining / pending before execution | 1.10466078 / 0 |
 | Exact full three-response envelope | 2.34072608 |
 | Rounded single-run cap | **2.35** |
 | Shortfall to rounded cap | 1.24533922 |
@@ -51,8 +54,9 @@ tariff. [Official OpenAI pricing](https://developers.openai.com/api/docs/pricing
 was searched and fetched on 2026-09-21; the frozen conservative cache-write input
 rates and standard output/embedding rates are unchanged. This is a maximum
 experimental allowance, not predicted spend, observed billing or account credit.
-The existing balance fails before transport construction, consumption or app
-bootstrap. A budget increase is only proposed; it has not been applied.
+The preparation balance failed before transport construction, consumption or app
+bootstrap. The increase was only proposed at that stage; its later acceptance
+and consumption are recorded in the separate paid result.
 
 ## Provider-free verification
 
@@ -81,11 +85,12 @@ settings retain their hashes. Only disposable SQLite copies change. No runtime
 source, product default, store contents or paid ledger changes. Experimental
 scripts, manifests and replay results stay local and excluded from Git.
 
-## Next execution and review
+## Execution contract and review
 
-Bind separately accepted sufficient funding and one execution to the fresh draft
-hash. Recheck clean commit/source/packet identities and unchanged accounting
-before consuming it once. The existing consumed manifests cannot be resumed.
+The accepted funding and one execution were bound to draft
+`7cd3dd18f9bd557ca23cbe99be9da8b1ccb88cac0ca1c5687e1ffd8325116692`.
+Clean commit/source/packet identities and accounting were checked before its
+single consumption. Existing consumed manifests cannot be resumed.
 The three response slots do not guarantee that a fresh plan fits, that responses
 validate, or that the final answer is correct.
 

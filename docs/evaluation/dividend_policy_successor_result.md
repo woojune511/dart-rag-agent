@@ -104,8 +104,9 @@ implemented and verified provider-free: the same three-owner plan stops before
 any Compiler expense at a two-response cap. A three-slot mock envelope reaches
 the third count and preserves its injected terminal fault. Group membership,
 source checks and historical outputs remain unchanged; no new final answer
-repairs this paid failure. A fresh [three-slot packet](dividend_policy_three_slot_admission.md)
-is now prepared provider-free; it remains unfunded and unconsumed.
+repairs this paid failure. A separate [three-slot run](dividend_policy_three_slot_result.md)
+subsequently completed three outputs and all frozen meanings after its own
+accepted funding and one-use admission; fresh results do not overwrite this failure.
 This result authorizes no rerun or resume of the consumed draft. Unsupported-2024
 remains unexecuted; another paid attempt needs a separately prepared, funded
 execution boundary.

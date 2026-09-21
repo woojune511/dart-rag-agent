@@ -9682,3 +9682,34 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
   draft, then review all three meanings. No sampled third answer, fresh-token or
   semantic-success claim; no consumed-draft resume or unsupported-2024 run.
   [Prepared scope and evidence](../evaluation/dividend_policy_three_slot_admission.md).
+
+## 2026-09-21 — Three-slot dividend paid completion
+
+- The user accepted +USD 1.25 and one prepared execution. On clean `c06b7704`,
+  draft `7cd3dd18...5116692` consumed once under a USD 2.35 run cap; shared cap
+  18.82 to 20.07. All original preparation bytes and earlier failures stay intact.
+- App HTTP 200, 3/3 narrative outputs, all three pre-frozen meanings accepted in
+  known-source assistant review; ledger ok, two tasks/five artifacts, zero issues.
+  Three actual compilation groups admitted once; 26/26 HTTP 200 (five generations,
+  five counts, 16 embeddings), 14 native queries, 66 candidates, no parsing,
+  validation or runtime error, feedback repair or SDK/HTTP/whole-query retry.
+- Five delivered claims have 10 exact subject/fact support occurrences. Nine
+  link to original prose parent/node text; one matches the exact original attached
+  table note, with source-document hash/table locator verified. Payment is explicitly
+  pending approval and future payment. Frozen witnesses preserved; source linkage
+  and separate semantic review are not independent human gold or general accuracy.
+- Planner body remains 73,374 bytes, input 19,210; Compiler inputs measure
+  15,446 / 16,773 / 15,504. Counts equal usage; JSON compact outside strings.
+  Prior synthetic third-count fixture remains labeled synthetic. Fresh plans and
+  prompts prevent an isolated causal comparison; numeric quote fix unexercised.
+- Estimate 0.77976513 + count contingency 0.05 = added 0.82976513. Shared
+  18.54510435/20.07, remaining 1.52489565, pending zero; peak with reservations
+  1.04081513. Decimal recomputation matches raw float receipt at eight decimal
+  places; not invoice or billing top-up. 135 saved checks/two docs gates pass;
+  unchanged 78 prior contracts/111 preparation checks reused. All 10791 predecessors,
+  175 sources, seven owners, 24 original store files/settings preserve hashes;
+  only disposable SQLite changed. Experimental artifacts remain local.
+- Next: provider-free preparation for the unexecuted 2024 actual-value question
+  restricted to the 2023 report. Repeated subject prefixes/policy conditions are
+  a separate presentation issue. No additional paid run, fresh ingest or resume.
+  [Observed result](../evaluation/dividend_policy_three_slot_result.md).

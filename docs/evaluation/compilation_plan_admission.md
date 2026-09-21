@@ -70,21 +70,23 @@ predecessor artifacts**, **174 preexisting source files**, seven protected owner
 module is added; no existing product source changes. Only each disposable copy's
 SQLite file changes. Experimental scripts/results remain local.
 
-## Budget and next work
+## Implementation budget and later validation
 
-Actual provider calls and added cost: **zero**. Shared accounting remains
+During this provider-free implementation, calls and added cost were **zero**. Accounting remained
 **17.71533922 / 18.82 USD**, remaining **1.10466078**, pending zero. Mock usage is
 not added to that ledger. The [paid failure](dividend_policy_successor_result.md)
 retains HTTP 500 and zero delivered outputs.
 
 At unchanged model/token/embedding limits, two routing/Planner responses plus
 three first Compiler responses and five counts have a hypothetical full ceiling
-of **USD 2.34072608**, rounded to **2.35**. Existing funds do not cover that whole
-ceiling; this work neither raises the real budget nor prepares a paid manifest.
+of **USD 2.34072608**, rounded to **2.35**. Funds at that stage did not cover the
+whole ceiling; that implementation raised no budget and prepared no paid manifest.
 A separate [three-slot application packet](dividend_policy_three_slot_admission.md)
-is now prepared and verified without provider calls. It needs a separately accepted
-USD 1.25 increase and one execution bound to its exact new draft; it is unconsumed
-and uses this gate. This earlier mock-only implementation packet stays immutable. Normal planning can still produce more groups than an admitted cap;
+was subsequently funded by the accepted USD 1.25 increase and consumed once. Its
+[paid result](dividend_policy_three_slot_result.md) completes all three outputs
+and frozen meanings, with 26 successful requests and no retry. This original
+mock-only implementation packet remains immutable. Normal planning can still
+produce more groups than an admitted cap;
 the gate now detects that before Compiler expense. Unsupported-2024 remains
 unexecuted, and consumed drafts cannot be resumed.
 
