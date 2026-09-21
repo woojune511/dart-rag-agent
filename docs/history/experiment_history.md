@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## One-count Planner diagnostic: explicit schema rejection (2026-09-22)
+
+- Clean `f11947f7`; user continued the [prepared one-count diagnostic](../evaluation/planner_count_error_probe_result.md). Manifest `977908cd...f474da` consumed before transport under **USD0.01**, no source/schema/prompt/model/budget change. **1 actual count attempt, 0 successes, 0 generations/plans**, terminal HTTP400/BadRequestError; no retry, resume or fallback. Frozen canonical body and actual new SDK bytes both match the40,444-byte identity.
+- V2 receipt and exclusive sidecar capture **invalid_json_schema / invalid_request_error / text.format.schema**, a bounded request ID and absent Retry-After. Capture/write succeed; no raw failed body, free message, header map or credential is retained. This request's schema rejection is observed; the older uninstrumented response is not recovered. General JSON Schema validity,10 fixed/required objects,88 properties,20 resolved refs and reviewed unsupported-composition checks pass locally. The exact rejected subschema/keyword remains unidentified; no compatibility or Planner-accuracy claim.
+- **42** provider-free evidence checks and docs2 pass, including consumed entry stopping before credentials/transport. All **14045** predecessors, **177** sources and **24** stores/settings retain hashes. Six docs only; ignored result packet `planner_count_error_run_2026-09-22`. Prepared51 tests/two SDK mocks and prior full2238/2238/audit83 are not rerun because production source is unchanged. All six Planner meanings stay unassessed; historical period2/6 and scope6/6 unchanged.
+- Count contingency **USD0.01**, generation estimate0, shared **19.75502393/20.32**, remaining **0.56497607**, pending0; no invoice, verified count tariff or funding increase. Next provider-free schema/transport compatibility investigation before changing constraints. Any later paid diagnostic needs a fresh fully funded manifest; no automatic retry, resume or generation.
+
 ## One-count Planner error diagnostic preparation (2026-09-22)
 
 - Clean `eca4ea64`; [one-count preparation](../evaluation/planner_count_error_probe.md). Copy the consumed probe's exact40,444-byte `u01` count body, full model/input/reasoning/text schema intact. Freeze criteria, identity, policy and versions before authored mocks. Fresh manifest binds the final clean docs commit; **one count, zero generations**, no Planner/Compiler/retrieval/embedding/ingest calls or schema adjustment.

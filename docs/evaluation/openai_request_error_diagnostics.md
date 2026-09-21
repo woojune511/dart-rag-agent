@@ -91,7 +91,9 @@ partial filesystem writes and a final receipt failure are not made recoverable.
 Added provider calls/accounting are **0**. Shared accounting stays
 **USD19.74502393/20.32**, remaining **0.57497607**, pending0. The previous one-count
 HTTP400 failure, zero generations and unassessed six meanings remain unchanged.
-The [one-count diagnostic](planner_count_error_probe.md) is now prepared from
-this implementation with the exact failed body, a fresh immutable manifest and
-a funded USD0.01 cap. It has no paid authority or live output yet. Do not reuse
-the consumed batch or infer its cause from authored error fixtures.
+The subsequent [one-count diagnostic result](planner_count_error_probe_result.md)
+captures invalid_json_schema / invalid_request_error / text.format.schema
+from an actual HTTP400. Its fresh manifest is consumed, generations remain0,
+and USD0.01 contingency is added separately. This confirms v2 observation
+on that response; the exact rejected subschema and older missing error remain
+unknown. Implementation-only accounting above remains historical.

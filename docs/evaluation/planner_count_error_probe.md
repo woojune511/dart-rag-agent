@@ -89,7 +89,9 @@ made recoverable by this diagnostic.
   `benchmarks/results/planner_count_error_probe_2026-09-22` stays ignored. Prior
   full **2238/2238** and audit83 remain historical, not rerun for this preparation.
 
-Next execute this one frozen count under its fresh exact-manifest admission and
-review its bounded metadata separately. There is no automatic retry or generation
-successor. The earlier HTTP400 remains unexplained and all six Planner meanings
-remain unassessed; mocks do not change historical period2/6 or scope6/6 results.
+This preparation was [executed once](planner_count_error_probe_result.md) on
+clean `f11947f7`: HTTP400 with invalid_json_schema at text.format.schema, zero
+generations and USD0.01 count contingency. The manifest is now consumed.
+Bounded metadata identifies this failure category but not the offending
+subschema; six Planner meanings remain unassessed. The figures and no-authority
+checks above describe the historical preparation, not the current run state.
