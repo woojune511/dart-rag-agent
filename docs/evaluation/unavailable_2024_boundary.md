@@ -76,8 +76,8 @@ attempts, native queries, provider calls, new cost and pending reservations are
 all zero. Shared accounting stays **18.54510435 / 20.07 USD**, leaving
 **1.52489565**. No funding increase, live caller or paid authorization was created.
 
-Next prepare a fresh single-question live admission with full funding and the
-actual-plan capacity gate before any paid execution. Keep the original question
+A [fresh single-question admission](unavailable_2024_admission.md) is now prepared
+with a USD 1.06 cap that fits existing funds and retains the actual-plan gate. Keep the original question
 and review-only criteria separate from runtime inputs. Inspect the sampled
 Planner period, actual retrieved sources, any Compiler decision and final answer
 separately; retain HTTP/budget failures as unassessed. Do not resume consumed

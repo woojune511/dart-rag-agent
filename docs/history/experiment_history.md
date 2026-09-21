@@ -9741,3 +9741,24 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
   Next prepare a fully funded fresh single-question admission with actual-plan
   capacity checks; no paid call, ingest, consumed-draft resume or general/release
   claim. [Boundary report](../evaluation/unavailable_2024_boundary.md).
+
+## 2026-09-21 — Unsupported-2024 funded single-question preparation
+
+- On `3aa23243`, prepared a fresh native runner for the unchanged negative question.
+  Full envelope 1.05872608, rounded cap 1.06, existing available 1.52489565;
+  additional funding zero, full-cap residual 0.46489565. Official pricing fetched;
+  conservative input rates and unverified count contingency retained.
+- One complete first Compiler group, with two routing/Planner first responses,
+  three counts and 48 embeddings. Full token limits unchanged; larger actual
+  plans stop before Compiler dispatch, never forced together to fit this budget.
+- 53 focused controls and 67 evidence assertions pass. Real app/SDK/native ANN
+  wiring uses authored responses and synthetic vectors/counts: success has 10
+  mock HTTP requests, two ANN searches, one Compiler call, HTTP 200/incomplete,
+  no scalar and ledger ok. First-count mock 503 has three requests, no generation,
+  application HTTP 500 and no retry. Neither is sampled semantic/retrieval evidence.
+- All 10910 predecessors, 175 sources, seven owners, 24 original store files and
+  settings preserve hashes; only disposable SQLite copies change. Runtime and
+  18.54510435/20.07 accounting remain unchanged; new cost/provider calls zero.
+  Preparation alone creates no paid authority. The fresh exact draft supports
+  one separately bound dispatch, not a consumed-manifest resume.
+  [Admission scope and cost](../evaluation/unavailable_2024_admission.md).
