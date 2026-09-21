@@ -38,8 +38,12 @@ class PlannerPeriodWireTests(unittest.TestCase):
     def test_generation_has_one_fixed_object_and_seven_required_fields(self):
         schema=strict_openai_schema(RequirementPlannerOutput)
         scope=schema['$defs']['PlannerAnswerObligationScope']
-        self.assertEqual(scope['properties']['measurement_period']['$ref'], '#/$defs/PlannerMeasurementPeriod')
+        field=scope['properties']['measurement_period']
+        self.assertNotIn('$ref',field)
         shape=schema['$defs']['PlannerMeasurementPeriod']
+        self.assertEqual(field['properties'],shape['properties'])
+        self.assertEqual(field['required'],shape['required'])
+        self.assertFalse(field['additionalProperties'])
         self.assertEqual(set(shape['required']), {'precision','reference_year','year_offset','coverage','start_date','end_date','request_unit_ids'})
         self.assertNotIn('anyOf',shape)
         self.assertFalse(shape['additionalProperties'])

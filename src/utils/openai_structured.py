@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 import json
+import re
 
 from jsonschema import Draft202012Validator
 from langchain_core.runnables import RunnableLambda
@@ -13,19 +14,50 @@ def strict_openai_schema(schema):
     """Require explicit fields, removing default annotations without inventing values.
 
     The projection is intentionally narrow: fixed object properties, arrays and
-    unions. Constraints, references, enum order and descriptions stay intact.
+    unions. Annotated local references are expanded without changing constraints;
+    pure references, enum order and descriptions stay intact.
     Unsupported open dictionaries and composition fail before a provider call.
     Local validity is not evidence that a provider will accept this schema.
     """
     source = schema.model_json_schema() if isinstance(schema, type) and issubclass(schema, BaseModel) else schema
     result = deepcopy(source)
 
-    def visit(node):
+    def resolve_reference(ref):
+        if not isinstance(ref, str) or not ref.startswith("#/"):
+            raise ValueError("OpenAI annotated references require local JSON pointers")
+        target = source
+        for part in ref[2:].split("/"):
+            if re.search(r"~(?![01])", part):
+                raise ValueError("Invalid OpenAI schema reference escape")
+            key = part.replace("~1", "/").replace("~0", "~")
+            if not isinstance(target, dict) or key not in target:
+                raise ValueError("Unresolved OpenAI schema reference")
+            target = target[key]
+        if not isinstance(target, dict):
+            raise ValueError("OpenAI schema reference must resolve to an object schema")
+        return deepcopy(target)
+
+    def visit(node, expanding=()):
         if not isinstance(node, dict):
             raise ValueError("OpenAI transport requires object schemas")
+        node.pop("default", None)
+        # The SDK expands refs with sibling annotations for strict transport.
+        # Only annotations may override a definition; merging validation siblings
+        # could silently discard a referenced constraint instead of intersecting it.
+        while "$ref" in node and len(node) > 1:
+            if set(node) - {"$ref", "title", "description"}:
+                raise ValueError("Unsupported OpenAI reference sibling constraints")
+            ref = node["$ref"]
+            if ref in expanding:
+                raise ValueError("Cyclic OpenAI annotated reference expansion")
+            resolved = resolve_reference(ref)
+            resolved.update({key: value for key, value in node.items() if key != "$ref"})
+            node.clear()
+            node.update(resolved)
+            node.pop("default", None)
+            expanding = (*expanding, ref)
         if any(key in node for key in ("allOf", "oneOf", "not", "if", "then", "else", "dependentRequired", "dependentSchemas")):
             raise ValueError("Unsupported OpenAI schema composition")
-        node.pop("default", None)
         if node.get("type") == "object":
             if node.get("additionalProperties", False) is not False:
                 raise ValueError("OpenAI transport requires fixed object properties")
@@ -34,11 +66,11 @@ def strict_openai_schema(schema):
             node["required"] = list(properties)
         for key in ("properties", "$defs", "definitions"):
             for child in node.get(key, {}).values():
-                visit(child)
+                visit(child, expanding)
         if "items" in node:
-            visit(node["items"])
+            visit(node["items"], expanding)
         for child in node.get("anyOf", []):
-            visit(child)
+            visit(child, expanding)
 
     visit(result)
     if result.get("type") != "object" or "anyOf" in result:

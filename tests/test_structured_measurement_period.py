@@ -254,7 +254,10 @@ class StructuredMeasurementPeriodTests(unittest.TestCase):
         scope=schema['$defs']['PlannerAnswerObligationScope']
         self.assertIn('measurement_period',scope['required'])
         field=scope['properties']['measurement_period']
-        self.assertEqual(field['$ref'],'#/$defs/PlannerMeasurementPeriod')
+        self.assertNotIn('$ref',field)
+        self.assertEqual(field['properties'],schema['$defs']['PlannerMeasurementPeriod']['properties'])
+        self.assertEqual(field['required'],schema['$defs']['PlannerMeasurementPeriod']['required'])
+        self.assertFalse(field['additionalProperties'])
         self.assertNotIn('anyOf',field)
         # Defaults keep old internal fixtures readable, never an on-wire fallback.
         raw=RequirementPlannerOutput(obligations=[owner('year',period('year',year=2042,coverage='whole_year'))]).model_dump()
