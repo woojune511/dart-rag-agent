@@ -55,10 +55,10 @@ committed separately from experimental artifacts. Added provider calls/accountin
 **0**; shared **USD 19.31603993 / 20.32**, remaining **1.00396007**, pending **0**.
 These are retained experiment allowances/estimates, not billing or credit purchases.
 
-Next replay the saved structured plans through candidate selection and Compiler
-validation with authored source controls. That will check downstream execution,
-separately from this filter fix and from any fresh provider evaluation. No ingest,
-paid retry, budget increase or consumed-manifest reuse is part of this correction.
+The subsequent [downstream replay](structured_period_downstream.md) verifies this
+filter through candidate selection, Compiler validation and final answers. It
+also exposes a separate annual-versus-partial-year coverage gap, still unfixed.
+No ingest, paid retry, budget increase or consumed-manifest reuse is implied.
 
 Local evidence: [before](../../benchmarks/results/report_year_scope_2026-09-21/before.json),
 [after](../../benchmarks/results/report_year_scope_2026-09-21/after.json),

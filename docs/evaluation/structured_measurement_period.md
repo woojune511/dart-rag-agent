@@ -109,6 +109,12 @@ passes 8/8, but comparison-year hints broaden the report filter in two cases;
 combined period/report acceptance is 6/8. The subsequent [report-year correction](report_year_scope.md)
 passes all eight saved-plan filter replays. No new full-app or general accuracy claim.
 
+The [exact structured-plan downstream replay](structured_period_downstream.md)
+confirms explicit-interval and comparison execution, but exposes a separate gap:
+year-only constraints can accept a partial-year source and render it as the yearly
+amount. Those authored semantic negatives remain unfixed; same-year/source-linkage
+validation does not certify complete requested period coverage.
+
 Local evidence: [replay checks](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_review.json),
 [42 outcomes](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_summary.json),
 [full tests](../../benchmarks/results/structured_measurement_period_2026-09-21/full.json).
