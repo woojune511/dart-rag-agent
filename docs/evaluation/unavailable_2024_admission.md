@@ -1,7 +1,9 @@
 # Unsupported 2024 actual: single-question admission
 
-The frozen `unavailable_2024_actual` question now has a separately prepared
-single-use native application runner. **No budget increase is needed**: its
+The separately prepared runner below was subsequently [executed once](unavailable_2024_result.md)
+on clean `0a77fcdd`; draft `c1083801...cc37` is consumed. The live result is
+HTTP 200 with appropriate sampled abstention but partial delivered explanation.
+The following figures describe its unchanged preparation boundary. **No budget increase is needed**: its
 full conservative envelope is **USD 1.05872608**, rounded to a **USD 1.06** run
 cap, within the **USD 1.52489565** remaining experimental allowance.
 Preparation makes no provider calls and grants no execution authority by itself.

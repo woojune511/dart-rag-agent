@@ -76,12 +76,13 @@ attempts, native queries, provider calls, new cost and pending reservations are
 all zero. Shared accounting stays **18.54510435 / 20.07 USD**, leaving
 **1.52489565**. No funding increase, live caller or paid authorization was created.
 
-A [fresh single-question admission](unavailable_2024_admission.md) is now prepared
-with a USD 1.06 cap that fits existing funds and retains the actual-plan gate. Keep the original question
-and review-only criteria separate from runtime inputs. Inspect the sampled
-Planner period, actual retrieved sources, any Compiler decision and final answer
-separately; retain HTTP/budget failures as unassessed. Do not resume consumed
-dividend drafts. Presentation cleanup remains separate work.
+The subsequent [single-question live result](unavailable_2024_result.md) preserves
+the full 2024 period and returns missing evidence over actual retrieval, with
+16 successful HTTP requests and no retry. Its final explanation remains partial;
+it does not repeat the selected-report/full-year limitation. The draft is consumed,
+added accounting is 0.20457258 and remaining allowance 1.32032307. Next characterize
+the generic explanation/citation contract provider-free; this earlier authored
+boundary remains separate evidence and its blank-period concern is unchanged.
 
 Local evidence: [47 boundary assertions](../../benchmarks/results/unavailable_2024_boundary_2026-09-21/boundary_result.json),
 [70 contract tests](../../benchmarks/results/unavailable_2024_boundary_2026-09-21/focused_tests_v2.json),

@@ -96,14 +96,13 @@ No SDK/HTTP/whole-query retry, Google fallback, fresh ingest or second question.
 
 ## Next boundary
 
-The [provider-free unsupported-2024 check](unavailable_2024_boundary.md) is now
-complete: 47 boundary assertions and 70 contracts pass with unchanged runtime.
-Its authored 2024 target excludes the staged earlier-period cells and returns no
-amount. Actual model interpretation and fresh retrieval remain unassessed; the
-live question is still unexecuted. Next prepare a fresh single-question admission
-with full funding and actual-plan capacity checks. This result authorizes no
-additional paid execution, ingest or resume. Broader coverage and concise answer
-presentation remain separate work.
+The later [unsupported-2024 live diagnostic](unavailable_2024_result.md) follows
+its separate provider-free boundary and fresh admission. It preserves the full
+2024 target and withholds an unsupported amount, but the final explanation is
+partial. All 16 requests succeed without retry. Current remaining allowance is
+USD 1.32032307, pending zero; this dividend result and its accounting remain
+historical and unchanged. Next characterize the missing-evidence explanation
+and citation contract provider-free. No consumed draft may be resumed.
 
 Local evidence: [135-check review](../../benchmarks/results/dividend_policy_three_slot_execution_2026-09-21/live_review.json),
 [source review](../../benchmarks/results/dividend_policy_three_slot_execution_2026-09-21/source_review.json),

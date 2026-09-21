@@ -9762,3 +9762,31 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
   Preparation alone creates no paid authority. The fresh exact draft supports
   one separately bound dispatch, not a consumed-manifest resume.
   [Admission scope and cost](../evaluation/unavailable_2024_admission.md).
+
+## 2026-09-21 — Unsupported-2024 live missing-evidence diagnostic
+
+- On clean `0a77fcdd`, consumed fresh `c1083801...cc37` once after accepted
+  continuation, within the existing USD 20.07 cap and USD 1.06 run limit.
+  No budget increase, second question, repair, retry, ingest or Google fallback.
+- HTTP 200/incomplete, one missing obligation, ledger integrity ok. Planner
+  preserves actual consolidated 2024-01-01 through 2024-12-31 and both request
+  units. Eight native queries yield 32 seed/eight final documents and 696
+  candidates. The 2023 cash-flow witness is in the catalog but excluded from
+  Compiler visibility; two unrelated unresolved-period change cells are visible.
+  One Compiler response appropriately leaves the amount missing.
+- All 16 external requests succeed: Terra 2, Astra 1, counts 3, embeddings 10.
+  Exact input counts match usage; compact JSON holds. No malformed/validation
+  error. Missing-only validation status remains invalid with no errors.
+- Final answer is a generic insufficient-evidence sentence with eight retrieval
+  citations. It omits the selected-report/full-year explanation required by the
+  frozen criterion. Record appropriate sampled abstention but partial semantic
+  acceptance; do not count diagnostic rationale as delivered explanation.
+- 70 offline evidence assertions pass; 10996 predecessors, 175 sources, seven
+  protected owners, 24 original store files/settings preserve hashes. Only the
+  disposable SQLite copy changes. Prior 53/67 preparation checks remain separate.
+- Estimate 0.17457258 plus count contingency 0.03 = 0.20457258 added accounting;
+  shared 18.74967693/20.07, remaining 1.32032307, pending zero, peak run reserve
+  0.44457258. Not invoice. Next characterize a generic request/source-grounded
+  missing-evidence explanation and citation contract provider-free, preserving
+  diagnostic rationale boundaries and the original partial result.
+  [Live result and limitations](../evaluation/unavailable_2024_result.md).

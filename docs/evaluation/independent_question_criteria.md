@@ -61,7 +61,7 @@ or evidence of improved accuracy.
 
 At preparation, retained accounting was **16.02259344 / 17 USD**, leaving
 **0.97740656**, pending zero. This criteria preparation authorized no increase or run.
-Current accounting follows the [completed three-slot dividend result](dividend_policy_three_slot_result.md).
+Current accounting follows the [completed unsupported-2024 diagnostic](unavailable_2024_result.md).
 
 | Planning envelope using the previous frozen policy | USD |
 | --- | ---: |
@@ -85,16 +85,16 @@ consumed attempts. The separately authorized [three-slot run](dividend_policy_th
 now delivers **3/3 outputs**, with all three frozen meanings accepted by known-source
 assistant review, 26 successful external requests and no retry. Its draft is consumed.
 
-The [unsupported-2024 boundary check](unavailable_2024_boundary.md) passes 47
-provider-free assertions and 70 contracts. A staged graph with an authored 2024
-target withholds the 2021–2023 row and returns an incomplete answer without a
-numeric value. Blank numeric Planner periods still default to 2023; therefore
-sampled period interpretation and fresh retrieval remain unassessed, and the
-live negative question is still unexecuted. No frozen criterion was changed.
-Current accounting is **18.54510435 / 20.07 USD**, remaining **1.52489565**,
-pending zero. Next prepare a fresh single-question admission with full funding
-and actual-plan capacity checks before separately authorized live execution.
-This original criteria packet and the boundary check grant no new paid authority.
+The [unsupported-2024 boundary check](unavailable_2024_boundary.md) remains
+47 provider-free assertions and 70 contracts. Its separate [live diagnostic](unavailable_2024_result.md)
+now preserves the full 2024 period, completes 16 HTTP requests and appropriately
+withholds an unsupported amount. Full frozen acceptance is withheld because the
+delivered answer does not explain the selected-report/full-year limitation; the
+diagnostic rationale is not counted as a delivered answer. No criterion changed.
+Current accounting is **18.74967693 / 20.07 USD**, remaining **1.32032307**,
+pending zero. Next characterize the generic explanation/citation contract without
+provider calls. This sample does not remove the blank-Planner-period boundary.
+All three original questions have now been attempted; consumed runs remain immutable.
 
 ## Verification and artifacts
 
