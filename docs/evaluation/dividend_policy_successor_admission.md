@@ -5,12 +5,15 @@ have a fresh provider-free application rehearsal and a separate execution propos
 **62 contract tests**, **two actual-application saved-response replays**,
 **one Planner generation-503 rehearsal** and **91 evidence checks** pass.
 Two documentation authority checks pass separately. Real model/embedding/count
-API calls and added experimental cost are **zero**; production source is unchanged.
+API calls and cost for the preparation were **zero**; production source was unchanged.
 
-The proposal remains **unfunded and unconsumed**. It does not reuse the
-[original dividend admission](dividend_policy_admission.md), whose paid
-[HTTP 500 result](dividend_policy_result.md) stays unchanged. A new model choice
-or delivered answer has not been observed.
+The user subsequently accepted **+USD 0.55 and one execution**. This draft is
+now **consumed**; the [paid successor result](dividend_policy_successor_result.md)
+returns application HTTP 500 after three narrative owners exceed the caller's
+two-response cap. All 24 external calls succeeded; no final answer was delivered.
+Shared accounting is **17.71533922 / 18.82**, remaining **1.10466078**, pending zero.
+The following preserves the preparation evidence and its original funding proposal.
+The [original dividend result](dividend_policy_result.md) is a separate unchanged failure.
 
 ## Fixed input and current source
 
@@ -86,7 +89,7 @@ allowances are contingencies, not a verified endpoint tariff. No invoice is clai
 | Smallest cent-rounded additional amount proposed | **0.55** |
 | Available if separately accepted; shared cap 18.82 | 1.70292321 |
 
-No increase has been applied. The proposal retains two Terra generations and at
+At preparation, no increase had been applied. The frozen proposal retains two Terra generations and at
 most two first Astra responses for disjoint owners, four counts and 48 embeddings,
 with all configured output limits intact. There is no feedback repair, forced
 output merging, third Compiler group, Google fallback, SDK/HTTP retry, fresh ingest
@@ -95,9 +98,10 @@ incorrect interpretation; funding does not guarantee completion.
 
 Whole-batch funding and exact draft authorization precede transport, bootstrap
 and exclusive consumption. The finalized draft's real entrypoint was checked at
-the current balance: it stops before all three, without creating a live output,
-authorization or consumed marker. Any future paid attempt requires sufficient
-explicitly accepted funding and execution authority bound to the new draft.
+the preparation balance: it stopped before all three, without creating a live
+output, authorization or consumed marker. The later accepted increase and exact
+draft authorization are recorded separately in the consumed execution receipt.
+That execution does not authorize reusing this draft.
 
 ## Preservation and artifacts
 

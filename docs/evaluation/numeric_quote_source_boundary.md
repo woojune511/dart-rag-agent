@@ -67,12 +67,15 @@ runtime owners and local settings retain their hashes. Only one of **174** sourc
 files changes. The history file receives an append-only entry, and local review
 artifacts are excluded from the commit.
 
-New provider calls and added cost are **zero**. Shared accounting remains
+Provider calls and added cost for that offline change were **zero**. Accounting then was
 **17.11707679 / 18.27 USD**, with **1.15292321 remaining**, pending zero.
 The [fresh provider-free application admission/rehearsal](dividend_policy_successor_admission.md)
-is now complete for both this fix and the [Planner clarification](planner_output_kind_boundary.md).
-Fresh model classification and answer delivery remain unverified. No automatic
-paid successor, budget increase, consumed-draft reuse or unsupported-2024 run.
+preceded the separately authorized [paid successor](dividend_policy_successor_result.md).
+It plans three narratives and validates two partial islands before its caller
+blocks the third first request. This narrative run does not exercise the numeric
+quote correction live and delivers no final answer. Current accounting is
+17.71533922/18.82 USD, remaining 1.10466078, pending zero. Next is provider-free
+caller-capacity work; no consumed-draft reuse or unsupported-2024 execution.
 
 Local evidence: [baseline](../../benchmarks/results/numeric_quote_source_boundary_2026-09-19/baseline.json),
 [new controls](../../benchmarks/results/numeric_quote_source_boundary_2026-09-19/new_contracts.json),

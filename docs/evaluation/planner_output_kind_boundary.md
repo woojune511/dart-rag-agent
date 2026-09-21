@@ -5,7 +5,10 @@ status explanation in both its policy prompt and generation-schema descriptions.
 This addresses an ambiguity exposed by the [dividend-policy failure](dividend_policy_result.md),
 where payment status was assigned `direct_value` and an associated amount was
 selected. The change is a **generic Planner contract clarification**, not a
-keyword classifier or a verified improvement in sampled model accuracy.
+keyword classifier or a general model-accuracy result. The separately paid
+[successor](dividend_policy_successor_result.md) now samples three narrative
+owners, but its caller stops before the third owner is compiled; no completed
+answer or isolated causal effect is established.
 
 ## Contract and scope
 
@@ -59,7 +62,7 @@ On `3a8ae0e2`, replaying the unchanged old response retained the wrong
 `source_interpretation_quote_mismatch`, `candidate_scope_mismatch` and
 `source_assertion_candidate_not_selected`. The original application HTTP 500,
 partial claims, consumed draft and cost remain unchanged. No new Planner choice,
-Compiler answer, native retrieval or live success has been sampled.
+Compiler answer, native retrieval or live success was sampled by that offline work.
 
 ## Preservation and next work
 
@@ -69,17 +72,19 @@ files, only the two declared prompt/schema files change; the other 172 remain
 identical. Import, topology and documentation gates pass separately. No original
 Chroma store was opened and no experiment artifact is staged.
 
-New provider calls and cost are **zero**. Shared accounting remains
+Provider calls and cost for that offline change were **zero**. Accounting then was
 **17.11707679 / 18.27 USD**, with **1.15292321 remaining**, pending zero.
-No paid successor or budget increase is authorized by this work.
+That offline work did not authorize a paid successor or budget increase.
 
 The separate [exact quote-source correction](numeric_quote_source_boundary.md)
 now removes the false quote rejection provider-free while preserving period
 rejection, exact bytes and physical source ownership. The [fresh application
-admission/rehearsal](dividend_policy_successor_admission.md) is complete provider-free
-for both fixes. Any later paid successor requires a
-fresh admission/rehearsal and sufficient funding; consumed drafts cannot be
-reused. The unsupported-2024 question remains unexecuted.
+admission/rehearsal](dividend_policy_successor_admission.md) preceded the separately
+authorized [paid successor](dividend_policy_successor_result.md). That execution
+observes narrative payment classification, but three owners exceed its two
+Compiler slots. No final answer is delivered. Current accounting is
+17.71533922/18.82 USD, remaining 1.10466078, pending zero. Next is provider-free
+caller-capacity work; consumed drafts cannot be reused and unsupported-2024 remains unexecuted.
 
 Local evidence: [baseline](../../benchmarks/results/planner_output_kind_boundary_2026-09-19/baseline.json),
 [focused tests](../../benchmarks/results/planner_output_kind_boundary_2026-09-19/focused_checks.json),

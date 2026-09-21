@@ -89,12 +89,14 @@ All **10132 predecessor files**, **174 source files**, seven runtime owners,
 copy's SQLite bytes changed during loading. Experiment artifacts remain local.
 
 The [generic Planner output-kind contract](planner_output_kind_boundary.md) is
-now clarified and tested provider-free. No fresh model classification or completed
-answer is established; this original failure remains unchanged. The separate
+now clarified and tested provider-free. A separate successor below observes
+new classification; this original failure remains unchanged. The separate
 [exact quote-source correction](numeric_quote_source_boundary.md) removes only
 the false quote error in offline replay; period rejection and the old monetary
-selection remain. The [fresh provider-free successor rehearsal](dividend_policy_successor_admission.md)
-is complete; its unfunded draft is separate from this consumed failure.
+selection remain. The [paid successor](dividend_policy_successor_result.md)
+correctly plans three narratives but its two-response caller blocks the third
+first request. All 24 provider requests succeed; no final answer is delivered.
+That separately consumed result does not repair this historical failure.
 The unsupported-2024 question remains unexecuted; this consumed draft authorizes
 no additional paid run.
 

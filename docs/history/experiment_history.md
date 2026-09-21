@@ -9593,3 +9593,36 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
 - One six-request synthetic Planner generation-503 control stops without retry/downstream work and retains sanitized first cause plus full unknown-use reservation. All 52 HTTP requests across three rehearsals are mocks; no external attempt or real accounting change. Sixty-two contract tests and 91 saved-evidence checks pass; two documentation checks pass separately. Fixture counts are not current provider token measurements.
 - Official pricing was searched/fetched on 2026-09-21; conservative rates and all prior model/output/call bounds remain unchanged. Shared accounting stays 17.11707679/18.27, remaining 1.15292321, pending zero. The fresh exact envelope is 1.69972608 under a 1.70 cap; proposed cent-rounded +0.55 is not applied. Current-balance entrypoint stops before transport/bootstrap/consumption. No authorization or consumed marker is created.
 - All 10250 predecessor files, 174 source files, seven protected owners, 24 original store files and settings preserve hashes. Only disposable SQLite bytes change. Tracked changes are documentation; local admission/rehearsal artifacts remain excluded. The original paid HTTP 500 and every consumed draft remain immutable. Next paid work requires sufficient accepted funding and this fresh exact draft; no automatic retry, feedback repair, cap increase or unsupported-2024 execution. [Details](../evaluation/dividend_policy_successor_admission.md).
+
+
+## 2026-09-21 — Dividend successor stops at caller capacity after correct narrative planning
+
+- Accepted USD 0.55 increase, shared cap 18.27 → 18.82, and consumed fresh draft
+  `0b3ef8ec...c108cc` once on clean `1e781f45`; unchanged 174-source digest `93e45d56`.
+- Actual application path: 24/24 successful external requests (four generations,
+  four counts, 16 embeddings), 14 native queries, three seed/visible documents and
+  66 candidates. No SDK/HTTP/whole-query retry, feedback repair, fallback or ingest.
+- Planner now produces three narrative owners, including payment status. Two first
+  Compiler responses validate with no errors. The third disjoint owner's first
+  request is blocked before count/generation by the frozen two-response caller.
+  Application HTTP 500, zero delivered outputs, no final ledger; no 503 or monetary
+  exhaustion. Numeric quote fix is not exercised live by these narrative outputs.
+- Separate source review: three partial claims across two ready islands, six exact
+  subject/fact support occurrences; all five original witnesses retain unique spans.
+  Payment-source paragraph is visible, but payment interpretation remains unsampled.
+  Full frozen acceptance fails for lack of a delivered answer. Known-source assistant
+  review is not human gold, general accuracy or an isolated causal patch comparison.
+- Usage estimate 0.55826243 plus 0.04 count contingency = **0.59826243** accounted;
+  shared **17.71533922 / 18.82**, remaining **1.10466078**, pending zero, peak with
+  reservations 0.82256243 < 1.70. Experiment accounting, not an observed invoice.
+- 118 saved-evidence checks pass with network blocked. Review initially omitted
+  child requirement visibility; the existing cohort builder reconstructs the exact
+  window and validates both saved programs without changing source or live evidence.
+  Reused unchanged 62 admission contracts/91 preparation checks; two docs gates pass.
+  All 10421 predecessors, 174 sources, seven owners, 24 original store files and
+  settings retain hashes; only disposable SQLite bytes change. Artifacts stay local.
+- Next: characterize plan-cardinality-aware caller admission before paid compilation,
+  with coherent first-response, count and funding limits; do not force plan merging,
+  resume consumed drafts or execute unsupported-2024.
+- [Result](../evaluation/dividend_policy_successor_result.md);
+  [local review](../../benchmarks/results/dividend_policy_successor_execution_2026-09-21/live_review.json).

@@ -3,11 +3,12 @@
 The user subsequently accepted +USD 0.47 and one attempt on `526965ca`.
 The draft is consumed: [the result](dividend_policy_result.md) is application
 HTTP 500 after invalid payment-status binding and a blocked repair request,
-while all 23 external calls succeeded. Current shared accounting is
+while all 23 external calls succeeded. Shared accounting after that attempt was
 17.11707679/18.27, remaining 1.15292321, pending zero. The following describes
 the preserved preparation boundary, not an unconsumed execution proposal. A
-[fresh provider-free successor proposal](dividend_policy_successor_admission.md)
-now covers both subsequent fixes and remains unfunded/unconsumed.
+[separate successor](dividend_policy_successor_result.md) now covers both fixes
+and is also consumed: three narrative owners exceed its two-Compiler admission.
+Its current accounting is 17.71533922/18.82, remaining 1.10466078, pending zero.
 
 At preparation, the next frozen question has a dedicated execution proposal and provider-free
 rehearsal on `20d03bd7`. **62 focused tests**, **three actual-app Planner failure

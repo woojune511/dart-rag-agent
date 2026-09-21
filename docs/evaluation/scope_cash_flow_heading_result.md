@@ -82,11 +82,13 @@ no unchanged runtime suite or paid experiment is rerun. Tracked edits are docs o
 The subsequently authorized [dividend-policy attempt](dividend_policy_result.md)
 returned application HTTP 500 after a numeric payment-status binding failed;
 all 23 external calls succeeded and a repair request was blocked locally.
-Its partial policy/period claims are not a final answer. Current accounting
-is 17.11707679/18.27, remaining 1.15292321, pending zero. The unsupported-2024
-question remains unexecuted; consumed drafts cannot be reused. The
-[Planner output-kind clarification](planner_output_kind_boundary.md) is now
-tested locally, and the [exact quote-source correction](numeric_quote_source_boundary.md) now removes only the false quote rejection offline. The [fresh provider-free successor admission/rehearsal](dividend_policy_successor_admission.md) is now complete; its unfunded draft is separate from consumed history.
+Its partial policy/period claims are not a final answer. After the Planner and
+quote fixes, a [separate paid successor](dividend_policy_successor_result.md)
+plans three narratives; two are ready, but its two-response caller blocks the
+third first request. All 24 provider requests succeed and no answer is delivered.
+Current accounting is 17.71533922/18.82, remaining 1.10466078, pending zero.
+Next is provider-free caller admission for actual plan cardinality. Unsupported-2024
+remains unexecuted; both consumed dividend drafts retain their original results.
 
 Local evidence: [source review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/source_review.json),
 [92-check review](../../benchmarks/results/scope_cash_flow_heading_execution_2026-09-19/live_review.json),
