@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Planner period-kind instruction clarification (2026-09-22)
+
+- Clean `d2b73b8b`; [details](../evaluation/planner_period_kind_clarification.md). Provider-free prompt and field-description clarification distinguishes known year/coverage from exact dates, without inferred fiscal endpoints or unnecessary unresolved choices. Two source owners change; no fields, validators, normalization, execution or case-specific rules change.
+- Installed-SDK before bodies reproduce all six actual probe requests. After bodies differ only in the period instruction and three schema descriptions, retaining schema structure, model settings and all other content; +1537 local UTF-8 bytes per request, not tokens. All six original raw responses retain identical normalized plans and filters. Actual period semantics stay **2/6**, coverage **0/4**; all four failures and the consolidation defect remain. No new model sample or repair.
+- **107/107** focused tests, audit **83**, import/topology/docs and syntax/diff pass. Historical full **2213/2213** not rerun for descriptions. The initial offline HTTP mock binding was corrected before verified captures; failed log retained. All **12977** predecessors, **174** unrelated sources, **24** original stores/settings retain hashes. Only source/docs committed; packet `planner_period_kind_clarification_2026-09-22` ignored.
+- Added provider calls/accounting **0**; shared **19.54154943/20.32**, remaining **0.77845057**, pending zero. Next separate ordinary-word consolidation contract seam; any later model comparison requires fresh admission and frozen criteria. No paid retry, ingest, funding increase or historical-result rewrite.
+
 ## Planner coverage semantics: six new questions (2026-09-22)
 
 - Clean `2be41eb2`; [result and frozen criteria](../evaluation/measurement_coverage_probe_result.md). User accepted the next independent Planner verification within the existing allowance. Four absolute/relative whole-year versus within-year questions and two exact point/interval controls were frozen before responses. Fresh `316c54ff...f5ca71` consumed once; six full generation/count ceilings **0.949824** fit cap **0.95** and remaining **1.00396007**. No budget increase, response-based case selection or partial old-batch retry.

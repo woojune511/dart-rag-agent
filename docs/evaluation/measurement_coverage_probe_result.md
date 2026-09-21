@@ -100,11 +100,12 @@ Only documentation is committed; packet `measurement_coverage_probe_2026-09-22`
 remains ignored. No hidden holdout, independent human gold, general accuracy,
 source availability or full-application correctness is claimed.
 
-Next prepare a provider-free clarification of period-kind selection: year plus
-coverage does not require fiscal endpoints; within_year is not an exact full-year
-interval. Treat the ordinary-word consolidation override as a separate contract
-seam. Preserve these four failures and require fresh whole-batch admission before
-any later model experiment; do not retry or repair this consumed run.
+The [provider-free period-kind clarification](planner_period_kind_clarification.md)
+now explains that year plus coverage needs no fiscal endpoints and within_year is
+not exact-interval equality. Its saved-plan replay preserves all four failures;
+there is no new model result. The ordinary-word consolidation override remains a
+separate contract seam. Any later model experiment requires fresh whole-batch
+admission; do not retry or repair this consumed run.
 
 Local evidence: [frozen criteria](../../benchmarks/results/measurement_coverage_probe_2026-09-22/review_criteria.json),
 [run receipt](../../benchmarks/results/measurement_coverage_probe_2026-09-22/live/run_receipt.json),

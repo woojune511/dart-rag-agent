@@ -92,11 +92,13 @@ class UnresolvedMeasurementPeriod(MeasurementPeriodBase):
 class YearCoverageMeasurementPeriod(MeasurementPeriodBase):
     coverage: Union[Literal["whole_year", "within_year"], SkipJsonSchema[None]] = Field(
         default=None, exclude_if=lambda value: value is None, description=(
-            "Interpret the owned request: whole_year requires an annual-granularity measurement; "
-            "within_year permits a measurement for a point or shorter period inside the target year. "
-            "Always declare one. Link the coverage instruction in request_unit_ids. "
-            "Do not infer fiscal start/end dates; an exact requested interval uses date_interval. "
-            "If coverage cannot be interpreted, use measurement_period.kind=unresolved."
+            "Always interpret and declare coverage from the owned request. whole_year requires the "
+            "complete named year, not a point or shorter measurement. within_year permits a point, "
+            "shorter period or whole-year measurement inside the target year; it does not require "
+            "an exact full-year interval. A known target year and coverage need no fiscal start/end "
+            "dates: keep year/relative_year even when those dates are absent. Do not invent "
+            "January-December endpoints. Link the coverage instruction in request_unit_ids. "
+            "Use unresolved if the requested coverage itself cannot be interpreted."
         ),
     )
 
@@ -153,12 +155,16 @@ class AnswerObligationScope(_DeferredBaseModel):
         DateMeasurementPeriod, IntervalMeasurementPeriod, UnresolvedMeasurementPeriod,
         SkipJsonSchema[None],
     ] = Field(default=None, exclude_if=lambda value: value is None, description=(
-        "Execution constraint interpreted from the owned original request. Always choose an object: "
-        "unspecified when there is no measurement constraint; year for a year-granularity target; "
-        "relative_year for an explicit anchor_year and signed year_offset (code adds them); "
-        "date or date_interval for full ISO dates with inclusive endpoints; unresolved when unknown. "
+        "Execution constraint interpreted from the owned original request. Choose kind by the "
+        "precision requested, not by source availability. No measurement constraint: unspecified. "
+        "A named target year: year plus coverage. A year relative to an explicit anchor: "
+        "relative_year with anchor_year, signed year_offset and coverage (code adds the offset). "
+        "These year constraints need no fiscal endpoints; missing dates do not make them unresolved. "
+        "Use date/date_interval only when the request specifies an exact full date/inclusive "
+        "interval; preserve those ISO endpoints. Do not convert year coverage into assumed "
+        "January-December dates. Use unresolved only when the requested constraint cannot be interpreted. "
         "A report year alone does not create a measurement constraint. Link every constrained period "
-        "to this output's request_unit_ids, including anchor/relative instructions. Keep period text "
+        "to this output's request_unit_ids, including anchor/relative/coverage instructions. Keep period text "
         "unchanged. Each comparison input declares its own constraint; do not use its output's two "
         "years as interchangeable source permissions. For year/relative_year declare coverage: "
         "whole_year or within_year, grounded in the owned request. Source years do not prove "
