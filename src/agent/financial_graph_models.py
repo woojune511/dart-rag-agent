@@ -89,13 +89,33 @@ class UnresolvedMeasurementPeriod(MeasurementPeriodBase):
     request_unit_ids: List[str] = Field(min_length=1)
 
 
-class YearMeasurementPeriod(MeasurementPeriodBase):
+class YearCoverageMeasurementPeriod(MeasurementPeriodBase):
+    coverage: Union[Literal["whole_year", "within_year"], SkipJsonSchema[None]] = Field(
+        default=None, exclude_if=lambda value: value is None, description=(
+            "Interpret the owned request: whole_year requires an annual-granularity measurement; "
+            "within_year permits a measurement for a point or shorter period inside the target year. "
+            "Always declare one. Link the coverage instruction in request_unit_ids. "
+            "Do not infer fiscal start/end dates; an exact requested interval uses date_interval. "
+            "If coverage cannot be interpreted, use measurement_period.kind=unresolved."
+        ),
+    )
+
+    @field_validator("coverage")
+    @classmethod
+    def reject_explicit_null_coverage(cls, value):
+        # Only omission is historical compatibility; a supplied null is invalid.
+        if value is None:
+            raise ValueError("invalid_measurement_period")
+        return value
+
+
+class YearMeasurementPeriod(YearCoverageMeasurementPeriod):
     kind: Literal["year"]
     year: StrictInt = Field(ge=1, le=9999)
     request_unit_ids: List[str] = Field(min_length=1)
 
 
-class RelativeYearMeasurementPeriod(MeasurementPeriodBase):
+class RelativeYearMeasurementPeriod(YearCoverageMeasurementPeriod):
     kind: Literal["relative_year"]
     anchor_year: StrictInt = Field(ge=1, le=9999)
     year_offset: StrictInt
@@ -140,7 +160,9 @@ class AnswerObligationScope(_DeferredBaseModel):
         "A report year alone does not create a measurement constraint. Link every constrained period "
         "to this output's request_unit_ids, including anchor/relative instructions. Keep period text "
         "unchanged. Each comparison input declares its own constraint; do not use its output's two "
-        "years as interchangeable source permissions. Source years do not prove date endpoints."
+        "years as interchangeable source permissions. For year/relative_year declare coverage: "
+        "whole_year or within_year, grounded in the owned request. Source years do not prove "
+        "date endpoints or that a finer period covers a whole fiscal year."
     ))
     consolidation_scope: Literal["consolidated", "separate", "unknown"] = "unknown"
     segment: str = ""

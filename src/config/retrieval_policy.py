@@ -749,6 +749,16 @@ MEASUREMENT_PERIOD_POLICY = {
     ),
     "source_range_separator": r"(?i)\s*(?:~|～|–|—|-|to|through|부터)\s*",
     "source_partial_range_pattern": r"(?i)(?:\d|~|～|–|—|부터|까지|\bto\b|\bthrough\b)",
+    # Located source-axis grammar, never a request-intent classifier. A year
+    # projection must not erase explicit month/quarter/partial-period markers.
+    "source_subannual_patterns": (
+        r"(?i)(?<![a-z])(?:q\s*[1-4]|h\s*[12])(?![a-z0-9])",
+        r"(?i)\b(?:[1-4](?:st|nd|rd|th)?\s+quarter|quarter\s+[1-4]|half[ -]year|year[ -]to[ -]date|ytd)\b",
+        r"(?<!\d)[1-4]\s*분기|상반기|하반기|(?<!\d)(?:[1-9]|1[0-2])\s*월",
+        r"(?<!\d)\d{4}[./-](?:0?[1-9]|1[0-2])(?!\d)",
+        r"(?i)\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b",
+        r"(?i)\b(?:[1-9]|1[01])\s*months?\b",
+    ),
 }
 
 
@@ -820,7 +830,7 @@ PLANNING_POLICY: Dict[str, Any] = {
             "- company, period, consolidation_scope, segment, basis처럼 의미가 다른 범위를 scope에 명시합니다.\n"
             "- scope.period는 각 출력·입력에 요청된 측정 기간입니다. 시작·끝 날짜, 기간 범위와 상대 기간을 보존하고 선택한 보고서 연도로 바꾸지 마세요. 보고서 연도는 문서 선택 범위이며 측정 기간의 기본값이 아닙니다. 요청이 해당 보고서의 측정 기간을 실제로 지칭할 때만 그 기간으로 해석하세요.\n"
             "- 측정 기간을 지정하지 않은 출력은 scope.period를 비웁니다. 빈 입력 기간은 명시된 상위 출력 기간만 상속하므로 비교·복수 기간 계산의 각 입력에는 해당 입력의 기간을 각각 적으세요. 서로 다른 기간을 하나로 합치거나 코드의 연도 보정을 기대하지 마세요.\n"
-            "- scope.measurement_period는 실행할 측정 기간의 구조입니다. 기간 미지정은 unspecified, 대상 연도는 year, 기준 연도에 상대적인 기간은 relative_year의 anchor_year와 부호 있는 year_offset, 특정 날짜는 date, 전체 날짜 구간은 date_interval의 ISO 시작일·종료일로 선언하세요. 코드는 명시된 연도 차이만 계산하며 문장에서 대상 기간을 추정하지 않습니다. 해석할 수 없으면 unresolved를 사용하세요. 모든 기간 근거 request_unit_ids는 해당 출력이 소유해야 하며 상대 기간과 기준 설명도 포함하세요. 보고서 선택 연도만으로 측정 기간을 만들지 마세요. 비교 입력마다 자기 기간 구조를 선언하고, 계산 출력에 여러 입력 기간을 하나의 연도 목록으로 합치지 마세요. 자유형 period와 원문 요청은 그대로 보존합니다.\n"
+            "- scope.measurement_period는 실행할 측정 기간의 구조입니다. 기간 미지정은 unspecified, 대상 연도는 year, 기준 연도에 상대적인 기간은 relative_year의 anchor_year와 부호 있는 year_offset, 특정 날짜는 date, 전체 날짜 구간은 date_interval의 ISO 시작일·종료일로 선언하세요. year/relative_year는 coverage도 선언하세요. 연간 전체 측정값 요청은 whole_year, 해당 연도 안의 시점·부분 기간 측정도 허용하는 요청은 within_year입니다. 회계연도 시작일·종료일을 추정하지 말고, 정확한 날짜 구간 요청은 date_interval로 보존하세요. 코드는 명시된 연도 차이만 계산하며 문장에서 대상 기간이나 범위를 추정하지 않습니다. 해석할 수 없으면 unresolved를 사용하세요. 모든 기간 근거 request_unit_ids는 해당 출력이 소유해야 하며 상대 기간·기준·범위 설명도 포함하세요. 보고서 선택 연도만으로 측정 기간을 만들지 마세요. 비교 입력마다 자기 기간 구조를 선언하고, 계산 출력에 여러 입력 기간을 하나의 연도 목록으로 합치지 마세요. 자유형 period와 원문 요청은 그대로 보존합니다.\n"
             "- scope.company는 공시 문서의 회사 범위입니다. 표 행이나 문장 안에서 실제 값의 주체가 되는 회사·사업·대상은 semantic_target.local_subjects에 적고 scope.company로 대체하지 마세요.\n"
             "- 각 obligation과 evidence requirement의 semantic_target을 작성하세요. local_subjects에는 질문이 직접 지목한 local entity만, concept_keys에는 아래 목록에 실제로 있는 ontology concept key만, metric_surfaces에는 질문에 보이는 지표 표현을 보존하세요. 정확한 concept가 없으면 concept_keys를 비운 채 metric_surfaces를 사용하세요.\n"
             "- local_subjects는 검색과 독해를 위한 요청 표현입니다. 이름·집단·부문 등의 한정 조건을 보존하고, 원문 이름의 허용 목록으로 만들지 마세요. 원문 축과 요청 표현의 의미 대응은 검색 후 Compiler가 근거와 함께 해석합니다. Planner는 접미사를 삭제하거나 원문 표현을 추측하여 요청을 고치지 않습니다.\n"

@@ -33,7 +33,14 @@ def period_contract_error(value: Any) -> str:
         "date_interval": {"start_date", "end_date", "request_unit_ids"},
     }
     kind = value.get("kind")
-    if not isinstance(kind, str) or kind not in fields or set(value) != fields[kind] | {"kind"}:
+    if not isinstance(kind, str) or kind not in fields:
+        return "invalid_measurement_period"
+    expected_fields = fields[kind] | {"kind"}
+    if kind in {"year", "relative_year"} and "coverage" in value:
+        expected_fields.add("coverage")
+        if value["coverage"] not in ("whole_year", "within_year"):
+            return "invalid_measurement_period"
+    if set(value) != expected_fields:
         return "invalid_measurement_period"
     if kind != "unspecified":
         refs = value.get("request_unit_ids")
@@ -110,8 +117,8 @@ def _source_date_shape(surface: str) -> tuple[str, ...] | None:
     return ("date", dates[0])
 
 
-def source_date_shape(candidate: Mapping[str, Any]) -> tuple[str, ...] | None:
-    """Use each existing local period axis independently, never join axes."""
+def _source_period_surfaces(candidate: Mapping[str, Any]) -> list[str]:
+    """Use existing local period axes independently, never join axes."""
     raw_headers = candidate.get("column_headers") or []
     headers = [raw_headers] if isinstance(raw_headers, str) else [str(item) for item in raw_headers]
     surface = str(candidate.get("source_period_surface") or "")
@@ -119,11 +126,39 @@ def source_date_shape(candidate: Mapping[str, Any]) -> tuple[str, ...] | None:
     surfaces = headers + ([] if surface == " / ".join(headers) else [surface])
     if not any(surfaces):
         surfaces = [str(candidate.get("period") or "")]
-    shapes = {_source_date_shape(item) for item in surfaces}
+    return surfaces
+
+
+def source_date_shape(candidate: Mapping[str, Any]) -> tuple[str, ...] | None:
+    shapes = {_source_date_shape(item) for item in _source_period_surfaces(candidate)}
     shapes.discard(None)
     if not shapes:
         return None
     return next(iter(shapes)) if len(shapes) == 1 else ("unknown",)
+
+
+def year_coverage_state(
+    coverage: str | None, candidate: Mapping[str, Any], expected_years: set[int],
+) -> str:
+    """Check finer source geometry before the existing annual-year match.
+
+    An annual label retains its existing reading, not a proof of fiscal dates.
+    Neither a missing historical declaration nor whole_year licenses a finer
+    source period. Even twelve-month endpoints need an explicit interval or a
+    separately supported calendar binding; never invent that relation here.
+    """
+    shape = source_date_shape(candidate)
+    if shape is not None:
+        if shape == ("unknown",) or coverage != "within_year":
+            return "unknown"
+        return "match" if all(int(endpoint[:4]) in expected_years for endpoint in shape[1:]) else "conflict"
+    if coverage != "within_year" and any(
+        re.search(pattern, surface)
+        for surface in _source_period_surfaces(candidate)
+        for pattern in MEASUREMENT_PERIOD_POLICY["source_subannual_patterns"]
+    ):
+        return "unknown"
+    return "match"
 
 
 def date_period_state(value: Mapping[str, Any], candidate: Mapping[str, Any], *, has_year: bool) -> str:

@@ -1,5 +1,8 @@
 # Saved structured plans: downstream execution and annual coverage
 
+This historical diagnosis is preserved. The [coverage contract successor](measurement_period_coverage.md)
+blocks its two partial-year counterexamples without changing these plans or results.
+
 Provider-free replay on `d4a8d7b6` confirms the report-year correction and exposes
 a remaining measurement-period boundary: **a partial-year source can pass a
 year-only request and be rendered as the business-year amount**. This is an

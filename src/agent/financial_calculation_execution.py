@@ -28,7 +28,7 @@ from src.agent.financial_request_units import build_request_units
 from src.agent.financial_source_scope import source_section_applicability, source_section_requirement_errors
 from src.agent.financial_measurement_periods import (
     date_period_state, legacy_period_label, measurement_period_requirement_errors,
-    period_contract_error, scope_period,
+    period_contract_error, scope_period, year_coverage_state,
 )
 from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids, project_narrative_claims
 from src.agent.financial_narrative_claims import validate_narrative_claims
@@ -519,8 +519,14 @@ def _period_scope_state(
             _, expected_year = annual_period_evidence(wanted, report_year=candidate.get("year"))
             if expected_year is not None:
                 expected_years = {expected_year}
+    if value_year is not None and expected_years and value_year not in expected_years:
+        return "conflict"
+    coverage = expected.get("coverage") if isinstance(expected, Mapping) else None
+    coverage_state = year_coverage_state(coverage, candidate, expected_years)
+    if coverage_state != "match":
+        return coverage_state
     if value_year is not None and expected_years:
-        return "match" if value_year in expected_years else "conflict"
+        return "match"
     if has_period and value_year is None and candidate.get("period_source") == "fiscal_period":
         # Retained row-relative text cannot re-resolve an ambiguous fiscal column.
         return "unknown"

@@ -256,7 +256,7 @@ class StructuredMeasurementPeriodTests(unittest.TestCase):
         self.assertEqual(len(field['anyOf']),6)
         self.assertNotIn({'type':'null'},field['anyOf'])
         # Defaults keep old internal fixtures readable, never an on-wire fallback.
-        raw=RequirementPlannerOutput(obligations=[owner('year',period('year',year=2042))]).model_dump()
+        raw=RequirementPlannerOutput(obligations=[owner('year',period('year',year=2042,coverage='whole_year'))]).model_dump()
         validator=Draft202012Validator(schema)
         validator.validate(raw)
         for mutation in ('missing','null'):
@@ -282,8 +282,8 @@ class StructuredMeasurementPeriodTests(unittest.TestCase):
         from src.config.llm_profiles import app_llm_routing_config
         from src.utils.gemini_usage import GeminiUsageCallbackHandler
         from tests.test_openai_compiler_transport import response_body
-        specs=[period('unspecified'),period('unresolved'),period('year',year=2041),
-               period('relative_year',anchor_year=2042,year_offset=-1),
+        specs=[period('unspecified'),period('unresolved'),period('year',year=2041,coverage='whole_year'),
+               period('relative_year',anchor_year=2042,year_offset=-1,coverage='within_year'),
                period('date',date='2042-06-30'),
                period('date_interval',start_date='2041-07-01',end_date='2042-06-30')]
         response=RequirementPlannerOutput(obligations=[owner('authored period',spec) for spec in specs])
