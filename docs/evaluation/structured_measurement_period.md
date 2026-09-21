@@ -103,9 +103,11 @@ client opens for the replay. Added provider calls/accounting **0**; shared
 **USD 19.01856243 / 20.07**, remaining **1.05143757**, pending **0**, not an invoice.
 Experiment files stay ignored. No ingest, paid retry or consumed-manifest reuse.
 
-Next prepare a fresh bounded Planner probe for the new schema, including exact
-SDK bodies, independent semantic criteria and whole-batch budget admission before
-any provider request. Local schema/replay success is not provider acceptance.
+The [new-schema probe preparation](structured_period_probe_preparation.md) now
+freezes eight exact SDK requests and separate semantic criteria. Offline gates
+pass, but the unchanged USD 1.27 run cap exceeds remaining allowance by 0.21856243;
+resolve funding before fresh single-use admission. No added calls or budget.
+Local schema/replay success is not provider acceptance.
 
 Local evidence: [replay checks](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_review.json),
 [42 outcomes](../../benchmarks/results/structured_measurement_period_2026-09-21/replay_summary.json),
