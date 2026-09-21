@@ -3079,12 +3079,53 @@ def _render_derived_input_summary(
     )
 
 
+def _render_missing_evidence_limit(
+    *, obligations: Sequence[Mapping[str, Any]], report_scope: Mapping[str, Any],
+    render_policy: Mapping[str, Any], korean_surface: bool,
+) -> str:
+    """Describe declared selection/targets, never infer a source's temporal coverage."""
+
+    templates = dict(render_policy.get("evidence_limit") or {})
+    language = dict(templates.get("ko" if korean_surface else "en") or {})
+    if not language:
+        return ""
+    targets = []
+    for obligation in obligations:
+        label = str(obligation.get("label") or obligation.get("obligation_id") or "")
+        period = str(dict(obligation.get("scope") or {}).get("period") or "")
+        targets.append(language["target_period"].format(label=label, period=period) if period else label)
+
+    # Inventory selections must not be represented by the top-level report alone.
+    selection = ""
+    if report_scope:
+        description = []
+        if not any(report_scope.get(key) for key in (
+            "source_reports", "report_inventory", "source_receipts", "source_companies",
+        )):
+            company = report_scope.get("company") or report_scope.get("corp_name")
+            if isinstance(company, str) and company.strip():
+                description.append(company)
+            year = report_scope.get("year")
+            if type(year) is int:
+                description.append(language["report_year"].format(year=year))
+            report_type = report_scope.get("report_type")
+            if isinstance(report_type, str) and report_type.strip():
+                description.append(report_type)
+        selection = (
+            language["selected_scope"].format(source=" / ".join(description))
+            if description else language["selected_material"]
+        )
+    return language["answer"].format(selection=selection, targets="; ".join(targets))
+
+
 def _render_semantic_program_answer(
     *,
     query: str,
     obligations: Sequence[Mapping[str, Any]],
     outputs: Mapping[str, Mapping[str, Any]],
     missing_ids: Sequence[str],
+    evidence_limited_ids: Sequence[str] = (),
+    report_scope: Optional[Mapping[str, Any]] = None,
 ) -> str:
     """Render validated outputs without importing unselected evidence text."""
 
@@ -3198,9 +3239,17 @@ def _render_semantic_program_answer(
         labels = [
             str(obligation_by_id[item].get("label") or item)
             for item in missing_ids
-            if item in obligation_by_id
+            if item in obligation_by_id and item not in evidence_limited_ids
         ]
-        answer_parts.append(missing_template.format(labels=", ".join(labels)))
+        if labels:
+            answer_parts.append(missing_template.format(labels=", ".join(labels)))
+        limited = [obligation_by_id[item] for item in missing_ids
+                   if item in obligation_by_id and item in evidence_limited_ids]
+        if limited:
+            answer_parts.append(_render_missing_evidence_limit(
+                obligations=limited, report_scope=report_scope or {},
+                render_policy=render_policy, korean_surface=korean_surface,
+            ) or missing_template.format(labels=", ".join(str(item.get("label") or item["obligation_id"]) for item in limited)))
     return _normalise_spaces(" ".join(str(item) for item in answer_parts if item))
 
 
@@ -3769,13 +3818,21 @@ def execute_semantic_calculation_program(
 def assemble_semantic_execution_result(
     *, execution: Mapping[str, Any], obligations: Sequence[Mapping[str, Any]],
     calculation_plan: Mapping[str, Any], query: str,
+    report_scope: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Pure final-assembly projection; numeric execution never writes an answer."""
 
     outputs = deepcopy(dict(execution.get("outputs_by_obligation") or {}))
+    validation = dict(execution.get("validation") or {})
+    evidence_limited_ids = (
+        [item for item in validation.get("missing_obligation_ids") or []
+         if item not in (validation.get("ambiguous_obligation_ids") or [])]
+        if not validation.get("errors") and not execution.get("execution_errors") else []
+    )
     answer = _render_semantic_program_answer(
         query=query, obligations=obligations, outputs=outputs,
         missing_ids=list(execution.get("missing_obligation_ids") or []),
+        evidence_limited_ids=evidence_limited_ids, report_scope=report_scope,
     )
     result = deepcopy(dict(execution.get("calculation_result") or {}))
     operation = str(dict(result.get("derived_metrics") or {}).get("operation_family") or "formula")

@@ -672,6 +672,22 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "derived_input_joiner": ", ",
             "narrative": "{text}",
             "missing": "필요한 근거를 충분히 확인하지 못했습니다: {labels}",
+            "evidence_limit": {
+                "ko": {
+                    "answer": "{selection}조회된 근거만으로는 다음 요청을 확인할 수 없습니다: {targets}. 자료 전체에 해당 정보가 없다는 뜻은 아닙니다.",
+                    "target_period": "{label} (요청 기간: {period})",
+                    "selected_scope": "선택한 자료 범위({source})에서 ",
+                    "selected_material": "선택한 자료에서 ",
+                    "report_year": "보고서 연도: {year}",
+                },
+                "en": {
+                    "answer": "The retrieved evidence{selection} is insufficient to answer: {targets}. This does not establish that the information is absent from the complete source.",
+                    "target_period": "{label} (requested period: {period})",
+                    "selected_scope": " within the selected source scope ({source})",
+                    "selected_material": " within the selected materials",
+                    "report_year": "report year: {year}",
+                },
+            },
             "korean_text_pattern": "[가-힣]",
             "period_year_pattern": "(?:19|20)\\d{2}",
             "period_year_suffix": "년",

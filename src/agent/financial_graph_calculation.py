@@ -3482,6 +3482,10 @@ class FinancialAgentCalculationMixin:
             if anchor and anchor not in seen:
                 seen.add(anchor)
                 citations.append(anchor)
+        structured = dict(state.get("structured_result") or {})
+        if structured.get("status") in {"partial", "incomplete"} and structured.get("missing_obligation_ids"):
+            # Retrieved material is not evidence for an unresolved output.
+            return {"citations": citations}
         for doc, score in state.get("retrieved_docs", []):
             metadata = dict(getattr(doc, "metadata", {}) or {})
             key = (

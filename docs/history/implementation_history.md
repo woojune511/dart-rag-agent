@@ -13324,3 +13324,21 @@ are complete. It remains only as an audit record, not an active priority.
 - Ten new controls and 124 related regression tests pass, with the 83-literal domain audit and separate import/topology/docs gate. The first eight controls exposed old false rejections, normalized-quote acceptance and wrong offsets; partition/window controls extend coverage. Actual lowering/execution and V2 content/proof tampering checks pass without providers.
 - A 23-check blocked-network review replays the unchanged sampled program. Its quote error alone disappears; period mismatch and unselected assertion remain invalid. The exact stored node interval [578,692) equals the quote and the 1,190억원 scalar assertion remains separate. Original HTTP 500, partial claims, plan kind, consumed draft and accounting are unchanged; no fresh classification or delivered answer is claimed.
 - All 10228 predecessor files, 24 original store files, seven protected owners and settings retain hashes. One of 174 source files changes, with no Chroma open, external request or additional cost. Shared 17.11707679/18.27 USD, remaining 1.15292321, pending zero. Next fresh provider-free application admission/rehearsal for both the Planner clarification and quote fix; no automatic paid successor, cap increase or consumed-draft reuse. [Details](../evaluation/numeric_quote_source_boundary.md).
+
+## 2026-09-21 — Bounded missing-evidence explanation at final assembly
+
+- On `dce065ef`, classify the observed explanation gap as final-answer contract
+  and presentation policy. Pass the existing selected report scope into final
+  assembly; render error-free missing labels/declared periods with generic
+  Korean/English templates. Report year is selection metadata, not measurement
+  coverage. Inventory/unscoped cases invent no singular source or period.
+- Keep ambiguous/invalid/execution-failed outcomes separate and rationale
+  diagnostic. Missing partial/incomplete answers cite accepted evidence only;
+  retrieved documents remain in review. Healthy outputs and citations unchanged.
+- 11 new contracts / 95 focused tests / domain audit 83 pass. The first ledger
+  test fixture lacked its required operation field; only that fixture changed.
+  Actual model schemas, selection, source validation, arithmetic and retries
+  are unchanged. Full unittest 2130/2130, no skips (87.262s); import/topology/docs
+  24/24 pass. The first full-discovery command failed before tests because of a
+  namespace-directory top-level argument; the corrected harness passes and both
+  records remain. [Contract and verification](../evaluation/missing_evidence_presentation.md).

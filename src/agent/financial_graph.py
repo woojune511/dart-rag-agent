@@ -664,6 +664,7 @@ class FinancialAgent(
                 obligations=obligations,
                 calculation_plan=numeric["calculation_plan"],
                 query=request["query"],
+                report_scope=request["report_scope"],
             )
             evidence_items = list(numeric["evidence_items"])
             selected_ids = list(execution.get("selected_candidate_ids") or [])

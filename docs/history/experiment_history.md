@@ -9790,3 +9790,15 @@ User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. 
   missing-evidence explanation and citation contract provider-free, preserving
   diagnostic rationale boundaries and the original partial result.
   [Live result and limitations](../evaluation/unavailable_2024_result.md).
+
+## 2026-09-21 — Exact saved-result replay of missing-evidence presentation
+
+- 23 provider-free assertions over three preserved paid inputs pass: exact
+  program/catalog/obligations revalidate, V2 execution and all ledgers remain ok.
+  The missing-evidence answer gains selected-report/full-period explanation and
+  drops eight retrieval-only citations. Cash-flow and dividend answers, accepted
+  rows and ten/four citations remain identical. No new model sample, ANN query
+  or store opening; the original negative live result stays partial.
+- All 11061 predecessor artifacts, 24 original store files and settings preserve
+  hashes. Added cost zero, accounting 18.74967693/20.07, remaining 1.32032307,
+  pending zero. [Local correction](../evaluation/missing_evidence_presentation.md).

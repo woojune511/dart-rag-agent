@@ -95,14 +95,13 @@ protected owners, **24 original store files** and local settings retain hashes.
 Only the disposable copy's SQLite file changed. The prior 53 admission controls
 and 67 preparation assertions remain separate evidence and were not rerun.
 
-Next characterize the missing-evidence answer contract without provider calls:
-how to express the selected-source and requested-period limits from structured
-request/source facts, and how to distinguish retrieved material from evidence
-supporting an answer. Keep raw diagnostic rationale internal; do not paste it
-into the answer, add a case-specific template, infer report-wide absence, or
-change source eligibility to improve this case's score. Preserve the sampled
-run as partial. No additional paid run, consumed-draft resume or ingest follows
-automatically from this result.
+The later [provider-free presentation correction](missing_evidence_presentation.md)
+now describes selected-report and requested-period facts through generic policy
+templates, keeps rationale internal and removes retrieval-only citations from
+unresolved semantic answers. Exact replay improves the local explanation while
+retaining this sampled run as partial. Source eligibility and the earlier
+blank-period concern are unchanged. No new provider run, consumed-draft resume
+or ingest was performed for that correction.
 
 Local evidence: [70-check review](../../benchmarks/results/unavailable_2024_execution_2026-09-21/live_review.json),
 [source/semantic review](../../benchmarks/results/unavailable_2024_execution_2026-09-21/source_review.json),
