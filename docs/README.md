@@ -38,10 +38,16 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | 순서 | 문서 | 역할 |
 | --- | --- | --- |
 | 1 | [../README.md](../README.md) | 프로젝트 요약, 실행 명령, claim boundary |
-| 2 | [overview/portfolio_one_pager.md](overview/portfolio_one_pager.md) | 짧은 포트폴리오 설명 |
-| 3 | [overview/portfolio_experiment_report.md](overview/portfolio_experiment_report.md) | 기록된 실험 방법과 한계 |
-| 4 | [overview/technical_highlights.md](overview/technical_highlights.md) | 주요 구현 surface |
-| 5 | [overview/portfolio_demo_walkthrough.md](overview/portfolio_demo_walkthrough.md) | fixture-backed demo 검토 순서 |
+| 2 | [evaluation/simple_rag_final_result.md](evaluation/simple_rag_final_result.md) | 현재 앱의 12문항 평가, 실패·비용·시간과 근거 한계 |
+| 3 | [overview/simple_rag_demo.md](overview/simple_rag_demo.md) | 저장된 실제 답변과 원문을 확인하는 데모 |
+| 4 | [overview/portfolio_scope.md](overview/portfolio_scope.md) | 단순 RAG 채택 근거와 완료된 범위 |
+| 5 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 구현 ownership과 비교 경로의 구분 |
+
+이전 [one-pager](overview/portfolio_one_pager.md),
+[experiment report](overview/portfolio_experiment_report.md),
+[technical highlights](overview/technical_highlights.md),
+[compiled fixture walkthrough](overview/portfolio_demo_walkthrough.md)는 과거
+Planner/Compiler checkpoint 자료다. 현재 앱 데모나 품질 결과로 읽지 않는다.
 
 포트폴리오 문서의 수치와 상태는 checkpoint-specific이다. 현재 release 상태는 항상
 `project_status.md`에서 확인한다. 용어와 claim 수준은

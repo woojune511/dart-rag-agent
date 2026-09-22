@@ -1,5 +1,8 @@
 # Simple-RAG final panel preparation
 
+Execution subsequently completed once: [final application result](simple_rag_final_result.md).
+The preparation status and original criteria below are preserved as pre-run evidence.
+
 Prepared 2026-09-22 on `a9270221`. Status: **PREPARED / PAID EVALUATION NOT_RUN**.
 The user continued the proposed question/reference/cost preparation. No runtime,
 prompt, retrieval, store, funding or historical-result changes were made.

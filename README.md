@@ -9,7 +9,11 @@ The user adopted this smaller product after a
 [four-case development comparison](docs/evaluation/portfolio_workflow_comparison_successor.md)
 found no clear Planner/Compiler quality advantage at 3.47x estimated cost and
 4.79x measured time. These exposed cases do not establish general superiority.
-The application conversion itself has no new paid quality or latency result.
+The subsequent [12-question application evaluation](docs/evaluation/simple_rag_final_result.md)
+completed once: 9/9 answerable cases met the source-review criteria, while 2/3
+insufficient-evidence cases abstained safely. The report retains a daily-revenue
+failure and an ancillary wording caveat. This familiar-corpus assistant review
+is not independent gold or evidence of unseen-company performance.
 
 ```mermaid
 flowchart LR
@@ -44,6 +48,20 @@ only through explicit comparison/replay callers. They are not an automatic query
 fallback. Its [contract](docs/architecture/compiled_workflow_contract.md) and
 historical results remain separate from product acceptance.
 
+## Current result and five-minute review
+
+The actual application service path used scoped hybrid retrieval and one answer
+call per nonempty case. Mean question time was **4.02 s**, with an estimated
+**USD0.208** total cost for 12 questions. This is one instrumented local run, not
+production HTTP latency or a paired comparison.
+
+Start with the [saved-response walkthrough](docs/overview/simple_rag_demo.md) and
+[result report](docs/evaluation/simple_rag_final_result.md). The local HTML viewer
+shows all actual answers and cited sources without making API calls. It opens on
+the failure: an annual-revenue average substituted for an unavailable daily fact.
+The ignored raw bundle/viewer is not shipped with a fresh Git clone; the report
+records its provenance and availability explicitly.
+
 ## Historical comparison and fixture evidence
 
 | Signal | Result | Interpretation |
@@ -61,7 +79,7 @@ surface; it does not reproduce or independently verify the benchmark runs. See
 [portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
 for the methodology and limitations.
 
-## Five-minute review
+## Historical compiled fixture review
 
 The lightweight profile runs without the full ingest, ML, benchmark, and app
 stack. Start with one command:
@@ -70,7 +88,8 @@ stack. Start with one command:
 uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
 ```
 
-Use the five minutes as follows:
+This command reviews the older compiled-workflow contract. It does not exercise
+the default simple-RAG application. For that historical surface:
 
 1. Read the problem and core pipeline above.
 2. Run the demo and inspect `Semantic Plan`, `Retrieval Trace`, `Calculation
@@ -97,7 +116,7 @@ checks for publication validation. A workflow definition is not a remote PASS;
 observed status belongs in
 [project_status.md](docs/overview/project_status.md).
 
-Optional deep dives:
+Historical compiled-workflow deep dives:
 
 | Question | Document |
 | --- | --- |

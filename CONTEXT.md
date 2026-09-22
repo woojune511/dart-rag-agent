@@ -38,18 +38,27 @@ Its one-batch authority is consumed. The [failed predecessor](docs/evaluation/po
 and loss ceilings remain separate and immutable. The selected NAVER2023 filing has
 1,090 chunks in a two-filing source graph; no broader coverage claim.
 
-Shared conservative accounting: USD21.00190943/26.32, remaining5.31809057, pending0.
-No provider calls, fresh ingest, store/settings mutation or new funding in this
-transition. Protected hashes and local verification receipts live under
-`benchmarks/results/simple_rag_default_2026-09-22/`; do not stage them.
+The [final application evaluation](docs/evaluation/simple_rag_final_result.md) ran
+once on `6083bf36`, with runtime unchanged from `a9270221`: 12/12 complete,
+9/9 answerable cases correct/complete/source-supported, safe abstention2/3.
+F11's successful abstention has an overbroad period explanation; F12 substitutes
+annual-average revenue for an unavailable daily fact and fails. Assistant review
+on familiar NAVER2022/2023 filings is not independent gold or an unseen holdout.
+Mean question time4.02s, including checkpoints but excluding startup; overall57.73s.
+Calls:11 answers/12 embeddings; no errors, retries, unknown usage or NOT_RUN cases.
 
-## Next work and hard stops
+Shared conservative accounting: USD21.20953897/26.32, remaining5.11046103, pending0.
+New estimated cost0.20762954 under one-run cap5.25; no new funding or invoice claim.
+Authorization `ae05c617...c9543` is consumed. All135 protected files,86 runtime files
+and144 frozen raw outputs retain their hashes; no original-store/settings change.
+Local raw outputs, receipts and saved-response demo live under
+`benchmarks/results/simple_rag_final_2026-09-22/`; do not stage them.
 
-The [12-question final panel](docs/evaluation/simple_rag_final_preparation.md) is frozen: lookup/calculation/explanation/insufficient-evidence3 each, NAVER2022/2023 familiar corpus, separate reviewer rubric. Source anchors17, reference calculations3 and blocked-socket SDK mocks11 plus empty-scope1 pass. All135 protected files unchanged; paid evaluation NOT_RUN. Proposed one-run cap5.25, full reservation5.23548672, no new spend/funding. Local plan `f1028bd8...d34a72` is preparation, not paid authority or an unseen holdout.
+## Completion and hard stops
 
-1. Prepare the actual-app execution adapter using existing cost guards, rehearse admission/checkpoints, then evaluate once and complete the demo/report. Include retrieval misses, abstention and the reduced validation guarantees.
+1. The frozen final evaluation, [report](docs/evaluation/simple_rag_final_result.md) and [local demo walkthrough](docs/overview/simple_rag_demo.md) are complete. No automatic next experiment or deployment is queued; this closes the scoped portfolio milestone.
 2. Do not restart a per-question repair queue or silently restore Compiler fallback. The default change is user-authorized, not evidence of general superiority.
-3. No automatic paid batch/retry or consumed-manifest reuse. Bind a future run decision to the frozen final plan and verified execution adapter before transmission.
+3. No automatic paid batch/retry or consumed-manifest reuse. Any broader independent evaluation or publication is separately scoped work.
 4. Preserve source stores, historical raw outputs and accounting. The inactive default `data/chroma_dart` manifest mismatch remains; this change does not adopt or rebuild it.
 
 Current checks: [project status](docs/overview/project_status.md). Chronology:

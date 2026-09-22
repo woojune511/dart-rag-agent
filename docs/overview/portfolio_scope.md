@@ -26,15 +26,18 @@ were removed. The [four-case development comparison](../evaluation/portfolio_wor
 found no clear Planner/Compiler answer-quality advantage at 3.47x estimated cost
 and 4.79x measured time. These familiar cases do not prove general superiority.
 [Simple-RAG adoption](../architecture/simple_rag_adoption.md) changes the application
-by user direction; the transition adds no paid accuracy or latency evidence.
+by user direction. The later [final application evaluation](../evaluation/simple_rag_final_result.md)
+provides separate live hybrid-retrieval results on the smaller default path.
 
-## Remaining milestone
+## Completed evaluation and demo milestone
 
-1. Done: [freeze12 source-authored final questions and criteria](../evaluation/simple_rag_final_preparation.md), three per category. The corpus is familiar; previously repaired questions remain development cases. No unseen-holdout claim.
-2. Evaluate the actual simple-RAG application with recorded source/retrieval/model settings and a bounded one-time run. Keep historical fixed-BM25 comparison measurements separate from end-to-end hybrid retrieval.
-3. Report correctness, source support, abstention, retrieval misses, latency and cost separately. Numeric text is not a deterministic execution proof.
-4. Publish a reproducible demo/report with successful answers, an abstention and observed limitations; close the milestone instead of tuning repeatedly on the final questions.
+1. [Frozen questions and criteria](../evaluation/simple_rag_final_preparation.md): 12 new source-authored questions, three per category, on two familiar filings. No independent gold or unseen-holdout claim.
+2. [One actual-app run](../evaluation/simple_rag_final_result.md): 12/12 completed, 9/9 supported complete positive answers, 2/3 safe abstentions. F11 retains a wording caveat; F12's daily-average substitution fails.
+3. The report separates retrieval, source support, correctness, abstention and runtime guarantees from observed cost/time: mean 4.02 s per question, estimated USD0.208 total. Numeric text is not a deterministic execution proof.
+4. [Saved-response demo](simple_rag_demo.md): all answers and cited sources, with the failure visible first. The local ignored bundle enables inspection without API calls; raw artifacts are not published with Git.
 
-A frozen final set and cost envelope are prepared. Actual-app execution and its demo/report remain outstanding. The previous batch's
-paid authority is consumed. No store rebuild, historical-result rewrite, automatic
-Compiler fallback or new question-specific rule is required by this milestone.
+This scoped milestone is complete. No runtime or prompt was tuned after the final
+answers. The run's paid authority is consumed. Broader independent evaluation,
+artifact publication or deployment would be separately scoped work; none is an
+automatic continuation of this panel. Existing store and historical-result
+identities remain intact, and Compiler remains comparison-only.

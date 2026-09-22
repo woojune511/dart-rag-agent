@@ -27,9 +27,13 @@ separate; their [contract](../architecture/compiled_workflow_contract.md) is pre
 
 ## Current verification
 
-The [final panel preparation](../evaluation/simple_rag_final_preparation.md) freezes12 new source-authored questions (3 per category), a separate rubric and a USD5.25 proposed cap (full reservation5.23548672). Source excerpts17, Decimal references3, scope/overlap checks and11 blocked-socket SDK mock calls plus one empty-scope case pass; all135 protected files unchanged. This is a familiar two-filing corpus, not an independent holdout. Real retrieval/model quality/latency remain NOT_RUN; the execution adapter and admission/persistence rehearsal are next. No new spend or funding.
+The [final application evaluation](../evaluation/simple_rag_final_result.md) on `6083bf36` completed all12 frozen questions once: 9/9 answerable cases meet correctness/completeness/source-support criteria, safe abstention2/3 (deterministic1/1, model1/2). F11's abstention has an overbroad period explanation; F12 incorrectly substitutes an annual average for actual daily revenue. No positive retrieval miss was observed. This is assistant review on familiar NAVER2022/2023 filings, not independent gold or unseen-company performance. No post-result prompt/runtime tuning.
 
-The [simple-RAG transition](../architecture/simple_rag_adoption.md) passes **2,125/2,125 tests** (64.083s), including 16 new application-boundary controls. Focused56, final API/profile48 and comparison/import48 pass; domain audit35 and documentation/topology checks pass. Actual SDK serialization and HTTP projection use mocked transport, with one answer call and no Compiler. All110 protected files retain their hashes. Paid calls and new model-quality/latency evaluation: **NOT_RUN**.
+The actual application service path used11 answer calls/12 embeddings, with errors/retries/unknown usage/NOT_RUN0. Question mean4.02s, generation-case mean4.37s, overall57.73s including startup; these local instrumented times are not production HTTP latency. Estimated incremental cost USD0.20762954, no new funding. The [saved-response demo](simple_rag_demo.md) shows all answers/cited sources and opens on the failure; raw artifacts remain local and ignored.
+
+Before execution, provider-admission/simple-RAG tests27/27, a full12-case blocked-network SDK rehearsal and six terminal failure controls pass. All135 protected files,86 runtime/dependency files and144 frozen raw outputs retain their hashes. Desktop/mobile demo checks cover12 selections, exact answers/sources, no JS errors or horizontal overflow. Documentation gates pass. Runtime source is unchanged from `a9270221`.
+
+The preceding [simple-RAG transition](../architecture/simple_rag_adoption.md) passed **2,125/2,125 tests** (64.083s), including16 new application-boundary controls. Focused56, final API/profile48, comparison/import48, domain audit35 and documentation/topology checks passed. That transition was provider-free; its full suite was not rerun for this documentation-only evaluation close.
 
 ## Prior checkpoints (not default-RAG acceptance)
 
@@ -112,15 +116,15 @@ They do not establish current simple-RAG model quality or runtime acceptance.
   [experiment history](../history/experiment_history.md) retain earlier results,
   source/fixture provenance and their claim limits. No predecessor bytes were edited.
 
-## Next work
+## Completion and remaining limits
 
-1. Rehearse the actual-app execution adapter against the frozen12-question plan, then run once and build the simple-RAG demo/report.
-2. Keep retrieval, supported-answer quality, abstention, source-ID checks and arithmetic/semantic limitations separate in the report.
+1. The [scoped portfolio milestone](portfolio_scope.md) is complete: frozen panel, one actual-app evaluation, report and local saved-response demo. No automatic follow-up experiment is queued.
+2. Broader independent evaluation, artifact publication and deployment remain separately scoped work. The current report is not a release or general accuracy guarantee.
 3. Do not add per-question prompt/schema rules or restore Planner/Compiler as an automatic fallback.
 4. Historical compiled comparisons remain explicit tools; previous one-batch approvals are consumed.
 
-Shared conservative accounting remains USD21.00190943/26.32, remaining5.31809057,
-pending0. Final scope/ceiling are frozen; paid execution still needs its bounded adapter and run decision. The stored
-comparison selected one NAVER2023 filing; that is not unseen multi-company coverage.
+Shared conservative accounting is USD21.20953897/26.32, remaining5.11046103,
+pending0. Final-run authorization `ae05c617...c9543` is consumed; no paid retry or
+reuse of the unused run allowance. Historical charges and loss ceilings are preserved.
 The inactive default-store manifest mismatch and previously observed semantic/
 retrieval failures are not repaired by this architecture change.
