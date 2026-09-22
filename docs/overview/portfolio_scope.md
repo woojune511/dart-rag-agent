@@ -47,9 +47,10 @@ local settings retain their hashes. No paid calls or live quality evaluation.
 
 ## Remaining work and stopping point
 
-The [development comparison](../evaluation/portfolio_workflow_comparison.md) now
-has four exposed questions, frozen shared retrieval and a provider-free verified
-runner. Paid answers and the separate final set remain outstanding.
+The [development comparison](../evaluation/portfolio_workflow_comparison_result.md)
+has four exposed questions and frozen shared retrieval. Its first paid attempt
+was interrupted by an output-persistence defect, now fixed offline; zero pairs
+completed. The comparison result and separate final set remain outstanding.
 
 1. Freeze a small supported task set and source snapshot: lookup, calculation,
    evidence-backed explanation, and insufficient-evidence handling. Split familiar

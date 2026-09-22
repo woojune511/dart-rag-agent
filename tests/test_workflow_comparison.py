@@ -12,7 +12,7 @@ import httpx
 from src.ops.compare_rag_workflows import (
     baseline_prompt, batch_cost_ceiling, budget_policy,
     compiled_answer, encoded, fingerprint, prepare, run_arm, run_comparison,
-    source_text_packet, verify_plan,
+    source_text_packet, verify_plan, write_new,
 )
 from src.ops.provider_admission import BudgetStop, ProviderBudget
 from src.utils.gemini_usage import GeminiUsageCallbackHandler
@@ -128,6 +128,13 @@ class WorkflowComparisonTests(unittest.TestCase):
         self.assertEqual(result["answer"]["structured_result"]["status"], "ok")
         self.assertIn("12", result["answer"]["answer"])
         self.assertEqual(result["review_trace"]["retrieval_debug_trace"]["packet_sha256"], fingerprint(packet))
+        # Real graph review records contain Documents, not just dictionaries.
+        saved = self.root / "compiled_result.json"
+        write_new(saved, result)
+        restored = json.loads(saved.read_text(encoding="utf-8"))
+        doc = restored["review_trace"]["retrieved_docs"][0][0]
+        self.assertEqual(doc["page_content"], packet["documents"][0]["page_content"])
+        self.assertEqual(doc["metadata"], packet["documents"][0]["metadata"])
 
     def test_baseline_real_sdk_admission_and_usage_with_mocked_http(self):
         from src.agent.financial_graph import FinancialAgent
@@ -231,6 +238,31 @@ class WorkflowComparisonTests(unittest.TestCase):
         self.assertEqual([row["status"] for row in receipt["results"]], ["interrupted", "NOT_RUN"])
         self.assertEqual(receipt["results"][0]["stop_reason"], "synthetic_provider_failure")
         self.assertEqual(receipt["summary"]["completed_pairs"], 0)
+
+    def test_unknown_output_type_preserves_budget_receipt_and_stops_calls(self):
+        plan = self.plan()
+        policy = budget_policy(plan, cap_usd=10, input_rate=2.5, output_rate=12)
+        output = self.root / "bad_output"
+        def unencodable_after_charge(*args):
+            self.active_budget.dispatch(kind="openai_response", model=plan["model_settings"]["model"],
+                request={"authored": "test"}, input_bound=10, output_bound=10,
+                invoke=lambda: object(), usage=lambda response: (5, 2))
+            return {"status": "completed", "output": object()}
+        with patch("src.ops.compare_rag_workflows.run_arm", side_effect=unencodable_after_charge) as call:
+            receipt = run_comparison(plan, output, policy,
+                                     llm_factory=lambda settings, usage: object(), guard_factory=self.guard)
+        self.assertEqual(call.call_count, 1)
+        self.assertEqual([row["status"] for row in receipt["results"]], ["interrupted", "NOT_RUN"])
+        self.assertEqual(receipt["results"][0]["stop_reason"], "result_serialization_failed")
+        saved_budget = json.loads((output / "budget.json").read_text())
+        self.assertEqual(len(saved_budget["requests"]), 1)
+        self.assertAlmostEqual(saved_budget["estimated_cost_usd_without_cache_discount"], (5*2.5 + 2*12)/1e6)
+        self.assertTrue((output / "00_simple_rag_budget.json").exists())
+        self.assertEqual(json.loads((output / "results.json").read_text()), receipt)
+        unsupported = self.root / "unsupported.json"
+        with self.assertRaises(TypeError):
+            write_new(unsupported, object())
+        self.assertFalse(unsupported.exists())
 
 
 if __name__ == "__main__":

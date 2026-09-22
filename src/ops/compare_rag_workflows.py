@@ -35,7 +35,12 @@ ARMS = ("simple_rag", "planned_compiled")
 
 
 def encoded(value: Any) -> bytes:
-    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    def typed_record(item):
+        if isinstance(item, BaseModel):
+            return item.model_dump(mode="json")
+        raise TypeError(f"Unsupported record type: {type(item).__name__}")
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+                      default=typed_record).encode("utf-8")
 
 
 def fingerprint(value: Any) -> str:
@@ -47,8 +52,9 @@ def read_json(path: Path) -> Any:
 
 
 def write_new(path: Path, value: Any) -> None:
+    payload = encoded(value) + b"\n"
     with path.open("xb") as handle:
-        handle.write(encoded(value) + b"\n")
+        handle.write(payload)
 
 
 class SimpleAnswer(BaseModel):
@@ -288,15 +294,28 @@ def run_comparison(plan: dict, output: Path, policy: dict, *, llm_factory, guard
                                        usage_by_phase=usage.snapshot_current_thread_by_phase())
                         after = budget.snapshot()
                         row["provider_records"] = after["requests"][len(before["requests"]):]
+                        # Costs must survive independently of rich result records.
+                        write_new(output / f"{index:02d}_{arm}_budget.json", after)
                         # Runtime planning can return an incomplete answer after
                         # catching a provider exception. Admission remains terminal.
                         if after["closed"]:
                             stopped = after["stop_reason"]["code"]
                             row.update(status="interrupted", stop_reason=stopped)
+                    try:
+                        # Materialize typed records before retaining the row in
+                        # the aggregate receipt. Unknown objects remain errors.
+                        row = json.loads(encoded(row))
+                    except (TypeError, ValueError) as error:
+                        stopped = "result_serialization_failed"
+                        row = {key: row[key] for key in ("case_id", "arm", "packet_sha256",
+                               "elapsed_seconds", "usage_by_phase", "provider_records") if key in row}
+                        row.update(status="interrupted", stop_reason=stopped,
+                                   output_unavailable=True, error_type=type(error).__name__)
                     results.append(row)
                     write_new(output / f"{index:02d}_{arm}.json", row)
                     print(f"{case['case_id']} {arm}: {row['status']}", flush=True)
     finally:
+        write_new(output / "budget.json", budget.snapshot())
         receipt = {"schema": SCHEMA, "plan_sha256": fingerprint(plan), "results": results,
                    "budget": budget.snapshot(), "comparison": plan["comparison"],
                    "summary": summarize(results, plan["cases"]),

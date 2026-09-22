@@ -1,7 +1,8 @@
 # Shared-evidence portfolio workflow comparison
 
-Prepared 2026-09-22. **Provider evaluation: NOT_RUN.** This is the next bounded
-development comparison under [portfolio scope](../overview/portfolio_scope.md),
+Prepared 2026-09-22; the [paid attempt](portfolio_workflow_comparison_result.md)
+is **INTERRUPTED, zero completed pairs**, and its one-batch approval is consumed.
+This is the bounded development comparison under [portfolio scope](../overview/portfolio_scope.md),
 not another question-specific runtime repair. Product prompts, policies, parser,
 retrieval and Compiler behavior are unchanged by the comparison runner.
 
@@ -89,12 +90,12 @@ discounts and output at **12**. The full conservative envelope is:
 
 `20 * (80000 * 2.50 + 8192 * 12) / 1000000 = USD5.96608`.
 
-A proposed **USD6 run cap** covers this envelope; it is neither expected spending
-nor an invoice. Current recorded funding is USD20.02917543 used of USD20.32,
-remaining **USD0.29082457**, pending zero. **No funding increase is recorded and
-this plan is not authorization to spend USD6.** Underfunding fails before client
-creation or output-directory creation. Any new funding must be recorded before
-the paid command below is used.
+A **USD6 run cap** covers this envelope; it is neither expected spending nor an
+invoice. On 2026-09-22 the user explicitly approved USD6 additional funding and
+one four-case/two-arm run. Before dispatch, shared accounting is
+USD20.02917543 / USD26.32, remaining **USD6.29082457**, pending zero. The approved
+source is `8f749023` and the frozen plan is the `ready/plan.json` above.
+Underfunding fails before client creation or output-directory creation.
 
 Provider/admission errors stop the remaining batch, even when product code catches
 the exception and returns an incomplete answer. Previously finished answers are
@@ -126,6 +127,9 @@ Only after funding the batch, using the reviewed source revision:
   *> benchmarks/results/my_workflow_comparison/progress.log
 ```
 
+The corrected writer checkpoints costs separately and projects typed review
+records to JSON. Unknown types stop the batch without discarding cost receipts.
+This correction was verified offline, not by another paid attempt.
 Each SDK request and arm completion emits progress; the configured request timeout
 is 90 seconds with no SDK retries. Each completed/interrupted arm is persisted
 immediately. Inspect progress and partial files if the final receipt is delayed.
@@ -143,8 +147,10 @@ real SDK serialization with mocked HTTP and blocked sockets, funding admission,
 input isolation, caught provider failures and partial-result retention. Authored
 test replies establish execution behavior, not sampled model quality.
 
-Validation: **2,266/2,266** tests (73.490s), including 11 comparison contracts;
-runtime domain audit **66** reviewed literals. Prepared source/packet hashes pass.
+Pre-run validation: **2,266/2,266** tests (73.490s), including 11 comparison
+contracts; it missed full typed-result persistence. That defect now has explicit
+regression coverage; see the result report. Runtime domain audit **66** reviewed
+literals. Prepared source/packet hashes pass.
 
 After this development comparison, choose at most one justified general change.
 Then freeze separate final questions, run once, and publish the demo/report with
