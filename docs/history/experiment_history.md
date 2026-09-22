@@ -1,5 +1,12 @@
 ﻿# Experiment History
 
+## Portfolio workflow comparison: four development pairs completed (2026-09-22)
+
+- Clean `6bc4aae5`; [completed successor and source review](../evaluation/portfolio_workflow_comparison_successor.md). Seven fresh arms use11 calls, one saved baseline is reused with exact input/model/artifact identity; four pairs complete, errors/retries/unknown-usage0. The [original writer failure](../evaluation/portfolio_workflow_comparison_result.md) remains interrupted with zero pairs and its conservative loss charge; raw files are unchanged.
+- Same four exposed questions/eight chunks/Terra settings. This jointly varies source representation and workflow, selects one filing and includes reused latency. Assistant source review finds no clear current-workflow quality advantage: cash lacks exact retrieved evidence and still loses year-end meaning; both growth formulas are correct, but current output misses one-decimal formatting; acquisition primary claims are supported and both missing-segment abstentions appropriate. Current source/calculation traces are useful but do not prove semantic correctness. No aggregate accuracy, unseen-holdout, production-default or isolated causal claim.
+- Represented simple/current costs0.084147/0.291979, elapsed17.33/82.96s: current3.47x cost/4.79x time. New estimated spend0.359777; reused0.016349 not recharged. Shared21.00190943/26.32, remaining5.31809057, pending0, not billing. Cap5.67 and full reservation5.6131735; approval consumed, no new funding/automatic batch.
+- Full pre-run2271/2271 tests (72.440s), 16 comparison contracts and blocked-socket real-SDK/graph/persistence rehearsal pass. Product runtime/prompts/policies/stores unchanged. Freeze per-error additions; carry simple RAG as a candidate into a separate final evaluation/demo while retaining inspectable source/calculation protections.
+
 ## Real-question Planner sample: year-end boundary lost (2026-09-22)
 
 - Clean `3ad921f5`; [two original real questions](../evaluation/planner_real_questions_result.md) sampled once under fresh `ccb9fba3...1515c6`, USD0.29. Four HTTP200, no retries/repair, exact original routing and52 observed source sections from1872 frozen metadata rows. Cash2023년 말 becomes2023/within_year; prior dividends retain whole2022/separate and filing2023. Frozen-criteria assistant review period1/2, scope2/2, combined1/2; structurally valid cash negative remains unmodified.
