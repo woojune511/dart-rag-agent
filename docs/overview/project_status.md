@@ -27,10 +27,12 @@ Narrative subject support remains separate from each claim's exact fact ranges.
 Invalid source addresses stay invalid; lowering never guesses replacements.
 Compiler exception messages are not copied into retry prompts or public diagnostics.
 
-No parser/store/candidate-ID/hash redesign, extra runtime model call, source-store
-mutation or dataset/evaluator change; the bounded public-trace correction is below.
+No product parser/store/candidate-ID/hash redesign, extra runtime model call or
+source-store mutation. New comparison tooling/data are separate from product behavior.
 
 ## Current verification
+
+The [shared-evidence workflow comparison](../evaluation/portfolio_workflow_comparison.md) is prepared: four exposed development questions, eight frozen chunks each, shared Terra settings. It compares text RAG with structured metadata plus Planner/Compiler; it is not a pure component ablation or production-retrieval evaluation. Full unittest **2,266/2,266** (73.490s), including 11 new comparison contracts; domain audit **66**. Quality evaluation **NOT_RUN**; no paid calls. Recorded USD0.29082457 remaining does not fund the proposed USD6 cap (conservative envelope USD5.96608). Final holdout is not yet frozen.
 
 Portfolio cleanup: retired narrative generation/validation, dividend/entity-specific answer assembly, alternate narrative selection, and their dedicated models/policies/tests are removed. Runtime/config is **3,723 lines smaller** (70 added/3,793 removed). Full unittest **2,255/2,255** (79.243s), runtime domain audit **66**, import/topology/documentation gates and focused contracts pass. All **15,050** protected predecessor files and local `.env` retain their hashes. The public Planner/Compiler path and source/calculation guards remain. Paid calls, fresh ingest and new accuracy evaluation: **NOT_RUN**.
 
@@ -137,9 +139,9 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-1. Freeze a supported task/source set and separate development from untouched final questions; retain exposed prior samples as development evidence.
-2. Build and run a simple retrieve-context-answer baseline against the current workflow with shared input/model settings, explicit retrieval budgets, and correctness/source-support/cost/latency reporting.
+1. Fund and run the prepared four-case development comparison once; preserve partial results on failure and review correctness/source support separately from execution status and resource cost.
+2. Keep known retrieval and meaning failures visible, including the missing exact cash source; do not insert gold evidence or question-specific corrections into shared inputs.
 3. Use the development comparison for at most one broadly useful improvement; do not add a rule for every answer miss. Source-integrity defects remain bugs.
 4. Complete one final evaluation and a reproducible demo/report, including negative results and unsupported scope. See [portfolio scope](portfolio_scope.md) for the stopping point.
 
-No paid comparison or store mutation was performed in this cleanup. The known year-end miss, single selected NAVER2023 corpus and inactive default-store mismatch remain explicit limitations. Historical evidence is linked above; current work is no longer the accumulated per-error repair queue.
+No paid comparison or store mutation was performed. The year-end miss, selected NAVER2023 filing and inactive default-store mismatch remain limitations. The source graph contains two filings, but this comparison selects one. Historical evidence is linked above; current work is no longer the accumulated per-error repair queue.
