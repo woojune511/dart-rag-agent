@@ -16,13 +16,6 @@ class _Pipeline(FinancialRetrievalPipelineMixin):
     def _rerank_docs(self, docs, state):
         return docs
 
-    def _active_narrative_policies_for_query(self, query):
-        return []
-
-    def _narrative_driver_groups(self, query):
-        return []
-
-
 def _doc(source_id, **metadata):
     return SimpleNamespace(
         page_content="measurement observations",
@@ -170,7 +163,7 @@ class RetrievalScopeIsolationTests(unittest.TestCase):
             (_doc("report-A:7", chunk_id=7, rcept_no="filing-A", block_type="paragraph"), 0.9),
             (_doc("report-B:7", chunk_id=7, rcept_no="filing-B", block_type="paragraph"), 0.8),
         ]
-        selected = pipeline._select_narrative_summary_docs(sources, _state(intent="qa"), 2)
+        selected = self._select_format(sources, preference="paragraph", limit=2)
         self.assertEqual(selected, sources)
 
     def test_narrative_dedupe_handles_zero_legacy_chunk_index(self):
@@ -178,7 +171,7 @@ class RetrievalScopeIsolationTests(unittest.TestCase):
         first = _doc("", chunk_id=0, rcept_no="filing-A", block_type="paragraph")
         second = _doc("", chunk_id=0, rcept_no="filing-B", block_type="paragraph")
         sources = [(first, 0.9), (first, 0.9), (second, 0.8)]
-        selected = pipeline._select_narrative_summary_docs(sources, _state(intent="qa"), 3)
+        selected = self._select_format(sources, preference="paragraph", limit=3)
         self.assertEqual(selected, [sources[0], sources[2]])
 
     def test_unknown_document_identity_cannot_dedupe_local_chunk_ids(self):
@@ -190,7 +183,7 @@ class RetrievalScopeIsolationTests(unittest.TestCase):
                           rcept_no=receipt, block_type="paragraph", report_type=kind), score)
                     for kind, score in (("annual", 0.9), ("quarterly", 0.8))
                 ]
-                selected = pipeline._select_narrative_summary_docs(sources, _state(intent="qa"), 2)
+                selected = self._select_format(sources, preference="paragraph", limit=2)
                 self.assertEqual(selected, sources)
 
     def test_explicit_document_id_dedupes_despite_unknown_receipt(self):
@@ -198,29 +191,8 @@ class RetrievalScopeIsolationTests(unittest.TestCase):
         first = _doc("", chunk_id=7, rcept_no="unknown", document_id="document-A", block_type="paragraph")
         second = _doc("", chunk_id=7, rcept_no="unknown", document_id="document-B", block_type="paragraph")
         sources = [(first, 0.9), (first, 0.9), (second, 0.8)]
-        selected = pipeline._select_narrative_summary_docs(sources, _state(intent="qa"), 3)
+        selected = self._select_format(sources, preference="paragraph", limit=3)
         self.assertEqual(selected, [sources[0], sources[2]])
-
-    def test_legacy_policy_dates_do_not_promote_a_source(self):
-        pipeline = _Pipeline()
-        terms = {"policy_terms": ["policy"], "policy_period_markers": ["2033", "2037"]}
-        pipeline._narrative_policy_terms_for_query = lambda query, *keys: {
-            key: terms.get(key, []) for key in keys
-        }
-        selections = []
-        for years in ((2033, 2037), (2083, 2087)):
-            sources = [
-                (_doc("intro", chunk_id=1, block_type="paragraph"), 0.9),
-                (_doc("generic", chunk_id=2), 0.8),
-                (_doc("dated", chunk_id=3), 0.1),
-            ]
-            sources[-1][0].page_content = f"policy period {years[0]} to {years[1]}"
-            with patch("src.agent.financial_retrieval_pipeline.narrative_policy_active",
-                       side_effect=lambda policies, key: key == "dividend_policy"):
-                selected = pipeline._select_narrative_summary_docs(sources, _state(intent="qa"), 2)
-            selections.append([doc.metadata["chunk_uid"] for doc, _ in selected])
-        self.assertEqual(selections[0], selections[1])
-        self.assertEqual(selections[0], ["intro", "generic"])
 
     def test_narrative_requirements_keep_narrative_search_enrichment(self):
         for evidence_mode in ("source_defined_group", "declared_inputs"):

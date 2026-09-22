@@ -2,14 +2,12 @@
 
 from copy import deepcopy
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_models import RequirementPlannerOutput, SemanticCalculationProgram
-from src.agent.financial_retrieval_hints import evidence_extraction_focus_terms
 from src.config.retrieval_policy import (
-    CALCULATION_NARRATIVE_POLICY, DIVIDEND_POLICY_ASSEMBLY_POLICY,
-    EVIDENCE_EXTRACTION_POLICY, QUERY_FOCUS_STOPWORDS,
+    CALCULATION_NARRATIVE_POLICY, QUERY_FOCUS_STOPWORDS,
 )
 from src.utils.provider_errors import ProviderAdmissionError
 from tests.semantic_program_test_support import _candidate, _StructuredQueueLLM, _with_narrative_claims
@@ -74,34 +72,26 @@ class UniformRequirementContractTests(unittest.TestCase):
         self.assertIs(raised.exception, error)
         self.assertEqual(llm.invoke.call_count, 1)
 
-    def test_retained_evidence_helpers_do_not_retry_terminal_admission_errors(self):
-        from src.agent import financial_graph_evidence
+    def test_failed_planner_keeps_incomplete_result_without_unplanned_generation(self):
+        llm = _StructuredQueueLLM()
+        llm.invoke = Mock(side_effect=ValueError("invalid structured plan"))
+        agent = self._agent(llm)
+        agent._classify_query = Mock(return_value={"intent": "qa", "query_type": "qa"})
+        agent._extract_entities = Mock(return_value={"companies": [], "years": [], "topic": "activities"})
+        agent._retrieve = Mock(return_value={"retrieved_docs": [], "seed_retrieved_docs": []})
+        agent._expand_via_structure_graph = Mock(return_value={})
+        agent._semantic_source_candidates_for_state = Mock(return_value=[])
+        agent._semantic_candidate_catalog_for_state = Mock(return_value=[])
+        agent._format_citations = Mock(return_value={"citations": []})
 
-        for name in ("_extract_evidence", "_compress_answer", "_validate_answer"):
-            with self.subTest(name=name):
-                error = ProviderAdmissionError("budget_reservation_exceeded", "synthetic terminal stop")
-                chain = Mock()
-                chain.invoke.side_effect = error
+        state = agent._build_graph().invoke(agent._initial_state("Explain the activities.", {}))
 
-                class Prompt:
-                    def __or__(self, other):
-                        return chain
-
-                agent = self._agent(Mock())
-                evidence = [{"evidence_id": "note", "claim": "The teams share operations.", "metadata": {}}]
-                agent._build_evidence_context = Mock(return_value={
-                    "anchor_lookup": {}, "available_anchors": [], "context": "source"})
-                agent._compose_entity_table_summary_answer = Mock(return_value=None)
-                agent._select_evidence_for_compression = Mock(return_value=evidence)
-                agent._filter_evidence_by_ids = Mock(return_value=evidence)
-                agent._format_evidence_for_prompt = Mock(return_value="source")
-                state = {"query": "Explain the activities.", "retrieved_docs": [object()],
-                         "evidence_items": evidence, "compressed_answer": "The teams share operations."}
-                with patch.object(financial_graph_evidence, "chat_prompt_template_from_template", return_value=Prompt()):
-                    with self.assertRaises(ProviderAdmissionError) as raised:
-                        getattr(agent, name)(state)
-                self.assertIs(raised.exception, error)
-                self.assertEqual(chain.invoke.call_count, 1)
+        self.assertEqual(state["requirements"]["semantic_plan"]["status"], "incomplete")
+        self.assertEqual(state["numeric_result"]["execution"]["status"], "incomplete")
+        self.assertEqual(state["final_result"]["agent_answer"]["structured_result"]["status"], "incomplete")
+        self.assertEqual(llm.invoke.call_count, 1)
+        self.assertEqual(llm.models, ["RequirementPlannerOutput"])
+        self.assertNotIn("narrative_result", state)
 
     def test_public_graph_records_uncovered_narrative_and_preserves_covered_output(self):
         for covered in (False, True):
@@ -124,8 +114,6 @@ class UniformRequirementContractTests(unittest.TestCase):
                 agent._semantic_source_candidates_for_state = Mock(return_value=catalog)
                 agent._semantic_candidate_catalog_for_state = Mock(return_value=catalog)
                 agent._format_citations = Mock(return_value={"citations": []})
-                # No second unconstrained summarization path is allowed.
-                agent._extract_evidence = Mock(side_effect=AssertionError("unplanned narrative path"))
                 state = agent._build_graph().invoke(agent._initial_state(
                     "Explain shared operations and service provision.", {}))
                 execution = state["numeric_result"]["execution"]
@@ -137,7 +125,7 @@ class UniformRequirementContractTests(unittest.TestCase):
                 self.assertEqual(result["status"], "ok" if covered else "partial")
                 self.assertEqual(result["missing_obligation_ids"], [] if covered else ["ob_002"])
                 self.assertEqual(len(llm.prompts), 3)
-                agent._extract_evidence.assert_not_called()
+                self.assertNotIn("narrative_result", state)
                 ledger = state["ledger"]
                 self.assertEqual(ledger["task_artifact_trace"]["integrity_status"], "ok")
                 artifact = next(item for item in ledger["artifacts"] if item["kind"] == "aggregated_answer")
@@ -146,24 +134,10 @@ class UniformRequirementContractTests(unittest.TestCase):
                 self.assertEqual(aggregate["status"], "completed" if covered else "partial")
 
     def test_query_years_are_not_a_fixed_stopword_list(self):
-        expected = evidence_extraction_focus_terms("운영 구성 설명")
-        for year in (2022, 2024, 2038, 2091):
-            with self.subTest(year=year):
-                self.assertEqual(evidence_extraction_focus_terms(f"{year}년 운영 구성 설명"), expected)
-        collections = (CALCULATION_NARRATIVE_POLICY["context_stopwords"],
-                       QUERY_FOCUS_STOPWORDS, EVIDENCE_EXTRACTION_POLICY["focus_term_stopwords"])
+        collections = (CALCULATION_NARRATIVE_POLICY["context_stopwords"], QUERY_FOCUS_STOPWORDS)
         for values in collections:
             self.assertFalse(any(str(value).removesuffix("년").isdigit() and len(str(value).removesuffix("년")) == 4
                                  for value in values))
-
-    def test_policy_clause_has_no_absolute_period_priority(self):
-        agent = self._agent(None)
-        for first, second in (("2038", "2024"), ("2024", "2038")):
-            text = f"{first} first source sentence. {second} 2026 second source sentence."
-            self.assertEqual(agent._extract_dividend_policy_clause(text), text)
-        self.assertNotIn("preferred_policy_period_markers", DIVIDEND_POLICY_ASSEMBLY_POLICY)
-        self.assertNotIn("stale_policy_period_markers", DIVIDEND_POLICY_ASSEMBLY_POLICY)
-
 
 if __name__ == "__main__":
     unittest.main()

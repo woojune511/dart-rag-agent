@@ -27,37 +27,6 @@
       ]
     },
     {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "[A-Za-z가-힣]",
-      "category": "regex_or_pattern",
-      "fingerprint": "4ec5a8e849d0dfb3",
-      "count": 2,
-      "first_lines": [
-        1365,
-        1384
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_evidence.py",
-      "text": "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. 공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다.",
-      "category": "runtime_literal",
-      "fingerprint": "066d947debd8d926",
-      "count": 1,
-      "first_lines": [
-        2282
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "direct=직접 근거, partial=부분 근거, context=배경 설명",
-      "category": "schema_description",
-      "fingerprint": "a1a5a23304f2e2f1",
-      "count": 1,
-      "first_lines": [
-        23
-      ]
-    },
-    {
       "path": "src/agent/financial_graph_models.py",
       "text": "slot role. 예: primary_value, current_value, prior_value",
       "category": "schema_description",
@@ -69,82 +38,12 @@
     },
     {
       "path": "src/agent/financial_graph_models.py",
-      "text": "structured evidence만으로 압축한 답변 초안",
-      "category": "schema_description",
-      "fingerprint": "66802846b097f47d",
-      "count": 1,
-      "first_lines": [
-        54
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "검증 과정에서 제거한 evidence_id 목록",
-      "category": "schema_description",
-      "fingerprint": "cfc7c4a98f002641",
-      "count": 1,
-      "first_lines": [
-        304
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "검증 후 최종 답변에 남긴 evidence_id 목록",
-      "category": "schema_description",
-      "fingerprint": "b03e678cbe5fabb3",
-      "count": 1,
-      "first_lines": [
-        300
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "검증을 거친 최종 답변",
-      "category": "schema_description",
-      "fingerprint": "f762f9e8cf99a8cc",
-      "count": 1,
-      "first_lines": [
-        315
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "근거 부족 또는 과잉 설명으로 제거한 문장 목록",
-      "category": "schema_description",
-      "fingerprint": "76d67b11853e5342",
-      "count": 1,
-      "first_lines": [
-        308
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "근거 출처 앵커. 예: [삼성전자 | 2023 | 사업의 개요]",
-      "category": "schema_description",
-      "fingerprint": "c4c3bab7a75712ae",
-      "count": 1,
-      "first_lines": [
-        13
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
       "text": "답변 렌더링에 바로 쓸 수 있는 값 표현",
       "category": "schema_description",
       "fingerprint": "798741e8bf387d15",
       "count": 1,
       "first_lines": [
         185
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "답변 초안에 실제로 사용한 evidence_id 목록",
-      "category": "schema_description",
-      "fingerprint": "e94d8d8e72aa7fa5",
-      "count": 1,
-      "first_lines": [
-        47
       ]
     },
     {
@@ -165,16 +64,6 @@
       "count": 1,
       "first_lines": [
         186
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "문장별 검증 결과. sentence, verdict, reason, supporting_claim_ids를 포함",
-      "category": "schema_description",
-      "fingerprint": "48f9a4d60d7c5668",
-      "count": 1,
-      "first_lines": [
-        312
       ]
     },
     {
@@ -205,16 +94,6 @@
       "count": 1,
       "first_lines": [
         195
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "원문에서 발췌한 짧은 근거 구간",
-      "category": "schema_description",
-      "fingerprint": "e30814637cc5898f",
-      "count": 1,
-      "first_lines": [
-        27
       ]
     },
     {
@@ -305,56 +184,6 @@
       "count": 1,
       "first_lines": [
         183
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "질문과의 직접 관련도",
-      "category": "schema_description",
-      "fingerprint": "ab0969f9fedec8ed",
-      "count": 1,
-      "first_lines": [
-        31
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "질문에 직접적으로 도움이 되는 근거 진술",
-      "category": "schema_description",
-      "fingerprint": "62390fa181d3081e",
-      "count": 1,
-      "first_lines": [
-        21
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "최종 답변에서 사용해도 되는 핵심 용어 목록",
-      "category": "schema_description",
-      "fingerprint": "2cd0148985b70af0",
-      "count": 1,
-      "first_lines": [
-        35
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "최종 초안으로 압축하기 전 핵심 포인트 목록",
-      "category": "schema_description",
-      "fingerprint": "a9cedee6be461204",
-      "count": 1,
-      "first_lines": [
-        51
-      ]
-    },
-    {
-      "path": "src/agent/financial_graph_models.py",
-      "text": "해당 근거가 속한 상위 범주 레이블. 예: '시장위험', 'DS부문'. 문서에 명시된 상위 범주가 없으면 None.",
-      "category": "schema_description",
-      "fingerprint": "2f9f9a61c06462ec",
-      "count": 1,
-      "first_lines": [
-        17
       ]
     },
     {

@@ -1,4 +1,4 @@
-"""Structured-output models for narrative evidence and semantic calculation programs."""
+"""Structured-output models for shared request planning and evidence compilation."""
 
 from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 
@@ -23,52 +23,6 @@ def _normalise_optional_planner_text(value: Any) -> str:
 
 class _DeferredBaseModel(BaseModel):
     model_config = ConfigDict(defer_build=True)
-
-
-class EvidenceItem(_DeferredBaseModel):
-    source_anchor: str = Field(description="근거 출처 앵커. 예: [삼성전자 | 2023 | 사업의 개요]")
-    parent_category: Optional[str] = Field(
-        default=None,
-        description=(
-            "해당 근거가 속한 상위 범주 레이블. "
-            "예: '시장위험', 'DS부문'. 문서에 명시된 상위 범주가 없으면 None."
-        ),
-    )
-    claim: str = Field(description="질문에 직접적으로 도움이 되는 근거 진술")
-    support_level: Literal["direct", "partial", "context"] = Field(
-        description="direct=직접 근거, partial=부분 근거, context=배경 설명"
-    )
-    quote_span: str = Field(
-        default="",
-        description="원문에서 발췌한 짧은 근거 구간",
-    )
-    question_relevance: Literal["high", "medium", "low"] = Field(
-        default="medium",
-        description="질문과의 직접 관련도",
-    )
-    allowed_terms: List[str] = Field(
-        default_factory=list,
-        description="최종 답변에서 사용해도 되는 핵심 용어 목록",
-    )
-
-
-class EvidenceExtraction(_DeferredBaseModel):
-    coverage: Literal["sufficient", "sparse", "conflicting", "missing"]
-    evidence: List[EvidenceItem] = Field(default_factory=list)
-
-
-class CompressionOutput(_DeferredBaseModel):
-    selected_claim_ids: List[str] = Field(
-        default_factory=list,
-        description="답변 초안에 실제로 사용한 evidence_id 목록",
-    )
-    draft_points: List[str] = Field(
-        default_factory=list,
-        description="최종 초안으로 압축하기 전 핵심 포인트 목록",
-    )
-    draft_answer: str = Field(
-        description="structured evidence만으로 압축한 답변 초안",
-    )
 
 
 class MeasurementPeriodBase(_DeferredBaseModel):
@@ -884,28 +838,6 @@ def _answer_slots_adapter() -> Any:
 def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     validated = _answer_slots_adapter().validate_python(payload)
     return validated.model_dump()
-
-
-class ValidationOutput(_DeferredBaseModel):
-    kept_claim_ids: List[str] = Field(
-        default_factory=list,
-        description="검증 후 최종 답변에 남긴 evidence_id 목록",
-    )
-    dropped_claim_ids: List[str] = Field(
-        default_factory=list,
-        description="검증 과정에서 제거한 evidence_id 목록",
-    )
-    unsupported_sentences: List[str] = Field(
-        default_factory=list,
-        description="근거 부족 또는 과잉 설명으로 제거한 문장 목록",
-    )
-    sentence_checks: List[Dict[str, Any]] = Field(
-        default_factory=list,
-        description="문장별 검증 결과. sentence, verdict, reason, supporting_claim_ids를 포함",
-    )
-    final_answer: str = Field(
-        description="검증을 거친 최종 답변",
-    )
 
 
 class WireModel(_DeferredBaseModel):

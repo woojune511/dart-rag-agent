@@ -208,8 +208,7 @@ class CompilerAttemptDebugTests(unittest.TestCase):
     def test_real_graph_keeps_capture_per_request_and_out_of_final_ledger(self):
         from tests.test_financial_phase_contract import FinancialPhaseContractTests
 
-        agent = FinancialPhaseContractTests._narrative_agent()
-        del agent._project_runtime_calculation_trace
+        agent = FinancialPhaseContractTests._agent()
         owner = _obligation("size", "direct_value", "Size")
         agent._plan_answer_obligation_program = Mock(return_value={
             "semantic_plan": {"program_required": True}, "answer_obligations": [owner],

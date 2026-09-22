@@ -31,7 +31,7 @@ class RuntimeTopologyDocumentTests(unittest.TestCase):
         self.assertEqual(predecessors["assemble_ledger"], {"assemble_final"})
         self.assertEqual(predecessors["__end__"], {"assemble_ledger"})
         self.assertLess(ordered.index("execute_numeric"), ordered.index("assemble_final"))
-        self.assertLess(ordered.index("build_narrative"), ordered.index("assemble_final"))
+        self.assertEqual(predecessors["build_candidates"], {"retrieve_evidence"})
 
 
 if __name__ == "__main__":

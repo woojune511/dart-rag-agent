@@ -5,6 +5,13 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Portfolio scope and retired narrative path (2026-09-22)
+
+- Starting at `af129e93`, removed the unused extraction/compression/validation graph branch, dividend-policy supplementation/hybrid answers, entity-table summaries, driver/sentence repair and alternate narrative document selection. Removed seven dedicated policy dictionaries, four structured-output models, obsolete phase state/loaders and private helper tests together. Runtime/config net reduction: **3,723 lines** (70 added/3,793 removed).
+- All public intents continue through the existing Planner/Compiler/executor; failed planning remains incomplete without another generation. Source anchors and structural expansion retain identical bodies/signatures; active request, source, period/scope, unit, arithmetic and coverage checks remain. Updated graph topology/state tests and shared diagnostic fixtures; no contract weakening or new vocabulary baseline entries.
+- Full provider-free suite **2,255/2,255** (79.243s), focused checks, import/topology/docs gates, domain audit **66**, syntax and diff checks pass. Removed 17 stale audit entries only. All **15,050** files in the preceding protected manifest and `.env` remain hash-identical. Historical artifacts/stores, paid accounting and model outputs were not changed.
+- [Portfolio completion scope](../overview/portfolio_scope.md) replaces the accumulating per-error queue with a frozen simple-RAG comparison, at most one justified improvement, and final evaluation/demo. The known year-end semantic miss remains a limitation. New model accuracy, provider/full-app acceptance and paid evaluation: **NOT_RUN**.
+
 ## Structured request measurement periods (2026-09-21)
 
 - Baseline `5df6e9d6`; [contract/result](../evaluation/structured_measurement_period.md). Added a typed Planner scope union with owned request refs: unspecified/year/relative-year/date/full inclusive interval/unresolved. Deterministic offset arithmetic and full date-shape comparison replace request sentence year-set guessing. New strict wire requires an object; internal absent structures retain their legacy serialization and only complete annual labels retain annual matching. Complex legacy text is not migrated. Explicit child constraints override inherited targets, with copied reference lists.

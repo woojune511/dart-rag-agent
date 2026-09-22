@@ -39,32 +39,29 @@ nodes:
   build_candidates -> FinancialAgent._build_candidates_phase
   compile_program -> FinancialAgent._compile_program_phase
   execute_numeric -> FinancialAgent._execute_numeric_phase
-  build_narrative -> FinancialAgent._build_narrative_phase
   assemble_ledger -> FinancialAgent._assemble_ledger_phase
   assemble_final -> FinancialAgent._assemble_final_phase
 edges:
   route_request -> plan_requirements
   plan_requirements -> retrieve_evidence
-  retrieve_evidence -- build_candidates --> build_candidates
-  retrieve_evidence -- build_narrative --> build_narrative
+  retrieve_evidence -> build_candidates
   build_candidates -> compile_program
   compile_program -> execute_numeric
   execute_numeric -> assemble_final
-  build_narrative -> assemble_final
   assemble_final -> assemble_ledger
   assemble_ledger -> END
 ```
 <!-- END GENERATED FINANCIAL GRAPH TOPOLOGY -->
 
 각 node는 명시적인 typed input projection을 읽고 `FinancialAgentStateV2`의 자기
-phase key 하나만 쓴다. Numeric/narrative node는 계산 결과와 검증된 근거만
+phase key 하나만 쓴다. 모든 답변은 Compiler와 `execute_numeric`를 거쳐 계산·서술 근거를
 반환한다. `assemble_final`만 answer, citation, structured result를 조립하고,
 `assemble_ledger`는 이 확정된 결과로 ledger를 한 번 만든다. `run()`은 완성된
 결과의 공개 trace 사본에서 내부 Compiler/검증 기록을 제외하고 opt-in review/debug를 포장한다. 원본·ledger·답변·근거는 다시 계산하거나 수정하지 않는다.
 
 ## Numeric compilation boundary
 
-Numeric 또는 mixed request는 requirement의 dependency와 non-empty
+모든 request는 requirement의 dependency와 non-empty
 `coupling_key`만으로 compilation island를 만든다. 각 island는 독립 candidate
 visibility와 prompt를 가지며 순차 compile된다. Compiler가 만든 immutable
 `CompilationEnvelopeV2`를 validator와 executor가 공유한다. executor는 catalog,

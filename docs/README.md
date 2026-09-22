@@ -11,6 +11,7 @@ work queue나 release evidence로 사용하지 않는다.
 | [../AGENTS.md](../AGENTS.md) | 작업 방식, 빠른 개발 루프, 중단 조건 |
 | [../CONTEXT.md](../CONTEXT.md) | 현재 checkout과 handoff snapshot |
 | [overview/project_status.md](overview/project_status.md) | 현재 제품 경계, 검증 상태, blocker, 다음 작업 |
+| [overview/portfolio_scope.md](overview/portfolio_scope.md) | 포트폴리오 범위, 삭제 근거, 기준선 비교와 완료 기준 |
 | [architecture/agent_runtime_contract.md](architecture/agent_runtime_contract.md) | normative runtime contract와 release gate |
 | [overview/runtime_flow_roles.md](overview/runtime_flow_roles.md) | source에서 생성·검사되는 graph topology |
 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 code ownership과 실행 경로 |

@@ -23,8 +23,8 @@ from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
 from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
 from src.agent.financial_graph_state import (
     CandidateInput, CandidatesUpdate, CompilationInput, CompilationPhase,
-    CompilationUpdate, FinancialAgentState, FinancialAgentStateV2,
-    FinalResultUpdate, LedgerUpdate, NarrativeInput, NarrativeResultUpdate,
+    CompilationUpdate, FinancialAgentStateV2,
+    FinalResultUpdate, LedgerUpdate,
     NumericExecutionInput, NumericResultPhase, NumericResultUpdate,
     PlanningInput, RequirementsPhase, RequirementsUpdate, RetrievalInput,
     RetrievalUpdate, RoutingInput, RoutingUpdate,
@@ -44,7 +44,7 @@ from src.agent.financial_task_artifacts import (
     project_task_artifact_trace,
     semantic_plan_artifact_update,
 )
-from src.config.retrieval_policy import EVIDENCE_RUNTIME_POLICY, SECTION_BIAS_BY_QUERY_TYPE
+from src.config.retrieval_policy import SECTION_BIAS_BY_QUERY_TYPE
 
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,6 @@ FINANCIAL_GRAPH_PHASE_WRITERS = {
     "candidates": "build_candidates",
     "compilation": "compile_program",
     "numeric_result": "execute_numeric",
-    "narrative_result": "build_narrative",
     "final_result": "assemble_final",
     "ledger": "assemble_ledger",
 }
@@ -164,21 +163,6 @@ def numeric_phase_input(state: FinancialAgentStateV2) -> NumericExecutionInput:
     return result
 
 
-def narrative_phase_input(state: FinancialAgentStateV2) -> NarrativeInput:
-    request = state["request"]
-    routing, requirements = state.get("routing", {}), state.get("requirements", {})
-    return {
-        "query": request["query"],
-        "query_type": routing.get("query_type", "qa"),
-        "intent": routing.get("intent", routing.get("query_type", "qa")),
-        "format_preference": routing.get("format_preference", ""),
-        "topic": requirements.get("topic", routing.get("topic", request["query"])),
-        "semantic_plan": dict(requirements.get("semantic_plan", {})),
-        "active_subtask": dict(requirements.get("active_subtask", {})),
-        "retrieved_docs": list(state.get("retrieval", {}).get("retrieved_docs", [])),
-    }
-
-
 class FinancialAgent(
     FinancialAgentPlanningMixin,
     FinancialRetrievalPipelineMixin,
@@ -194,7 +178,7 @@ class FinancialAgent(
         """Return only evidence selected by the active answer path.
 
         Numeric evidence is created by the semantic executor from registered
-        candidate IDs. Narrative evidence is created by the narrative evidence
+        candidate IDs. Narrative evidence is created by the compiled narrative
         path. This adapter never reconstructs provenance from answer text.
         """
 
@@ -377,24 +361,6 @@ class FinancialAgent(
             raise ValueError(f"LLM route '{phase}' is not initialized.")
         return llm
 
-    @staticmethod
-    def _route_after_expand(state: FinancialAgentState) -> str:
-        return (
-            "program_compiler"
-            if bool(dict(state.get("semantic_plan") or {}).get("program_required"))
-            else "evidence"
-        )
-
-    @staticmethod
-    def _route_after_retrieval_v2(state: FinancialAgentStateV2) -> str:
-        requirements = dict(state.get("requirements") or {})
-        semantic_plan = dict(requirements.get("semantic_plan") or {})
-        return (
-            "build_candidates"
-            if bool(semantic_plan.get("program_required"))
-            else "build_narrative"
-        )
-
     @observe_phase("routing")
     def _route_request_phase(
         self,
@@ -466,43 +432,6 @@ class FinancialAgent(
             numeric_phase_input(state)
         )
         return {"numeric_result": cast(NumericResultPhase, executed)}
-
-    @observe_phase("narrative_result")
-    def _build_narrative_phase(
-        self,
-        state: FinancialAgentStateV2,
-    ) -> NarrativeResultUpdate:
-        phase_input = narrative_phase_input(state)
-        evidence = self._extract_evidence(phase_input)
-        draft_input: NarrativeInput = {
-            **phase_input,
-            "evidence_items": list(evidence.get("evidence_items") or []),
-            "evidence_bullets": list(evidence.get("evidence_bullets") or []),
-            "evidence_status": str(evidence.get("evidence_status") or "missing"),
-        }
-        compressed = self._compress_answer(draft_input)
-        validation_input: NarrativeInput = {
-            **draft_input,
-            "evidence_items": list(compressed.get("evidence_items", draft_input["evidence_items"]) or []),
-            "selected_claim_ids": list(compressed.get("selected_claim_ids") or []),
-            "draft_points": list(compressed.get("draft_points") or []),
-            "compressed_answer": str(compressed.get("compressed_answer") or ""),
-        }
-        validated = self._validate_answer(validation_input)
-        return {
-            "narrative_result": {
-                "evidence_items": validation_input["evidence_items"],
-                "evidence_status": draft_input["evidence_status"],
-                "selected_claim_ids": validation_input["selected_claim_ids"],
-                "draft_points": validation_input["draft_points"],
-                "validated_sentences": list(validated.get("validated_sentences") or []),
-                "sentence_checks": list(validated.get("sentence_checks") or []),
-                "kept_claim_ids": list(validated.get("kept_claim_ids") or []),
-                "dropped_claim_ids": list(validated.get("dropped_claim_ids") or []),
-                "unsupported_sentences": list(validated.get("unsupported_sentences") or []),
-                "calculation_projection": dict(compressed.get("calculation_projection") or {}),
-            }
-        }
 
     @observe_phase("ledger")
     def _assemble_ledger_phase(
@@ -652,38 +581,22 @@ class FinancialAgent(
         request = state["request"]
         routing, requirements = state.get("routing", {}), state.get("requirements", {})
         retrieval, compilation = state.get("retrieval", {}), state.get("compilation", {})
-        narrative = state.get("narrative_result", {})
-        numeric = state.get("numeric_result")
+        numeric = state["numeric_result"]
         obligations = list(requirements.get("answer_obligations") or [])
-        if numeric is not None:
-            from src.agent.financial_calculation_execution import assemble_semantic_execution_result
+        from src.agent.financial_calculation_execution import assemble_semantic_execution_result
 
-            execution = numeric["execution"]
-            assembled = assemble_semantic_execution_result(
-                execution=execution,
-                obligations=obligations,
-                calculation_plan=numeric["calculation_plan"],
-                query=request["query"],
-                report_scope=request["report_scope"],
-            )
-            evidence_items = list(numeric["evidence_items"])
-            selected_ids = list(execution.get("selected_candidate_ids") or [])
-            kept_ids = list(selected_ids)
-            missing_info = list(execution.get("missing_obligation_ids") or [])
-        else:
-            answer = _normalise_spaces(" ".join(narrative.get("validated_sentences") or []))
-            if not answer:
-                answer = str(EVIDENCE_RUNTIME_POLICY.get("no_direct_evidence_answer") or "")
-            assembled = {
-                "answer": answer,
-                "structured_result": {},
-                "resolved_calculation_trace": dict(narrative.get("calculation_projection") or {}),
-                "subtask_results": [],
-            }
-            evidence_items = list(narrative.get("evidence_items") or [])
-            selected_ids = list(narrative.get("selected_claim_ids") or [])
-            kept_ids = list(narrative.get("kept_claim_ids") or [])
-            missing_info = []
+        execution = numeric["execution"]
+        assembled = assemble_semantic_execution_result(
+            execution=execution,
+            obligations=obligations,
+            calculation_plan=numeric["calculation_plan"],
+            query=request["query"],
+            report_scope=request["report_scope"],
+        )
+        evidence_items = list(numeric["evidence_items"])
+        selected_ids = list(execution.get("selected_candidate_ids") or [])
+        kept_ids = list(selected_ids)
+        missing_info = list(execution.get("missing_obligation_ids") or [])
 
         # Explicit caller projection: no phase dictionary can overwrite another.
         context = {
@@ -731,10 +644,10 @@ class FinancialAgent(
             "runtime_evidence": evidence_items,
             "selected_claim_ids": selected_ids,
             "kept_claim_ids": kept_ids,
-            "draft_points": list(narrative.get("draft_points") or []),
-            "dropped_claim_ids": list(narrative.get("dropped_claim_ids") or []),
-            "unsupported_sentences": list(narrative.get("unsupported_sentences") or []),
-            "sentence_checks": list(narrative.get("sentence_checks") or []),
+            "draft_points": [],
+            "dropped_claim_ids": [],
+            "unsupported_sentences": [],
+            "sentence_checks": [],
             "missing_info": missing_info,
         }
         runtime_trace = self._project_runtime_calculation_trace(context)
@@ -776,25 +689,16 @@ class FinancialAgent(
         graph.add_node("build_candidates", self._build_candidates_phase)
         graph.add_node("compile_program", self._compile_program_phase)
         graph.add_node("execute_numeric", self._execute_numeric_phase)
-        graph.add_node("build_narrative", self._build_narrative_phase)
         graph.add_node("assemble_ledger", self._assemble_ledger_phase)
         graph.add_node("assemble_final", self._assemble_final_phase)
 
         graph.set_entry_point("route_request")
         graph.add_edge("route_request", "plan_requirements")
         graph.add_edge("plan_requirements", "retrieve_evidence")
-        graph.add_conditional_edges(
-            "retrieve_evidence",
-            self._route_after_retrieval_v2,
-            {
-                "build_candidates": "build_candidates",
-                "build_narrative": "build_narrative",
-            },
-        )
+        graph.add_edge("retrieve_evidence", "build_candidates")
         graph.add_edge("build_candidates", "compile_program")
         graph.add_edge("compile_program", "execute_numeric")
         graph.add_edge("execute_numeric", "assemble_final")
-        graph.add_edge("build_narrative", "assemble_final")
         graph.add_edge("assemble_final", "assemble_ledger")
         graph.add_edge("assemble_ledger", END)
         return graph.compile()

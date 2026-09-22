@@ -131,6 +131,8 @@
 
 ## Design Rules For This Project
 
+- 포트폴리오 완료 범위와 종료 기준은 `docs/overview/portfolio_scope.md`를 따른다. 다음 우선순위는 고정 입력의 단순 RAG 기준선 비교이며, 개별 실패마다 prompt/schema/policy 규칙을 추가하는 작업을 자동으로 재개하지 않는다.
+- 호출되지 않는 답변 경로와 전용 설정·테스트는 함께 제거한다. 활성 경로의 복잡성은 반복 가능한 품질·비용 비교로 정당화하되, 출처·산술·요청 누락 검증은 유지한다. 개별 예외를 config로 옮기는 것만으로 일반화했다고 보지 않는다.
 - Runtime default는 일반 사용자 질문에 맞춘다. benchmark profile은 별도 profile/config로 둔다.
 - Canonical ingest는 `src/config/runtime_contract.py`의 `CANONICAL_INGEST_PROFILE_ID`를 기준으로 한다. 다른 ingest는 명시적 experimental profile로만 쓴다.
 - Retrieval 변경은 `retrieval_debug_trace`로 query bundle, filter, selected chunk, policy trace를 남겨야 한다.

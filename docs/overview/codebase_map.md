@@ -51,7 +51,7 @@
 | `src/agent/financial_formula_constants.py` | internal named dimensionless request inputs, code-computed source/dependency binding count and exact owned request proofs; offline legacy scalar validation; no numeral rules, inferred inputs, formula rewriting or semantic certification |
 | `src/agent/financial_runtime_normalization.py` | shared UnitSpec, declared table/header-unit projection with provenance, numeric normalization and display precision |
 | `src/agent/financial_numeric_surface.py` | shared numeric surfaces plus catalog-only standalone scalar exposure; legacy identity order and evaluation extraction preserved |
-| `src/agent/financial_graph_evidence.py` | structural expansion/evidence helpers; retained legacy narrative helpers are no longer selected by the public planner |
+| `src/agent/financial_graph_evidence.py` | optional structural expansion and source anchors; the separate narrative extraction/compression/validation path is removed |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projections; caller trace copies omit whole Compiler/validation records after ledger assembly, preserving canonical records and evidence |
 | `src/agent/financial_task_artifacts.py` | artifact/ledger projection; aggregate status follows finalized public result |
 | `src/routing/query_router.py`, `src/config/query_routing_prompt.py` | validated canonical success cache, scale-stable similarity, anonymous declarative routing prompt |

@@ -10,7 +10,7 @@ Superseded designs belong in [implementation history](../history/implementation_
 The single-agent `FinancialAgent` uses an LLM to interpret intent and evidence. Code owns arithmetic, unit conversion, dependency binding, candidate authority,
 dedupe, ordering, validation, and ledger integrity. Every intent uses required-output planning and compilation. Code losslessly partitions the original query at mechanical sentence/line boundaries into `RequestUnitV1` addresses with exact text and Python-string spans; no semantic clause classifier or truncation. Every obligation declares required `request_unit_ids`; every unit needs at least one owner, and shared units are allowed. Labels name outputs, linked original text carries detailed instructions, and rationale stays diagnostic. Planner policy asks to keep an explanation with its qualifying conditions and all linked units, preserving independent requested topics and shared conditions. Shared subject/sentence/unit identity or a fixed output count is not a merge rule; this is a model instruction, not a code merge or semantic-dedup guarantee. Unknown/missing/malformed refs or unassigned units remain requirement errors and block all compiler calls without candidate exclusion or a new planner retry. There is no production legacy-assignment fallback. Planner `status=ok` requires a nonempty, fully linked plan, not semantic completeness or correct assignment. The original query remains visible; code never infers omitted meaning.
 
-Company names, benchmark IDs, expected answers, report-specific phrases, and metric recipes may not control routing, retrieval, selection, compilation, execution, or rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data; fixed-year priorities and case-specific routing examples are not generic domain priors.
+Company names, benchmark IDs, expected answers, report-specific phrases, and metric recipes may not control routing, retrieval, selection, compilation, execution, or rendering. Domain vocabulary belongs in reviewed ontology, policy, config, or data; fixed-year priorities and case-specific routing examples are not generic domain priors. Moving an exception into policy does not establish generality. The [portfolio completion scope](../overview/portfolio_scope.md) prioritizes a frozen baseline comparison over automatic per-error prompt/schema additions; remove unused paths with their dedicated configuration and tests.
 
 Evidence is authoritative over generated text. Numeric answers require registered candidates and validated program bindings. Source and calculated displays may
 coexist, but their provenance must remain distinct.
@@ -193,7 +193,7 @@ Without a complete physical row, no inferred bundle forces otherwise independent
 ## 5. Internal graph state v2
 
 `FinancialAgentStateV2` phases are `request`, `routing`, `requirements`,
-`retrieval`, `candidates`, `compilation`, `numeric_result | narrative_result`,
+`retrieval`, `candidates`, `compilation`, `numeric_result`,
 `final_result`, and `ledger`.
 
 Concrete phase input/output TypedDicts define static shapes, not runtime
@@ -203,8 +203,8 @@ the phase that produced them; request-local observers may copy outputs/events ou
 the same change; long-lived dual-write is forbidden.
 
 Intermediate nodes do not write `tasks`, `artifacts`, or the final answer.
-Numeric execution returns calculation rows, display slots, and evidence;
-narrative validation returns scope/ID/number-checked text and evidence, not certified semantic entailment.
+All intents follow retrieval → candidates → compilation → execution; there is no separate narrative-generation branch or fallback on a failed plan.
+The existing `numeric_result` phase carries both calculations and validated narrative claims; structural/source checks do not certify semantic entailment.
 `assemble_ledger` records the finalized public answer, structured result,
 trace, and narrative source material as one `LedgerSnapshot`. Aggregate status follows public `structured_result.status`; partial/incomplete results are not completed tasks. Ledger integrity is structural, not semantic completeness.
 `assemble_final` is the only graph node that assembles answer, citations, and

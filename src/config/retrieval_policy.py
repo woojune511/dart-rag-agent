@@ -265,14 +265,6 @@ OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "location_entity_context_penalty": -1.0,
 }
 
-VALUE_NEAR_MATCH_POLICY: Dict[str, Any] = {
-    "value_pattern": r"([\d,]+\s*조\s*[\d,]+\s*억(?:\s*원)?|[\d,]+\s*억(?:\s*원)?|[\d,]+\s*백만원|[\d,.]+%)",
-    "percent_markers": ("%",),
-    "million_krw_unit": "백만원",
-    "composite_krw_markers": ("조", "억"),
-    "composite_krw_unit": "원",
-}
-
 KOREAN_WON_COMPACT_FORMAT_POLICY: Dict[str, Any] = {
     "hundred_million_threshold": 100_000_000,
     "trillion_scale": 1_0000_0000_0000,
@@ -326,26 +318,11 @@ NUMERIC_SECTION_HINT_POLICIES: tuple[Dict[str, Any], ...] = (
 
 
 NARRATIVE_RERANK_POLICY: Dict[str, Any] = {
-    "causal_markers": ("영향", "기여", "편입효과", "배경", "요인", "성장"),
     "lower_priority_section_markers_by_query_type": {
         "numeric_fact": ("주석",),
         "trend": ("주석",),
     },
     "lower_priority_section_penalty": -0.12,
-}
-
-
-SENTENCE_NORMALISATION_POLICY: Dict[str, Any] = {
-    "intro_patterns": (
-        "다음과 같습니다",
-        "다음과 같",
-        "주요 재무 리스크는",
-        "주요 사업은",
-        "영위하는 주요 사업은",
-    ),
-    "missing_support_reason": "근거 claim이 연결되지 않음",
-    "summary_intro_reason": "요약형 질문의 도입 문장으로 유지",
-    "redundant_intro_reason": "후속 문장이 동일 질문에 직접 답하므로 도입 문장은 제거",
 }
 
 
@@ -1082,260 +1059,6 @@ NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS = (
 )
 
 
-ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY: Dict[str, Any] = {
-    "consolidated_query_terms": ("연결",),
-    "section_score_rules": (
-        {"text": "타법인출자", "field": "section_path", "score": 2},
-        {"text": "재무제표 주석", "field": "section_path", "score": 2},
-        {"text": "타법인출자", "field": "text", "score": 4},
-    ),
-    "text_score_terms": (("투자자산", "관계기업", "공동기업"), 3),
-    "negative_text_terms_without_anchor": {
-        "terms": ("연결대상", "종속기업"),
-        "anchor": "타법인출자",
-        "score": -4,
-    },
-    "non_consolidated_section_penalty": {"section_marker": "연결재무제표 주석", "score": -1},
-    "investment_metric_terms": ("소유지분율", "지분율", "장부금액", "투자자산"),
-    "summary_metric_terms": ("계속영업손익", "계속영업이익", "계속영업손실", "총포괄손익"),
-    "default_unit": "백만원",
-    "period_fallback": "",
-    "role_labels": {
-        "prior_ownership_ratio": "기초 지분율",
-        "ownership_ratio": "기말 지분율",
-        "investment_carrying_amount": "투자장부금액",
-        "continuing_profit_loss": "계속영업손익",
-        "continuing_loss": "계속영업손실",
-        "total_comprehensive_profit_loss": "총포괄손익",
-        "total_comprehensive_loss": "총포괄손실",
-    },
-    "investment_sentence_template": "{entity_label}의 {parts}입니다.",
-    "summary_sentence_template": "요약 손익은 {parts}입니다.",
-    "number_pattern": r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?",
-    "part_templates": {
-        "prior_current_ratio": "{prior_label}은 {prior_percent}, {current_label}은 {percent}",
-        "current_ratio": "{current_label}은 {percent}",
-        "amount": "{amount_label}은 {amount}{unit}",
-    },
-}
-
-EVIDENCE_COMPRESSION_GUIDANCE_POLICY: Dict[str, Any] = {
-    "trend_instruction": "시계열 변화와 근거에 직접 있는 원인만 짧게 정리하세요.",
-    "trend_context_instruction": (
-        "시계열 변화와 함께 실적에 직접 기여한 운영 요인을 1~2개까지 정리하세요. "
-        "계약 목적이나 기대효과보다 근거 문서에 실제 성과 원인으로 명시된 요인을 우선하세요."
-    ),
-    "trend_output_style": "2~4문장.",
-    "trend_context_output_style": "2~5문장.",
-    "instructions": {
-        "numeric_fact": (
-            "질문이 요청한 숫자·금액·비율만 답하세요. claim과 quote_span에 있는 표기를 그대로 유지하고, "
-            "동일 값을 다른 단위나 다른 숫자 표기로 바꾸지 마세요."
-        ),
-        "business_overview": (
-            "질문에 직접 필요한 사업 구조를 정리하되, 각 부문을 설명할 때 "
-            "근거에 등장하는 구체적인 예시(제품명, 주요 역할 등)를 생략하지 말고 포함하세요. "
-            "같은 사실을 반복하거나 evidence에 없는 배경 설명은 빼세요. "
-            "evidence에 parent_category가 명시된 항목들은 해당 상위 부문을 먼저 적고 "
-            "그 아래에 하위 항목을 묶어서 구조화하세요."
-        ),
-        "risk": (
-            "근거에 있는 리스크 항목만 추출하세요. 각 항목을 나열할 때 이름만 적지 말고, "
-            "근거에 있는 구체적인 정의나 영향을 한 줄씩 함께 요약하세요. "
-            "evidence에 parent_category가 명시된 항목들은 해당 상위 범주(예: 시장위험)를 먼저 적고 "
-            "그 아래에 하위 항목을 묶어서 구조화하세요. "
-            "evidence에 없는 새로운 상위 범주를 만들지 마세요."
-        ),
-        "comparison": "각 항목을 나란히 비교하되, evidence에 직접 있는 차이만 정리하세요.",
-        "qa": "질문에 직접 답하는 핵심 사실만 짧게 답하세요.",
-    },
-    "output_styles": {
-        "numeric_fact": "최대 1문장.",
-        "business_overview": "각 부문의 구체적 제품/역할이 포함된 3~5개의 bullet.",
-        "risk": "항목별로 이름과 짧은 설명(1~2줄)이 함께 있는 bullet. 항목 수는 evidence 범위를 넘기지 말 것.",
-        "comparison": "짧은 bullet 비교.",
-        "qa": "짧고 직접적으로.",
-    },
-    "coverage_notes": {
-        "sparse": "근거가 제한적입니다. evidence에 직접 적힌 claim과 quote_span만 사용하세요.",
-        "conflicting": "근거가 서로 상충하면 충돌을 명시하세요.",
-    },
-    "driver_phrase_joiner": ", ",
-    "driver_pair_joiner": "와",
-    "driver_final_joiner": ", 그리고 ",
-    "driver_addition_template": "또한 {clause}도 실적 성장에 기여했습니다.",
-}
-
-EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
-    "extra_rules_by_query_type": {
-        "risk": (
-            "\n- 리스크 유형명은 컨텍스트에 명시된 단어만 사용하세요. "
-            "컨텍스트에 없는 리스크 카테고리(예: '운영위험', '규제위험' 등)를 새로 만들지 마세요."
-            "\n- [중요] 컨텍스트에 여러 개의 독립적인 리스크 항목이 나열되어 있다면, "
-            "임의로 그룹화하거나 생략하지 마세요. "
-            "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
-            "\n- 문서에서 여러 하위 항목이 상위 범주 아래 묶여 있다면(예: '시장위험' 아래 환율변동위험·이자율변동위험·주가변동위험), "
-            "각 하위 항목의 parent_category 필드에 해당 상위 범주 명칭을 그대로 적으세요. "
-            "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
-        ),
-        "business_overview": (
-            "\n- [중요] 컨텍스트에 여러 개의 독립적인 사업 부문이나 항목이 나열되어 있다면, "
-            "임의로 그룹화하거나 생략하지 마세요. "
-            "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
-            "\n- 문서에서 여러 하위 항목이 상위 부문 아래 묶여 있다면(예: 'DS부문' 아래 메모리·시스템반도체·파운드리), "
-            "각 하위 항목의 parent_category 필드에 해당 상위 부문 명칭을 그대로 적으세요. "
-            "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
-        ),
-    },
-    "extra_rules_by_answer_mode": {
-        "narrative_summary": (
-            "\n- 질문이 영향/원인을 묻는 경우, 계약 목적이나 예상효과만 적힌 문단보다 "
-            "실제 실적 변화의 원인·기여 요인을 설명하는 문단을 우선하세요."
-            "\n- 질문 focus terms에 고유명사, 약어, 괄호 표현, 정책/규제/대응/필요성 관련 표현이 있으면, "
-            "그 표현들이 들어간 원문 문장을 독립 EvidenceItem으로 추출하세요. "
-            "질문 focus terms가 직접 들어간 문장을 넓은 시장/연혁 배경 설명으로 대체하지 마세요."
-            "\n- 가능하면 서로 다른 관점의 근거를 2개 이상 추출하세요. "
-            "예: (1) 실적 변화나 성장률을 직접 설명하는 문단, "
-            "(2) 그 변화의 배경 driver를 문서 표현 그대로 설명하는 문단."
-            "\n- '주요 계약' 문단은 실제 성과 영향 문단이 부족할 때만 보조 근거로 사용하세요."
-        ),
-    },
-    "focus_term_stopwords": (
-        "전년",
-        "대비",
-        "계산",
-        "계산해",
-        "계산하고",
-        "사업보고서",
-        "사업보고서에서",
-        "요약",
-        "요약해",
-        "설명",
-        "설명해",
-        "대한",
-        "등",
-        "줘",
-    ),
-    "max_focus_terms": 12,
-    "focus_term_token_pattern": r"[가-힣A-Za-z0-9()]+",
-    "focus_term_particle_suffix_pattern": r"(?:에서|에게|으로|로|을|를|은|는|이|가|의|에|와|과|도|만)$",
-    "prompt_template": """당신은 기업 공시 분석 보조자입니다.
-질문에 답하기 전에, 아래 검색 결과에서 질문과 직접적으로 관련된 근거만 뽑아주세요.
-
-규칙:
-- 제공된 컨텍스트 밖의 정보를 추가하지 마세요.
-- 각 근거는 반드시 아래 제공된 source_anchor 중 하나를 정확히 사용하세요.
-- 숫자, 기간, 조건이 보이면 그대로 유지하세요.
-- quote_span에는 실제 근거 원문 일부를 짧게 그대로 옮기세요.
-- allowed_terms에는 답변에 사용 가능한 핵심 용어만 넣으세요.
-- 근거가 부족하면 coverage를 sparse로, 서로 충돌하면 conflicting으로 설정하세요.
-- 아예 답할 근거가 없으면 coverage를 missing으로 두고 evidence는 비우세요.{extra_rules}
-
-질문: {query}
-핵심 주제: {topic}
-질문 focus terms: {focus_terms}
-
-사용 가능한 source_anchor:
-{available_anchors}
-
-컨텍스트:
-{context}
-""",
-}
-
-EVIDENCE_RUNTIME_POLICY: Dict[str, Any] = {
-    "location_subject_pattern": r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
-    "lookup_aggregate_result_pattern": (
-        r"(차이|차액|격차|합계|합산|더한|더하면|총합|차감|뺀|비율|비중|성장률|증가율|감소율|몇\s*배|더\s*(?:큽|작|많|적))"
-    ),
-    "direct_numeric_lookup_instruction": (
-        "{focused} 원문 수치만 찾으세요. "
-        "차이, 합계, 비율, 증감액 같은 계산 결과가 아니라 해당 항목 자체의 값을 추출하세요."
-    ),
-    "numeric_not_found_answer": "관련 공시 문서에서 요청한 수치를 찾지 못했습니다.",
-    "no_direct_evidence_answer": (
-        "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. "
-        "공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다."
-    ),
-    "duplicate_claim_reason": "같은 claim을 반복 설명함",
-    "aggregate_supported_reason": "여러 evidence의 합집합을 요약한 supported 문장",
-    "overextended_reason": "근거 claim보다 과도하게 일반화되거나 확장됨",
-    "compression_prompt_template": (
-        "당신은 한국 기업 공시(DART) 분석 전문가입니다.\n"
-        "아래 structured evidence를 질문 범위에 맞게 압축해 typed output을 만드세요.\n\n"
-        "Compression 규칙:\n"
-        "- evidence에 없는 내용은 추가하지 마세요.\n"
-        "- 먼저 question_relevance가 high인 evidence만으로 답 구성을 시도하세요.\n"
-        "- claim을 기본 단위로 사용하고, 필요할 때만 quote_span의 원문 표현을 그대로 가져오세요.\n"
-        "- allowed_terms에 없는 새로운 분류명이나 핵심 용어는 만들지 마세요.\n"
-        "- 질문이 요구하지 않은 배경 설명, 예시, 장황한 연결 문장은 넣지 마세요.\n"
-        "- 가능한 한 중복 claim을 합치고, 같은 사실은 한 번만 말하세요.\n"
-        "- draft_answer와 draft_points 안에 `[회사 | 연도 | ...]` 형태의 source_anchor 원문을 절대 그대로 쓰지 마세요. 출처 추적은 selected_claim_ids로만 수행합니다.\n"
-        "{coverage_note}\n\n"
-        "질문 유형 지침:\n{instruction}\n\n"
-        "출력 형식 지침:\n{output_style}\n\n"
-        "Structured Evidence:\n{evidence}\n\n"
-        "질문: {query}\n\n"
-        "반드시 다음 필드를 채우세요.\n"
-        "- selected_claim_ids: 실제로 사용한 evidence_id만\n"
-        "- draft_points: 중복을 제거한 핵심 포인트 목록\n"
-        "- draft_answer: 사용자에게 보여줄 짧은 초안 답변\n"
-    ),
-    "validation_prompt_template": (
-        "다음 답변 초안을 structured evidence와 대조해 문장 단위로 검증하고 typed output을 만드세요.\n\n"
-        "Validator 규칙:\n"
-        "- 새 정보는 절대 추가하지 마세요.\n"
-        "- 근거로 뒷받침되지 않는 문장, 구, 세부사항만 삭제하거나 더 짧게 축소하세요.\n"
-        "- 질문에 직접 필요하지 않은 배경 설명은 삭제하세요.\n"
-        "- 숫자, 단위, 비율은 evidence의 quote_span 또는 claim 표기를 그대로 유지하세요.\n"
-        "- risk: evidence에 없는 상위 taxonomy나 재분류를 만들지 마세요.\n"
-        "- business_overview / risk: 여러 evidence에 흩어진 정보를 하나의 문장이나 bullet로 종합한 경우, 각 표현이 evidence 합집합으로 뒷받침되면 supported로 판단하세요.\n"
-        "- business_overview / risk: 특정 문장이 단일 evidence와 1:1로 대응하지 않아도, supporting_claim_ids의 합집합이 그 문장을 직접 지지하면 keep 할 수 있습니다.\n"
-        "- duplicated claim은 하나만 남기세요.\n"
-        "- 가능한 한 기존 source_anchor는 유지하세요.\n"
-        "- 초안을 문장 단위로 나눈 뒤 각 문장을 아래 verdict 중 하나로 판정하세요.\n"
-        "  - keep\n"
-        "  - drop_overextended\n"
-        "  - drop_unsupported\n"
-        "  - drop_redundant\n"
-        "- supporting_claim_ids에는 그 문장을 직접 지지하는 evidence_id만 넣으세요.\n"
-        "- keep가 아닌 문장은 unsupported_sentences에도 넣으세요.\n"
-        "- kept_claim_ids / dropped_claim_ids는 sentence_checks와 일관되게 작성하세요.\n"
-        "- final_answer는 keep verdict를 받은 문장만 자연스럽게 이어 붙인 결과여야 합니다.\n"
-        "- keep 문장이 하나도 없으면, 질문에 직접 답할 수 있는 근거를 찾지 못했다는 짧은 문장만 남기세요.\n\n"
-        "질문 유형: {query_type}\n"
-        "질문: {query}\n\n"
-        "Structured Evidence:\n{evidence}\n\n"
-        "초안 답변:\n{answer}\n\n"
-        "반드시 다음 필드를 채우세요.\n"
-        "- kept_claim_ids: 최종 답변에 실제로 남긴 evidence_id\n"
-        "- dropped_claim_ids: 제거한 evidence_id\n"
-        "- unsupported_sentences: 삭제하거나 축소한 문장/구\n"
-        "- sentence_checks: 각 문장에 대한 verdict, reason, supporting_claim_ids\n"
-        "- final_answer: 최종 사용자 답변\n"
-    ),
-    "numeric_extractor_prompt_template": (
-        "당신은 재무 데이터 전문 분석가입니다.\n"
-        "아래 질문에 답하기 위해 공시 문서 컨텍스트에서 정확한 수치를 추출하세요.\n\n"
-        "지시사항:\n"
-        "1. 표(Table)에서 행과 열의 교차점을 정확히 확인하세요.\n"
-        "2. 당기/전기, 연결/별도, 금액 단위를 최우선으로 확인하세요.\n"
-        "3. raw_value는 문서에서 찾은 숫자를 변환 없이 그대로 적으세요.\n"
-        "4. final_value는 raw_value와 unit을 바탕으로 질문에 직접 답하는 자연스러운 한국어 한 문장으로 작성하세요.\n"
-        "5. 수치를 찾지 못한 경우 raw_value와 final_value를 빈 문자열로 두세요.\n\n"
-        "질문: {query}\n\n"
-        "컨텍스트:\n{context}\n"
-    ),
-    "numeric_extractor_incomplete_retry_prompt_template": (
-        "직전 structured 응답은 final_value를 작성했지만 raw_value를 비워 schema 계약을 위반했습니다.\n"
-        "최종 문장을 역으로 파싱하지 말고, 아래 원문 컨텍스트에서 요청한 값을 다시 확인하세요.\n"
-        "값을 찾았다면 raw_value에 원문 숫자를 그대로 넣고 unit과 final_value를 함께 채우세요.\n"
-        "근거로 확정할 수 없다면 raw_value와 final_value를 모두 빈 문자열로 두세요.\n\n"
-        "질문: {query}\n\n"
-        "컨텍스트:\n{context}\n"
-    ),
-}
-
 QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
     "strip_chars": "()[]{}'\"“”‘’,.·:;",
     "leading_connector_pattern": r"^(또는|및|등)\s+",
@@ -1353,27 +1076,6 @@ QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
     "english_token_pattern": r"[A-Za-z][A-Za-z0-9./-]{2,}",
     "generic_token_pattern": r"[가-힣A-Za-z0-9]+",
     "label_template": "query_focus_{index}",
-}
-
-
-DIVIDEND_POLICY_ASSEMBLY_POLICY: Dict[str, Any] = {
-    "amount_patterns": (
-        r"(\d+\s*조\s*\d{1,3}(?:,\d{3})?\s*억원)",
-        r"(\d{1,3}(?:,\d{3})+\s*억원)",
-        r"(\d{1,3}(?:,\d{3})+\s*백만원)",
-    ),
-    "rank_patterns": {
-        "trillion_eok": r"(\d+)\s*조(?:\s*(\d{1,3}(?:,\d{3})?))?\s*억원",
-        "eok": r"(\d{1,3}(?:,\d{3})+)\s*억원",
-        "million_krw": r"(\d{1,3}(?:,\d{3})+)\s*백만원",
-    },
-    "million_krw_to_eok_divisor": 100.0,
-    "trillion_to_eok_multiplier": 10000,
-    "clause_split_pattern": r"(?<=[.!?])\s+|\n+",
-    "clause_max_chars": 240,
-    "year_pattern": r"(20\d{2})년",
-    "year_prefix_template": "{year}년 ",
-    "payout_priority_section_terms": ("이사의 경영진단",),
 }
 
 
@@ -1776,20 +1478,6 @@ def narrative_policy_paragraph_priority_sections(policies: Sequence[Dict[str, An
             *narrative_policy_terms(policies, "paragraph_priority_sections"),
         ]
     )
-
-
-def narrative_policy_driver_groups(policies: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    groups: List[Dict[str, Any]] = []
-    for policy in policies:
-        for group in tuple(policy.get("driver_groups", ()) or ()):
-            groups.append(
-                {
-                    "label": str(group.get("label") or ""),
-                    "variants": [str(item) for item in tuple(group.get("variants", ()) or ()) if str(item).strip()],
-                    "phrase": str(group.get("phrase") or ""),
-                }
-            )
-    return groups
 
 
 def narrative_policy_slot_groups(

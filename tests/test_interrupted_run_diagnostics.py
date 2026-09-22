@@ -45,8 +45,7 @@ class InterruptedRunDiagnosticsTests(unittest.TestCase):
             responses = [accepted, stop]
         elif stop_at == "none":
             responses = [fixture.good]
-        agent = phase_fixture.FinancialPhaseContractTests._narrative_agent()
-        del agent._project_runtime_calculation_trace
+        agent = phase_fixture.FinancialPhaseContractTests._agent()
         agent._plan_answer_obligation_program = Mock(return_value={
             "semantic_plan": {"program_required": True}, "answer_obligations": owners,
             "retrieval_queries": [name]})

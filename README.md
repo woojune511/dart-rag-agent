@@ -9,6 +9,11 @@ produced.
 > Multi-agent orchestration, cache promotion, and extended review machinery are
 > experiments around the core, not the main product claim.
 
+The [completion scope](docs/overview/portfolio_scope.md) prioritizes a reproducible
+simple-RAG comparison, one justified improvement, and a final evaluation/demo.
+The retired topic-specific narrative answer path has been removed; all answer
+kinds use the shared Planner–Compiler workflow. The comparison is still pending.
+
 ## The problem
 
 Financial RAG can return a plausible answer while selecting the wrong row,

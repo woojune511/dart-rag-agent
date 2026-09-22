@@ -1845,27 +1845,6 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         self.assertNotIn(short_ref('cand-a', 'c'), str(llm.prompts[1]))
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
 
-    def test_graph_routes_program_path_without_operation_family_branching(self) -> None:
-        agent = self._agent(_StructuredQueueLLM())
-        state = {
-            "semantic_plan": {"program_required": True},
-            "active_subtask": {"operation_family": "ratio"},
-            "intent": "comparison",
-            "retrieved_docs": [],
-            "seed_retrieved_docs": [],
-        }
-        self.assertEqual(agent._route_after_expand(state), "program_compiler")
-        self.assertEqual(
-            agent._route_after_expand({"semantic_plan": {"program_required": False}}),
-            "evidence",
-        )
-        self.assertEqual(
-            agent._route_after_retrieval_v2(
-                {"requirements": {"semantic_plan": {"program_required": True}}}
-            ),
-            "build_candidates",
-        )
-
     def test_graph_dag_contains_only_canonical_numeric_program_nodes(self) -> None:
         agent = self._agent(_StructuredQueueLLM())
         graph = agent._build_graph().get_graph()
@@ -1878,13 +1857,13 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 "build_candidates",
                 "compile_program",
                 "execute_numeric",
-                "build_narrative",
                 "assemble_ledger",
                 "assemble_final",
             }.issubset(nodes)
         )
         self.assertTrue(
             {
+                "build_narrative",
                 "operand_extractor",
                 "formula_planner",
                 "calculator",
@@ -1905,7 +1884,6 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
                 "candidates",
                 "compilation",
                 "numeric_result",
-                "narrative_result",
                 "ledger",
                 "final_result",
             },

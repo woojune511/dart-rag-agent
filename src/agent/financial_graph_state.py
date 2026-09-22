@@ -360,19 +360,6 @@ class NumericResultPhase(TypedDict):
     evidence_items: List[Dict[str, Any]]
 
 
-class NarrativeResultPhase(TypedDict, total=False):
-    evidence_items: List[Dict[str, Any]]
-    evidence_status: str
-    selected_claim_ids: List[str]
-    draft_points: List[str]
-    validated_sentences: List[str]
-    sentence_checks: List[Dict[str, Any]]
-    kept_claim_ids: List[str]
-    dropped_claim_ids: List[str]
-    unsupported_sentences: List[str]
-    calculation_projection: RuntimeCalculationTrace
-
-
 class FinalResultPhase(TypedDict):
     agent_answer: AgentAnswer
     review_trace: ReviewTrace
@@ -430,23 +417,6 @@ class NumericExecutionInput(RequestPhase, total=False):
     resolved_calculation_trace: RuntimeCalculationTrace
 
 
-class NarrativeInput(TypedDict, total=False):
-    query: str
-    query_type: str
-    intent: str
-    format_preference: str
-    topic: str
-    semantic_plan: Dict[str, Any]
-    active_subtask: Dict[str, Any]
-    retrieved_docs: List[Any]
-    evidence_items: List[Dict[str, Any]]
-    evidence_bullets: List[str]
-    evidence_status: str
-    selected_claim_ids: List[str]
-    draft_points: List[str]
-    compressed_answer: str
-
-
 class FinancialAgentStateV2(TypedDict, total=False):
     """Graph state with one top-level writer for every runtime phase."""
 
@@ -457,7 +427,6 @@ class FinancialAgentStateV2(TypedDict, total=False):
     candidates: CandidatesPhase
     compilation: CompilationPhase
     numeric_result: NumericResultPhase
-    narrative_result: NarrativeResultPhase
     final_result: FinalResultPhase
     ledger: LedgerSnapshot
 
@@ -484,10 +453,6 @@ class CompilationUpdate(TypedDict):
 
 class NumericResultUpdate(TypedDict):
     numeric_result: NumericResultPhase
-
-
-class NarrativeResultUpdate(TypedDict):
-    narrative_result: NarrativeResultPhase
 
 
 class FinalResultUpdate(TypedDict):
