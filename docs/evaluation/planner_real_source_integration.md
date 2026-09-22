@@ -97,7 +97,7 @@ the local packet `benchmarks/results/planner_source_integration_2026-09-22` stay
 ignored. Added provider calls/accounting **0**. Shared accounting remains
 **USD19.92634743 / 20.32**, remaining **0.39365257**, pending0; no budget increase.
 
-Next prepare the two unchanged real questions for **cash balance** and **prior
+At this handoff, the next step was the two unchanged real questions for **cash balance** and **prior
 standalone dividends** under one fresh Planner-only manifest. Review new typed
 period/scope choices against the original request and fixed saved evidence,
 then replay saved Compiler choices locally. With unchanged14000 input/8192 output
@@ -106,3 +106,8 @@ pairs require **USD0.286608**, fitting a proposed **0.29** cap within the balanc
 This is funding feasibility only: exact request capture, criteria and SDK checks
 must precede new execution. No Compiler generation, retrieval, ingest, automatic
 retry/resume or additional funding is included.
+
+The [completed real-question Planner probe](planner_real_questions_result.md)
+now records period1/2 and scope2/2: the cash plan loses the end-of-year boundary
+by declaring within_year. Both saved choices replay successfully, which does not
+erase that semantic negative. Prior authored and historical results above remain unchanged.
