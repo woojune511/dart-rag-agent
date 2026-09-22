@@ -1,5 +1,9 @@
 # Portfolio Demo Walkthrough
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> and [offline demo](simple_rag_demo.md).
+
 This walkthrough explains the smallest reviewer-facing demo for the current
 single-agent runtime contract. It is fixture-backed, so it runs without DART
 downloads, vector-store setup, API keys, or benchmark result bundles.

@@ -1,5 +1,9 @@
 # Technical Highlights
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> and [offline demo](simple_rag_demo.md).
+
 이 문서는 reviewer-facing 핵심 기술 요약이다. 상세 실험 로그는
 [project_status.md](project_status.md),
 [../evaluation/benchmarking.md](../evaluation/benchmarking.md),

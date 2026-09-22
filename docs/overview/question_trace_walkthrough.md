@@ -1,5 +1,9 @@
 # Question Trace Walkthrough
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> and [offline demo](simple_rag_demo.md).
+
 이 문서는 현재 single-agent runtime에서 질문 하나가 통과하는 경계만 설명한다.
 정확한 node/edge 목록은 source-generated block이 있는
 [runtime_flow_roles.md](runtime_flow_roles.md)를 따른다.

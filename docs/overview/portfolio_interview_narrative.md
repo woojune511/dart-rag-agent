@@ -1,5 +1,9 @@
 # Portfolio Interview Narrative
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> and [offline demo](simple_rag_demo.md).
+
 This is the compact version of the project story for a portfolio review,
 screening call, or interview. It assumes the listener already understands RAG,
 LLM agents, retrieval traces, and grounding/evaluation terminology.

@@ -1,0 +1,31 @@
+{
+  "schema_version": "simple_rag_public_demo_provenance_v1",
+  "evidence_class": "selected_saved_application_outputs",
+  "runtime_revision": "a9270221ac3d1dc43ed97398711650e69031c213",
+  "run_revision": "6083bf36",
+  "run_date": "2026-09-22",
+  "case_ids": [
+    "F02",
+    "F05",
+    "F10",
+    "F11",
+    "F12"
+  ],
+  "selection": "After-run selection: two positive examples, both abstentions and the failed abstention. Not an accuracy sample.",
+  "payload_sha256": "8b86b3046a70504cc3337cb1ad28da526f17bad294d5fa194bf64469cc3f8772",
+  "canonicalization": "UTF-8 JSON; ensure_ascii=false; sort_keys=true; separators=(comma,colon); no trailing newline",
+  "question_set_sha256": "39bf4b14388087e06e54db882201cff883a331f0343dceaef21ca50adb2b4261",
+  "review_sha256": "c12140ad39e4696616c15a57e799862faa1e9b974008b74fb1b3167c354031b1",
+  "raw_freeze_sha256": "7b6871607f2554cf3f11a75116fdc6ccccf818c05d08a295dfeb96e61139259a",
+  "source_result_sha256": {
+    "F02": "20456847745e9391a1d84931f0495483dfb6007604522df1f9d970cfa13b2844",
+    "F05": "cb759392f397cfd97ca6716700fb9c4f46546f19f0a9bfcbfa9c5a8d0dfc4599",
+    "F10": "39b1b50379c5b5ff12544ccfce2c1f89dfa97009e72d99bb007359759087c8c9",
+    "F11": "fa972c18d1ac77a294b54c907f62fdde803a3716873f4c9a9461b91b0eb883b9",
+    "F12": "8fe076d6836267323637214c25a1e903182b00e8e48dd73766f15667bc63ebdf"
+  },
+  "included": "Exact question, explicit scope, answer, abstention, validation labels, all cited chunk texts/context, selected timing and reviewer verdict/note.",
+  "excluded": "Full request/response/debug logs, uncited retrieval contexts, original store, credentials, local paths and shared-budget history.",
+  "upstream_raw_artifacts_distributed": false,
+  "limitations": "Integrity within this published sample is locally checkable. Upstream hashes are provenance references, not independently verified execution or a cryptographic attestation. Full-panel metrics are reported from the local run, not recomputed from these five cases."
+}

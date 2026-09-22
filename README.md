@@ -55,12 +55,27 @@ call per nonempty case. Mean question time was **4.02 s**, with an estimated
 **USD0.208** total cost for 12 questions. This is one instrumented local run, not
 production HTTP latency or a paired comparison.
 
-Start with the [saved-response walkthrough](docs/overview/simple_rag_demo.md) and
-[result report](docs/evaluation/simple_rag_final_result.md). The local HTML viewer
-shows all actual answers and cited sources without making API calls. It opens on
-the failure: an annual-revenue average substituted for an unavailable daily fact.
-The ignored raw bundle/viewer is not shipped with a fresh Git clone; the report
-records its provenance and availability explicitly.
+Download or clone the repository and open **[demo/index.html](demo/index.html)**
+in your browser. No install, API key, server or source store is needed. The viewer
+includes five selected actual answers and all their cited source text. It opens
+on the failure: an annual-revenue average substituted for an unavailable daily
+fact. GitHub's source preview does not run HTML; open the downloaded file.
+
+```powershell
+Start-Process (Resolve-Path 'demo/index.html').Path
+```
+
+Read the [one-page introduction](docs/overview/portfolio_one_pager.md),
+[walkthrough](docs/overview/simple_rag_demo.md) and
+[full result report](docs/evaluation/simple_rag_final_result.md).
+The five examples illustrate success, abstention and failure; the metrics above
+describe the full 12-case run. Full raw logs/stores remain local. This is saved
+output inspection, not a live RAG query or independent reproduction of the run.
+An optional standard-library check verifies the packaged data:
+
+```bash
+python -I -S demo/verify.py
+```
 
 ## Historical comparison and fixture evidence
 
@@ -94,8 +109,8 @@ the default simple-RAG application. For that historical surface:
 1. Read the problem and core pipeline above.
 2. Run the demo and inspect `Semantic Plan`, `Retrieval Trace`, `Calculation
    Trace`, citations, and critic acceptance.
-3. Scan the representative result and scope boundary in the
-   [portfolio one-pager](docs/overview/portfolio_one_pager.md).
+3. Inspect the historical scope and claim boundaries in the
+   [compiled fixture walkthrough](docs/overview/portfolio_demo_walkthrough.md).
 
 The fixture-backed demo is a checked-in curated contract example, not a live
 DART ingest or provider call. Its
@@ -203,6 +218,7 @@ src/config/                ontology, retrieval policy, and runtime config
 src/ops/                   evaluation, benchmark, and reviewer commands
 tests/                     contract and regression tests
 docs/                      reviewer guides and internal history
+demo/                      standalone saved-answer viewer; no API or dependencies
 ```
 
 Internal status and experiment logs remain available for audit and historical

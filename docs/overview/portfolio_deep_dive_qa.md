@@ -1,5 +1,9 @@
 # Portfolio Deep-Dive Q&A
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> and [offline demo](simple_rag_demo.md).
+
 이 문서는 DART financial RAG 프로젝트를 면접에서 깊게 설명하기 위한
 질문/답변 노트다. 짧은 소개는
 [portfolio_interview_narrative.md](portfolio_interview_narrative.md)를 먼저

@@ -35,6 +35,12 @@ Before execution, provider-admission/simple-RAG tests27/27, a full12-case blocke
 
 The preceding [simple-RAG transition](../architecture/simple_rag_adoption.md) passed **2,125/2,125 tests** (64.083s), including16 new application-boundary controls. Focused56, final API/profile48, comparison/import48, domain audit35 and documentation/topology checks passed. That transition was provider-free; its full suite was not rerun for this documentation-only evaluation close.
 
+## Packaged offline review
+
+The [one-page introduction](portfolio_one_pager.md) now describes simple RAG and the evidence behind simplification. [demo/index.html](../../demo/index.html) is included in Git: five selected saved cases, exact answers and all six cited chunks, with success/abstention/failure and separate full12-case metrics. No installation, credentials, server or source store is needed. The full raw bundle stays local; [provenance](../../demo/provenance.json) hashes are integrity references, not independent execution proof. Older compiled portfolio documents are explicitly historical.
+
+Tracked-tree archive `4e67f378` passes the standard-library verifier with `-I -S` and minimal environment, without `.env`, `.venv`, data or the local run. All five browser selections preserve exact text; desktop/mobile/dark layouts pass, JS errors/external requests0. Changed payload rejects. Current documentation authority2/2 passes. This is local package validation, not a fresh evaluation, remote CI or deployment; runtime/model/settings and paid accounting are unchanged.
+
 ## Prior checkpoints (not default-RAG acceptance)
 
 The [feature retirement](../architecture/portfolio_feature_retirement.md) removes duplicate question routing, MAS, report-result cache/promotion, unused reflection/ratio-repair code and dedicated tools/tests: 63 files deleted, net10,855 fewer lines across source/configuration/tools. Seven graph nodes remain; initial filing scope comes only from explicit caller scope, public query_type is neutral qa, and unspecified retrieval format is mixed. Planner/Compiler and source/arithmetic/coverage guards remain. Full suite **2,109/2,109** (73.338s), focused81+64 and domain audit35 pass; all110 protected files retain their hashes. No paid calls or model-quality/speed claim. Earlier measurements below retain their original source version.
@@ -118,8 +124,8 @@ They do not establish current simple-RAG model quality or runtime acceptance.
 
 ## Completion and remaining limits
 
-1. The [scoped portfolio milestone](portfolio_scope.md) is complete: frozen panel, one actual-app evaluation, report and local saved-response demo. No automatic follow-up experiment is queued.
-2. Broader independent evaluation, artifact publication and deployment remain separately scoped work. The current report is not a release or general accuracy guarantee.
+1. The [scoped portfolio milestone](portfolio_scope.md) and subsequent sharing preparation are complete: frozen panel, one actual-app evaluation, report, current introduction and packaged offline demo. No automatic follow-up experiment is queued.
+2. Broader independent evaluation, remote publication and deployment remain separately scoped work. Package validation is not a release or general accuracy guarantee.
 3. Do not add per-question prompt/schema rules or restore Planner/Compiler as an automatic fallback.
 4. Historical compiled comparisons remain explicit tools; previous one-batch approvals are consumed.
 

@@ -1,163 +1,74 @@
-# Portfolio One-Pager
+# DART Filing RAG
 
-## DART Financial Agentic RAG
+DART 공시의 표와 문맥을 검색하고, 답변과 인용 원문을 함께 제공하는 문서 QA
+애플리케이션이다. 구조를 보존하는 전처리, 범위가 명확한 하이브리드 검색,
+검토 가능한 출처, 비용·지연시간 측정과 평가에 기반한 설계 판단을 보여준다.
 
-An evidence-first financial QA agent for Korean DART filings. It retrieves
-structured source evidence, uses an LLM to plan the required analysis, executes
-numeric operations deterministically, and returns an answer with inspectable
-calculation and provenance traces.
+[설치 없는 데모](../../demo/README.md) ·
+[평가 보고서](../evaluation/simple_rag_final_result.md) ·
+[코드 탐색](codebase_map.md)
 
-The portfolio claim is applied LLM systems engineering. It is not a new model,
-a general TableQA algorithm, or a multi-agent framework.
+## 해결하려는 문제
 
-## Problem
+공시에는 이름이 비슷한 항목과 여러 기간·단위·연결/별도 수치가 함께 등장한다.
+검색된 숫자가 맞더라도 질문의 대상이나 기간에 맞는 답변이라는 보장은 없다.
+이 프로젝트는 원문 구조와 검색 범위를 보존하고, 답변을 출처와 대조할 수 있게
+만든다. 출처 ID 검사와 의미 정확성 검증은 서로 다른 보장으로 취급한다.
 
-Financial-document RAG often produces plausible but incorrect answers because
-it selected the wrong row, subtotal, period, unit, segment, or reporting entity.
-Even a citation can be misleading when the answer does not reveal which values
-were bound to the formula.
-
-This project treats those failures as runtime contract violations. A numeric
-answer should show:
-
-- which retrieval queries and filters ran;
-- which chunks, table rows, and source sentences were selected;
-- which operands and periods were bound;
-- which deterministic formula was executed;
-- whether the final display agrees with signed source values and provenance.
-
-## Core pipeline
+## 현재 구조
 
 ```text
-Question
-  -> LLM semantic plan
-  -> Chroma dense retrieval + BM25 sparse retrieval
-  -> reciprocal-rank fusion and structural reranking
-  -> evidence selection and operand binding
-  -> deterministic formula execution
-  -> provenance and consistency validation
-  -> answer + structured_result + resolved_calculation_trace
+질문 + 사용자가 지정한 공시 범위
+  → Chroma dense 검색 + BM25 검색, RRF 결합
+  → 크기가 제한된 원문·문맥 묶음
+  → 답변 생성 1회
+  → 응답 형식·출처 ID·지정 범위 검사
+  → 답변 + 인용 원문 + 보류 여부 + 검증 한계
 ```
 
-### What the LLM does
+FastAPI와 Streamlit은 같은 `SimpleRagAgent` 서비스를 사용한다. 질문에서 회사나
+연도를 추정해 검색 범위를 덮어쓰지 않는다. 근거가 비어 있으면 답변 생성 없이
+보류한다. 계산은 모델 답변에 포함될 수 있지만 산술·의미·요청 누락을 코드로
+검증하지 않으며, 응답에 이를 표시한다.
 
-- classifies intent and operation family;
-- maps the question to ontology concepts;
-- proposes retrieval queries and required operands;
-- interprets ambiguous narrative evidence when deterministic structure is not
-  sufficient.
+## 주요 구현과 설계 판단
 
-### What deterministic code does
+- **원문 구조 보존:** 절 제목, 표의 행·열·단위와 공시 식별자를 검색 문맥에 남긴다.
+- **검색과 출처 추적:** dense/BM25에 동일한 명시적 범위를 적용하고, 검색·선택·
+  제외 기록을 남긴다. 중복과 충돌하는 출처 식별자를 처리한다.
+- **관측과 비용 통제:** 실행의 호출 수·토큰·시간을 기록하고, 유료 평가는 질문·
+  기준·예산을 먼저 고정한다. 모의 검증과 실제 모델 결과를 구분한다.
+- **실험에 따른 단순화:** Planner·Compiler 비교에서 확인한 비용과 복잡성에 비해
+  품질 이점이 명확하지 않아 기본 경로를 단순 RAG로 바꿨다. 사용하지 않는 기능을
+  제거했고 Compiler는 명시적인 비교·replay에만 남겼다.
 
-- applies filing metadata filters and retrieval budgets;
-- fuses dense and sparse retrieval results;
-- matches rows, headers, periods, units, and consolidation scope;
-- binds dependencies and deduplicates operands;
-- performs arithmetic and unit conversion;
-- verifies evidence, calculation, and final-answer consistency.
+이전 네 문항 개발 비교에서 복잡한 경로는 추정 비용 3.47배, 측정 시간 4.79배였다.
+익숙한 문항·고정 근거·서로 다른 표현 방식의 비교이므로 일반적인 RAG 우열이나
+특정 구성요소의 인과 효과를 주장하지 않는다.
+[비교 방법과 한계](../evaluation/portfolio_workflow_comparison_successor.md).
 
-This separation is the main agentic design choice: LLMs handle semantics, while
-code owns execution and acceptance.
+## 실제 앱 평가
 
-## Technical highlights
+2026-09-22, NAVER 2022·2023년 공시 두 건으로 만든 고정 12문항을 한 번 실행했다.
 
-### Hybrid retrieval with traceability
+| 측정 | 결과 |
+| --- | --- |
+| 답변 가능한 질문의 정확성·완전성·원문 지지 | 9/9 기준 충족 |
+| 근거 부족 질문의 답변 보류 | 2/3 성공 |
+| 질문당 평균 시간 | 4.02초, 초기화 제외·기록 저장 포함 |
+| 전체 추정 비용 | 약 USD0.208, 실제 청구서 대조는 미수행 |
 
-The canonical Chroma runtime uses OpenAI `text-embedding-3-large` dense vectors
-with 3,072 dimensions. BM25 is a separate lexical index. Their candidates are
-combined with reciprocal-rank fusion, then reranked using document structure and
-query scope. `retrieval_debug_trace` explains the query bundle, filters,
-candidate counts, and final selection.
+에이전트가 사전 기준과 원문을 대조한 소규모 결과다. 독립 정답 평가나 새로운
+회사에 대한 정확도를 의미하지 않는다. 일별 매출 대신 연간 매출의 평균을 제시한
+실패와, 보류 답변의 과도한 기간 설명을 그대로 기록했다. 이 문항들에 맞춘 추가
+규칙은 넣지 않았다. 산술이 맞는 답변도 코드 실행으로 검증한 결과는 아니다.
 
-### Structure-preserving financial evidence
+## 직접 확인하기
 
-The parser retains section paths, table context, row/header relationships,
-period focus, unit hints, statement type, and consolidation scope. Numeric
-answers preserve source row identifiers and source-visible display values.
+저장소를 내려받아 `demo/index.html`을 브라우저로 열면 된다. API 키와 설치 없이
+성공·보류·실패 5개 사례의 실제 답변과 인용 원문을 확인할 수 있다. 전체 12문항의
+원본 실행 로그는 공개 샘플에 포함하지 않는다. 데모 열기는 저장된 기록의 재현이며
+새로운 검색이나 모델 실행이 아니다.
 
-### Canonical numeric contracts
-
-- `answer_slots` preserve display, role, period, unit, and provenance.
-- `structured_result` is the caller-facing structured answer.
-- `resolved_calculation_trace` is the canonical operand/formula/result trace.
-
-Legacy flat mirrors may not override these surfaces.
-
-### Generalization guardrails
-
-Financial vocabulary lives in ontology, retrieval policy, config, or documented
-data—not company- or benchmark-specific runtime branches. Benchmark failures
-are classified by system layer before any change is made.
-
-## Representative result
-
-The latest recorded expanded structural run closed `9 / 9` numeric questions.
-The most recent plain-retrieval comparison remains `5 / 9` and exposes three
-useful failure families: display/unit mismatch, wrong denominator, and wrong
-row/period binding. Both are locally executed benchmark summaries. Their raw
-artifacts are not checked into this repository, and availability varies by run.
-
-These numbers are not presented as a freshly synchronized leaderboard
-ablation or as independently reproducible evidence from this checkout. They are
-recorded engineering evidence for the failure taxonomy. The methodology and
-limitations are in
-[portfolio_experiment_report.md](portfolio_experiment_report.md).
-
-A compact representative case is the CIR calculation:
-
-```text
-4,355억원 / 11,623억원 = 37.47%
-```
-
-The important part is not the division itself. The runtime must find both
-operands in coherent source context, reject plausible competing rows, preserve
-their provenance, execute the formula, and force the final prose to follow the
-verified trace.
-
-## Review path
-
-Run the fixture-backed core demo from the repository README:
-
-```bash
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
-```
-
-The first scan should confirm the manifest boundary and five connected surfaces
-in one output:
-
-1. a SHA-256-bound `curated_contract_fixture` whose upstream lineage is
-   `not_provided`;
-2. a representative semantic-plan contract with required operands;
-3. a representative hybrid-retrieval trace with candidate and selected-chunk
-   counts;
-4. deterministic operands, formula, and result;
-5. citations, task/artifact integrity, critic targets, and cross-surface
-   acceptance checks.
-
-The [fixture evidence manifest](../../tests/fixtures/portfolio_demo/evidence_manifest.json)
-binds the curated fixture bytes and states its claim boundary. The hash proves
-fixture integrity and internal consistency, not runtime provenance. The demo
-reports `fixture_contract_ready`, not live-runtime or publication readiness.
-`portfolio_review_gates` reports `review_surface_ready` and explicitly does not
-run the unit suite or domain audit; the CI workflow owns those publication
-checks. The demo is not a live provider call.
-Use the [question trace walkthrough](question_trace_walkthrough.md),
-[experiment report](portfolio_experiment_report.md), or
-[technical highlights](technical_highlights.md) only when a deeper code,
-evidence, or implementation review is useful.
-
-## Scope boundary
-
-The default product runtime is `FinancialAgent.run()`.
-
-- Core: parser, hybrid retrieval, evidence/operand binding, deterministic
-  calculation, answer projection, and runtime traces.
-- Evaluation: benchmark runner, evaluator, regression fixtures, and review
-  gates that consume core contracts without defining runtime behavior.
-- Experimental: MAS orchestration, graph-expansion variants, cache promotion,
-  and extended reflection/review workflows.
-- Legacy: compatibility imports and response mirrors scheduled for removal once
-  callers and contract tests no longer require them.
-
-This boundary keeps the portfolio story focused while preserving deeper
-experiments as optional evidence of system design work.
+구현 세부 계약은 [application runtime contract](../architecture/agent_runtime_contract.md),
+검증 현황은 [project status](project_status.md)에 정리되어 있다.

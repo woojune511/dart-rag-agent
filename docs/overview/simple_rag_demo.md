@@ -6,21 +6,27 @@ one answer call → inspectable citations and explicit validation limits. The
 examples here. This walkthrough presents saved actual answers, not a new live
 query or the older compiled-workflow fixture.
 
-## Open the local viewer
+## Open the packaged viewer
 
-Open [demo.html](../../benchmarks/results/simple_rag_final_2026-09-22/demo.html)
-in a browser. From this repository on Windows:
+Download or clone the repository and open [demo/index.html](../../demo/index.html)
+in a browser. From the repository root on Windows:
 
 ```powershell
-Start-Process (Resolve-Path 'benchmarks/results/simple_rag_final_2026-09-22/demo.html').Path
+Start-Process (Resolve-Path 'demo/index.html').Path
 ```
 
-The standalone file needs no server, credentials or network. It contains the
-exact saved answer text, cited source text, per-case timing and separate reviewer
-notes for all 12 questions. It does not start the app or call a provider. The
-viewer and raw run bundle are local ignored artifacts, so a fresh Git clone
-contains this report/walkthrough but not the viewer. No publication of the raw
-bundle or deployment is implied.
+The standalone file needs no installation, server, credentials, store or network.
+It contains exact saved answers and all their cited source texts, per-case timing
+and separate reviewer notes for **five selected examples**: F02/F05/F10/F11/F12.
+The selection was made after the final run to show successful lookup/calculation,
+both abstentions and the failure. The displayed aggregate metrics describe the
+full 12-question panel, not a success rate for these five examples.
+
+This viewer is included in Git; it does not start the app or call a provider.
+The original 12-case viewer and raw bundle remain local ignored artifacts.
+GitHub's HTML source preview is not a running demo; open the downloaded file.
+See [demo/README.md](../../demo/README.md) for platform-independent instructions
+and the optional standard-library data-integrity check. No hosted deployment is implied.
 
 ## Five-minute route
 
@@ -47,11 +53,13 @@ record. The review column is an offline assessment, not a runtime guarantee.
 
 ## Engineering evidence
 
-The viewer is a reading aid. The [result report](../evaluation/simple_rag_final_result.md)
-links the frozen questions/rubric, request/response records, pre-review hash map,
-usage accounting and browser checks. Reproduction means inspecting those saved
-inputs and outputs locally; repeating a paid sample is neither necessary nor
-authorized by this walkthrough.
+The viewer is a reading aid. The [public manifest](../../demo/provenance.json)
+identifies the selected cases, original result hashes and canonical data hash.
+`python -I -S demo/verify.py` checks the packaged data using only the standard
+library. It does not independently verify upstream execution or answer quality.
+The [result report](../evaluation/simple_rag_final_result.md) links the complete
+local bundle; those raw logs are not distributed. Reproduction here means opening
+the same saved answers and sources, not repeating the evaluation or a paid sample.
 
 For implementation review, follow the
 [application contract](../architecture/agent_runtime_contract.md) and

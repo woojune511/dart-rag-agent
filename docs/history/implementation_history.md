@@ -5,6 +5,13 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Shareable simple-RAG review package (2026-09-22)
+
+- Starting at `763b4082`, the user authorized the current one-page introduction, an offline public demo and fresh-checkout verification. [demo/](../../demo/README.md) contains five selected saved cases (F02/F05/F10/F11/F12), exact answers and all six cited chunks from the completed final run. The failed daily-revenue substitution opens first; F11's successful abstention and ancillary wording concern remain separate. Full12-case metrics are explicitly distinct from the after-run selection. Raw logs, stores and settings stay local; no source/answer rewriting or new provider call.
+- The standalone HTML needs only a browser. The manifest binds canonical embedded data and records original result hashes with unavailable upstream raw files clearly stated. A small standard-library verifier checks package integrity only. README/one-pager/walkthrough/claim guidance now describe the current simple-RAG guarantees; older compiled presentation material is labeled historical.
+- Tracked-tree archive `4e67f378` validates with isolated Python `-I -S` and a minimal environment, with no `.env`, `.venv`, data or local final-run bundle. Five browser selections preserve exact answers/sources; desktop/mobile/dark rendering passes with no overflow, JS errors or external page requests. A changed payload fails the verifier. The first local absence assertion was corrected because26 historical summary files are already tracked under `benchmarks/results`; those are preserved, and actual local runtime stores/evaluation bundles are absent. No runtime tests or new model-quality claim is inferred from these package checks.
+- Current docs2/2 pass; runtime and shared accounting remain unchanged at USD21.20953897/26.32, remaining5.11046103, pending0. Receipts are ignored under `benchmarks/results/simple_rag_public_demo_2026-09-22/`. Only reviewed `demo/` content and documentation are staged; no remote push, hosted deployment or broad release claim.
+
 ## Simple RAG as the default application (2026-09-22)
 
 - Starting at `2a926a6e`, the user authorized the [simple-RAG application](../architecture/simple_rag_adoption.md) after reviewing its reduced guarantees. FastAPI/Streamlit now use one existing scoped hybrid search and at most one answer call. Empty evidence abstains without generation; malformed citations, scope leaks and conflicting source identities fail without retries or Compiler fallback.

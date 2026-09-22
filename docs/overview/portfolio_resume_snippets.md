@@ -1,5 +1,9 @@
 # Portfolio Resume Snippets
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> and [offline demo](simple_rag_demo.md).
+
 Use these as concise resume, portfolio, or LinkedIn project descriptions. The
 wording is intentionally scoped: it presents the project as applied
 systems/research-engineering work, not as a new model architecture or a general

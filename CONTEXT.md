@@ -54,11 +54,28 @@ and144 frozen raw outputs retain their hashes; no original-store/settings change
 Local raw outputs, receipts and saved-response demo live under
 `benchmarks/results/simple_rag_final_2026-09-22/`; do not stage them.
 
+## Public review package
+
+The user subsequently authorized the one-page introduction, shareable offline
+demo and clean-checkout verification. `demo/index.html` packages five selected
+saved cases (F02/F05/F10/F11/F12), with exact answers and all six cited chunks.
+`demo/provenance.json` records selection/origin hashes; `demo/verify.py` is a
+standard-library data-integrity check, not an upstream execution or quality proof.
+The full12-case metrics remain distinct from this after-run selection. Raw logs,
+settings, stores and original result files remain local and unchanged.
+
+Tracked-tree archive `4e67f378` passes isolated Python `-I -S` and browser checks
+without `.env`, `.venv`, data or the local run bundle. All five selections render
+exactly; desktop/mobile/dark layouts pass with JS errors/external requests0.
+Tampered data rejects. Existing26 tracked historical summary files are retained.
+Source runtime and paid accounting are unchanged; no provider call, push or deployment.
+Receipts: `benchmarks/results/simple_rag_public_demo_2026-09-22/` (ignored).
+
 ## Completion and hard stops
 
-1. The frozen final evaluation, [report](docs/evaluation/simple_rag_final_result.md) and [local demo walkthrough](docs/overview/simple_rag_demo.md) are complete. No automatic next experiment or deployment is queued; this closes the scoped portfolio milestone.
+1. The final evaluation, [report](docs/evaluation/simple_rag_final_result.md), [updated introduction](docs/overview/portfolio_one_pager.md) and [packaged offline demo](demo/README.md) are complete. The scoped portfolio and sharing-preparation work is closed; no automatic experiment or deployment is queued.
 2. Do not restart a per-question repair queue or silently restore Compiler fallback. The default change is user-authorized, not evidence of general superiority.
-3. No automatic paid batch/retry or consumed-manifest reuse. Any broader independent evaluation or publication is separately scoped work.
+3. No automatic paid batch/retry or consumed-manifest reuse. Broader independent evaluation, remote publication or deployment is separately scoped work.
 4. Preserve source stores, historical raw outputs and accounting. The inactive default `data/chroma_dart` manifest mismatch remains; this change does not adopt or rebuild it.
 
 Current checks: [project status](docs/overview/project_status.md). Chronology:

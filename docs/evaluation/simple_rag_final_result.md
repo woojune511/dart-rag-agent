@@ -1,5 +1,9 @@
 # Simple-RAG final application evaluation
 
+Five selected saved outputs are now packaged in the [offline demo](../../demo/README.md)
+for fresh clones. This publication subset leaves the original 12-case run and
+metrics below unchanged; the full raw bundle remains local.
+
 Completed 2026-09-22 on `6083bf36`, with application source unchanged from
 `a9270221`. The [frozen panel](simple_rag_final_preparation.md) ran **once** through
 the application's service construction and `SimpleRagAgent`: 12/12 completed,
@@ -145,7 +149,7 @@ and cited source, including the failure. Desktop and mobile browser checks cover
 all 12 selections, exact answer/source rendering, no JavaScript exceptions and no
 horizontal overflow. Opening the standalone HTML makes no provider requests.
 
-Local artifacts below are **ignored and not distributed with a fresh clone**.
+Original local artifacts below are **ignored and not distributed with a fresh clone**.
 They reproduce inspection of this saved run when present; they do not promise
 identical output from a fresh model call. No new paid run is part of reproduction.
 
