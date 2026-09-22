@@ -4,6 +4,8 @@
 
 구현 단위의 세부 계약은 `docs/architecture/agent_runtime_contract.md`를 따른다. 이 문서와 충돌하면 더 구체적인 runtime contract를 우선하고, 원칙 변경이 필요하면 두 문서를 함께 갱신한다.
 
+기본 제품은 `SimpleRagAgent`의 검색 → 답변 생성 1회 → 출처 ID 검사 경로다. Planner·Compiler는 명시적 비교·replay 전용이며 아래의 해당 단계 계약은 `docs/architecture/compiled_workflow_contract.md`와 함께 그 경로에만 적용한다. 단순 RAG의 산술·의미·요청 누락 검증 미수행을 응답에 표시하고, 기존 계산 검증을 수행했다고 주장하지 않는다.
+
 구조 리팩터링, 파일 이동, public API surface 축소, MAS/eval/ops 분리 작업을 시작하기 전에는 `docs/architecture/agent_runtime_contract.md`와 `docs/overview/codebase_map.md`를 먼저 확인한다. 과거 단계별 근거가 필요할 때만 historical `docs/architecture/core_runtime_surface_refactoring_plan.md`를 참고한다.
 
 ## Core Principles
@@ -31,7 +33,7 @@
    - LLM은 intent, concept, evidence interpretation처럼 의미 판단에 쓴다.
    - Planner가 선언한 연결·별도 범위는 요청 의미 해석이다. 코드는 질문의 부분 문자열이나 문서 metadata로 그 선택을 만들거나 덮어쓰지 않는다. 공통 검색 선호는 실제 근거 소유자들의 일치하는 선언에서만 얻으며, 원문 범위 충돌 검증과 모델 해석의 의미 평가는 별도로 유지한다.
    - Planner의 절 제한은 소유한 연속 요청 구간의 시작·끝 ID와 관측된 절 ID로 연결한다. 코드는 전체 원문과 한정 조건을 그대로 복사하며, 범위 안 모든 구간의 소유권을 검증한다. 기존 인용형 기록의 잘못된 문장 부호를 보정하거나 새 참조로 자동 변환하지 않는다. 요청 연결은 올바른 절 해석의 증명이 아니다.
-   - 산술, 단위 변환, dependency binding, dedupe, ordering, validation은 deterministic code로 처리한다.
+   - 기본 RAG에서 code는 명시적 검색 범위·출처 ID·응답 형식·dedupe·ordering을 검사한다. 계산은 모델 답변에 포함될 수 있으나 코드 실행·검증이 아니며 이를 표시한다. 명시적 Compiler 비교에서는 산술, 단위 변환, dependency binding과 실행 검증을 deterministic code로 처리한다.
    - Compiler는 연산·인수·요청 수량의 근거를 선택하고, 코드는 명시된 단계 연결을 기존 계산식으로 옮긴다. 괄호 생성은 의미 보정이 아니며, 빠진 연산·인수·근거를 추정해서 채우지 않는다.
    - deterministic fallback은 없는 근거를 만들어내는 답변 생성이 아니라, 이미 구조화된 row/evidence를 조립하는 경우에만 허용한다.
    - Planner의 주체·항목 표현은 요청 보존과 독해 목표이지 원문 표현의 허용 목록이 아니다. Compiler는 요청 구간과 선택한 셀의 전체 축·연결 문맥의 대응을 기록한다. 코드는 물리적 연결을 검증하며, 문자 동일성으로 의미 동등성을 판정하지 않는다.
@@ -63,8 +65,8 @@
    - parser 구조 규칙을 benchmark answer 보정 용도로 사용하지 않는다.
 
 7. **질문 의미 해석을 중복 실행하지 않는다.**
-   - 모든 질문은 별도 질문 분류 없이 Planner로 들어간다.
-   - 질문에 등장한 연도를 정규식으로 보고서 검색 범위에 넣지 않는다. 명시적 caller scope와 Planner 해석을 구분한다.
+   - 기본 질문은 별도 질문 분류·Planner 없이 검색과 답변 생성으로 처리한다. Compiler로 자동 전환하지 않는다.
+   - 질문에 등장한 연도를 정규식으로 보고서 검색 범위에 넣지 않는다. 기본 검색 범위는 명시적 caller scope만 사용한다.
    - 별도 classifier/embedding/fallback이나 폐기한 MAS·결과 캐시를 새 이득 검증 없이 재도입하지 않는다.
 
 ## Fast Development Loop
@@ -132,7 +134,7 @@
 ## Design Rules For This Project
 
 - 포트폴리오 완료 범위와 종료 기준은 `docs/overview/portfolio_scope.md`를 따른다. 완료된 단순 RAG 비교와 기능 삭제 결정을 기준으로, 개별 실패마다 prompt/schema/policy 규칙을 추가하는 작업을 자동으로 재개하지 않는다.
-- 호출되지 않는 답변 경로와 전용 설정·테스트는 함께 제거한다. 활성 경로의 복잡성은 반복 가능한 품질·비용 비교로 정당화하되, 출처·산술·요청 누락 검증은 유지한다. 개별 예외를 config로 옮기는 것만으로 일반화했다고 보지 않는다.
+- 호출되지 않는 답변 경로와 전용 설정·테스트는 함께 제거한다. 명시적 비교에서 쓰는 Compiler 계약은 보존하되 기본 앱으로 우회 연결하지 않는다. 단순 RAG의 출처 ID 검사와 Compiler의 출처·산술·요청 누락 검증을 구분한다. 개별 예외를 config로 옮기는 것만으로 일반화했다고 보지 않는다.
 - Runtime default는 일반 사용자 질문에 맞춘다. benchmark profile은 별도 profile/config로 둔다.
 - Canonical ingest는 `src/config/runtime_contract.py`의 `CANONICAL_INGEST_PROFILE_ID`를 기준으로 한다. 다른 ingest는 명시적 experimental profile로만 쓴다.
 - Retrieval 변경은 `retrieval_debug_trace`로 query bundle, filter, selected chunk, policy trace를 남겨야 한다.

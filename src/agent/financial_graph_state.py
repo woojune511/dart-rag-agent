@@ -24,6 +24,10 @@ class DebugTraceBundle(TypedDict, total=False):
 
 
 class AgentAnswer(TypedDict, total=False):
+    workflow: str
+    abstained: bool
+    cited_sources: List[Dict[str, Any]]
+    validation: Dict[str, str]
     query: str
     report_scope: Dict[str, Any]
     query_type: str
@@ -69,6 +73,7 @@ class CompilerAttemptDebugV1(TypedDict):
 
 
 class DebugBundle(TypedDict, total=False):
+    timings_seconds: Dict[str, float]
     debug_traces: DebugTraceBundle
     request_diagnostics: RequestDiagnosticSnapshot
     compiler_attempts: List[CompilerAttemptDebugV1]
@@ -135,6 +140,7 @@ class ReflectionReport(TypedDict, total=False):
 
 
 class ReviewTrace(TypedDict, total=False):
+    retrieved_sources: List[Dict[str, Any]]
     seed_retrieved_docs: List[Any]
     retrieved_docs: List[Any]
     retrieval_debug_trace: Dict[str, Any]

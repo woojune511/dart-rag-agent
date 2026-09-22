@@ -1,85 +1,40 @@
 # Portfolio scope and completion
 
-Decision: 2026-09-22. DART remains the working domain. The project demonstrates
-document retrieval, evidence-grounded tool use, deterministic calculation, and
-inspectable failures. Exhaustive financial-question coverage is outside the
-completion target.
+Decision: 2026-09-22. The user adopted simple RAG as the default after explicitly
+reviewing what it preserves and which compiled guarantees it loses. DART remains
+the domain. The product demonstrates structured document ingest, hybrid retrieval,
+source visibility, reproducible evaluation and cost-conscious architecture.
+Exhaustive financial coverage and autonomous agent planning are not product claims.
 
-## What stays in the product
+## Product
 
-- Preserve document structure and source identity during ingest.
-- Retrieve relevant text and tables with visible query/source traces.
-- Use the Planner and Compiler to interpret requests and select evidence.
-- Execute calculations and validate source links, units and output coverage in code.
-- Return supported answers with citations, or expose missing/ambiguous evidence.
+- Preserve original document/table structure and source identity in ingest.
+- Search explicit caller scope and generate a source-cited answer in one call.
+- Validate response shape, source identity and citation membership.
+- Show insufficient evidence, context omissions and validation limits.
+- Record retrieval, token usage and timings without treating them as correctness.
 
-Domain vocabulary in ontology or policy still needs a general retrieval purpose.
-Moving a question-specific exception from code into configuration does not make
-it general. New fields, prompt rules and validation branches need an explanation
-across multiple independent examples and a measured benefit to the chosen scope.
-Existing source and arithmetic protections remain required.
+The app does not execute arithmetic or verify semantic support/request completeness.
+Those limits are explicit in its response. [Application contract](../architecture/agent_runtime_contract.md).
+`FinancialAgent` remains an explicitly invoked comparison/replay implementation;
+its [compiled contract](../architecture/compiled_workflow_contract.md) is preserved.
 
-## Cleanup implemented
+## Completed decisions
 
-The public Planner already sent every intent, including narratives and failed
-plans, through required-output compilation. The obsolete alternative still
-carried topic-specific behavior and an independently wired graph branch.
-Removed together:
+The earlier topic-specific narrative path and [peripheral features](../architecture/portfolio_feature_retirement.md)
+were removed. The [four-case development comparison](../evaluation/portfolio_workflow_comparison_successor.md)
+found no clear Planner/Compiler answer-quality advantage at 3.47x estimated cost
+and 4.79x measured time. These familiar cases do not prove general superiority.
+[Simple-RAG adoption](../architecture/simple_rag_adoption.md) changes the application
+by user direction; the transition adds no paid accuracy or latency evidence.
 
-- The extraction/compression/validation answer branch and its graph state.
-- Dividend-policy supplementation and hybrid answer assembly, entity-table
-  summaries, driver appending and sentence-repair helpers in that branch.
-- The alternative narrative document selector and its special ranking bonuses.
-- Dedicated prompts, structured-output models, policy dictionaries and private
-  helper tests with no surviving production caller.
+## Remaining milestone
 
-Retrieval now selects distinct authorized sources using the shared format quotas.
-Narrative claims continue through the existing Compiler and source validator.
-Structure expansion, source anchors, period/scope checks, arithmetic and coverage
-checks remain. This deletion establishes a smaller runtime; it does not establish
-better model accuracy. Active ontology/policy priors and Compiler constraints
-remain; further changes need quality/cost evidence across independent examples.
+1. Freeze a separate final question set covering lookup, calculation, explanation and missing evidence. Previously inspected/repaired questions remain development cases.
+2. Evaluate the actual simple-RAG application with recorded source/retrieval/model settings and a bounded one-time run. Keep historical fixed-BM25 comparison measurements separate from end-to-end hybrid retrieval.
+3. Report correctness, source support, abstention, retrieval misses, latency and cost separately. Numeric text is not a deterministic execution proof.
+4. Publish a reproducible demo/report with successful answers, an abstention and observed limitations; close the milestone instead of tuning repeatedly on the final questions.
 
-Validation: 2,255 provider-free tests pass; runtime domain audit covers 66
-remaining reviewed literals, with 17 obsolete entries removed and no additions.
-Runtime/config shrank by 3,723 lines net. Existing protected files (15,050) and
-local settings retain their hashes. Cleanup itself used no paid quality evaluation.
-
-## Remaining work and stopping point
-
-The user subsequently authorized [further feature retirement](../architecture/portfolio_feature_retirement.md): duplicate question classification, MAS, report-result cache/promotion, unused reflection and ratio-repair paths, and their dedicated tools/tests are removed. Planner/Compiler and source/execution guards remain. This is scope reduction, with no newly measured quality/cost benefit.
-
-The [development successor](../evaluation/portfolio_workflow_comparison_successor.md)
-completed all four exposed question pairs with frozen shared retrieval, one reused
-baseline and 11 new calls. Current Planner/Compiler showed no clear answer-quality
-advantage at 3.47x estimated cost and 4.79x measured time. The shared exact-cash
-retrieval gap, lost year-end meaning and one-decimal display miss remain visible.
-This small joint representation/workflow comparison does not decide production
-defaults. Freeze added complexity and carry simple RAG as a leading candidate;
-retain the current workflow's inspectable source/calculation protections.
-
-1. Freeze a small supported task set and source snapshot: lookup, calculation,
-   evidence-backed explanation, and insufficient-evidence handling. Split familiar
-   development regressions from a final set that has not guided implementation.
-   Previously inspected or repaired questions cannot become untouched holdout.
-2. Reuse the implemented simple retrieve-context-answer baseline and comparison
-   harness. Keep matched documents, questions, retrieval budgets and semantic model
-   settings; record stage count, tokens, latency and cost. Joint representation and
-   workflow differences remain a system comparison, not an isolated component gain.
-3. No question-specific semantic fix is selected from these four development cases.
-   Keep added complexity only when broader quality/cost evidence justifies it.
-   Existing source-integrity defects remain bugs; individual answer misses enter
-   failure analysis instead of automatically creating another prompt/schema rule.
-4. Run the final set once under a separately bounded run plan. Report answer
-   correctness, source support, missing-output/abstention behavior, latency and
-   cost separately. Document limitations, publish a reproducible demo/report,
-   and close this portfolio milestone. A disappointing result is still reportable;
-   it does not restart an indefinite repair loop on the final questions.
-
-The known [year-end interpretation miss](../evaluation/planner_real_questions_result.md)
-remains a semantic failure and a development example. It is no longer the automatic
-next prompt patch. Historical representative scores and fixture replay are not a
-synchronized baseline comparison or new provider acceptance. The successor's single
-batch is consumed; it does not authorize another paid run. The separate final set,
-demo and report remain outstanding. No store rebuild or historical-result rewrite
-is needed to finish this milestone.
+A separate final set, demo and report remain outstanding. The previous batch's
+paid authority is consumed. No store rebuild, historical-result rewrite, automatic
+Compiler fallback or new question-specific rule is required by this milestone.

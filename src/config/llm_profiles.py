@@ -65,3 +65,12 @@ def app_llm_routing_config(profile: str = "") -> dict[str, Any]:
     if name not in _APP_LLM_PROFILES:
         raise ValueError("DART_LLM_PROFILE must be 'google', 'openai_compiler' or 'openai'.")
     return deepcopy(_APP_LLM_PROFILES[name])
+
+
+def simple_rag_llm_routing_config(profile: str = "") -> dict[str, Any]:
+    """Reuse answer/ingest models without constructing the comparison Compiler."""
+    if profile.strip() == "openai_compiler":
+        raise ValueError("DART_LLM_PROFILE=openai_compiler is comparison-only; select 'openai' or 'google'.")
+    routes = app_llm_routing_config(profile).get("llm_routes", {})
+    return {"llm_routes": {key: value for key, value in routes.items()
+                           if key in {"default", "context_generation"}}}

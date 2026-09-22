@@ -50,6 +50,10 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 
 ## Contract And Operations Reference
 
+The current application uses [simple RAG](architecture/agent_runtime_contract.md).
+The former Planner/Compiler has a separate [comparison contract](architecture/compiled_workflow_contract.md);
+its fixtures and older walkthroughs do not establish the default application's guarantees.
+
 | 문서 | 역할 |
 | --- | --- |
 | [architecture/evidence_schema.md](architecture/evidence_schema.md) | evidence와 provenance schema |

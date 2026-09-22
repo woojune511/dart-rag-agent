@@ -1,94 +1,50 @@
-# DART Financial Agentic RAG
+# DART Filing RAG
 
-An evidence-first financial QA agent for Korean DART filings. It combines
-hybrid retrieval, LLM-based semantic planning, deterministic calculation, and
-traceable provenance so a reviewer can inspect how each numeric answer was
-produced.
+A document QA application for Korean DART filings. It preserves source structure,
+uses hybrid retrieval, and generates an answer with inspectable source text.
+The default application is **simple RAG**: one scoped search and at most one
+answer-generation call. Empty evidence returns an abstention without generation.
 
-> Portfolio scope: the product is the single-agent `FinancialAgent` runtime.
-> Multi-agent orchestration, report-result cache promotion and duplicate question
-> classification have been removed. The runtime has one question-processing path.
-
-The [completion scope](docs/overview/portfolio_scope.md) prioritizes a reproducible
-simple-RAG comparison, one justified improvement, and a final evaluation/demo.
-The retired topic-specific narrative answer path has been removed; all answer
-kinds use the shared Planner–Compiler workflow. The [four-case development comparison](docs/evaluation/portfolio_workflow_comparison_successor.md)
-found no clear quality advantage at 3.47x estimated cost and 4.79x measured time.
-Those exposed cases do not establish general superiority; the [feature retirement](docs/architecture/portfolio_feature_retirement.md)
-reduces implementation scope without claiming a measured quality or speed gain.
-
-## The problem
-
-Financial RAG can return a plausible answer while selecting the wrong row,
-period, unit, subtotal, or entity. Free-form citations do not reveal which
-operands were used or whether a displayed number was retrieved or calculated.
-
-This project makes that path explicit:
+The user adopted this smaller product after a
+[four-case development comparison](docs/evaluation/portfolio_workflow_comparison_successor.md)
+found no clear Planner/Compiler quality advantage at 3.47x estimated cost and
+4.79x measured time. These exposed cases do not establish general superiority.
+The application conversion itself has no new paid quality or latency result.
 
 ```mermaid
 flowchart LR
-    Q["User question"] --> P["LLM semantic planner"]
-    P --> R["Hybrid retrieval"]
-    R --> E["Evidence and operand binding"]
-    E --> C["Deterministic calculation"]
-    C --> V["Provenance and consistency checks"]
-    V --> A["Answer plus trace"]
+    Q[Question and explicit report scope] --> R[Hybrid retrieval]
+    R --> E[Bounded source text and context]
+    E --> A[One structured answer call]
+    A --> V[Response and source ID checks]
+    V --> O[Answer, cited sources and validation limits]
 ```
-
-The LLM interprets intent, concepts, and required operands. Code owns metadata
-filtering, dense/BM25 fusion, row binding, arithmetic, unit handling, validation,
-and final trace construction.
 
 ## Core engineering
 
-### 1. Structure-aware DART ingest
+- Structure-aware ingest preserves paragraphs, tables, headers, units and filing
+  identity. Existing stores and canonical embedding/parser settings are reused.
+- Dense Chroma and BM25 search use the same caller filter and reciprocal-rank
+  fusion. The question is not parsed into guessed company/year filters.
+- Whole-source context selection has a visible byte bound and omission reasons.
+  Unknown citations, scope leaks and conflicting source identities fail closed.
+- The API exposes actual cited text, abstention and validation limits. Optional
+  review/debug bundles contain retrieval traces, usage and timings.
+- Default queries do not invoke Planner/Compiler, a tool loop, or arithmetic code.
+  Arithmetic, semantic support and requested-output completeness are **not
+  automatically verified**. A valid source ID does not prove a claim is supported.
 
-The parser preserves filing structure such as `section_path`, table context,
-period, unit, statement type, and consolidation scope. Structured cells and
-their row/header relationships remain available after chunking.
+`SimpleRagAgent.run()` is the application entry point. `FinancialRunResultV1`
+retains answer/review/debug projections; `workflow`, `abstained`, `cited_sources`
+and `validation` make the reduced guarantees explicit. Compiler-specific result
+fields are empty, not success claims. See the [runtime contract](docs/architecture/agent_runtime_contract.md).
 
-### 2. Hybrid retrieval
+The old `FinancialAgent` and its source/calculation contracts remain available
+only through explicit comparison/replay callers. They are not an automatic query
+fallback. Its [contract](docs/architecture/compiled_workflow_contract.md) and
+historical results remain separate from product acceptance.
 
-- Chroma stores dense vectors. The canonical remote embedding runtime is OpenAI
-  `text-embedding-3-large` with 3,072 dimensions.
-- BM25 provides a separate sparse lexical signal.
-- Reciprocal-rank fusion combines dense and sparse candidates.
-- Metadata filters and deterministic structural reranking prefer compatible
-  company, filing, period, section, table, and consolidation context.
-- `retrieval_debug_trace` records the query bundle, filters, budgets, selected
-  chunks, and policy decisions.
-
-Contextual ingest may prepend an LLM- or metadata-generated context string
-before embedding, but the Chroma vector itself is a dense embedding vector, not
-a sparse vector and not a chat-model hidden state.
-
-### 3. Agentic numeric reasoning
-
-`FinancialAgent.run()` is the public runtime entry point. The graph plans the
-question, retrieves evidence, resolves required operands, executes a formula,
-and validates the result. It returns a versioned `FinancialRunResultV1` with
-`agent_answer` and optional review/debug bundles. Numeric output is carried through three canonical
-surfaces:
-
-- `answer_slots`: display-preserving values and operand roles
-- `structured_result`: caller-facing structured answer
-- `resolved_calculation_trace`: operands, formula, result, and provenance
-
-### 4. Evidence-first acceptance
-
-An answer is not accepted merely because generated prose sounds correct.
-Numeric surfaces must agree with signed evidence values, selected rows must
-preserve source identifiers, and calculated claims must be reproducible from
-the trace.
-
-### 5. Traceable evaluation
-
-The repository includes contract tests, runtime-domain-term auditing, focused
-benchmark profiles, and store-fixed eval-only workflows. Benchmark failures are
-classified by parser, retrieval, ontology/policy, planning, evidence, calculation,
-or projection layer instead of being patched with question-specific branches.
-
-## Representative evidence
+## Historical comparison and fixture evidence
 
 | Signal | Result | Interpretation |
 | --- | ---: | --- |
@@ -179,14 +135,13 @@ for LLM calls (DART data fetching still needs its own credential):
 
 | Phase | Model | Reasoning | Output-token ceiling |
 | --- | --- | --- | --- |
-| Routing, planning and default evidence helpers | `gpt-5.6-terra` | low | 8,192 |
-| Program compilation | `gpt-6-astra` | medium | 5,120 |
+| Answer generation | `gpt-5.6-terra` | low | 8,192 |
 | Ingest context sentence | `gpt-5.6-luna` | none | 512 |
 
-All three use a 90-second timeout, `store=false`, standard service tier and zero
-SDK retries. `openai_compiler` remains available for the previous mixed-provider
-setup and needs both OpenAI and Google keys. Unset/blank/`google` preserves the
-Google defaults; unknown profiles fail startup. Process settings override `.env`.
+Both use a 90-second timeout, `store=false`, standard service tier and zero
+SDK retries. `openai_compiler` is now comparison-only; application startup rejects
+it with a migration message. Select `openai` or `google`. Unset/blank preserves
+Google selection, with zero answer-generation retries. Process settings override `.env`.
 The profile sets per-request options, not a total spending cap, and does not
 rebuild existing stores or change canonical embedding/parser identity.
 See [application migration validation](docs/evaluation/openai_application_migration.md)
@@ -206,9 +161,9 @@ write approval.
 
 | Surface | Role | Portfolio treatment |
 | --- | --- | --- |
-| Core runtime | parser, retrieval, evidence binding, calculation, answer projection | Main product story |
+| Core runtime | parser, hybrid retrieval, source-ID checks, answer projection | Main product story |
 | Evaluation | evaluator, benchmarks, gates, regression fixtures | Supporting proof, never imported by the default runtime |
-| Optional client | Streamlit over the same API-owned services | Uses the same single-agent product boundary |
+| Optional client | Streamlit over the same API-owned services | Uses the same simple-RAG product boundary |
 | Legacy compatibility | historical artifacts and superseded docs | Kept outside the runtime result and linked through history |
 
 Current runtime ownership and deletion boundaries are documented in the
@@ -221,7 +176,7 @@ retained as historical rationale, not as the current work queue.
 ```text
 main.py                    FastAPI entry point
 src/api/                   HTTP boundary
-src/agent/                 FinancialAgent graph and core runtime contracts
+src/agent/                 SimpleRagAgent plus explicit compiled comparison
 src/processing/            DART parsing and chunk preparation
 src/ingestion/             fetch and ingest service ownership
 src/storage/               embeddings, Chroma, BM25, and structure storage

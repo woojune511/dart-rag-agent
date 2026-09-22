@@ -13,16 +13,19 @@
 | `src/api/services.py` | `AppServices`, strict readiness, dependency assembly |
 | `src/config/llm_profiles.py` | reviewed opt-in application LLM routes; shared API/Streamlit profile selection, no benchmark inputs or credentials |
 | `src/api/financial_router.py` | HTTP schema, readiness gate, threadpool dispatch |
-| `src/agent/financial_graph.py` | `FinancialAgent`, explicit phase inputs/provider controls, final assembly then ledger; run applies caller projection without recomputing answers |
-| `src/agent/financial_graph_state.py` | concrete phase input/output TypedDicts and `FinancialAgentStateV2` |
-| `src/agent/financial_runtime_contracts.py` | immutable visibility and V2 full execution-content fingerprint |
+| `src/agent/simple_rag.py` | Default `SimpleRagAgent`: one scoped search, whole-source context, one answer call, citation checks and JSON-native observations |
+| `src/config/simple_rag.py`, `src/storage/report_scope_filter.py` | Small answer schema/instructions and exact caller metadata filter |
+| `src/utils/chat_model_routes.py` | Shared model construction without importing planning or calculation |
 | `src/agent/financial_run_result.py` | versioned `FinancialRunResultV1` |
 | `src/agent/financial_run_observation.py`, `src/utils/request_diagnostics.py` | opt-in request-owned copied phase/attempt/SDK observations and exception-safe caller delivery; no state writer, answer or execution authority |
 
-## Shared numeric and narrative path
+## Explicit compiled comparison (not application default)
+
+`src/agent/financial_graph.py` retains `FinancialAgent` for comparison/replay. The following modules and [compiled contract](../architecture/compiled_workflow_contract.md) do not define simple-RAG validation guarantees.
 
 | Path | Responsibility |
 | --- | --- |
+| `src/agent/financial_graph_state.py`, `src/agent/financial_runtime_contracts.py` | Explicit compiled phase state, immutable visibility and V2 execution fingerprints; not imported by simple-RAG execution |
 | `src/agent/financial_graph_planning.py` | required-output planning for every intent; original request references/themes, complete named subjects and conditions; same-call scoped section selection and observed-axis reading before target fixation; measurement periods stay separate from filing-year defaults |
 | `src/agent/financial_source_axis_inventory.py` | bounded query-literal whole axes from report-scoped hydrated table records, deterministic observed examples/spans and omission trace; planning context only, not subject/alias or candidate authority |
 | `src/agent/financial_request_units.py` | exact query partition/addresses, output ownership and contiguous fully owned request ranges; active-owner text projection, not semantic classification or evidence |
@@ -96,7 +99,7 @@
 | `src/utils/gemini_usage_counts.py` | dependency-light answer/thinking/cache normalization and cost accounting; no double-counted reasoning |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
-- All questions enter the Planner directly. MAS, query classification, report-result cache and reflection-promotion features were [removed](../architecture/portfolio_feature_retirement.md); historical evidence remains outside the runtime.
+- Application questions use simple RAG; Planner/Compiler is reachable only through explicit comparison/replay callers. MAS, query classification, report-result cache and reflection-promotion features were [removed](../architecture/portfolio_feature_retirement.md).
 - `app.py`: experimental Streamlit client.
 - `tests/`: unit and contract gates. Semantic program coverage is split by
   catalog, cohort, compiler, validator, executor, and integration boundary.

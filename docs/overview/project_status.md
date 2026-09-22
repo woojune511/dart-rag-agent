@@ -4,32 +4,32 @@ Last updated: 2026-09-22
 
 ## Current implementation
 
-`FinancialAgent` on `codex/reviewed-compiler-selection-gate` now separates
-request preservation, Compiler interpretation and deterministic source/execution
-checks. Baseline: `d9c36d8d`. The [portfolio completion scope](portfolio_scope.md) now prioritizes a simple RAG comparison; the unused alternate narrative answer/selection path is removed.
-[Boundary details and frozen controls](../architecture/request_source_boundary.md).
+The default API and Streamlit runtime is `SimpleRagAgent`, on
+`codex/reviewed-compiler-selection-gate`, adopted by explicit user direction from
+`2a926a6e`. [Decision and compatibility](../architecture/simple_rag_adoption.md).
+`FinancialAgent` is now an explicitly invoked compiled comparison/replay path.
 
-| Boundary | Current behavior |
+| Boundary | Application behavior |
 | --- | --- |
-| Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
-| Exposure / authority | Bounded bundles; numeric own-axis and narrative same-surface request-term hints rank relevance without changing identity or source permissions |
-| Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | Direct Planner entry without a question classifier; CompilerResponseV2 with compact JSON, source/request addresses and bounded operation steps; explicit proof and deterministic execution |
-| Group / retry | Request-grounded relationships with one shared declaration and explicit member refs; independent local proofs; one targeted retry with accepted bytes/declarations preserved |
-| Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
-| Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
-| Execution | V2 fingerprints; interpretation scope stays on proofs, never overwrites source/context facts; no free-label expression gate; units/physical constraints/explicit output relations retained |
+| Request | Exact question and explicit caller report scope; no inferred company/year filters |
+| Retrieval | One existing hybrid search, scope before top-K and after retrieval |
+| Context | Whole source text/context, document-qualified IDs, 65,536-byte packet bound with omission reasons |
+| Generation | One structured answer call; empty evidence abstains without a call; no retry/Compiler fallback |
+| Validation | Response shape, source IDs and explicit metadata scope only |
+| Limitations | Arithmetic is not executed; semantic support and output coverage are not checked |
+| Response | Answer, cited source text, abstention and validation labels; empty compiler result/trace fields |
+| Observation | Optional JSON-native retrieval/review data, usage, timing and interrupted diagnostics |
 
-Ranking factors and free subject/metric mismatch diagnostics no longer masquerade
-as Compiler selection permissions. Exact filing metadata takes precedence over
-local/company-looking text; different filing names cannot match by containment.
-Narrative subject support remains separate from each claim's exact fact ranges.
-Invalid source addresses stay invalid; lowering never guesses replacements.
-Compiler exception messages are not copied into retry prompts or public diagnostics.
-
-Parser/store/candidate-ID/hash contracts remain unchanged; comparison tooling is separate from product behavior.
+Ingest/parser/store/embedding identity is unchanged. Application model construction
+uses only answer and ingest-context routes; compiler-only profile selection is
+rejected. The old Streamlit compiled-evaluation tab is removed. Comparisons remain
+separate; their [contract](../architecture/compiled_workflow_contract.md) is preserved.
 
 ## Current verification
+
+The [simple-RAG transition](../architecture/simple_rag_adoption.md) passes **2,125/2,125 tests** (64.083s), including 16 new application-boundary controls. Focused56, final API/profile48 and comparison/import48 pass; domain audit35 and documentation/topology checks pass. Actual SDK serialization and HTTP projection use mocked transport, with one answer call and no Compiler. All110 protected files retain their hashes. Paid calls and new model-quality/latency evaluation: **NOT_RUN**.
+
+## Prior checkpoints (not default-RAG acceptance)
 
 The [feature retirement](../architecture/portfolio_feature_retirement.md) removes duplicate question routing, MAS, report-result cache/promotion, unused reflection/ratio-repair code and dedicated tools/tests: 63 files deleted, net10,855 fewer lines across source/configuration/tools. Seven graph nodes remain; initial filing scope comes only from explicit caller scope, public query_type is neutral qa, and unspecified retrieval format is mixed. Planner/Compiler and source/arithmetic/coverage guards remain. Full suite **2,109/2,109** (73.338s), focused81+64 and domain audit35 pass; all110 protected files retain their hashes. No paid calls or model-quality/speed claim. Earlier measurements below retain their original source version.
 
@@ -88,42 +88,12 @@ Source-linked wrapper/name contrasts now execute without a literal-equality gate
 unlinked/foreign axes still fail. Structurally valid wrong interpretations remain
 semantic negative controls. These local gates do not measure model semantic accuracy.
 
-## Latest compiler-only evidence
+## Compiled evidence archive
 
-The [six-control run](../../benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md)
-on clean `386cf867`: six first responses, current schema; runtime and separate meaning **6/6**.
-Row-mirror/equal-value/Korean pairs each 2/2; six counts/generations, errors/retries 0.
-Manifest `55029ef1...3000e0` consumed; USD 0.1201475 + count allowance 0.36 < 0.75, not invoice.
-The [preceding schema A/B](../../benchmarks/results/source_choice_schema_2026-09-15/INTERPRETATION.md) retains runtime 5/6→6/6 and meaning 3/6→5/6.
-Its temporal error remains; these single-sample controls do not establish general accuracy or its repair.
-Prior [naming-only comparison](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md) retains both gates 2/4 each; no naming remedy.
-The [previous input deletion](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md)
-retains 14 responses, one 503, nine not run; both arms 5/7. Neither probe is general/full-agent proof.
-The [preceding factorial](../../benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md)
-retains current/current+formula/minimum/minimum+formula 9/12, 9/12, 12/12, 10/12.
-No formula benefit observed; minimum jointly changes input/schema and is not V2 authority.
-Earlier [plan-hint A/B](../../benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md)
-retains structural 4/4 and original/neutral semantic 2/2 versus 1/2; no hint clearing.
-The [preceding comparison probe](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md)
-retains 3/4 correct directions, an original reverse error and two correct explicit-reference
-controls. Its consumed `b2a68ca0...ff0f0` and raw responses are not retroactively repaired.
-The [prior numeric-reading run](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md)
-on `02c799a0` retains 3 correct / 1 wrong numeric, 1 appropriate / 2 excess abstentions
-and 1 scope rejection. Its consumed `24deb343...d2141a` and original results are immutable.
-
-The [earlier display-intent pair](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md)
-on `a2d89d40` remains structural **2/2**, separate semantic review **2/2**: reported
-11.5% plus calculated 10% when both requested; null display/10% for calculation-only.
-The [prior numeric successor](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md)
-retains structural 3/3, separate semantic 2/3, including the old display error.
-Its single-eligible-candidate lookup is not two-visible-row proof. Both manifests consumed.
-
-The [earlier twelve-question probe](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md)
-and [interrupted-question continuation](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md)
-remain immutable. Prior over-abstention and reverse-direction errors are separate
-semantic issues. The earlier count 404's provider-side cause remains unestablished.
-Bare-scalar catalog exposure preserves existing IDs, spans and table provenance;
-it does not inject answers or change shared evaluation extraction.
+Detailed compiler-only probes and their immutable source/output restrictions remain
+in [experiment history](../history/experiment_history.md) and the
+[reviewed evidence index](../evaluation/reviewed_case_evidence_status.md).
+They do not establish current simple-RAG model quality or runtime acceptance.
 
 ## Historical evidence, not current-build acceptance
 
@@ -142,9 +112,13 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-1. Development comparison and peripheral feature retirement are complete. Freeze additional Planner/Compiler complexity; take simple RAG as a candidate into final evaluation while retaining source/calculation validation. The remaining mandatory Planner/Compiler cost still needs justification.
-2. Keep known retrieval and meaning failures visible, including the missing exact cash source; do not insert gold evidence or question-specific corrections into shared inputs.
-3. No new runtime fix is selected from these four cases. Keep individual misses in failure analysis; require broader quality/cost evidence for added complexity. Source-integrity defects remain bugs.
-4. Complete one final evaluation and a reproducible demo/report, including negative results and unsupported scope. See [portfolio scope](portfolio_scope.md) for the stopping point.
+1. Build a separate final evaluation set and demo for the adopted simple-RAG app.
+2. Keep retrieval, supported-answer quality, abstention, source-ID checks and arithmetic/semantic limitations separate in the report.
+3. Do not add per-question prompt/schema rules or restore Planner/Compiler as an automatic fallback.
+4. Historical compiled comparisons remain explicit tools; previous one-batch approvals are consumed.
 
-The original interrupted attempt remains immutable; its separate successor completed without store mutation or retry. Year-end meaning, selected NAVER2023 filing and inactive default-store mismatch remain limitations. The source graph contains two filings, but this comparison selects one. Final evaluation needs a separate frozen run plan; current work is no longer the accumulated per-error repair queue.
+Shared conservative accounting remains USD21.00190943/26.32, remaining5.31809057,
+pending0. A final paid run needs a separately frozen scope and ceiling. The stored
+comparison selected one NAVER2023 filing; that is not unseen multi-company coverage.
+The inactive default-store manifest mismatch and previously observed semantic/
+retrieval failures are not repaired by this architecture change.

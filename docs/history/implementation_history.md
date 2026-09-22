@@ -5,6 +5,13 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Simple RAG as the default application (2026-09-22)
+
+- Starting at `2a926a6e`, the user authorized the [simple-RAG application](../architecture/simple_rag_adoption.md) after reviewing its reduced guarantees. FastAPI/Streamlit now use one existing scoped hybrid search and at most one answer call. Empty evidence abstains without generation; malformed citations, scope leaks and conflicting source identities fail without retries or Compiler fallback.
+- Public output adds workflow, abstention, cited source text and validation limits. Arithmetic is not executed; semantic support and request completeness are not checked. Compiler result/trace objects are empty and no ledger is fabricated. Explicit scope filters intersect supplied metadata; source-report alternatives remain paired unions. Unknown scopes are rejected by the HTTP schema.
+- `FinancialAgent` remains an explicitly invoked comparison/replay path with its source/execution contracts preserved. Shared chat-model construction is extracted unchanged; application startup constructs only answer/ingest-context clients and rejects the compiler-only profile. Removed the old embedded evaluation tab and separated current and compiled runtime contracts. Lightweight reviewer CI no longer runs a full-dependency graph test; the full suite retains it.
+- Full provider-free suite **2,125/2,125** (64.083s), 16 new controls, focused56, final API/profile48, comparison/import48, audit35 and docs/topology/diff checks pass. Actual SDK/HTTP transport is mocked. All110 protected store/settings/comparison files retain hashes. No paid calls, ingest/store mutation or fresh accuracy/latency claim; shared accounting remains USD21.00190943/26.32, remaining5.31809057, pending0.
+
 ## Portfolio feature retirement and direct Planner entry (2026-09-22)
 
 - Starting at `d9f323f9`, removed the separate question classifier/embedding/fallback, MAS graphs/workers, report-result cache/promotion, unused reflection helpers and uncalled ratio-answer repair, together with their dedicated tools/tests. Deleted63 files; source/configuration/tools under `src/` are net **10,855 lines smaller** (53 added/10,908 removed). [Scope and compatibility](../architecture/portfolio_feature_retirement.md).

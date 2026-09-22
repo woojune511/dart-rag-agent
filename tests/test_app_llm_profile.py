@@ -15,7 +15,7 @@ from openai import APIStatusError
 
 from src.agent.financial_graph import FinancialAgent
 from src.api.services import build_app_services, resolve_app_settings
-from src.config.llm_profiles import app_llm_routing_config
+from src.config.llm_profiles import app_llm_routing_config, simple_rag_llm_routing_config
 from src.storage.store_manifest import (
     StoreReadiness, assess_store_readiness, canonical_store_manifest, write_store_manifest,
 )
@@ -73,7 +73,7 @@ class AppLLMProfileTests(unittest.TestCase):
             with self.subTest(profile=profile):
                 os.environ["DART_LLM_PROFILE"] = profile
                 services = build_app_services(project_root=self.root)
-                self.assertEqual(services.agent.routing_config, {})
+                self.assertEqual(services.agent.routing_config, {"llm_routes": {"default": {"provider_client_retries": 0}}})
                 self.assertEqual(set(services.agent.llm_routes), {"default"})
                 self.assertIs(services.agent._llm_for_phase("program_compilation"), self.google)
 
@@ -102,7 +102,7 @@ class AppLLMProfileTests(unittest.TestCase):
 
     def test_missing_openai_key_fails_before_store_or_canonical_embeddings(self):
         self.prepare_services()
-        os.environ["DART_LLM_PROFILE"] = "openai_compiler"
+        os.environ["DART_LLM_PROFILE"] = "openai"
         for value in (None, "", "   "):
             with self.subTest(value=value), patch.dict(os.environ):
                 if value is None:
@@ -115,7 +115,7 @@ class AppLLMProfileTests(unittest.TestCase):
 
     def test_openai_selection_does_not_bypass_store_readiness(self):
         self.prepare_services(ready=False)
-        os.environ["DART_LLM_PROFILE"] = "openai_compiler"
+        os.environ["DART_LLM_PROFILE"] = "openai"
         services = build_app_services(project_root=self.root)
         self.assertFalse(services.readiness.ready)
         self.assertIsNone(services.agent)
@@ -166,15 +166,12 @@ class AppLLMProfileTests(unittest.TestCase):
                 self.assertEqual(path.read_bytes(), original)
         self.store_factory.assert_not_called()
 
-    def test_services_route_only_compiler_through_actual_responses_adapter(self):
+    def test_explicit_comparison_routes_compiler_through_actual_responses_adapter(self):
         self.prepare_services()
-        (self.root / ".env").write_text("DART_LLM_PROFILE=openai_compiler\n", encoding="utf-8")
-        services = build_app_services(project_root=self.root)
-        agent = services.agent
+        agent = FinancialAgent(self.store_factory.return_value, routing_config=app_llm_routing_config("openai_compiler"))
         self.assertEqual(set(agent.llm_routes), {"default", "program_compilation"})
         for phase in ("routing", "requirement_planning", "evidence_extraction"):
             self.assertIs(agent._llm_for_phase(phase), self.google)
-        self.context_factory.assert_called_once_with(self.google, services.store)
         calls = []
 
         def send(request, **kwargs):
@@ -199,8 +196,7 @@ class AppLLMProfileTests(unittest.TestCase):
 
     def test_configured_compiler_has_no_transport_retry_or_google_fallback(self):
         self.prepare_services()
-        os.environ["DART_LLM_PROFILE"] = "openai_compiler"
-        agent = build_app_services(project_root=self.root).agent
+        agent = FinancialAgent(self.store_factory.return_value, routing_config=app_llm_routing_config("openai_compiler"))
         calls = []
 
         def send(request, **kwargs):
@@ -216,12 +212,12 @@ class AppLLMProfileTests(unittest.TestCase):
         from main import create_app
 
         self.prepare_services()
-        (self.root / ".env").write_text("DART_LLM_PROFILE=openai_compiler\n", encoding="utf-8")
+        (self.root / ".env").write_text("DART_LLM_PROFILE=openai\n", encoding="utf-8")
         app = create_app(project_root=self.root)
         with patch("main._configure_logging"), TestClient(app) as client:
             self.assertEqual(client.get("/api/health/ready").status_code, 200)
-            self.assertIn("program_compilation", app.state.services.agent.llm_routes)
-            self.assertEqual(app.state.services.agent.routing_config, app_llm_routing_config("openai_compiler"))
+            self.assertNotIn("program_compilation", app.state.services.agent.llm_routes)
+            self.assertEqual(app.state.services.agent.routing_config, simple_rag_llm_routing_config("openai"))
 
     def test_full_openai_profile_starts_without_google_and_separates_ingest(self):
         from main import create_app

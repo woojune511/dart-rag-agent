@@ -10,9 +10,10 @@
 FastAPI lifespan
   -> AppServices
   -> strict StoreManifestV1 readiness
-  -> FinancialAgent.run
+  -> SimpleRagAgent.run
+  -> scoped hybrid search -> one structured answer -> citation checks
   -> FinancialRunResultV1
-  -> stable HTTP answer/citation/structured-result shape
+  -> HTTP answer/cited sources/abstention/explicit validation limits
 ```
 
 - [main.py](../../main.py)는 lifespan에서 서비스를 한 번 조립한다.
@@ -20,10 +21,11 @@ FastAPI lifespan
   service를 소유한다.
 - [financial_router.py](../../src/api/financial_router.py)는 request validation,
   503 readiness gate, threadpool dispatch, HTTP projection만 담당한다.
-- [financial_graph.py](../../src/agent/financial_graph.py)는 graph wiring과 최종
-  `FinancialRunResultV1` 조립을 소유한다.
+- [simple_rag.py](../../src/agent/simple_rag.py)는 검색·답변 생성·출처 ID 검사와 결과 조립을 소유한다. 원문 범위·ID 검사 외의 산술·의미·요청 누락 검증은 수행하지 않는다.
 
-## Checked FinancialAgent topology
+## Explicit comparison: checked FinancialAgent topology
+
+아래 graph와 candidate/Compiler 계약은 명시적 비교·replay 전용이다. 기본 API와 Streamlit은 이를 초기화하거나 호출하지 않는다.
 
 아래 블록은 [financial_graph.py](../../src/agent/financial_graph.py)의
 `FinancialAgent._build_graph()` AST에서 생성된다. 변경 후
@@ -74,7 +76,7 @@ compile/island orchestration은
 [financial_calculation_execution.py](../../src/agent/financial_calculation_execution.py)가
 소유한다.
 
-## Retrieval boundary
+## Compiled comparison retrieval boundary
 
 [financial_retrieval_pipeline.py](../../src/agent/financial_retrieval_pipeline.py)는
 동일 owner 안에서 다음 네 단계로 실행된다.
@@ -99,6 +101,6 @@ degraded mode에서만 허용되며 readiness와 retrieval trace에 표시된다
 
 ## Optional surfaces
 
-`src/ops`, Streamlit UI, evaluator와 benchmark runner는 검증·선택적 client surface다.
+`src/ops`의 evaluator와 benchmark runner는 명시적 비교·검증 도구다. Streamlit은 API와 같은 단순 RAG 서비스를 사용하고, 기존 계산 경로 전용 평가 탭은 제거했다.
 기본 product import와 query contract의 권위가 아니다. 별도 질문 분류와 MAS,
 보고서 결과 캐시·승격 경로는 [삭제했다](../architecture/portfolio_feature_retirement.md).
