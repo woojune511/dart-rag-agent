@@ -84,10 +84,15 @@ includes8414 cache-write tokens and zero cached tokens. The existing conservativ
 input rate2.5/output12 per million covers the current short-context cache-write
 rate, checked against [official pricing](https://developers.openai.com/api/docs/pricing).
 
-Next prepare the remaining **u02/u03/u04** as one fresh batch covering five
+At this handoff, the next step was to prepare **u02/u03/u04** as one fresh batch covering five
 period/scope meanings: within-year permission, relative years with mixed
 consolidation scopes, and exact point/interval dates. With unchanged14000 input
 and8192 output bounds, three count/generation pairs require **USD0.429912** and
 fit a proposed **USD0.43** cap inside the remaining balance. This is a funding
 assessment only; a new frozen manifest is required. No automatic retry, resume,
 old-manifest reuse or additional funding is included.
+
+The [completed remaining-contrast successor](planner_remaining_contrasts_result.md)
+now records three counts/generations, period5/5, scope5/5 and combined3/3 under
+a fresh USD0.43 admission. This u01 packet and its original accounting remain
+unchanged; current shared accounting and next work are in the successor.
