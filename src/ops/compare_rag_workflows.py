@@ -23,7 +23,7 @@ from unittest.mock import patch
 from pydantic import BaseModel, ConfigDict
 
 from src.config.llm_profiles import app_llm_routing_config
-from src.ops.provider_admission import BudgetStop, ProviderBudget
+from src.ops.provider_admission import BudgetStop, ProviderBudget, json_bytes
 from src.storage.bm25_index import build_bm25_index, collect_bm25_results
 from src.storage.metadata_payloads import load_table_payloads, metadata_with_table_payload
 from src.storage.structure_graph import normalise_structure_graph_payload, structure_graph_bm25_payload
@@ -151,6 +151,46 @@ def verify_plan(plan: dict) -> None:
     for case in plan["cases"]:
         if fingerprint(case["packet"]) != case["packet_sha256"]:
             raise ValueError("Common evidence packet changed")
+    load_reused_results(plan)
+
+
+def load_reused_results(plan: dict) -> dict:
+    """Validate explicitly selected completed arms; never discover or resume a run."""
+    reused = {}
+    cases = {row["case_id"]: row for row in plan["cases"]}
+    for ref in plan.get("reused_results", []):
+        source = Path(ref["result_path"])
+        prior = read_json(Path(ref["plan_path"]))
+        if (hashlib.sha256(source.read_bytes()).hexdigest() != ref["result_sha256"]
+                or fingerprint(prior) != ref["plan_sha256"]):
+            raise ValueError("Reused evidence changed")
+        for key in ("schema", "split", "comparison", "dataset_sha256", "source_sha256",
+                    "retrieval", "model_settings", "input_token_bound", "agent_call_limit"):
+            if prior.get(key) != plan.get(key):
+                raise ValueError(f"Reused result has different {key}")
+        row = read_json(source)
+        slot = (row["case_id"], row["arm"])
+        previous = [case for case in prior["cases"] if case["case_id"] == slot[0]]
+        current = cases.get(slot[0])
+        if (row.get("status") != "completed" or not isinstance(row.get("output"), dict)
+                or slot[1] not in ARMS or slot in reused or current is None or len(previous) != 1
+                or row["packet_sha256"] != current["packet_sha256"]
+                or fingerprint(previous[0]["packet"]) != row["packet_sha256"]):
+            raise ValueError("Only unique completed arms with identical inputs can be reused")
+        reused[slot] = {**row, "reused_from": deepcopy(ref)}
+    return reused
+
+
+def add_reused_results(plan: dict, result_paths: list[Path]) -> dict:
+    successor = deepcopy(plan)
+    refs = successor.setdefault("reused_results", [])
+    for source in result_paths:
+        source = source.resolve()
+        prior_path = source.parent / "plan.json"
+        refs.append({"result_path": str(source), "result_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                     "plan_path": str(prior_path), "plan_sha256": fingerprint(read_json(prior_path))})
+    verify_plan(successor)
+    return successor
 
 
 def compiled_answer(packet: dict, llm: Any, usage: Any) -> dict:
@@ -207,22 +247,63 @@ def budget_policy(plan: dict, *, cap_usd: float, input_rate: float, output_rate:
     if (route.get("provider") != "openai" or route.get("provider_client_retries") != 0
             or route.get("use_responses_api") is not True or route.get("store") is not False):
         raise ValueError("Comparison requires OpenAI Responses without SDK retries or storage")
-    return {"cap_usd": cap_usd, "max_google_calls": 0, "max_openai_embedding_calls": 0,
-            "max_openai_response_calls": len(plan["cases"]) * (1 + plan["agent_call_limit"]),
+    reused = load_reused_results(plan)
+    calls = len(plan["cases"]) * (1 + plan["agent_call_limit"]) - sum(
+        1 if arm == "simple_rag" else plan["agent_call_limit"] for _, arm in reused)
+    if calls <= 0:
+        raise ValueError("A successor must contain at least one new arm")
+    policy = {"cap_usd": cap_usd, "max_google_calls": 0, "max_openai_embedding_calls": 0,
+            "max_openai_response_calls": calls,
             "openai_response_binding": "runtime_generated_v1", "openai_input_overhead_tokens": 256,
             "max_openai_input_tokens": plan["input_token_bound"],
             "rates": {route["model"]: {"input": input_rate, "output": output_rate}},
             "request_settings": {"model": route["model"], "max_output_tokens": route["max_output_tokens"],
                                  "reasoning": {"effort": route["reasoning_effort"]},
                                  "store": False, "service_tier": "default"}}
+    if "first_request_bounds" in plan:
+        expected = {(case["case_id"], arm) for case in plan["cases"] for arm in ARMS
+                    if (case["case_id"], arm) not in reused}
+        bounds = deepcopy(plan["first_request_bounds"])
+        compiler_bound = plan["compiler_input_token_bound"]
+        slots = [(row["case_id"], row["arm"]) for row in bounds]
+        if (type(compiler_bound) is not int or not 1 <= compiler_bound <= 200000
+                or len(slots) != len(set(slots)) or set(slots) != expected):
+            raise ValueError("Exact first-request bounds are required for every new arm")
+        for row in bounds:
+            size, digest = row["input_token_bound"], row["request_sha256"]
+            if (type(size) is not int or not 1 <= size <= compiler_bound or not isinstance(digest, str)
+                    or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest)):
+                raise ValueError("Invalid first-request size or identity")
+        policy.update(max_openai_input_tokens=compiler_bound, first_request_bounds=bounds)
+    return policy
 
 
 def batch_cost_ceiling(policy: dict) -> float:
     settings = policy["request_settings"]
     rates = policy["rates"][settings["model"]]
-    return policy["max_openai_response_calls"] * (
-        policy["max_openai_input_tokens"] * rates["input"]
-        + settings["max_output_tokens"] * rates["output"]) / 1_000_000
+    calls = policy["max_openai_response_calls"]
+    bounds = policy.get("first_request_bounds", [])
+    inputs = (calls - len(bounds)) * policy["max_openai_input_tokens"] + sum(
+        row["input_token_bound"] for row in bounds)
+    return (inputs * rates["input"] + calls * settings["max_output_tokens"] * rates["output"]) / 1_000_000
+
+
+def authorize_arm_request(body: dict, active: dict, policy: dict) -> bool:
+    if active["calls"] >= active["limit"]:
+        raise BudgetStop("arm_call_limit_reached", "Comparison arm call limit reached")
+    bounds = policy.get("first_request_bounds")
+    if bounds is not None:
+        if active["calls"] == 0:
+            bound = next(row for row in bounds if (row["case_id"], row["arm"]) ==
+                         (active["case_id"], active["arm"]))
+            if (hashlib.sha256(json_bytes(body)).hexdigest() != bound["request_sha256"]
+                    or len(json_bytes(body)) + policy["openai_input_overhead_tokens"] > bound["input_token_bound"]):
+                raise BudgetStop("first_request_changed", "First request differs from the frozen SDK rehearsal")
+        elif active["arm"] != "planned_compiled" or body.get("text", {}).get("format", {}).get("name") != "CompilerResponseV2":
+            raise BudgetStop("unexpected_comparison_phase", "Only Compiler requests may follow the frozen Planner request")
+    active["calls"] += 1
+    print(f"{active['case_id']} {active['arm']}: request {active['calls']}/{active['limit']}", flush=True)
+    return True
 
 
 def summarize(results: list[dict], cases: list[dict]) -> dict:
@@ -232,10 +313,16 @@ def summarize(results: list[dict], cases: list[dict]) -> dict:
     for arm in ARMS:
         rows = [row for row in results if row["arm"] == arm]
         records = [record for row in rows for record in row.get("provider_records", [])]
+        prior_records = [record for row in rows if "reused_from" in row
+                         for record in row.get("provider_records", [])]
         arms[arm] = {"completed": sum(row["status"] == "completed" for row in rows),
                      "interrupted": sum(row["status"] == "interrupted" for row in rows),
                      "not_run": len(cases) - sum(row["status"] != "NOT_RUN" for row in rows),
                      "provider_calls": len(records),
+                     "reused_completed": sum("reused_from" in row for row in rows),
+                     "reused_provider_calls": len(prior_records),
+                     "new_provider_calls": len(records) - len(prior_records),
+                     "reused_estimated_cost_usd": sum(row.get("estimated_usd", 0) for row in prior_records),
                      "input_tokens_observed": sum(row.get("input_tokens", 0) for row in records),
                      "output_tokens_observed": sum(row.get("output_tokens", 0) for row in records),
                      "usage_unknown_calls": sum(bool(row.get("usage_unknown")) for row in records),
@@ -248,6 +335,7 @@ def summarize(results: list[dict], cases: list[dict]) -> dict:
 def run_comparison(plan: dict, output: Path, policy: dict, *, llm_factory, guard_factory) -> dict:
     """Run each arm once; retain partial results and terminal admission failures."""
     verify_plan(plan)
+    reused = load_reused_results(plan)
     rates = policy["rates"][plan["model_settings"]["model"]]
     if policy != budget_policy(plan, cap_usd=policy["cap_usd"], input_rate=rates["input"], output_rate=rates["output"]):
         raise ValueError("Budget settings must match the frozen comparison")
@@ -260,11 +348,7 @@ def run_comparison(plan: dict, output: Path, policy: dict, *, llm_factory, guard
     results, active = [], {"calls": 0, "limit": 0}
 
     def authorize(body):
-        if active["calls"] >= active["limit"]:
-            raise BudgetStop("arm_call_limit_reached", "Comparison arm call limit reached")
-        active["calls"] += 1
-        print(f"{active['case_id']} {active['arm']}: request {active['calls']}/{active['limit']}", flush=True)
-        return True
+        return authorize_arm_request(body, active, policy)
 
     from src.utils.gemini_usage import GeminiUsageCallbackHandler
     stopped = None
@@ -276,7 +360,9 @@ def run_comparison(plan: dict, output: Path, policy: dict, *, llm_factory, guard
                 for arm in ARMS if index % 2 == 0 else tuple(reversed(ARMS)):
                     row = {"case_id": case["case_id"], "arm": arm,
                            "packet_sha256": case["packet_sha256"]}
-                    if stopped:
+                    if (case["case_id"], arm) in reused:
+                        row = deepcopy(reused[(case["case_id"], arm)])
+                    elif stopped:
                         row.update(status="NOT_RUN", stop_reason=stopped)
                     else:
                         active.update(calls=0, limit=1 if arm == "simple_rag" else plan["agent_call_limit"],
@@ -313,7 +399,8 @@ def run_comparison(plan: dict, output: Path, policy: dict, *, llm_factory, guard
                                    output_unavailable=True, error_type=type(error).__name__)
                     results.append(row)
                     write_new(output / f"{index:02d}_{arm}.json", row)
-                    print(f"{case['case_id']} {arm}: {row['status']}", flush=True)
+                    label = "reused" if "reused_from" in row else row["status"]
+                    print(f"{case['case_id']} {arm}: {label}", flush=True)
     finally:
         write_new(output / "budget.json", budget.snapshot())
         receipt = {"schema": SCHEMA, "plan_sha256": fingerprint(plan), "results": results,
@@ -333,6 +420,10 @@ def main() -> None:
     prep.add_argument("--store", type=Path, required=True)
     prep.add_argument("--output", type=Path, required=True)
     prep.add_argument("--k", type=int, default=8)
+    successor = commands.add_parser("successor", help="Freeze explicit completed results into a fresh plan")
+    successor.add_argument("--plan", type=Path, required=True)
+    successor.add_argument("--reuse-result", type=Path, action="append", required=True)
+    successor.add_argument("--output", type=Path, required=True)
     run = commands.add_parser("run")
     run.add_argument("--plan", type=Path, required=True)
     run.add_argument("--output", type=Path, required=True)
@@ -340,12 +431,14 @@ def main() -> None:
     run.add_argument("--input-usd-per-million", type=float, required=True)
     run.add_argument("--output-usd-per-million", type=float, required=True)
     args = parser.parse_args()
-    if args.command == "prepare":
-        plan = prepare(read_json(args.dataset), args.store, k=args.k)
+    if args.command in ("prepare", "successor"):
+        plan = (prepare(read_json(args.dataset), args.store, k=args.k) if args.command == "prepare"
+                else add_reused_results(read_json(args.plan), args.reuse_result))
         args.output.mkdir(parents=True, exist_ok=False)
         write_new(args.output / "plan.json", plan)
         print(json.dumps({"status": "prepared", "cases": len(plan["cases"]),
                           "documents_per_case": [len(row["packet"]["documents"]) for row in plan["cases"]],
+                          "reused_arms": len(plan.get("reused_results", [])),
                           "provider_calls": 0, "evaluation_status": "NOT_RUN"}))
     else:
         from dotenv import load_dotenv

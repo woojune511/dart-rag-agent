@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 import httpx
 
 from src.ops.compare_rag_workflows import (
-    baseline_prompt, batch_cost_ceiling, budget_policy,
+    add_reused_results, authorize_arm_request, baseline_prompt, batch_cost_ceiling, budget_policy,
     compiled_answer, encoded, fingerprint, prepare, run_arm, run_comparison,
     source_text_packet, verify_plan, write_new,
 )
@@ -55,6 +55,105 @@ class WorkflowComparisonTests(unittest.TestCase):
     def guard(self, budget, authorize):
         self.active_budget = budget
         yield budget
+
+    def prior_result(self, plan):
+        prior = self.root / "prior"
+        prior.mkdir()
+        write_new(prior / "plan.json", plan)
+        result = prior / "00_simple_rag.json"
+        write_new(result, {"case_id": plan["cases"][0]["case_id"], "arm": "simple_rag",
+                  "status": "completed", "packet_sha256": plan["cases"][0]["packet_sha256"],
+                  "output": {"answer": "Preserved authored answer"}, "elapsed_seconds": 1,
+                  "provider_records": [{"estimated_usd": 0.01, "input_tokens": 10, "output_tokens": 5}]})
+        return result
+
+    def test_successor_reuses_answer_without_a_call_or_double_charge(self):
+        plan = self.plan()
+        previous = self.prior_result(plan)
+        before = previous.read_bytes()
+        successor = add_reused_results(plan, [previous])
+        policy = budget_policy(successor, cap_usd=2, input_rate=2.5, output_rate=12)
+        self.assertEqual(policy["max_openai_response_calls"], 4)
+        self.assertAlmostEqual(batch_cost_ceiling(policy), 1.193216)
+        def new_answer(*args):
+            self.active_budget.dispatch(kind="openai_response", model=plan["model_settings"]["model"],
+                request={"authored": "new response"}, input_bound=10, output_bound=10,
+                invoke=lambda: object(), usage=lambda response: (5, 2))
+            return {"status": "completed", "output": {"answer": "New authored answer"}}
+        factory = Mock(return_value=object())
+        with patch("src.ops.compare_rag_workflows.run_arm", side_effect=new_answer) as call:
+            result = run_comparison(successor, self.root / "successor", policy,
+                                    llm_factory=factory, guard_factory=self.guard)
+        factory.assert_called_once()
+        self.assertEqual(call.call_args.args[0], "planned_compiled")
+        self.assertEqual(result["summary"]["completed_pairs"], 1)
+        self.assertEqual(result["summary"]["arms"]["simple_rag"]["new_provider_calls"], 0)
+        self.assertEqual(result["summary"]["arms"]["simple_rag"]["reused_provider_calls"], 1)
+        self.assertAlmostEqual(result["budget"]["estimated_cost_usd_without_cache_discount"], (5*2.5+2*12)/1e6)
+        self.assertEqual(result["results"][0]["output"]["answer"], "Preserved authored answer")
+        self.assertEqual(previous.read_bytes(), before)
+        self.assertNotIn("reused_results", plan)
+
+    def test_reuse_rejects_changed_model_packet_duplicate_and_unfinished_result(self):
+        plan = self.plan()
+        previous = self.prior_result(plan)
+        for key in ("model_settings", "comparison"):
+            changed = deepcopy(plan)
+            changed[key] = {**plan[key], "reasoning_effort": "medium"} if key == "model_settings" else "changed"
+            with self.assertRaisesRegex(ValueError, "different"):
+                add_reused_results(changed, [previous])
+        changed = deepcopy(plan)
+        changed["cases"][0]["packet"]["query"] = "Different request"
+        changed["cases"][0]["packet_sha256"] = fingerprint(changed["cases"][0]["packet"])
+        with self.assertRaisesRegex(ValueError, "identical inputs"):
+            add_reused_results(changed, [previous])
+        with self.assertRaisesRegex(ValueError, "unique completed"):
+            add_reused_results(plan, [previous, previous])
+        row = json.loads(previous.read_text())
+        row["status"] = "interrupted"
+        previous.write_text(json.dumps(row))
+        with self.assertRaisesRegex(ValueError, "unique completed"):
+            add_reused_results(plan, [previous])
+
+    def test_reused_artifact_change_is_rejected_before_client_or_output(self):
+        plan = self.plan()
+        previous = self.prior_result(plan)
+        successor = add_reused_results(plan, [previous])
+        policy = budget_policy(successor, cap_usd=2, input_rate=2.5, output_rate=12)
+        previous.write_text(previous.read_text() + " ")
+        factory = Mock()
+        output = self.root / "not_created"
+        with self.assertRaisesRegex(ValueError, "Reused evidence changed"):
+            run_comparison(successor, output, policy, llm_factory=factory, guard_factory=self.guard)
+        factory.assert_not_called()
+        self.assertFalse(output.exists())
+
+    def test_exact_first_request_bounds_leave_only_compiler_slots_variable(self):
+        plan = self.plan()
+        planner_body = {"input": "fixed planner", "text": {"format": {"name": "RequirementPlannerOutput"}}}
+        baseline_body = {"input": "fixed baseline", "text": {"format": {"name": "SimpleAnswer"}}}
+        bodies = {"simple_rag": baseline_body, "planned_compiled": planner_body}
+        plan["compiler_input_token_bound"] = 100000
+        plan["first_request_bounds"] = [{"case_id":"case-1", "arm":arm,
+            "request_sha256":fingerprint(body), "input_token_bound":len(encoded(body))+256}
+            for arm,body in bodies.items()]
+        policy = budget_policy(plan, cap_usd=2, input_rate=2.5, output_rate=12)
+        fixed = sum(row["input_token_bound"] for row in plan["first_request_bounds"])
+        self.assertAlmostEqual(batch_cost_ceiling(policy), ((fixed+3*100000)*2.5+5*8192*12)/1e6)
+        active = {"case_id":"case-1", "arm":"planned_compiled", "calls":0, "limit":4}
+        with self.assertRaises(BudgetStop):
+            authorize_arm_request({**planner_body, "input":"changed"}, active, policy)
+        self.assertEqual(active["calls"], 0)
+        self.assertTrue(authorize_arm_request(planner_body, active, policy))
+        with self.assertRaises(BudgetStop):
+            authorize_arm_request(planner_body, active, policy)
+        for _ in range(3):
+            self.assertTrue(authorize_arm_request({"text":{"format":{"name":"CompilerResponseV2"}}}, active, policy))
+        with self.assertRaises(BudgetStop):
+            authorize_arm_request({"text":{"format":{"name":"CompilerResponseV2"}}}, active, policy)
+        for changed in ([plan["first_request_bounds"][0]], plan["first_request_bounds"]*2):
+            with self.assertRaises(ValueError):
+                budget_policy({**plan,"first_request_bounds":changed}, cap_usd=2, input_rate=2.5, output_rate=12)
 
     def test_preparation_is_read_only_and_gold_never_reaches_common_input(self):
         before = {p.name: p.read_bytes() for p in self.store.iterdir()}
