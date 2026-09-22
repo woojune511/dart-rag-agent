@@ -75,7 +75,8 @@ estimate and pending0. Shared accounting is **USD19.76502393 / 20.32** and remai
 funding is **USD0.55497607**. The contingency is not a verified endpoint tariff
 or invoice; the total budget has not increased.
 
-Next prepare one frozen-question Planner generation probe with explicit semantic
-criteria and complete funding inside the existing balance. Use a fresh
-count/generation admission with unchanged output bounds. This consumed one-count
-manifest grants no generation, automatic retry or resume.
+A subsequent [one-question Planner generation](planner_single_generation_result.md)
+used a fresh funded manifest on clean `1641781f`, completing one count and one
+generation with HTTP200 and sampled period/scope/combined1/1. The new response
+is separate from this earlier count-only result. This original consumed
+manifest still grants no generation, automatic retry or resume.

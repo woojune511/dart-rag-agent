@@ -97,6 +97,8 @@ are not improved by authored responses.
 The subsequent [one-count verification](planner_corrected_schema_count_result.md)
 succeeded with HTTP200 and8417 measured input tokens on clean `5fb9558c`.
 Its fresh manifest is consumed, with zero generations and USD0.01 contingency.
-This adds actual count-endpoint acceptance for the corrected body; generation
-acceptance and semantic accuracy remain unassessed. The zero-call figures
-above describe this earlier local correction, not the later verification.
+That result establishes count-endpoint acceptance only. A later
+[single-question generation](planner_single_generation_result.md) also completed
+with a valid plan and sampled period/scope1/1. These later observations remain
+separate from the zero-call local correction above; broad accuracy and the
+sole historical error cause are not established.
