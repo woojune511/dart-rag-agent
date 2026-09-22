@@ -96,9 +96,14 @@ Conservative input2.5/output12 per million covers the short-context cache-write
 rate checked against [official pricing](https://developers.openai.com/api/docs/pricing).
 The count allowance is a contingency, not a verified count-endpoint tariff.
 
-Next review source-period compatibility and report/scope preservation using
+At this handoff, the next step was to review source-period compatibility and report/scope preservation using
 provider-free checks and fixed saved evidence before defining a further
 real-source integration probe. The synthetic2056/2060 questions are not queries
 for the selected NAVER2023 application store. Any future paid probe needs suitable
 source-backed questions, a fresh manifest and complete funding within its bounds;
 this completed admission supplies no retry, resume, ingest or additional funding.
+
+The [completed provider-free source integration review](planner_real_source_integration.md)
+now retains5/5 explicitly declared real-source answers, rejects ten period/scope
+conflicts and preserves the legacy cash-plan limitation. No further provider
+call or accounting was added. The original sampled Planner result above is unchanged.
