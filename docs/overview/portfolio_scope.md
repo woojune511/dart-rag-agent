@@ -30,11 +30,11 @@ by user direction; the transition adds no paid accuracy or latency evidence.
 
 ## Remaining milestone
 
-1. Freeze a separate final question set covering lookup, calculation, explanation and missing evidence. Previously inspected/repaired questions remain development cases.
+1. Done: [freeze12 source-authored final questions and criteria](../evaluation/simple_rag_final_preparation.md), three per category. The corpus is familiar; previously repaired questions remain development cases. No unseen-holdout claim.
 2. Evaluate the actual simple-RAG application with recorded source/retrieval/model settings and a bounded one-time run. Keep historical fixed-BM25 comparison measurements separate from end-to-end hybrid retrieval.
 3. Report correctness, source support, abstention, retrieval misses, latency and cost separately. Numeric text is not a deterministic execution proof.
 4. Publish a reproducible demo/report with successful answers, an abstention and observed limitations; close the milestone instead of tuning repeatedly on the final questions.
 
-A separate final set, demo and report remain outstanding. The previous batch's
+A frozen final set and cost envelope are prepared. Actual-app execution and its demo/report remain outstanding. The previous batch's
 paid authority is consumed. No store rebuild, historical-result rewrite, automatic
 Compiler fallback or new question-specific rule is required by this milestone.

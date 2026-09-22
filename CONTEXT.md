@@ -45,9 +45,11 @@ transition. Protected hashes and local verification receipts live under
 
 ## Next work and hard stops
 
-1. Complete a separate final set and reproducible simple-RAG demo/report. Include retrieval misses, abstention and the reduced validation guarantees.
+The [12-question final panel](docs/evaluation/simple_rag_final_preparation.md) is frozen: lookup/calculation/explanation/insufficient-evidence3 each, NAVER2022/2023 familiar corpus, separate reviewer rubric. Source anchors17, reference calculations3 and blocked-socket SDK mocks11 plus empty-scope1 pass. All135 protected files unchanged; paid evaluation NOT_RUN. Proposed one-run cap5.25, full reservation5.23548672, no new spend/funding. Local plan `f1028bd8...d34a72` is preparation, not paid authority or an unseen holdout.
+
+1. Prepare the actual-app execution adapter using existing cost guards, rehearse admission/checkpoints, then evaluate once and complete the demo/report. Include retrieval misses, abstention and the reduced validation guarantees.
 2. Do not restart a per-question repair queue or silently restore Compiler fallback. The default change is user-authorized, not evidence of general superiority.
-3. No automatic paid batch/retry or consumed-manifest reuse. Freeze the actual final evaluation scope and cost boundary before any paid execution.
+3. No automatic paid batch/retry or consumed-manifest reuse. Bind a future run decision to the frozen final plan and verified execution adapter before transmission.
 4. Preserve source stores, historical raw outputs and accounting. The inactive default `data/chroma_dart` manifest mismatch remains; this change does not adopt or rebuild it.
 
 Current checks: [project status](docs/overview/project_status.md). Chronology:

@@ -1,5 +1,11 @@
 ﻿# Experiment History
 
+## Simple-RAG final panel prepared, no paid run (2026-09-22)
+
+- On `a9270221`, froze [12 source-authored questions, separate criteria and cost envelope](../evaluation/simple_rag_final_preparation.md): lookup/calculation/explanation/insufficient-evidence3 each. NAVER2022/2023 source graph only,1,872 chunks; familiar corpus, not independent human gold or unseen holdout. Zero normalized exact matches among239 prior questions does not prove semantic novelty. Empty-company abstention is separate from model abstention.
+- Verified17 body excerpts,3 Decimal calculations, scopes and11 actual-SDK mocked answers plus1 empty-scope case with sockets blocked. All135 protected settings/store/prior-artifact files unchanged;86 runtime/dependency hashes bound. No runtime edits, retrieval-quality sampling, full-suite rerun, paid calls or funding. An initial local check stopped on a historical JSON BOM before SDK mocks; the reader handles it without rewriting history. Final `verified.json` binds corrected absence-claim wording; the earlier receipt is separate.
+- Full reservation5.23548672 under proposed cap5.25 fits remaining5.31809057. Official rates verified; conservative input2.50/output12 plus embedding0.13 USD/M, no cache discount, at most12 answers/12 embeddings. Shared accounting remains21.00190943/26.32, pending0. Plan `f1028bd804c79dcc5bbea349678e2ca6ba75225a95520c142a9a95a037d34a72` is preparation only. Actual-app adapter and admission/persistence rehearsal remain before one future run and demo/report; no automatic retry or per-question tuning.
+
 ## Portfolio workflow comparison: four development pairs completed (2026-09-22)
 
 - Clean `6bc4aae5`; [completed successor and source review](../evaluation/portfolio_workflow_comparison_successor.md). Seven fresh arms use11 calls, one saved baseline is reused with exact input/model/artifact identity; four pairs complete, errors/retries/unknown-usage0. The [original writer failure](../evaluation/portfolio_workflow_comparison_result.md) remains interrupted with zero pairs and its conservative loss charge; raw files are unchanged.

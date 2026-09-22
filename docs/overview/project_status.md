@@ -27,6 +27,8 @@ separate; their [contract](../architecture/compiled_workflow_contract.md) is pre
 
 ## Current verification
 
+The [final panel preparation](../evaluation/simple_rag_final_preparation.md) freezes12 new source-authored questions (3 per category), a separate rubric and a USD5.25 proposed cap (full reservation5.23548672). Source excerpts17, Decimal references3, scope/overlap checks and11 blocked-socket SDK mock calls plus one empty-scope case pass; all135 protected files unchanged. This is a familiar two-filing corpus, not an independent holdout. Real retrieval/model quality/latency remain NOT_RUN; the execution adapter and admission/persistence rehearsal are next. No new spend or funding.
+
 The [simple-RAG transition](../architecture/simple_rag_adoption.md) passes **2,125/2,125 tests** (64.083s), including 16 new application-boundary controls. Focused56, final API/profile48 and comparison/import48 pass; domain audit35 and documentation/topology checks pass. Actual SDK serialization and HTTP projection use mocked transport, with one answer call and no Compiler. All110 protected files retain their hashes. Paid calls and new model-quality/latency evaluation: **NOT_RUN**.
 
 ## Prior checkpoints (not default-RAG acceptance)
@@ -112,13 +114,13 @@ They do not establish current simple-RAG model quality or runtime acceptance.
 
 ## Next work
 
-1. Build a separate final evaluation set and demo for the adopted simple-RAG app.
+1. Rehearse the actual-app execution adapter against the frozen12-question plan, then run once and build the simple-RAG demo/report.
 2. Keep retrieval, supported-answer quality, abstention, source-ID checks and arithmetic/semantic limitations separate in the report.
 3. Do not add per-question prompt/schema rules or restore Planner/Compiler as an automatic fallback.
 4. Historical compiled comparisons remain explicit tools; previous one-batch approvals are consumed.
 
 Shared conservative accounting remains USD21.00190943/26.32, remaining5.31809057,
-pending0. A final paid run needs a separately frozen scope and ceiling. The stored
+pending0. Final scope/ceiling are frozen; paid execution still needs its bounded adapter and run decision. The stored
 comparison selected one NAVER2023 filing; that is not unseen multi-company coverage.
 The inactive default-store manifest mismatch and previously observed semantic/
 retrieval failures are not repaired by this architecture change.
