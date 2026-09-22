@@ -3363,10 +3363,7 @@ def _optional_positive_int(value: Any) -> int:
 
 
 def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, Any]:
-    routing_config: Dict[str, Any] = {
-        "enable_semantic_router": not bool(full_eval_config.get("disable_semantic_router", False)),
-        "enable_llm_fallback": not bool(full_eval_config.get("disable_router_llm", False)),
-    }
+    routing_config: Dict[str, Any] = {}
     for key in (
         "retrieval_query_budget",
         "focused_retrieval_query_budget",
@@ -3375,9 +3372,6 @@ def _build_agent_routing_config(full_eval_config: Dict[str, Any]) -> Dict[str, A
         parsed = _optional_positive_int(full_eval_config.get(key))
         if parsed:
             routing_config[key] = parsed
-    report_cache_index_path = str(full_eval_config.get("report_cache_index_path") or "").strip()
-    if report_cache_index_path:
-        routing_config["report_cache_index_path"] = report_cache_index_path
     llm_routes = full_eval_config.get("llm_routes")
     if isinstance(llm_routes, dict) and llm_routes:
         routing_config["llm_routes"] = dict(llm_routes)
@@ -5025,7 +5019,6 @@ def _execute_benchmark_command(
             "--retrieval-query-budget": bool(args.retrieval_query_budget),
             "--focused-retrieval-query-budget": bool(args.focused_retrieval_query_budget),
             "--retry-retrieval-query-budget": bool(args.retry_retrieval_query_budget),
-            "--report-cache-index-path": bool(str(args.report_cache_index_path or "").strip()),
             "--llm-route": bool(args.llm_route),
         }
         requested_incompatible = [name for name, enabled in incompatible_options.items() if enabled]
@@ -5058,8 +5051,6 @@ def _execute_benchmark_command(
         full_eval_config["focused_retrieval_query_budget"] = max(int(args.focused_retrieval_query_budget), 0)
     if args.retry_retrieval_query_budget:
         full_eval_config["retry_retrieval_query_budget"] = max(int(args.retry_retrieval_query_budget), 0)
-    if str(args.report_cache_index_path or "").strip():
-        full_eval_config["report_cache_index_path"] = str(args.report_cache_index_path).strip()
     full_eval_config = _apply_llm_route_overrides(full_eval_config, list(args.llm_route or []))
     if not experiments:
         raise ValueError("No experiments found in benchmark config.")
@@ -5313,11 +5304,6 @@ def main() -> None:
         type=int,
         default=0,
         help="Optional cap for reconciliation retry retrieval queries. Use 0 for the built-in default.",
-    )
-    parser.add_argument(
-        "--report-cache-index-path",
-        default="",
-        help="Optional local report-cache index path for retrieval trace diagnostics only; hits are never served.",
     )
     parser.add_argument(
         "--llm-route",

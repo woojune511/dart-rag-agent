@@ -6,13 +6,16 @@ traceable provenance so a reviewer can inspect how each numeric answer was
 produced.
 
 > Portfolio scope: the product is the single-agent `FinancialAgent` runtime.
-> Multi-agent orchestration, cache promotion, and extended review machinery are
-> experiments around the core, not the main product claim.
+> Multi-agent orchestration, report-result cache promotion and duplicate question
+> classification have been removed. The runtime has one question-processing path.
 
 The [completion scope](docs/overview/portfolio_scope.md) prioritizes a reproducible
 simple-RAG comparison, one justified improvement, and a final evaluation/demo.
 The retired topic-specific narrative answer path has been removed; all answer
-kinds use the shared Planner–Compiler workflow. The comparison is still pending.
+kinds use the shared Planner–Compiler workflow. The [four-case development comparison](docs/evaluation/portfolio_workflow_comparison_successor.md)
+found no clear quality advantage at 3.47x estimated cost and 4.79x measured time.
+Those exposed cases do not establish general superiority; the [feature retirement](docs/architecture/portfolio_feature_retirement.md)
+reduces implementation scope without claiming a measured quality or speed gain.
 
 ## The problem
 
@@ -205,7 +208,7 @@ write approval.
 | --- | --- | --- |
 | Core runtime | parser, retrieval, evidence binding, calculation, answer projection | Main product story |
 | Evaluation | evaluator, benchmarks, gates, regression fixtures | Supporting proof, never imported by the default runtime |
-| Experimental | MAS facade, graph-expansion variants, cache/reflection promotion paths | Optional appendix; disabled or isolated by default |
+| Optional client | Streamlit over the same API-owned services | Uses the same single-agent product boundary |
 | Legacy compatibility | historical artifacts and superseded docs | Kept outside the runtime result and linked through history |
 
 Current runtime ownership and deletion boundaries are documented in the
@@ -223,7 +226,6 @@ src/processing/            DART parsing and chunk preparation
 src/ingestion/             fetch and ingest service ownership
 src/storage/               embeddings, Chroma, BM25, and structure storage
 src/config/                ontology, retrieval policy, and runtime config
-src/experimental/mas/      optional multi-agent experiment
 src/ops/                   evaluation, benchmark, and reviewer commands
 tests/                     contract and regression tests
 docs/                      reviewer guides and internal history

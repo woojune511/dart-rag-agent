@@ -78,11 +78,10 @@ def execute_semantic_calculation_program(**inputs):
 
 def execute_compiled_fixture(agent, state, catalog):
     """Migrate historical test inputs through the actual phase-owned graph nodes."""
-    from src.agent.financial_graph_state import RoutingPhase, RequirementsPhase, RetrievalPhase, CompilationPhase
+    from src.agent.financial_graph_state import RequirementsPhase, RetrievalPhase, CompilationPhase
 
     phases = {
         "request": {"query": state["query"], "report_scope": dict(state.get("report_scope") or {})},
-        "routing": {key: state[key] for key in RoutingPhase.__annotations__ if key in state},
         "requirements": {key: state[key] for key in RequirementsPhase.__annotations__ if key in state},
         "retrieval": {key: state[key] for key in RetrievalPhase.__annotations__ if key in state},
         "candidates": {"semantic_candidate_catalog": catalog, "semantic_source_candidates": []},

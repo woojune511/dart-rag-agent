@@ -16,7 +16,6 @@ class RuntimeCalculationTrace(TypedDict, total=False):
     calculation_operands: List[Dict[str, Any]]
     calculation_plan: Dict[str, Any]
     calculation_result: Dict[str, Any]
-    report_cache_candidate: Dict[str, Any]
     runtime_projection: RuntimeProjectionMetadata
 
 
@@ -280,22 +279,6 @@ class LedgerSnapshot(TypedDict, total=False):
     task_artifact_trace: Dict[str, Any]
 
 
-class RoutingPhase(TypedDict, total=False):
-    query_type: str
-    intent: str
-    format_preference: str
-    routing_source: str
-    routing_confidence: float
-    routing_scores: Dict[str, float]
-    routing_degraded_reason: str
-    companies: List[str]
-    years: List[int]
-    topic: str
-    section_filter: Optional[str]
-    target_metric_family: str
-    target_metric_family_hint: str
-
-
 class RequirementsPhase(TypedDict, total=False):
     semantic_plan: Dict[str, Any]
     answer_obligations: List[Dict[str, Any]]
@@ -368,10 +351,6 @@ class FinalResultPhase(TypedDict):
     kept_claim_ids: List[str]
 
 
-class RoutingInput(RequestPhase):
-    pass
-
-
 class PlanningInput(RequestPhase, total=False):
     query_type: str
     intent: str
@@ -421,7 +400,6 @@ class FinancialAgentStateV2(TypedDict, total=False):
     """Graph state with one top-level writer for every runtime phase."""
 
     request: RequestPhase
-    routing: RoutingPhase
     requirements: RequirementsPhase
     retrieval: RetrievalPhase
     candidates: CandidatesPhase
@@ -429,10 +407,6 @@ class FinancialAgentStateV2(TypedDict, total=False):
     numeric_result: NumericResultPhase
     final_result: FinalResultPhase
     ledger: LedgerSnapshot
-
-
-class RoutingUpdate(TypedDict):
-    routing: RoutingPhase
 
 
 class RequirementsUpdate(TypedDict):

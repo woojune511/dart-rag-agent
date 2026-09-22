@@ -31,9 +31,8 @@ FastAPI lifespan
 
 <!-- BEGIN GENERATED FINANCIAL GRAPH TOPOLOGY -->
 ```text
-entry: route_request
+entry: plan_requirements
 nodes:
-  route_request -> FinancialAgent._route_request_phase
   plan_requirements -> FinancialAgent._plan_requirements_phase
   retrieve_evidence -> FinancialAgent._retrieve_evidence_phase
   build_candidates -> FinancialAgent._build_candidates_phase
@@ -42,7 +41,6 @@ nodes:
   assemble_ledger -> FinancialAgent._assemble_ledger_phase
   assemble_final -> FinancialAgent._assemble_final_phase
 edges:
-  route_request -> plan_requirements
   plan_requirements -> retrieve_evidence
   retrieve_evidence -> build_candidates
   build_candidates -> compile_program
@@ -61,8 +59,8 @@ phase key 하나만 쓴다. 모든 답변은 Compiler와 `execute_numeric`를 �
 
 ## Numeric compilation boundary
 
-모든 request는 requirement의 dependency와 non-empty
-`coupling_key`만으로 compilation island를 만든다. 각 island는 독립 candidate
+모든 request는 requirement dependency와 명시적으로 연결한 output relationship으로
+compilation island를 만든다. 각 island는 독립 candidate
 visibility와 prompt를 가지며 순차 compile된다. Compiler가 만든 immutable
 `CompilationEnvelopeV2`를 validator와 executor가 공유한다. executor는 catalog,
 obligation, source bundle, visibility, validation fingerprint가 달라지면 실행 전에
@@ -101,7 +99,6 @@ degraded mode에서만 허용되며 readiness와 retrieval trace에 표시된다
 
 ## Optional surfaces
 
-`src/ops`, Streamlit UI, evaluator, benchmark runner와 `src/experimental/mas`는
-검증 또는 실험 surface다. 기본 product import와 query contract의 권위가 아니다.
-MAS는 single-agent 결과를 소비하는 optional adapter이며 별도 제품 topology로
-간주하지 않는다.
+`src/ops`, Streamlit UI, evaluator와 benchmark runner는 검증·선택적 client surface다.
+기본 product import와 query contract의 권위가 아니다. 별도 질문 분류와 MAS,
+보고서 결과 캐시·승격 경로는 [삭제했다](../architecture/portfolio_feature_retirement.md).

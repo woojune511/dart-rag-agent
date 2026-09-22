@@ -198,11 +198,6 @@ def compiled_answer(packet: dict, llm: Any, usage: Any) -> dict:
     from src.agent.financial_graph import FinancialAgent
 
     class FrozenEvidenceAgent(FinancialAgent):
-        def _route_request_phase(self, state):
-            # Routing/retrieval are controlled inputs, not treatment differences.
-            return {"routing": {"query_type": "qa", "intent": "qa", "format_preference": "mixed",
-                                "companies": [], "years": [], "topic": state["request"]["query"],
-                                "routing_source": "fixed_evidence_comparison"}}
 
         def _retrieve_evidence_phase(self, state):
             docs = [(Document(page_content=row["page_content"], metadata=deepcopy(row["metadata"])), 1.0)

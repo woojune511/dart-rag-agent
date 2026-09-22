@@ -49,13 +49,11 @@ from src.agent.financial_text_surface import (
     strip_rerank_metadata,
     tokenize_terms,
 )
-from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
     METRIC_TOPIC_EXTRACTION_TERMS,
     NARRATIVE_RERANK_POLICY,
     SEMANTIC_REQUIRED_EVIDENCE_POLICY,
 )
-from src.routing import default_format_preference
 from src.storage.bm25_index import metadata_matches_filter
 from src.storage.search_scope import restrict_search_filter
 if TYPE_CHECKING:
@@ -112,85 +110,6 @@ def _metric_terms_from_topic(topic: str) -> set[str]:
     text = _normalise_spaces(topic)
     known_terms = [str(item) for item in METRIC_TOPIC_EXTRACTION_TERMS if str(item)]
     return {term for term in known_terms if term in text}
-
-
-def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
-    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
-    candidate = dict(trace.get("report_cache_candidate") or {})
-    if not candidate:
-        candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
-    if not candidate:
-        return {
-            "status": "not_available",
-            "eligible": False,
-            "enabled": False,
-            "mode": "trace_only",
-            "reasons": ["missing_candidate"],
-            "source": "none",
-        }
-    assessment = dict(candidate.get("retrieval_bypass") or {})
-    if not assessment:
-        assessment = classify_report_cache_consumer_candidate(candidate)
-    return {
-        "status": str(assessment.get("status") or "").strip(),
-        "eligible": bool(assessment.get("eligible")),
-        "enabled": bool(assessment.get("enabled")),
-        "mode": str(assessment.get("mode") or "trace_only").strip(),
-        "reasons": [str(reason) for reason in list(assessment.get("reasons") or [])],
-        "candidate_status": str(candidate.get("status") or "").strip(),
-        "candidate_key_id": str(candidate.get("key_id") or assessment.get("key_id") or "").strip(),
-        "source": "resolved_calculation_trace.report_cache_candidate",
-    }
-
-
-def _report_cache_index_diagnostics_for_retrieval(
-    state: Dict[str, Any],
-    index_path: Any,
-) -> Dict[str, Any]:
-    path_text = str(index_path or "").strip()
-    if not path_text:
-        return {
-            "status": "not_configured",
-            "enabled": False,
-            "serving_enabled": False,
-            "path": "",
-            "lookup_attempted": False,
-        }
-
-    # The persisted report-cache index is an optional runtime surface. Import
-    # it only when a caller explicitly configures an index path.
-    from src.storage.report_cache_index import ReportCacheIndex
-
-    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
-    candidate = dict(trace.get("report_cache_candidate") or {})
-    if not candidate:
-        candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
-    key = candidate.get("key") if isinstance(candidate.get("key"), dict) else {}
-    if not key:
-        diagnostics = ReportCacheIndex(path_text).load_diagnostics()
-        return {
-            "status": str(diagnostics.get("status") or "").strip(),
-            "enabled": False,
-            "serving_enabled": False,
-            "path": str(diagnostics.get("path") or path_text),
-            "lookup_attempted": False,
-            "reason": "missing_report_cache_key",
-            "index": {
-                "status": diagnostics.get("status"),
-                "path": diagnostics.get("path"),
-                "readable_count": diagnostics.get("readable_count", 0),
-                "blocked_count": diagnostics.get("blocked_count", 0),
-                "malformed_count": diagnostics.get("malformed_count", 0),
-            },
-        }
-
-    diagnostics = ReportCacheIndex(path_text).lookup_diagnostics(key)
-    return {
-        **diagnostics,
-        "lookup_attempted": True,
-    }
-
-
 
 
 def make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
@@ -977,7 +896,7 @@ class FinancialRetrievalPipelineMixin:
         format_preference = str(
             active_subtask.get("format_preference_override")
             or state.get("format_preference")
-            or default_format_preference(intent)
+            or "mixed"
         )
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
         preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
@@ -1156,11 +1075,6 @@ class FinancialRetrievalPipelineMixin:
         reflection_count = int(state.get("reflection_count") or 0)
         retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
         effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
-        report_cache_consumer_assessment = _report_cache_consumer_assessment_for_retrieval(dict(state))
-        report_cache_index_diagnostics = _report_cache_index_diagnostics_for_retrieval(
-            dict(state),
-            state.get("report_cache_index_path") or getattr(self, "report_cache_index_path", ""),
-        )
         semantic_program_required = _semantic_program_required(state)
         retrieval_intent = intent
         if semantic_program_required and intent not in {"comparison", "trend", "numeric_fact"}:
@@ -1217,8 +1131,6 @@ class FinancialRetrievalPipelineMixin:
             "reflection_count": reflection_count,
             "retry_queries": retry_queries,
             "effective_k": effective_k,
-            "report_cache_consumer_assessment": report_cache_consumer_assessment,
-            "report_cache_index_diagnostics": report_cache_index_diagnostics,
             "semantic_program_required": semantic_program_required,
             "retrieval_intent": retrieval_intent,
             "query_bundle": query_bundle,
@@ -1569,7 +1481,7 @@ class FinancialRetrievalPipelineMixin:
         format_preference = str(
             active_subtask.get("format_preference_override")
             or state.get("format_preference")
-            or default_format_preference(intent)
+            or "mixed"
         ).strip().lower()
         def selection_key(item: Any) -> tuple[str, Any]:
             source_id = _retrieval_document_source_id(item[0])
@@ -1651,12 +1563,6 @@ class FinancialRetrievalPipelineMixin:
         has_multi_source_scope = bool(plan["has_multi_source_scope"])
         scope_report_type = str(plan["scope_report_type"])
         scope_consolidation = str(plan["scope_consolidation"])
-        report_cache_consumer_assessment = dict(
-            plan["report_cache_consumer_assessment"]
-        )
-        report_cache_index_diagnostics = dict(
-            plan["report_cache_index_diagnostics"]
-        )
         docs = list(selection["docs"])
         seed_docs = list(selection["seed_docs"])
         reranked = list(selection["reranked"])
@@ -1741,16 +1647,6 @@ class FinancialRetrievalPipelineMixin:
                 "by_source": query_result_cache_by_source,
             },
             "cross_trace_reuse_candidates": cross_trace_reuse_candidates,
-            "report_cache_consumer_assessment": {
-                **report_cache_consumer_assessment,
-                "normal_retrieval_executed": bool(executed_queries),
-                "executed_query_count": len(executed_queries),
-            },
-            "report_cache_index_diagnostics": {
-                **report_cache_index_diagnostics,
-                "normal_retrieval_executed": bool(executed_queries),
-                "executed_query_count": len(executed_queries),
-            },
             "candidate_count": len(reranked),
             "scope_filter": dict(selection.get("scope_filter") or {}),
             "source_scope_search": dict(searches.get("source_scope_search") or {}),

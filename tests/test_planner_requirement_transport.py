@@ -163,8 +163,6 @@ class PlannerRequirementTransportTests(unittest.TestCase):
         model = RequirementPlannerOutput.model_validate({'obligations': [owner('Aspen', 'Describe routes.')]})
         llm = _StructuredQueueLLM(model, program(1, 'Aspen', 'note'))
         agent = agent_for(llm)
-        agent._classify_query = Mock(return_value={'query_type': 'business_overview', 'intent': 'business_overview'})
-        agent._extract_entities = Mock(return_value={'companies': ['Issuer'], 'years': [2042], 'topic': 'routes'})
         agent._retrieve = Mock(return_value={'retrieved_docs': [], 'seed_retrieved_docs': []})
         agent._expand_via_structure_graph = Mock(return_value={'retrieved_docs': []})
         rows = [evidence('Aspen', 'note')]

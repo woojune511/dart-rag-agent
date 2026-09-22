@@ -14,7 +14,7 @@ checks. Baseline: `d9c36d8d`. The [portfolio completion scope](portfolio_scope.m
 | Request | Exact owned question spans, outputs and explicit source/display constraints; no source-name allowlist |
 | Exposure / authority | Bounded bundles; numeric own-axis and narrative same-surface request-term hints rank relevance without changing identity or source permissions |
 | Numeric interpretation | Compiler links requests to the selected cell's full axes or attached exact context; code validates linkage, not meaning |
-| Model transport | CompilerResponseV2 with compact JSON by default; exact source/request addresses; bounded operation steps with inline quantity/proof and backward-only references, code-computed binding_count; separate prose subject/metric support; no narrative expressions |
+| Model transport | Direct Planner entry without a question classifier; CompilerResponseV2 with compact JSON, source/request addresses and bounded operation steps; explicit proof and deterministic execution |
 | Group / retry | Request-grounded relationships with one shared declaration and explicit member refs; independent local proofs; one targeted retry with accepted bytes/declarations preserved |
 | Display intent | Explicit request precedes source-first defaults; existing Compiler chooses nullable source display with request-based reason, no keyword classifier |
 | Numeric reading | Required nullable comparison request ID; existing variables reference/target link exact owned instructions to sources and formula; no semantic auto-repair |
@@ -27,10 +27,11 @@ Narrative subject support remains separate from each claim's exact fact ranges.
 Invalid source addresses stay invalid; lowering never guesses replacements.
 Compiler exception messages are not copied into retry prompts or public diagnostics.
 
-No product parser/store/candidate-ID/hash redesign, extra runtime model call or
-source-store mutation. New comparison tooling/data are separate from product behavior.
+Parser/store/candidate-ID/hash contracts remain unchanged; comparison tooling is separate from product behavior.
 
 ## Current verification
+
+The [feature retirement](../architecture/portfolio_feature_retirement.md) removes duplicate question routing, MAS, report-result cache/promotion, unused reflection/ratio-repair code and dedicated tools/tests: 63 files deleted, net10,855 fewer lines across source/configuration/tools. Seven graph nodes remain; initial filing scope comes only from explicit caller scope, public query_type is neutral qa, and unspecified retrieval format is mixed. Planner/Compiler and source/arithmetic/coverage guards remain. Full suite **2,109/2,109** (73.338s), focused81+64 and domain audit35 pass; all110 protected files retain their hashes. No paid calls or model-quality/speed claim. Earlier measurements below retain their original source version.
 
 The [successor comparison](../evaluation/portfolio_workflow_comparison_successor.md) on clean `6bc4aae5` **completed four development pairs**: 11 new calls plus one reused baseline, no retries/provider errors. Separate assistant source review finds no clear current-workflow quality advantage at **3.47x estimated cost / 4.79x measured elapsed time**; cash retrieval/year-end meaning and one-decimal display remain gaps. One filing, exposed cases, joint representation/workflow changes and reused timing limit inference. New spend0.359777; shared **USD21.00190943/26.32**, remaining **5.31809057**, pending0, not billing. Reuse is not double charged; original loss ceilings remain. Approval consumed. Pre-run **2,271/2,271** tests (72.440s), 16 comparison contracts and blocked-socket SDK/graph/persistence rehearsal pass. Product runtime/prompts/policies/stores unchanged; original and successor raw hashes verified.
 
@@ -141,7 +142,7 @@ it does not inject answers or change shared evaluation extraction.
 
 ## Next work
 
-1. Development comparison is complete. Freeze additional Planner/Compiler complexity; take simple RAG as a candidate into final evaluation while retaining the current workflow for inspectable source/calculation validation. Four familiar cases do not justify changing the production default.
+1. Development comparison and peripheral feature retirement are complete. Freeze additional Planner/Compiler complexity; take simple RAG as a candidate into final evaluation while retaining source/calculation validation. The remaining mandatory Planner/Compiler cost still needs justification.
 2. Keep known retrieval and meaning failures visible, including the missing exact cash source; do not insert gold evidence or question-specific corrections into shared inputs.
 3. No new runtime fix is selected from these four cases. Keep individual misses in failure analysis; require broader quality/cost evidence for added complexity. Source-integrity defects remain bugs.
 4. Complete one final evaluation and a reproducible demo/report, including negative results and unsupported scope. See [portfolio scope](portfolio_scope.md) for the stopping point.

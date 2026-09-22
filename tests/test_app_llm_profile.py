@@ -61,7 +61,6 @@ class AppLLMProfileTests(unittest.TestCase):
         self.store_factory = self.enterContext(patch("src.storage.vector_store.VectorStoreManager", return_value=store))
         self.google = SimpleNamespace(model="gemini-2.5-flash")
         self.google_factory = self.enterContext(patch("langchain_google_genai.ChatGoogleGenerativeAI", return_value=self.google))
-        self.router_factory = self.enterContext(patch("src.routing.QueryRouter"))
         self.enterContext(patch.object(FinancialAgent, "_build_graph", return_value=object()))
         self.context_factory = self.enterContext(patch("src.ingestion.context_generator.ContextGenerator"))
         self.enterContext(patch("src.ingestion.dart_fetcher.DARTFetcher"))
@@ -100,7 +99,6 @@ class AppLLMProfileTests(unittest.TestCase):
             build_app_services(project_root=self.root)
         self.assertNotIn("private-invalid-setting", str(raised.exception))
         self.store_factory.assert_not_called()
-        self.router_factory.assert_not_called()
 
     def test_missing_openai_key_fails_before_store_or_canonical_embeddings(self):
         self.prepare_services()
@@ -114,7 +112,6 @@ class AppLLMProfileTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "OPENAI_API_KEY"):
                     build_app_services(project_root=self.root)
         self.store_factory.assert_not_called()
-        self.router_factory.assert_not_called()
 
     def test_openai_selection_does_not_bypass_store_readiness(self):
         self.prepare_services(ready=False)
@@ -177,7 +174,6 @@ class AppLLMProfileTests(unittest.TestCase):
         self.assertEqual(set(agent.llm_routes), {"default", "program_compilation"})
         for phase in ("routing", "requirement_planning", "evidence_extraction"):
             self.assertIs(agent._llm_for_phase(phase), self.google)
-        self.assertIs(self.router_factory.call_args.kwargs["llm"], self.google)
         self.context_factory.assert_called_once_with(self.google, services.store)
         calls = []
 
@@ -238,7 +234,6 @@ class AppLLMProfileTests(unittest.TestCase):
             self.assertEqual(client.get("/api/health/ready").status_code, 200)
             agent = app.state.services.agent
             self.assertEqual(agent.llm.model_name, "gpt-5.6-terra")
-            self.assertIs(self.router_factory.call_args.kwargs["llm"], agent.llm)
             for phase in ("routing", "requirement_planning", "evidence_extraction"):
                 self.assertIs(agent._llm_for_phase(phase), agent.llm)
             context = agent.llm_routes["context_generation"]
@@ -259,21 +254,18 @@ class AppLLMProfileTests(unittest.TestCase):
             build_app_services(project_root=self.root)
         self.store_factory.assert_not_called()
         self.google_factory.assert_not_called()
-        self.router_factory.assert_not_called()
         with patch("src.api.services._store_may_initialize", return_value=False):
             self.assertIsNone(build_app_services(project_root=self.root).agent)
 
-    def test_real_router_and_nested_planner_schemas_use_strict_responses(self):
+    def test_nested_planner_schema_uses_strict_responses(self):
         from jsonschema import Draft202012Validator
         from src.agent.financial_graph_models import RequirementPlannerOutput
-        from src.routing.types import QueryRoutingDecision
         from tests.planner_period_wire_test_support import unspecified_period_payload
 
         self.prepare_services()
         os.environ["DART_LLM_PROFILE"] = "openai"
         agent = build_app_services(project_root=self.root).agent
         values = [
-            QueryRoutingDecision(intent="qa", format_preference="paragraph"),
             RequirementPlannerOutput(obligations=[
                 dict(kind="narrative", label="anonymous activity", request_unit_ids=["q1"],
                      display_unit="", display_format="paragraph",
@@ -297,7 +289,7 @@ class AppLLMProfileTests(unittest.TestCase):
             with self.subTest(schema=type(value).__name__), patch.object(httpx.Client, "send", side_effect=send):
                 parsed = agent.llm.with_structured_output(type(value)).invoke("Anonymous schema check")
             self.assertEqual(parsed, value)
-        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls), 1)
         for body in calls:
             self.assertEqual(body["model"], "gpt-5.6-terra")
             self.assertEqual(body["reasoning"], {"effort": "low"})
@@ -305,7 +297,7 @@ class AppLLMProfileTests(unittest.TestCase):
             self.assertFalse(body["store"])
             self.assertNotIn("temperature", body)
             self.assertTrue(body["text"]["format"]["strict"])
-        schema = calls[1]["text"]["format"]["schema"]
+        schema = calls[0]["text"]["format"]["schema"]
         self.assertEqual(schema["type"], "object")
         self.assertNotIn("anyOf", schema)
         branches = schema["properties"]["obligations"]["items"]["anyOf"]
@@ -315,11 +307,11 @@ class AppLLMProfileTests(unittest.TestCase):
             self.assertEqual(set(nested["required"]), set(nested["properties"]))
             self.assertFalse(nested["additionalProperties"])
         validator = Draft202012Validator(schema)
-        payload = unspecified_period_payload(values[1])
+        payload = unspecified_period_payload(values[0])
         validator.validate(payload)
         payload["obligations"][0]["display_unit"] = "text"
         self.assertFalse(validator.is_valid(payload))
-        payload = unspecified_period_payload(values[1])
+        payload = unspecified_period_payload(values[0])
         payload["obligations"][1]["evidence_requirements"] = payload["obligations"][0]["evidence_requirements"]
         self.assertFalse(validator.is_valid(payload))
         direct_branch = next(schema["$defs"][branch["$ref"].rsplit("/", 1)[1]] for branch in branches

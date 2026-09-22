@@ -14,20 +14,12 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RUNTIME_OPTIONAL_MODULE_PREFIXES = (
-    "src.agent.mas_graph",
-    "src.agent.mas_types",
-    "src.experimental.mas",
     "src.ops.application_diagnostics",
     "src.ops.openai_error_diagnostics",
     "src.ops.openai_server_token_count",
     "src.ops.benchmark_runner",
     "src.ops.evaluator",
     "src.ops.portfolio_review_gates",
-    "src.ops.promotion_trace_materiality_gate",
-    "src.ops.reflection_promotion_gate",
-    "src.ops.report_cache_index_smoke",
-    "src.ops.report_cache_promotion_evidence_gate",
-    "src.storage.report_cache_index",
 )
 
 
@@ -177,7 +169,6 @@ class ImportSideEffectTests(unittest.TestCase):
             "src.experimental",
             "src.ingestion",
             "src.ops",
-            "src.routing",
             "src.schema",
             "src.storage",
             "src.processing",
@@ -262,12 +253,8 @@ class ImportSideEffectTests(unittest.TestCase):
             "main",
             "src.api.financial_router",
             "src.agent.financial_graph",
-            "src.agent.rag_chain",
-            "src.agent.nodes.researcher_node",
-            "src.agent.nodes.orchestrator_node",
             "src.storage.embedding_config",
             "src.ingestion.dart_fetcher",
-            "src.ops.check_routing_confusions",
         ]
         script = """
             import importlib
@@ -350,13 +337,10 @@ class ImportSideEffectTests(unittest.TestCase):
             "src.agent.financial_runtime_trace": {"pydantic", "langchain_core"},
             "src.agent.financial_task_artifacts": {"pydantic", "langchain_core"},
             "src.api.financial_router": {"fastapi", "pydantic"},
-            "src.routing.query_router": {"pydantic", "langchain_core"},
             "src.processing.table_records": {"pydantic", "langchain_core"},
             "src.processing.financial_parser": {"pydantic", "langchain_core"},
             "src.processing.pdf_parser": {"pydantic", "langchain_core"},
             "src.ingestion.dart_fetcher": {"pydantic", "requests"},
-            "src.experimental.mas.diagnostics": {"pydantic", "langchain_core"},
-            "src.ops.mas_direct_worker_probe": {"pydantic", "langchain_core"},
             "src.ops.replay_full_eval_from_results": {"pydantic", "langchain_core", "numpy"},
             "src.ops.retrospective_operand_grounding_eval": {"pydantic", "langchain_core", "numpy"},
             "src.ops.retrospective_evaluator_ablation_eval": {"pydantic", "langchain_core", "numpy"},
@@ -435,9 +419,6 @@ class ImportSideEffectTests(unittest.TestCase):
             import sys
 
             from src.agent.financial_graph import FinancialAgent
-            from src.agent.financial_retrieval_pipeline import (
-                _report_cache_index_diagnostics_for_retrieval,
-            )
 
             class FakeGraph:
                 def invoke(self, initial):
@@ -471,7 +452,6 @@ class ImportSideEffectTests(unittest.TestCase):
                 },
             )
             result = agent.run("test question")
-            cache_diagnostics = _report_cache_index_diagnostics_for_retrieval({}, "")
 
             forbidden = sys.argv[1].split(",")
             loaded = sorted(
@@ -481,7 +461,6 @@ class ImportSideEffectTests(unittest.TestCase):
             )
             print(json.dumps({
                 "answer": result.agent_answer.get("answer"),
-                "cache_status": cache_diagnostics.get("status"),
                 "loaded": loaded,
             }, sort_keys=True))
             """
@@ -492,7 +471,6 @@ class ImportSideEffectTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["answer"], "insufficient evidence")
-        self.assertEqual(payload["cache_status"], "not_configured")
         self.assertEqual(payload["loaded"], [])
 
     def test_source_has_no_top_level_dotenv_or_logging_configuration(self) -> None:

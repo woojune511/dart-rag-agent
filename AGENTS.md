@@ -62,10 +62,10 @@
    - retrieval/routing/answer 경로의 keyword rule은 policy/config로 분리하거나 semantic planner로 대체한다.
    - parser 구조 규칙을 benchmark answer 보정 용도로 사용하지 않는다.
 
-7. **Routing guardrail은 intent를 덮어쓰는 최후 수단이다.**
-   - 단일 keyword만으로 semantic fast-path를 차단하지 않는다.
-   - guardrail은 operation signal이 함께 있을 때만 적용한다.
-   - routing 변경은 confusion benchmark나 전용 unit test로 확인한다.
+7. **질문 의미 해석을 중복 실행하지 않는다.**
+   - 모든 질문은 별도 질문 분류 없이 Planner로 들어간다.
+   - 질문에 등장한 연도를 정규식으로 보고서 검색 범위에 넣지 않는다. 명시적 caller scope와 Planner 해석을 구분한다.
+   - 별도 classifier/embedding/fallback이나 폐기한 MAS·결과 캐시를 새 이득 검증 없이 재도입하지 않는다.
 
 ## Fast Development Loop
 
@@ -131,7 +131,7 @@
 
 ## Design Rules For This Project
 
-- 포트폴리오 완료 범위와 종료 기준은 `docs/overview/portfolio_scope.md`를 따른다. 다음 우선순위는 고정 입력의 단순 RAG 기준선 비교이며, 개별 실패마다 prompt/schema/policy 규칙을 추가하는 작업을 자동으로 재개하지 않는다.
+- 포트폴리오 완료 범위와 종료 기준은 `docs/overview/portfolio_scope.md`를 따른다. 완료된 단순 RAG 비교와 기능 삭제 결정을 기준으로, 개별 실패마다 prompt/schema/policy 규칙을 추가하는 작업을 자동으로 재개하지 않는다.
 - 호출되지 않는 답변 경로와 전용 설정·테스트는 함께 제거한다. 활성 경로의 복잡성은 반복 가능한 품질·비용 비교로 정당화하되, 출처·산술·요청 누락 검증은 유지한다. 개별 예외를 config로 옮기는 것만으로 일반화했다고 보지 않는다.
 - Runtime default는 일반 사용자 질문에 맞춘다. benchmark profile은 별도 profile/config로 둔다.
 - Canonical ingest는 `src/config/runtime_contract.py`의 `CANONICAL_INGEST_PROFILE_ID`를 기준으로 한다. 다른 ingest는 명시적 experimental profile로만 쓴다.

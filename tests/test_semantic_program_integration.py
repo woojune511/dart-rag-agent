@@ -1851,7 +1851,6 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
         nodes = set(graph.nodes)
         self.assertTrue(
             {
-                "route_request",
                 "plan_requirements",
                 "retrieve_evidence",
                 "build_candidates",
@@ -1878,7 +1877,6 @@ class SemanticCalculationProgramIntegrationTests(unittest.TestCase):
             set(FINANCIAL_GRAPH_PHASE_WRITERS),
             {
                 "request",
-                "routing",
                 "requirements",
                 "retrieval",
                 "candidates",

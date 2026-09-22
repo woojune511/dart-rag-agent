@@ -46,7 +46,7 @@ The result is not a `Mapping` and has no flat compatibility projection. Internal
 consumers must read typed attributes. Explicit serialization uses
 `FinancialRunResultV1.to_projection()`.
 
-`AgentAnswer` contains the user answer, citations, routing summary,
+`AgentAnswer` contains the user answer, citations, request metadata,
 `structured_result`, and `resolved_calculation_trace`. Review-only retrieval, candidate, validation, retry, and ledger material belongs in `review_trace`.
 After final/ledger assembly, caller copies of the root trace and `structured_result.resolved_calculation_trace` omit `calculation_plan.semantic_program`, `program_validation`, `program_validation_history` and `calculation_result.validation`. These whole internal records remain unchanged in canonical state and opt-in review/ledger; captured model attempts remain in opt-in debug. Values, periods, formulas, citations, evidence and Planner display intent are preserved. No recursive language/field-name filter, program rewrite, fingerprint recomputation or numeric repair is allowed at this boundary.
 Usage/calculation telemetry, opt-in `compiler_attempts` and `request_diagnostics` belong only in `debug_bundle`. `compiler_attempt_debug_v1` retains each schema-parsed model JSON before merge, the merged validation-input JSON before pruning, their UTF-8 SHA-256, island/attempt/active-owner/visible IDs, validation errors/locations and compile-valid owners, and exact retry-feedback text. JSON is local `model_dump()` serialization, not provider wire bytes or hidden reasoning. Programs remain diagnostic, not execution authority. Missing parsed responses stay `unavailable` with null programs and an error class, never reconstructed from exception bodies. `request_diagnostics_v1` immediately copies completed plan/retrieval/catalog phases, pending compiler prompts, observed attempts/island results and opt-in SDK request/settlement events. Only source/schema SDK fields are retained; HTTP options, headers and arbitrary error bodies are excluded. UTF-8 component sizes are separate SDK-call JSON serializations, not additive wire sizes or measured tokens. Available callback usage is copied on interruption; unavailable sources are null or a safe error class. Caller-owned `capture_request_diagnostics()` receives each debug-enabled run snapshot in `finally`, even when its original exception propagates; success includes the same copied snapshot in debug. Context-local, nested/concurrent request isolation uses neither agent-instance nor exception attributes. Capture is off by default, in-memory until the caller persists it; process crashes are not covered. Call/retry limits, prompts and execution authority are unchanged.
@@ -192,7 +192,7 @@ Without a complete physical row, no inferred bundle forces otherwise independent
 
 ## 5. Internal graph state v2
 
-`FinancialAgentStateV2` phases are `request`, `routing`, `requirements`,
+`FinancialAgentStateV2` phases are `request`, `requirements`,
 `retrieval`, `candidates`, `compilation`, `numeric_result`,
 `final_result`, and `ledger`.
 
@@ -271,9 +271,8 @@ When shared retrieval is section-restricted, the existing membership predicate s
 Search-cache hits preserve retrieval mode/fallback reason and return owned deep copies. Narrative dedupe requires filing-qualified identity; an unidentified local chunk number cannot merge sources. Parser splitting preserves introductory prose as well as numbered fragments. XML recovery preserves literal ampersand text, predefined/numeric entities, CDATA, comments, processing instructions and quoted attributes. Explicit header/body data tables are not standalone unit hints, even with one small value; prior stored text is not rewritten.
 Recognized standalone bracket peer headings update the local hierarchy outside title-specific policies, with existing date/table-caption handling retained. Paragraph-to-table adjacency cannot cross local-heading boundaries; table captions preserve enclosing scope in intermediate blocks only. New parsing may change chunk grouping/context, not stored predecessors or physical table records.
 
-Canonical routing embeddings use a process-wide success cache keyed by canonical
-file SHA-256, provider, model, and dimension. Unknown identity disables shared caching. Only exact-count, nonempty, finite, nonzero and correctly dimensioned batches are cached; cosine is scale-stable.
-Invalid query vectors and nonterminal failures record degraded reasons; terminal admission errors propagate. Routing prompts use anonymous declarative examples, not inline company examples.
+All questions enter `plan_requirements` directly: no classifier, routing embeddings or routing LLM fallback. Initial filing hints come only from explicit caller scope; query years are not parsed into filing filters. Planner receives the full original request and retains semantic ownership. Public `query_type` is the neutral `qa` label, not an intent prediction; unspecified retrieval format is mixed. Source and arithmetic validation remain unchanged.
+MAS orchestration, report-result cache lookup/classification/promotion, reflection promotion and their diagnostic CLI/settings are removed. Runtime traces do not add report-cache candidates. Ordinary source/search caches remain. Historical results/fixtures are preserved and use their recorded Git versions for reproduction; no compatibility dispatch reactivates retired features.
 
 ## 8. Store and ingest v1
 
@@ -328,13 +327,13 @@ refresh also runs in its worker and lock. Health only reads the computed state:
 Typed `QueryRequest.report_scope` is forwarded without invented fields. Public query/ingest/companies failures expose generic messages and safe error-type/status diagnostics, never arbitrary SDK exception text.
 
 Repository `.env` loads before settings; process environment wins and imports do not mutate it.
-Shared API/Streamlit services resolve `DART_LLM_PROFILE` from reviewed `src/config/llm_profiles.py` data: unset/blank/`google` preserves defaults; `openai_compiler` selects only compilation; `openai` adds Terra/low/8192 default routes and Luna/none/512 context generation while retaining Astra/medium/5120 compilation. OpenAI routes use Responses, zero SDK retries, standard tier, `store=false`, timeout 90s and no Google fallback/client. Context generation uses its dedicated route or the default; string/text-block output excludes reasoning, refused or incomplete text, with metadata fallback and usage/fallback counts. Unknown profiles and missing required OpenAI credentials fail before store/query-router startup when initialization is allowed. `DART_STORE_PATH`/`DART_COLLECTION_NAME` preserve canonical identity and strict readiness; blank collection keeps `dart_reports_v2`. Selection never adopts, rewrites or rebuilds stores, changes existing context caches, or adds benchmark inputs/budgets. FastAPI retains its project path independently of endpoint names.
+Shared API/Streamlit services resolve `DART_LLM_PROFILE` from reviewed `src/config/llm_profiles.py` data: unset/blank/`google` preserves defaults; `openai_compiler` selects only compilation; `openai` adds Terra/low/8192 default routes and Luna/none/512 context generation while retaining Astra/medium/5120 compilation. OpenAI routes use Responses, zero SDK retries, standard tier, `store=false`, timeout 90s and no Google fallback/client. Context generation uses its dedicated route or the default; string/text-block output excludes reasoning, refused or incomplete text, with metadata fallback and usage/fallback counts. Unknown profiles and missing required OpenAI credentials fail before store/agent startup when initialization is allowed. `DART_STORE_PATH`/`DART_COLLECTION_NAME` preserve canonical identity and strict readiness; blank collection keeps `dart_reports_v2`. Selection never adopts, rewrites or rebuilds stores, changes existing context caches, or adds benchmark inputs/budgets. FastAPI retains its project path independently of endpoint names.
 Experimental Streamlit serializes cached services with a process-wide synchronous lock, including readiness refresh on ingest failure; changing its cached configuration requires restart.
 Per-query retrieval fallback is exposed as degraded without rewriting persistent
 store readiness. Forced BM25-only startup never initializes dense embeddings;
 new/verified-empty stores retain manifest-declared dense ingest initialization.
 
-CORS requires an environment allowlist. Streamlit and MAS remain experimental.
+CORS requires an environment allowlist. Streamlit remains an optional client.
 Evaluator dependencies load only for actual evaluation; core imports may not
 depend on ops/experimental modules.
 

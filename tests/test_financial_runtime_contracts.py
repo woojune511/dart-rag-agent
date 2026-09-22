@@ -337,7 +337,7 @@ class FinancialRuntimeContractTests(unittest.TestCase):
         )
         self.assertNotIn("tasks", state)
         self.assertNotIn("ledger", state)
-        self.assertEqual(len(set(FINANCIAL_GRAPH_PHASE_WRITERS.values())), 9)
+        self.assertEqual(len(set(FINANCIAL_GRAPH_PHASE_WRITERS.values())), 8)
 
 
 if __name__ == "__main__":

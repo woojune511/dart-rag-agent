@@ -67,8 +67,9 @@ class InterruptedRunDiagnosticsTests(unittest.TestCase):
         self.assertEqual(len(captured), 1)
         snapshot = captured[0]
         phases = _events(snapshot, "phase_completed")
-        self.assertEqual([e["location"]["phase"] for e in phases], ["routing", "requirements", "retrieval", "candidates"])
-        self.assertTrue(phases[1]["data"]["answer_obligations"])
+        self.assertEqual([e["location"]["phase"] for e in phases], ["requirements", "retrieval", "candidates"])
+        phase_data = {event["location"]["phase"]: event["data"] for event in phases}
+        self.assertTrue(phase_data["requirements"]["answer_obligations"])
         self.assertEqual(len(_events(snapshot, "compiler_request")), 1)
         self.assertEqual(_events(snapshot, "compiler_attempt"), [])
         self.assertEqual(_events(snapshot, "run_interrupted")[0]["data"]["code"], stop.code)

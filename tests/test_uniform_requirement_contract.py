@@ -76,8 +76,6 @@ class UniformRequirementContractTests(unittest.TestCase):
         llm = _StructuredQueueLLM()
         llm.invoke = Mock(side_effect=ValueError("invalid structured plan"))
         agent = self._agent(llm)
-        agent._classify_query = Mock(return_value={"intent": "qa", "query_type": "qa"})
-        agent._extract_entities = Mock(return_value={"companies": [], "years": [], "topic": "activities"})
         agent._retrieve = Mock(return_value={"retrieved_docs": [], "seed_retrieved_docs": []})
         agent._expand_via_structure_graph = Mock(return_value={})
         agent._semantic_source_candidates_for_state = Mock(return_value=[])
@@ -102,8 +100,6 @@ class UniformRequirementContractTests(unittest.TestCase):
                 })
                 llm = _StructuredQueueLLM(_plan(), _program(1), second)
                 agent = self._agent(llm)
-                agent._classify_query = Mock(return_value={"intent": "qa", "query_type": "qa"})
-                agent._extract_entities = Mock(return_value={"companies": [], "years": [], "topic": "activities"})
                 agent._retrieve = Mock(return_value={"retrieved_docs": [], "seed_retrieved_docs": []})
                 agent._expand_via_structure_graph = Mock(return_value={"retrieved_docs": []})
                 catalog = [{**_candidate(f"note-{index}", 0), "kind": "narrative",

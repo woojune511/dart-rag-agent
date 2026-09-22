@@ -5,6 +5,13 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Portfolio feature retirement and direct Planner entry (2026-09-22)
+
+- Starting at `d9f323f9`, removed the separate question classifier/embedding/fallback, MAS graphs/workers, report-result cache/promotion, unused reflection helpers and uncalled ratio-answer repair, together with their dedicated tools/tests. Deleted63 files; source/configuration/tools under `src/` are net **10,855 lines smaller** (53 added/10,908 removed). [Scope and compatibility](../architecture/portfolio_feature_retirement.md).
+- The seven-node product graph starts at the Planner. Initial filing hints come only from explicit caller scope; query years are no longer regex-derived filing filters. Public query_type is neutral qa and unspecified retrieval format is mixed. Planner/Compiler and source, period, arithmetic, ownership and coverage contracts remain.
+- Full provider-free suite **2,109/2,109** (73.338s), focused81+64, domain audit35, import/topology/documentation and diff checks pass. Removed31 obsolete literal-baseline entries, with no new runtime vocabulary. All110 protected settings/store/comparison files remain hash-identical. New controls cover construction without classifier embeddings and exact-query/explicit-scope preservation.
+- No paid calls, ingest or new model-quality/latency comparison. Shared accounting remains USD21.00190943/26.32, remaining5.31809057, pending0. The preceding fixed-evidence comparison already bypassed the classifier and deleted experiments; its 3.47x cost/4.79x elapsed-time result is unchanged historical evidence. This cleanup does not establish that the remaining Planner/Compiler is worth its cost.
+
 ## Portfolio scope and retired narrative path (2026-09-22)
 
 - Starting at `af129e93`, removed the unused extraction/compression/validation graph branch, dividend-policy supplementation/hybrid answers, entity-table summaries, driver/sentence repair and alternate narrative document selection. Removed seven dedicated policy dictionaries, four structured-output models, obsolete phase state/loaders and private helper tests together. Runtime/config net reduction: **3,723 lines** (70 added/3,793 removed).

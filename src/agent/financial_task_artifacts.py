@@ -31,11 +31,9 @@ __all__ = [
     "evidence_items_with_runtime",
     "enrich_reconciliation_artifact_refs",
     "synchronize_calculation_result_artifact", "synchronize_operand_set_artifact",
-    "next_reflection_task_id",
     "operand_set_artifact_update",
     "reconciliation_result_artifact_update",
     "ratio_result_rows_from_task_artifacts",
-    "reflection_report_artifact_update",
     "semantic_plan_artifact_update",
     "synchronize_aggregate_artifact_projection_payload",
     "supersede_task_with_aggregate_result",
@@ -361,36 +359,6 @@ def reconciliation_evidence_refs(result: Dict[str, Any]) -> List[str]:
 
     _append(values)
     return refs
-
-
-def next_reflection_task_id(
-    *,
-    tasks: Sequence[Mapping[str, Any]],
-    artifacts: Sequence[Mapping[str, Any]],
-    target_task_id: str,
-    current_count: int,
-) -> str:
-    target = _normalise_spaces(str(target_task_id or "")) or "global"
-    prefix = f"reflection:{target}:"
-    used_indexes: set[int] = set()
-    pattern = re.compile(rf"^{re.escape(prefix)}(\d+)(?::report)?$")
-    for task in tasks or []:
-        if not isinstance(task, Mapping):
-            continue
-        match = pattern.match(str(task.get("task_id") or "").strip())
-        if match:
-            used_indexes.add(int(match.group(1)))
-    for artifact in artifacts or []:
-        if not isinstance(artifact, Mapping):
-            continue
-        for value in (artifact.get("task_id"), artifact.get("artifact_id")):
-            match = pattern.match(str(value or "").strip())
-            if match:
-                used_indexes.add(int(match.group(1)))
-    next_index = max(int(current_count or 0) + 1, 1)
-    while next_index in used_indexes:
-        next_index += 1
-    return f"{prefix}{next_index:03d}"
 
 
 @lru_cache(maxsize=1)
@@ -1004,59 +972,6 @@ def aggregate_answer_artifact_update(
         status=task_status,
         query=query,
         metric_family="aggregate",
-        artifact_id=artifact_id,
-    )
-    return {"tasks": updated_tasks, "artifacts": updated_artifacts, "artifact_id": artifact_id}
-
-
-def reflection_report_artifact_update(
-    *,
-    tasks: List[Dict[str, Any]],
-    artifacts: List[Dict[str, Any]],
-    reflection_task_id: str,
-    target_task_id: str,
-    query: str,
-    metric_family: str,
-    reflection_report: Mapping[str, Any],
-    reflection_action: Mapping[str, Any],
-    reflection_request: Mapping[str, Any],
-    reflection_plan: Mapping[str, Any],
-    retry_strategy: str,
-) -> Dict[str, Any]:
-    """Append the reflection-report artifact and attach the reflection task."""
-
-    reflection_task_id = str(reflection_task_id or "reflection")
-    report = dict(reflection_report or {})
-    action = dict(reflection_action or {})
-    artifact_id = f"{reflection_task_id}:report"
-    updated_artifacts = _append_artifact(
-        list(artifacts or []),
-        artifact_id=artifact_id,
-        task_id=reflection_task_id,
-        kind=ArtifactKind.REFLECTION_REPORT,
-        status=str(report.get("outcome") or "retry_prepared"),
-        summary=f"reflection={report.get('action_taken') or retry_strategy}",
-        payload={
-            "reflection_report": report,
-            "reflection_action": action,
-            "reflection_request": dict(reflection_request or {}),
-            "reflection_plan": dict(reflection_plan or {}),
-        },
-        evidence_refs=[],
-    )
-    updated_tasks = _upsert_task(
-        list(tasks or []),
-        task_id=reflection_task_id,
-        kind=TaskKind.REFLECTION,
-        label=f"reflect {target_task_id or 'global'}",
-        status=TaskStatus.COMPLETED,
-        query=query,
-        metric_family=metric_family,
-        constraints={
-            "target_task_ids": list(report.get("target_task_ids") or []),
-            "target_artifact_ids": list(report.get("target_artifact_ids") or []),
-            "action_taken": str(report.get("action_taken") or ""),
-        },
         artifact_id=artifact_id,
     )
     return {"tasks": updated_tasks, "artifacts": updated_artifacts, "artifact_id": artifact_id}

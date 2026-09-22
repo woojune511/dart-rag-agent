@@ -15,7 +15,6 @@ from src.agent.financial_graph import (
     numeric_phase_input,
     planning_phase_input,
     retrieval_phase_input,
-    routing_phase_input,
 )
 from src.agent.financial_graph_state import (
     CandidateInput,
@@ -24,7 +23,6 @@ from src.agent.financial_graph_state import (
     NumericExecutionInput,
     PlanningInput,
     RetrievalInput,
-    RoutingInput,
 )
 from src.agent.financial_graph_models import SemanticCalculationProgram
 from src.agent.financial_reconciliation_candidates import semantic_candidate_stage_diagnostics
@@ -54,8 +52,6 @@ class FinancialPhaseContractTests(unittest.TestCase):
     @staticmethod
     def _agent():
         agent = object.__new__(FinancialAgent)
-        agent._classify_query = Mock(return_value={"query_type": "qa", "intent": "qa"})
-        agent._extract_entities = Mock(return_value={"companies": [], "years": [], "topic": "topic"})
         agent._plan_answer_obligation_program = Mock(return_value={
             "semantic_plan": {"program_required": True},
             "answer_obligations": [], "retrieval_queries": ["query"],
@@ -75,7 +71,6 @@ class FinancialPhaseContractTests(unittest.TestCase):
         state["ledger"] = {"query": "ledger collision", "semantic_program": {"status": "tampered"}}
         original = copy.deepcopy(state)
         projections = (
-            (routing_phase_input, RoutingInput),
             (planning_phase_input, PlanningInput),
             (retrieval_phase_input, RetrievalInput),
             (candidate_phase_input, CandidateInput),
@@ -104,7 +99,7 @@ class FinancialPhaseContractTests(unittest.TestCase):
         agent._compile_semantic_calculation_program = Mock(return_value={"semantic_program": {}})
         agent._execute_semantic_calculation_program = Mock(return_value={"execution": {"status": "ok"}, "calculation_plan": {}, "evidence_items": []})
         phase_methods = {
-            "routing": "_route_request_phase", "requirements": "_plan_requirements_phase",
+            "requirements": "_plan_requirements_phase",
             "retrieval": "_retrieve_evidence_phase", "candidates": "_build_candidates_phase",
             "compilation": "_compile_program_phase", "numeric_result": "_execute_numeric_phase",
         }

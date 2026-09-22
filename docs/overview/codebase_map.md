@@ -54,7 +54,6 @@
 | `src/agent/financial_graph_evidence.py` | optional structural expansion and source anchors; the separate narrative extraction/compression/validation path is removed |
 | `src/agent/financial_agent_run_projection.py` | answer/review/debug projections; caller trace copies omit whole Compiler/validation records after ledger assembly, preserving canonical records and evidence |
 | `src/agent/financial_task_artifacts.py` | artifact/ledger projection; aggregate status follows finalized public result |
-| `src/routing/query_router.py`, `src/config/query_routing_prompt.py` | validated canonical success cache, scale-stable similarity, anonymous declarative routing prompt |
 
 ## Ingest and storage
 
@@ -97,7 +96,7 @@
 | `src/utils/gemini_usage_counts.py` | dependency-light answer/thinking/cache normalization and cost accounting; no double-counted reasoning |
 | `src/ops/` remainder | audit, replay, review-pack, and diagnostic entry points |
 
-- `src/experimental/mas/`: optional MAS facade over the single-agent runtime.
+- All questions enter the Planner directly. MAS, query classification, report-result cache and reflection-promotion features were [removed](../architecture/portfolio_feature_retirement.md); historical evidence remains outside the runtime.
 - `app.py`: experimental Streamlit client.
 - `tests/`: unit and contract gates. Semantic program coverage is split by
   catalog, cohort, compiler, validator, executor, and integration boundary.

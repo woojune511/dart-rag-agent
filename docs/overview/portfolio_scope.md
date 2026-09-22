@@ -47,6 +47,8 @@ local settings retain their hashes. Cleanup itself used no paid quality evaluati
 
 ## Remaining work and stopping point
 
+The user subsequently authorized [further feature retirement](../architecture/portfolio_feature_retirement.md): duplicate question classification, MAS, report-result cache/promotion, unused reflection and ratio-repair paths, and their dedicated tools/tests are removed. Planner/Compiler and source/execution guards remain. This is scope reduction, with no newly measured quality/cost benefit.
+
 The [development successor](../evaluation/portfolio_workflow_comparison_successor.md)
 completed all four exposed question pairs with frozen shared retrieval, one reused
 baseline and 11 new calls. Current Planner/Compiler showed no clear answer-quality
@@ -64,7 +66,7 @@ retain the current workflow's inspectable source/calculation protections.
    harness. Keep matched documents, questions, retrieval budgets and semantic model
    settings; record stage count, tokens, latency and cost. Joint representation and
    workflow differences remain a system comparison, not an isolated component gain.
-3. No new runtime improvement is selected from these four development cases.
+3. No question-specific semantic fix is selected from these four development cases.
    Keep added complexity only when broader quality/cost evidence justifies it.
    Existing source-integrity defects remain bugs; individual answer misses enter
    failure analysis instead of automatically creating another prompt/schema rule.

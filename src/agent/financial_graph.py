@@ -20,14 +20,14 @@ from src.agent.financial_agent_run_projection import (
 )
 from src.agent.financial_graph_calculation import FinancialAgentCalculationMixin
 from src.agent.financial_graph_evidence import FinancialAgentEvidenceMixin
-from src.agent.financial_graph_planning import FinancialAgentPlanningMixin
+from src.agent.financial_graph_planning import FinancialAgentPlanningMixin, align_scope_hints
 from src.agent.financial_graph_state import (
     CandidateInput, CandidatesUpdate, CompilationInput, CompilationPhase,
     CompilationUpdate, FinancialAgentStateV2,
     FinalResultUpdate, LedgerUpdate,
     NumericExecutionInput, NumericResultPhase, NumericResultUpdate,
     PlanningInput, RequirementsPhase, RequirementsUpdate, RetrievalInput,
-    RetrievalUpdate, RoutingInput, RoutingUpdate,
+    RetrievalUpdate,
 )
 from src.agent.financial_run_result import (
     FINANCIAL_RUN_RESULT_SCHEMA_VERSION,
@@ -52,7 +52,6 @@ _ENV_LOADED = False
 
 FINANCIAL_GRAPH_PHASE_WRITERS = {
     "request": "initial_input",
-    "routing": "route_request",
     "requirements": "plan_requirements",
     "retrieval": "retrieve_evidence",
     "candidates": "build_candidates",
@@ -76,40 +75,38 @@ def _financial_agent_state_model() -> Any:
     return FinancialAgentStateV2
 
 
-def routing_phase_input(state: FinancialAgentStateV2) -> RoutingInput:
-    request = state["request"]
-    return {"query": request["query"], "report_scope": dict(request["report_scope"])}
-
-
 def planning_phase_input(state: FinancialAgentStateV2) -> PlanningInput:
-    request, routing = state["request"], state.get("routing", {})
+    request = state["request"]
+    companies, years = align_scope_hints(
+        companies=[], years=[], report_scope=request["report_scope"],
+    )
     return {
         "query": request["query"],
         "report_scope": dict(request["report_scope"]),
-        "query_type": routing.get("query_type", "qa"),
-        "intent": routing.get("intent", routing.get("query_type", "qa")),
-        "format_preference": routing.get("format_preference", ""),
-        "companies": list(routing.get("companies", [])),
-        "years": list(routing.get("years", [])),
-        "topic": routing.get("topic", request["query"]),
-        "section_filter": routing.get("section_filter"),
+        "query_type": "qa",
+        "intent": "qa",
+        "format_preference": "",
+        "companies": companies,
+        "years": years,
+        "topic": request["query"],
+        "section_filter": None,
         "plan_loop_count": 0,
     }
 
 
 def retrieval_phase_input(state: FinancialAgentStateV2) -> RetrievalInput:
     request = state["request"]
-    routing, requirements = state.get("routing", {}), state.get("requirements", {})
+    requirements = state.get("requirements", {})
     return {
         "query": request["query"],
         "report_scope": dict(request["report_scope"]),
-        "query_type": routing.get("query_type", "qa"),
-        "intent": routing.get("intent", routing.get("query_type", "qa")),
-        "format_preference": routing.get("format_preference", ""),
-        "companies": list(requirements.get("companies", routing.get("companies", []))),
-        "years": list(requirements.get("years", routing.get("years", []))),
-        "topic": requirements.get("topic", routing.get("topic", request["query"])),
-        "section_filter": requirements.get("section_filter", routing.get("section_filter")),
+        "query_type": "qa",
+        "intent": "qa",
+        "format_preference": "",
+        "companies": list(requirements.get("companies", [])),
+        "years": list(requirements.get("years", [])),
+        "topic": requirements.get("topic", request["query"]),
+        "section_filter": requirements.get("section_filter"),
         "semantic_plan": dict(requirements.get("semantic_plan", {})),
         "answer_obligations": list(requirements.get("answer_obligations", [])),
         "active_subtask": dict(requirements.get("active_subtask", {})),
@@ -215,9 +212,6 @@ class FinancialAgent(
         self.vsm = vector_store_manager
         self.k = k
         self.routing_config = dict(routing_config or {})
-        self.report_cache_index_path = str(
-            self.routing_config.get("report_cache_index_path") or ""
-        ).strip()
         for attribute, config_key, default in (
             ("retrieval_query_budget", "retrieval_query_budget", 0),
             ("focused_retrieval_query_budget", "focused_retrieval_query_budget", 0),
@@ -255,15 +249,6 @@ class FinancialAgent(
         if self.llm is None:
             raise ValueError("Default LLM route was not initialized.")
 
-        from src.routing import QueryRouter
-
-        self.query_router = QueryRouter(
-            embeddings=self.vsm.embeddings,
-            llm=self.llm,
-            embedding_spec=dict(getattr(self.vsm, "embedding_spec", {}) or {}),
-            enable_semantic_router=bool(self.routing_config.get("enable_semantic_router", True)),
-            enable_llm_fallback=bool(self.routing_config.get("enable_llm_fallback", True)),
-        )
         self.graph = self._build_graph()
 
     def _build_llm_routes(self) -> Dict[str, Any]:
@@ -360,16 +345,6 @@ class FinancialAgent(
         if llm is None:
             raise ValueError(f"LLM route '{phase}' is not initialized.")
         return llm
-
-    @observe_phase("routing")
-    def _route_request_phase(
-        self,
-        state: FinancialAgentStateV2,
-    ) -> RoutingUpdate:
-        phase_input = routing_phase_input(state)
-        classified = self._classify_query(phase_input)
-        extracted = self._extract_entities(phase_input)
-        return {"routing": {**classified, **extracted}}
 
     @observe_phase("requirements")
     def _plan_requirements_phase(
@@ -579,7 +554,7 @@ class FinancialAgent(
         state: FinancialAgentStateV2,
     ) -> FinalResultUpdate:
         request = state["request"]
-        routing, requirements = state.get("routing", {}), state.get("requirements", {})
+        requirements = state.get("requirements", {})
         retrieval, compilation = state.get("retrieval", {}), state.get("compilation", {})
         numeric = state["numeric_result"]
         obligations = list(requirements.get("answer_obligations") or [])
@@ -602,21 +577,15 @@ class FinancialAgent(
         context = {
             "query": request["query"],
             "report_scope": dict(request["report_scope"]),
-            "query_type": routing.get("query_type", "qa"),
-            "intent": routing.get("intent", routing.get("query_type", "qa")),
-            "format_preference": routing.get("format_preference", ""),
-            "routing_source": routing.get("routing_source", ""),
-            "routing_confidence": routing.get("routing_confidence", 0.0),
-            "routing_scores": dict(routing.get("routing_scores", {})),
-            "routing_degraded_reason": routing.get("routing_degraded_reason", ""),
-            "companies": list(requirements.get("companies", routing.get("companies", []))),
-            "years": list(requirements.get("years", routing.get("years", []))),
-            "topic": requirements.get("topic", routing.get("topic", request["query"])),
+            "query_type": "qa",
+            "intent": "qa",
+            "format_preference": "",
+            "companies": list(requirements.get("companies", [])),
+            "years": list(requirements.get("years", [])),
+            "topic": requirements.get("topic", request["query"]),
             "planner_mode": requirements.get("planner_mode", "initial"),
             "planner_feedback": requirements.get("planner_feedback", ""),
             "plan_loop_count": requirements.get("plan_loop_count", 0),
-            "target_metric_family": routing.get("target_metric_family", ""),
-            "target_metric_family_hint": routing.get("target_metric_family_hint", ""),
             "planned_metric_families": list(requirements.get("planned_metric_families", [])),
             "semantic_plan": dict(requirements.get("semantic_plan", {})),
             "answer_obligations": obligations,
@@ -683,7 +652,6 @@ class FinancialAgent(
         from langgraph.graph import END, StateGraph
 
         graph = StateGraph(_financial_agent_state_model())
-        graph.add_node("route_request", self._route_request_phase)
         graph.add_node("plan_requirements", self._plan_requirements_phase)
         graph.add_node("retrieve_evidence", self._retrieve_evidence_phase)
         graph.add_node("build_candidates", self._build_candidates_phase)
@@ -692,8 +660,7 @@ class FinancialAgent(
         graph.add_node("assemble_ledger", self._assemble_ledger_phase)
         graph.add_node("assemble_final", self._assemble_final_phase)
 
-        graph.set_entry_point("route_request")
-        graph.add_edge("route_request", "plan_requirements")
+        graph.set_entry_point("plan_requirements")
         graph.add_edge("plan_requirements", "retrieve_evidence")
         graph.add_edge("retrieve_evidence", "build_candidates")
         graph.add_edge("build_candidates", "compile_program")

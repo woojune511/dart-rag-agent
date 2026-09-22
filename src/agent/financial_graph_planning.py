@@ -19,16 +19,13 @@ from src.agent.financial_source_scope import (
 )
 from src.agent.financial_source_axis_inventory import build_source_axis_inventory
 from src.storage.bm25_index import metadata_matches_filter
-from src.agent.financial_runtime_trace import (
-    report_cache_candidate_for_trace,
-    resolve_runtime_calculation_trace,
-)
+from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
 from src.config import get_financial_ontology
 from src.config.retrieval_policy import PLANNING_POLICY
 from src.utils.provider_errors import ProviderAdmissionError, provider_error_projection
 
 if TYPE_CHECKING:
-    from src.agent.financial_graph_state import FinancialAgentState, PlanningInput, RequirementsPhase, RoutingInput, RoutingPhase
+    from src.agent.financial_graph_state import FinancialAgentState, PlanningInput, RequirementsPhase
 
 
 logger = logging.getLogger(__name__)
@@ -148,36 +145,6 @@ def align_scope_hints(
 class FinancialAgentPlanningMixin:
     """Own the pre-retrieval semantic contract, without operation classification."""
 
-    def _classify_query(self, state: RoutingInput) -> RoutingPhase:
-        result = self.query_router.route(state["query"])
-        return {
-            "query_type": result.intent,
-            "intent": result.intent,
-            "format_preference": result.format_preference,
-            "routing_source": result.routing_source,
-            "routing_confidence": float(result.routing_confidence or 0.0),
-            "routing_scores": dict(result.routing_scores or {}),
-            "routing_degraded_reason": str(result.degraded_reason or ""),
-        }
-
-    def _extract_entities(self, state: FinancialAgentState) -> Dict[str, Any]:
-        query = str(state.get("query") or "")
-        report_scope = dict(state.get("report_scope") or {})
-        query_years = [int(token) for token in re.findall(r"20\d{2}", query)]
-        companies, years = align_scope_hints(
-            companies=[],
-            years=list(dict.fromkeys(query_years)),
-            report_scope=report_scope,
-        )
-        logger.info("[extract] companies=%s years=%s", companies, years)
-        return {
-            "companies": companies,
-            "years": years,
-            "topic": query,
-            "section_filter": None,
-            "target_metric_family": "",
-            "target_metric_family_hint": "",
-        }
 
     def _build_llm_requirement_plan(
         self,
@@ -665,8 +632,8 @@ class FinancialAgentPlanningMixin:
         axis_inventory = build_source_axis_inventory(scoped_metadata, query=query,
             max_axes=int(PLANNING_POLICY["source_axis_inventory_max_axes"]),
             max_bytes=int(PLANNING_POLICY["source_axis_inventory_max_bytes"]))
-        # Intent and presentation are routing hints, not permission to skip
-        # requested-output coverage. Narrative uses the same existing compiler.
+        # The Planner interprets the original request directly. Every requested
+        # output continues through the same source and execution contracts.
         plan = self._build_llm_requirement_plan(
             query=query,
             topic=topic,
@@ -744,9 +711,4 @@ class FinancialAgentPlanningMixin:
     def _project_runtime_calculation_trace(
         self, state: FinancialAgentState
     ) -> Dict[str, Any]:
-        trace = resolve_runtime_calculation_trace(dict(state))
-        if trace and not trace.get("report_cache_candidate"):
-            report_cache_candidate = report_cache_candidate_for_trace(dict(state), trace)
-            if report_cache_candidate:
-                trace = {**trace, "report_cache_candidate": report_cache_candidate}
-        return trace
+        return resolve_runtime_calculation_trace(dict(state))
