@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-22
+Last updated: 2026-09-28
 
 ## Current implementation
 
@@ -30,6 +30,8 @@ separate; their [contract](../architecture/compiled_workflow_contract.md) is pre
 The [final application evaluation](../evaluation/simple_rag_final_result.md) on `6083bf36` completed all12 frozen questions once: 9/9 answerable cases meet correctness/completeness/source-support criteria, safe abstention2/3 (deterministic1/1, model1/2). F11's abstention has an overbroad period explanation; F12 incorrectly substitutes an annual average for actual daily revenue. No positive retrieval miss was observed. This is assistant review on familiar NAVER2022/2023 filings, not independent gold or unseen-company performance. No post-result prompt/runtime tuning.
 
 The actual application service path used11 answer calls/12 embeddings, with errors/retries/unknown usage/NOT_RUN0. Question mean4.02s, generation-case mean4.37s, overall57.73s including startup; these local instrumented times are not production HTTP latency. Estimated incremental cost USD0.20762954, no new funding. The [saved-response demo](simple_rag_demo.md) shows all answers/cited sources and opens on the failure; raw artifacts remain local and ignored.
+
+The subsequent [vanilla dense baseline](../evaluation/vanilla_dense_comparison.md) keeps the same exposed panel, answer model, prompt/schema and top-8 limit. Hybrid versus dense-only positive required-evidence coverage and fully supported answers are9/9 versus5/9. Dense-only has6/9 correct-complete positive contents and safe abstention3/3; three answerable retrieval misses remain unanswered. It uses saved query vectors, so its30.74s batch is not live retrieval latency. Eleven answer calls, zero new embeddings/retries/errors, 62,127 input and2,046 output tokens were observed; conservative accounting is USD0.1798695 under the consumed standalone USD1.65 cap, not billing.
 
 Before execution, provider-admission/simple-RAG tests27/27, a full12-case blocked-network SDK rehearsal and six terminal failure controls pass. All135 protected files,86 runtime/dependency files and144 frozen raw outputs retain their hashes. Desktop/mobile demo checks cover12 selections, exact answers/sources, no JS errors or horizontal overflow. Documentation gates pass. Runtime source is unchanged from `a9270221`.
 
@@ -124,7 +126,7 @@ They do not establish current simple-RAG model quality or runtime acceptance.
 
 ## Completion and remaining limits
 
-1. The [scoped portfolio milestone](portfolio_scope.md) and subsequent sharing preparation are complete: frozen panel, one actual-app evaluation, report, current introduction and packaged offline demo. No automatic follow-up experiment is queued.
+1. The [scoped portfolio milestone](portfolio_scope.md) and subsequent sharing preparation are complete: frozen panel, one actual-app evaluation, paired vanilla baseline, reports, current introduction and packaged offline demo. No automatic follow-up experiment is queued.
 2. Broader independent evaluation, remote publication and deployment remain separately scoped work. Package validation is not a release or general accuracy guarantee.
 3. Do not add per-question prompt/schema rules or restore Planner/Compiler as an automatic fallback.
 4. Historical compiled comparisons remain explicit tools; previous one-batch approvals are consumed.

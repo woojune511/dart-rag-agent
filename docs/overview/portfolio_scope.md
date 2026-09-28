@@ -1,6 +1,7 @@
 # Portfolio scope and completion
 
-Decision: 2026-09-22. The user adopted simple RAG as the default after explicitly
+Decision: 2026-09-22. Updated 2026-09-28 after the vanilla dense baseline. The
+user adopted simple RAG as the default after explicitly
 reviewing what it preserves and which compiled guarantees it loses. DART remains
 the domain. The product demonstrates structured document ingest, hybrid retrieval,
 source visibility, reproducible evaluation and cost-conscious architecture.
@@ -34,7 +35,15 @@ provides separate live hybrid-retrieval results on the smaller default path.
 1. [Frozen questions and criteria](../evaluation/simple_rag_final_preparation.md): 12 new source-authored questions, three per category, on two familiar filings. No independent gold or unseen-holdout claim.
 2. [One actual-app run](../evaluation/simple_rag_final_result.md): 12/12 completed, 9/9 supported complete positive answers, 2/3 safe abstentions. F11 retains a wording caveat; F12's daily-average substitution fails.
 3. The report separates retrieval, source support, correctness, abstention and runtime guarantees from observed cost/time: mean 4.02 s per question, estimated USD0.208 total. Numeric text is not a deterministic execution proof.
-4. [Saved-response demo](simple_rag_demo.md): the original local viewer retains all12 answers. The subsequently authorized [public package](../../demo/README.md) includes five selected exact answers and all their cited sources, with the failure visible first. Full raw logs and stores remain local.
+4. A [paired dense-only baseline](../evaluation/vanilla_dense_comparison.md)
+   keeps the same exposed 12-question panel, answer model, prompt/schema and
+   top-8 limit. Hybrid yields 9/9 fully supported positive answers versus
+   dense-only 5/9; this supports the chosen retrieval path without creating a
+   general accuracy claim.
+5. [Saved-response demo](simple_rag_demo.md): the original local viewer retains
+   all12 answers. The subsequently authorized [public package](../../demo/README.md)
+   includes five selected exact answers and all their cited sources, with the
+   failure visible first. Full raw logs and stores remain local.
 
 This scoped milestone is complete. No runtime or prompt was tuned after the final
 answers. The run's paid authority is consumed. Existing store and historical-result

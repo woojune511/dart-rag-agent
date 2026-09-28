@@ -6,6 +6,7 @@ DART 공시의 표와 문맥을 검색하고, 답변과 인용 원문을 함께 
 
 [설치 없는 데모](../../demo/README.md) ·
 [평가 보고서](../evaluation/simple_rag_final_result.md) ·
+[vanilla 비교](../evaluation/vanilla_dense_comparison.md) ·
 [코드 탐색](codebase_map.md)
 
 ## 해결하려는 문제
@@ -62,6 +63,18 @@ FastAPI와 Streamlit은 같은 `SimpleRagAgent` 서비스를 사용한다. 질�
 회사에 대한 정확도를 의미하지 않는다. 일별 매출 대신 연간 매출의 평균을 제시한
 실패와, 보류 답변의 과도한 기간 설명을 그대로 기록했다. 이 문항들에 맞춘 추가
 규칙은 넣지 않았다. 산술이 맞는 답변도 코드 실행으로 검증한 결과는 아니다.
+
+## 왜 hybrid retrieval인가
+
+같은 12문항, 답변 모델, prompt/schema, top-8 조건에서 BM25/RRF를 제거한
+dense-only baseline도 한 번 실행했다. 답변 가능한 9문항 중 필요한 근거를
+완전히 제공하고 정확·완전·원문 지지 답변까지 만든 경우는 hybrid 9/9,
+dense-only 5/9였다. Dense-only는 F04·F06·F09에서 근거가 부족해 안전하게
+보류했고, F05는 값과 계산은 맞았지만 별도 기준일 근거가 빠졌다.
+
+이는 이미 개발에 노출된 NAVER 두 공시의 소규모 결과다. Dense arm은 저장된
+query vector와 고정 문서를 replay했으므로 live 검색 지연시간 비교가 아니며,
+새 회사나 일반 질의에 대한 우월성을 뜻하지 않는다.
 
 ## 직접 확인하기
 

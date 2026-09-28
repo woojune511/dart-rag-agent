@@ -15,6 +15,13 @@ insufficient-evidence cases abstained safely. The report retains a daily-revenue
 failure and an ancillary wording caveat. This familiar-corpus assistant review
 is not independent gold or evidence of unseen-company performance.
 
+A subsequent [paired vanilla-dense baseline](docs/evaluation/vanilla_dense_comparison.md)
+kept the same questions, answer model, prompt, schema and top-8 limit. Hybrid
+retrieval supplied complete required evidence for 9/9 answerable cases versus
+5/9 for dense-only; fully correct, complete and source-supported answers were
+also 9/9 versus 5/9. This development-exposed comparison supports the retrieval
+choice, not a general accuracy claim.
+
 ```mermaid
 flowchart LR
     Q[Question and explicit report scope] --> R[Hybrid retrieval]
@@ -67,7 +74,9 @@ Start-Process (Resolve-Path 'demo/index.html').Path
 
 Read the [one-page introduction](docs/overview/portfolio_one_pager.md),
 [walkthrough](docs/overview/simple_rag_demo.md) and
-[full result report](docs/evaluation/simple_rag_final_result.md).
+[full result report](docs/evaluation/simple_rag_final_result.md). The
+[vanilla-dense comparison](docs/evaluation/vanilla_dense_comparison.md) explains
+why the product keeps hybrid retrieval.
 The five examples illustrate success, abstention and failure; the metrics above
 describe the full 12-case run. Full raw logs/stores remain local. This is saved
 output inspection, not a live RAG query or independent reproduction of the run.
@@ -82,17 +91,19 @@ python -I -S demo/verify.py
 | Signal | Result | Interpretation |
 | --- | ---: | --- |
 | Expanded structural numeric set | recorded 9 / 9 PASS | Latest recorded store-fixed close; raw artifacts are not published with the repository |
-| Plain-retrieval comparison | recorded 5 / 9 PASS | Earlier diagnostic baseline for row, denominator, and display/unit failures |
+| Vanilla dense baseline | 5 / 9 fully supported positive answers | Same exposed 12-case panel, answer model, prompt/schema and top-8 limit; saved-vector replay, not live retrieval latency |
 | Demo fixture contract | `fixture_contract_ready` | SHA-256-bound curated contract fixture passes internal cross-surface invariants; upstream lineage is not provided |
 | Review surface aggregate | `review_surface_ready` | Reviewer fixtures and optional capability handoffs pass; publication checks are separate |
 | Full unit test discovery | [current status](docs/overview/project_status.md) | The Python 3.13 workflow definition and latest local validation are tracked in one place |
 
-The structural and plain results are retained engineering records, not a freshly
-synchronized leaderboard ablation. Their raw artifacts are not checked in and
-availability varies by run. The checked-in demo fixture is a separate evidence
-surface; it does not reproduce or independently verify the benchmark runs. See
-[portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
-for the methodology and limitations.
+The older structural result is a retained engineering record, not a synchronized
+leaderboard result. The newer vanilla baseline is paired with the final simple-RAG
+panel but remains development-exposed and its raw artifacts are not checked in.
+The checked-in demo fixture is a separate evidence surface; it does not reproduce
+or independently verify either benchmark. See the
+[vanilla comparison](docs/evaluation/vanilla_dense_comparison.md) and historical
+[experiment report](docs/overview/portfolio_experiment_report.md) for their
+different methods and limits.
 
 ## Historical compiled fixture review
 

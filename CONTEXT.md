@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-22
+Last updated: 2026-09-28
 
 ## Product boundary
 
@@ -47,6 +47,15 @@ on familiar NAVER2022/2023 filings is not independent gold or an unseen holdout.
 Mean question time4.02s, including checkpoints but excluding startup; overall57.73s.
 Calls:11 answers/12 embeddings; no errors, retries, unknown usage or NOT_RUN cases.
 
+The [vanilla dense baseline](docs/evaluation/vanilla_dense_comparison.md) reused
+the same exposed 12-case panel, answer model, prompt/schema and top-8 limit.
+Hybrid versus dense-only fully supported positive answers are 9/9 versus5/9;
+dense-only safe abstentions are3/3 versus hybrid2/3. The dense arm used saved
+query vectors, so its 30.74s batch time is not live retrieval latency. It made11
+answer calls, zero new embeddings/retries/errors, and conservatively accounted
+USD0.1798695 under a consumed standalone USD1.65 authorization. Raw outputs stay
+ignored; the public document is a scoped summary, not independent reproduction.
+
 Shared conservative accounting: USD21.20953897/26.32, remaining5.11046103, pending0.
 New estimated cost0.20762954 under one-run cap5.25; no new funding or invoice claim.
 Authorization `ae05c617...c9543` is consumed. All135 protected files,86 runtime files
@@ -73,7 +82,7 @@ Receipts: `benchmarks/results/simple_rag_public_demo_2026-09-22/` (ignored).
 
 ## Completion and hard stops
 
-1. The final evaluation, [report](docs/evaluation/simple_rag_final_result.md), [updated introduction](docs/overview/portfolio_one_pager.md) and [packaged offline demo](demo/README.md) are complete. The scoped portfolio and sharing-preparation work is closed; no automatic experiment or deployment is queued.
+1. The final evaluation, [vanilla baseline](docs/evaluation/vanilla_dense_comparison.md), [updated introduction](docs/overview/portfolio_one_pager.md) and [packaged offline demo](demo/README.md) are complete. The scoped portfolio and sharing-preparation work is closed; no automatic experiment or deployment is queued.
 2. Do not restart a per-question repair queue or silently restore Compiler fallback. The default change is user-authorized, not evidence of general superiority.
 3. No automatic paid batch/retry or consumed-manifest reuse. Broader independent evaluation, remote publication or deployment is separately scoped work.
 4. Preserve source stores, historical raw outputs and accounting. The inactive default `data/chroma_dart` manifest mismatch remains; this change does not adopt or rebuild it.
