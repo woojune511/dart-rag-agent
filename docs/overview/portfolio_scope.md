@@ -1,6 +1,6 @@
 # Portfolio scope and completion
 
-Decision: 2026-09-22. Updated 2026-09-28 after the vanilla dense baseline. The
+Decision: 2026-09-22. Updated 2026-09-28 after the retrieval comparisons. The
 user adopted simple RAG as the default after explicitly
 reviewing what it preserves and which compiled guarantees it loses. DART remains
 the domain. The product demonstrates structured document ingest, hybrid retrieval,
@@ -40,7 +40,16 @@ provides separate live hybrid-retrieval results on the smaller default path.
    top-8 limit. Hybrid yields 9/9 fully supported positive answers versus
    dense-only 5/9; this supports the chosen retrieval path without creating a
    general accuracy claim.
-5. [Saved-response demo](simple_rag_demo.md): the original local viewer retains
+5. A [2×2 table-retrieval comparison](../evaluation/structure_retrieval_factorial.md)
+   separates flat/structured representation from dense/RRF retrieval on nine
+   exposed questions. Original annotation hits are13/26,18/26,12/26 and19/26.
+   A later source review finds the NIM reference belongs to the bank, not the
+   requested group; this is not semantic evidence coverage. The user-requested
+   [answer comparison](../evaluation/structure_answer_result.md) completes36/36:
+   flat dense2/8, flat RRF5/8, structured dense3/8, structured RRF4/8 supported
+   complete answers. NIM stays diagnostic; narrative/scope sensitivities are
+   disclosed. No aggregate structure superiority or automatic follow-up tuning.
+6. [Saved-response demo](simple_rag_demo.md): the original local viewer retains
    all12 answers. The subsequently authorized [public package](../../demo/README.md)
    includes five selected exact answers and all their cited sources, with the
    failure visible first. Full raw logs and stores remain local.

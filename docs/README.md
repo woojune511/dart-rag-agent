@@ -43,8 +43,10 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | 4 | [overview/simple_rag_demo.md](overview/simple_rag_demo.md) | Git에 포함된 5개 실제 답변·원문의 오프라인 데모 |
 | 5 | [evaluation/simple_rag_final_result.md](evaluation/simple_rag_final_result.md) | 전체 12문항 평가, 실패·비용·시간과 근거 한계 |
 | 6 | [evaluation/vanilla_dense_comparison.md](evaluation/vanilla_dense_comparison.md) | 동일 답변 경로에서 hybrid와 dense-only 근거 선택 비교 |
-| 7 | [overview/portfolio_scope.md](overview/portfolio_scope.md) | 완료된 범위와 남은 제품 한계 |
-| 8 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 구현 ownership과 비교 경로의 구분 |
+| 7 | [evaluation/structure_retrieval_factorial.md](evaluation/structure_retrieval_factorial.md) | flat/structured × dense/RRF 표 중심 검색 비교 |
+| 8 | [evaluation/structure_answer_result.md](evaluation/structure_answer_result.md) | 같은 네 조건의 실제 정답·인용 지지 비교와 실패 분석 |
+| 9 | [overview/portfolio_scope.md](overview/portfolio_scope.md) | 완료된 범위와 남은 제품 한계 |
+| 10 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 구현 ownership과 비교 경로의 구분 |
 
 이전 [experiment report](overview/portfolio_experiment_report.md),
 [technical highlights](overview/technical_highlights.md),

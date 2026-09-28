@@ -56,7 +56,16 @@ answer calls, zero new embeddings/retries/errors, and conservatively accounted
 USD0.1798695 under a consumed standalone USD1.65 authorization. Raw outputs stay
 ignored; the public document is a scoped summary, not independent reproduction.
 
-Shared conservative accounting: USD21.20953897/26.32, remaining5.11046103, pending0.
+The separate [table answer2x2 comparison](docs/evaluation/structure_answer_result.md)
+completed36/36 on fixed retrieval lists:8 primary questions plus1 NIM diagnostic
+per arm. Correct/complete/cited-supported answers are flat dense2/8, flat RRF5/8,
+structured dense3/8, structured RRF4/8. No overall structure advantage; explicit
+narrative/scope sensitivities prevent a general accuracy claim. Generation cost
+USD1.1334995 under consumed standalone USD6.85 authority; prior retrieval cost
+USD1.47618744 under consumed USD1.60 authority. No retries/runtime tuning; ignored
+artifacts remain under `benchmarks/results/structure_retrieval_factorial_2026-09-28/`.
+
+Historical shared accounting: USD21.20953897/26.32, remaining5.11046103, pending0.
 New estimated cost0.20762954 under one-run cap5.25; no new funding or invoice claim.
 Authorization `ae05c617...c9543` is consumed. All135 protected files,86 runtime files
 and144 frozen raw outputs retain their hashes; no original-store/settings change.

@@ -1,5 +1,24 @@
 ﻿# Experiment History
 
+## Table answer comparison completed (2026-09-28)
+
+- [Actual answer result](../evaluation/structure_answer_result.md): all36 calls completed once with unchanged SimpleRagAgent, exact rehearsed requests and frozen8-primary/1-diagnostic criteria. Fully correct/complete/cited-supported answers: flat dense2/8, flat RRF5/8, structured dense3/8, structured RRF4/8. Structured+RRF uniquely answers the FX gain/loss case; no aggregate structure advantage. Alternative evidence, missing cause explanations, period/basis confusion and source-display-versus-arithmetic differences are reviewed separately.
+- Assistant review is development-exposed/non-blind. NIM group values are recovered by all arms, while both RRF answers add an unsupported rounding explanation. SAM narrative attribution has a stricter4/8 flat-RRF sensitivity; SK total borrowing is a plausible broader question reading, raising flat-dense to3/8 if accepted. These do not silently replace the frozen primary metric.
+-36 calls,402,659 input/10,571 output tokens, zero retries/errors/NOT_RUN/new embeddings,138.75s with local instrumentation. Conservative added USD1.1334995; standalone USD6.85 authority consumed. Retrieval+generation total USD2.60968694, not observed billing. Initial key-loading and relative-launch-path failures were local pre-dispatch; existing dotenv and absolute launch path resolved them without changing runner/requests or paid retry.
+-188 sealed output/review files and156 frozen inputs verify. Runtime/prompts/canonical stores and prior raw results are unchanged. Raw outputs, reviews and authorization remain ignored; report/portfolio docs updated without post-result tuning or remote publication.
+
+## Table answer comparison prepared; NIM reference corrected (2026-09-28)
+
+- User requested actual answer correctness beyond retrieval. [Prepared comparison](../evaluation/structure_answer_preparation.md) replays four fixed top8 lists through unchanged SimpleRagAgent:36 generation requests, no embeddings, retry or paid judge. Paid generation is NOT_RUN; proposed standalone ceiling USD6.85 is not yet authorized.
+- Before sampling answers, source review found `KBF_T1_017`'s1.83/1.73 NIM reference belongs to KB Kookmin Bank rather than the requested group. Group endpoints2.44/2.30 differ by0.14pp while the source change column says0.13pp. The item is diagnostic-only; primary denominator8 per arm. Earlier raw results are untouched and their NIM structure-success interpretation is withdrawn.
+- Two blocked-network36-request SDK/persistence rehearsals produce identical ordered bodies; all288 selected source occurrences fit the production packet limit. Five budget/transport/usage/citation/persistence controls stop further dispatch. Focused SimpleRag/admission/documentation tests26/26 pass. Early offline tokenizer-cache attempts failed before external transport; the optional tokenizer estimate was removed, retaining conservative byte-based reservations. No paid request or product-runtime edit.
+
+## Flat/structured × dense/RRF retrieval comparison completed (2026-09-28)
+
+- One approved retrieval-only 2×2 run uses nine development-exposed table-heavy questions and six 2023 filings. Flat visible-text chunks total1,923; current parser/prefix chunks total7,099. The representation factor jointly changes extraction, chunk boundaries, metadata visibility and indexed text. All26 required anchors are verified in both corpora before dispatch; one ancillary Celltrion government-grant sentence is present only in flat and remains a separate parser-loss diagnostic.
+- [Result and claim boundary](../evaluation/structure_retrieval_factorial.md): flat dense13/26 anchors and3/9 all-required questions; flat RRF18/26 and4/9; structured dense12/26 and4/9; structured RRF19/26 and5/9. RRF adds5 flat and7 structured anchors. Structure changes dense/hybrid anchor coverage by-1/+1, so structure is not uniformly better and `flat_hybrid` prevents attributing the generic fusion gain to parsing.
+- The same nine `text-embedding-3-large` query vectors are reused across all four arms. 118 calls,11,355,288 input tokens, zero retries/errors; estimated USD1.47618744 under the consumed standalone USD1.60 cap, not billing. Answer generation, answer correctness and latency comparison are NOT_RUN. Raw corpora/stores/vectors/receipts remain ignored; product runtime, canonical stores, prompts and policies are unchanged.
+
 ## Simple-RAG final application evaluation completed (2026-09-22)
 
 - Clean `6083bf36`, runtime unchanged from `a9270221`; the user's continuation admits one frozen12-case run under USD5.25. Authorization `ae05c61742fb693827fbe017d88de73116e56cdfae84fabf96f973cb1c8c9543` is consumed before transport. Actual `build_app_services`/serialized operation/`SimpleRagAgent` uses live scoped hybrid retrieval on a copied1,872-chunk NAVER2022/2023 store. No new funding, ingest, original-store/settings change, Compiler or paid judge.

@@ -7,6 +7,7 @@ DART 공시의 표와 문맥을 검색하고, 답변과 인용 원문을 함께 
 [설치 없는 데모](../../demo/README.md) ·
 [평가 보고서](../evaluation/simple_rag_final_result.md) ·
 [vanilla 비교](../evaluation/vanilla_dense_comparison.md) ·
+[표 검색 2×2 비교](../evaluation/structure_retrieval_factorial.md) ·
 [코드 탐색](codebase_map.md)
 
 ## 해결하려는 문제
@@ -75,6 +76,23 @@ dense-only 5/9였다. Dense-only는 F04·F06·F09에서 근거가 부족해 안�
 이는 이미 개발에 노출된 NAVER 두 공시의 소규모 결과다. Dense arm은 저장된
 query vector와 고정 문서를 replay했으므로 live 검색 지연시간 비교가 아니며,
 새 회사나 일반 질의에 대한 우월성을 뜻하지 않는다.
+
+## 표 구조가 실제로 기여하는가
+
+별도의 표 중심 9문항·6개 공시에서 flat/structured 표현과 dense/RRF를 2×2로
+비교했다. 핵심 근거 top-8 coverage는 flat dense 13/26, flat RRF 18/26,
+structured dense 12/26, structured RRF 19/26이었다. Structured+RRF가 가장
+높았지만 구조 표현만 적용한 dense 결과는 flat dense보다 낮았다.
+
+후속 원문 검토에서 KB NIM 기준이 그룹 질문에 은행 값을 연결한 오류를 발견했다.
+위 수치는 원래 annotation 일치 기록으로만 보존하며, 이 문항을 제외하면
+각각13/24,16/24,10/24,17/24다. 검색 숫자 일치만으로 구조 보존의 의미적 이득을
+주장할 수 없다. [실제 답변 비교](../evaluation/structure_answer_result.md)는
+8개 주 평가 문항과1개 진단 문항으로36개 답변을 한 번씩 생성했다. 정확·완전·
+인용 지지 답변은 flat dense2/8, flat RRF5/8, structured dense3/8, structured
+RRF4/8이었다. 외화환산손익에서는 표 경계 보존이 정답으로 이어졌지만 전체
+정답률 우위는 확인되지 않았다. 문항 해석·서술형 판정의 민감도는 보고서에
+별도로 공개했으며, 이 소규모 개발 노출 결과를 일반 정확도로 주장하지 않는다.
 
 ## 직접 확인하기
 

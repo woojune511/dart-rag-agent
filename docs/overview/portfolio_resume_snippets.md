@@ -1,9 +1,9 @@
 # Portfolio Resume Snippets
 
 현재 기본 제품인 `SimpleRagAgent`와 2026-09-22 최종 앱 평가,
-2026-09-28 vanilla dense baseline을 기준으로 작성했다. 수치는 이미 개발에
-노출된 NAVER 2022/2023 공시 2건의 12문항 결과이며, 독립 holdout이나 일반
-정확도로 표현하지 않는다.
+2026-09-28 vanilla dense baseline 및 표 검색 2×2 비교를 기준으로 작성했다.
+수치는 이미 개발에 노출된 공시와 문항의 결과이며, 독립 holdout이나 일반
+정확도로 표현하지 않는다. 기존 답변 품질12문항과 별도 표 중심8+1문항 결과를 섞지 않는다.
 
 ## 추천 이력서 문구
 
@@ -32,6 +32,15 @@ vanilla dense baseline과 비교해 hybrid BM25·vector RRF의 완전 근거 검
 - 후속 12문항 앱 평가와 dense-only baseline은 질문·rubric·모델·prompt·
   schema·예산을 사전 고정하고 단 한 번 실행했다. 실패·기권·NOT_RUN을
   분리하고 raw request/response를 SHA-256으로 동결했다.
+
+### 표 구조 실험을 강조하는 버전
+
+- 표 중심 문항에서 flat/structured × dense/RRF 2×2 ablation을 설계해
+  표현 방식과 fusion 효과를 분리했다. 정답 원문 검토에서 은행·그룹을
+  혼동한 평가 기준을 발견해 진단 문항으로 분리하고, 검색 anchor 일치와
+  실제 정답·인용 지지를 구분해36개 답변을 평가했다. Structured+RRF4/8,
+  flat+RRF5/8로 전체 우위가 없음을 확인하고, 특정 표 경계 복원이 정답으로
+  이어진 사례와 기간·계산·설명 누락 실패를 함께 분석했다.
 
 ## English version
 
@@ -63,4 +72,6 @@ with frozen inputs, zero retries, provider-cost caps and immutable raw receipts.
 
 상세 근거는 [최종 앱 평가](../evaluation/simple_rag_final_result.md),
 [vanilla dense 비교](../evaluation/vanilla_dense_comparison.md),
+[표 검색 2×2 비교](../evaluation/structure_retrieval_factorial.md),
+[표 답변 2×2 비교](../evaluation/structure_answer_result.md),
 [제품 소개](portfolio_one_pager.md)에서 확인한다.
