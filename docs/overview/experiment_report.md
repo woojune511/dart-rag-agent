@@ -1,10 +1,10 @@
-# Portfolio Experiment Report
+# Recorded Experiment Report
 
 > Historical compiled-workflow material. The current simple-RAG product and its
-> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> guarantees are described in the [one-page introduction](project_overview.md)
 > and [offline demo](simple_rag_demo.md).
 
-This report summarizes the portfolio experiment story. It does not introduce a
+This report summarizes the recorded experiments and their limits. It does not introduce a
 new benchmark run; it packages the current repo evidence into a reviewer-facing
 case study. Historical `benchmarks/results/**` artifacts are treated as
 screening context, not as automatically current quality evidence. Raw benchmark
@@ -77,7 +77,7 @@ Evidence inventory:
 - `curated_concept_runtime_gap_gate`: 7 ontology-driven concept questions
 - `curated_policy_driven_runtime_gate`: 5 policy/narrative questions across
   4 company runs
-- review surface: the SHA-256-bound portfolio fixture plus optional cache,
+- review surface: the SHA-256-bound review fixture plus optional cache,
   reflection, `REFERENCE_NOTE`, and promotion-trace handoffs
 - publication validation: the separate CI workflow is configured to run
   focused reviewer contracts, the runtime domain-term audit, and full unit
@@ -135,7 +135,7 @@ fanout audit recorded `2` executed queries, `0` duplicate executed queries,
 
 After the operand projection repair in PR #78, the expanded structural
 full-system profile was rerun as a store-fixed `eval-only` refresh. This is the
-latest recorded structural quality result for portfolio review. The raw bundle
+latest recorded structural quality result for technical review. The raw bundle
 and heartbeat are not present in this checkout, so it cannot independently
 replay or audit that recorded benchmark execution.
 
@@ -375,7 +375,7 @@ The strongest result is the pattern across gates:
   final close are typed and inspectable
 - cost-control work must preserve trace evidence while reducing query fanout
 
-The portfolio claim is narrow: the project improves financial RAG reliability
+The supported conclusion is narrow: the project improves financial RAG reliability
 by moving failure handling into general runtime contracts and reviewed policy
 data, not by patching individual benchmark answers.
 

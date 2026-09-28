@@ -1,19 +1,19 @@
-# Portfolio Resume Snippets
+# Project Summary
 
 현재 기본 제품인 `SimpleRagAgent`와 2026-09-22 최종 앱 평가,
 2026-09-28 vanilla dense baseline 및 표 검색 2×2 비교를 기준으로 작성했다.
 수치는 이미 개발에 노출된 공시와 문항의 결과이며, 독립 holdout이나 일반
 정확도로 표현하지 않는다. 기존 답변 품질12문항과 별도 표 중심8+1문항 결과를 섞지 않는다.
 
-## 추천 이력서 문구
+## 구현 요약
 
-### 한 줄
+### 핵심 기능과 비교 결과
 
 한국 DART 공시를 위한 구조 보존형 RAG를 개발하고, 동일 LLM·prompt·top-k의
 vanilla dense baseline과 비교해 hybrid BM25·vector RRF의 완전 근거 검색과
 원문 지지 답변을 5/9에서 9/9로 개선했다.
 
-### 세 줄
+### 주요 구현
 
 - DART 공시의 절·표·행/열·단위·문서 ID를 보존하는 ingest와 명시적 보고서
   범위가 적용된 Chroma dense/BM25 hybrid retrieval을 구현했다.
@@ -24,7 +24,7 @@ vanilla dense baseline과 비교해 hybrid BM25·vector RRF의 완전 근거 검
   가능한 문항의 완전·정확·원문 지지 응답을 5/9에서 9/9로 높였고, 호출 수·
   토큰·비용 상한·무재시도·원본 hash를 기록하는 평가 harness를 구축했다.
 
-### 비용·실험 설계를 강조하는 버전
+### 비용과 실험에 따른 설계 판단
 
 - Planner/Compiler 경로와 Simple RAG를 고정 근거 4문항에서 비교해 복잡한
   경로가 3.47배 추정 비용과 4.79배 측정 시간을 사용하면서 명확한 품질
@@ -33,7 +33,7 @@ vanilla dense baseline과 비교해 hybrid BM25·vector RRF의 완전 근거 검
   schema·예산을 사전 고정하고 단 한 번 실행했다. 실패·기권·NOT_RUN을
   분리하고 raw request/response를 SHA-256으로 동결했다.
 
-### 표 구조 실험을 강조하는 버전
+### 표 구조 비교
 
 - 표 중심 문항에서 flat/structured × dense/RRF 2×2 ablation을 설계해
   표현 방식과 fusion 효과를 분리했다. 정답 원문 검토에서 은행·그룹을
@@ -52,7 +52,7 @@ increased fully correct, complete and source-supported positive answers from
 5/9 for a dense-only baseline to 9/9. Designed a one-shot evaluation harness
 with frozen inputs, zero retries, provider-cost caps and immutable raw receipts.
 
-## 면접에서 함께 설명할 한계
+## 결과의 한계
 
 - 비교 문항과 NAVER 두 공시는 개발 과정에 노출됐다.
 - Dense arm은 저장된 query vector를 replay했으므로 live retrieval 지연시간
@@ -74,4 +74,4 @@ with frozen inputs, zero retries, provider-cost caps and immutable raw receipts.
 [vanilla dense 비교](../evaluation/vanilla_dense_comparison.md),
 [표 검색 2×2 비교](../evaluation/structure_retrieval_factorial.md),
 [표 답변 2×2 비교](../evaluation/structure_answer_result.md),
-[제품 소개](portfolio_one_pager.md)에서 확인한다.
+[제품 소개](project_overview.md)에서 확인한다.

@@ -37,15 +37,17 @@ The [flat/structured × dense/RRF retrieval comparison](../evaluation/structure_
 
 The subsequent [actual answer comparison](../evaluation/structure_answer_result.md) completes36/36 once,8 primary questions plus1 diagnostic per arm. Correct/complete/cited-supported answers are flat dense2/8, flat RRF5/8, structured dense3/8, structured RRF4/8. No aggregate structured-RRF advantage; a specific FX table recovery succeeds. Samsung narrative attribution and SK borrowing-scope sensitivities are explicit, not hidden score changes.36 calls/402,659 input/10,571 output tokens, zero errors/retries/NOT_RUN/embeddings; conservative USD1.1334995 under consumed USD6.85 cap.188 sealed files and156 frozen inputs verify; focused26 tests and prior two36-case offline rehearsals/five stop controls pass. No runtime/prompt tuning.
 
-The current repository close passes **2,126/2,126 local Python 3.13 tests**
-(66.283s). This includes deterministic deep-JSON diagnostics across platforms and
+The current main-integration close passes **2,129/2,129 local Python 3.13 tests**
+(79.057s), including three public-guide merge regressions. This includes deterministic deep-JSON diagnostics across platforms and
 the absence of the retired `src.experimental` package; their focused 50-test set
 passes. The earlier simple-RAG transition's focused56, final API/profile48,
 comparison/import48, domain audit35 and documentation/topology gates also passed.
 
 ## Packaged offline review
 
-The [one-page introduction](portfolio_one_pager.md) now describes simple RAG and the evidence behind simplification. [demo/index.html](../../demo/index.html) is included in Git: five selected saved cases, exact answers and all six cited chunks, with success/abstention/failure and separate full12-case metrics. No installation, credentials, server or source store is needed. The full raw bundle stays local; [provenance](../../demo/provenance.json) hashes are integrity references, not independent execution proof. Older compiled portfolio documents are explicitly historical.
+Main integration retains PR98's static Pages workflow/F02-first case navigation and PR99's renamed public guides. The current SimpleRag contract and latest paired/table evaluations are preserved; historical compiled material stays labeled. Published demo payload changes only `initial_case` versus the original package, not answers, sources or evaluation metrics.
+
+The [one-page introduction](project_overview.md) now describes simple RAG and the evidence behind simplification. [demo/index.html](../../demo/index.html) is included in Git: five selected saved cases, exact answers and all six cited chunks, with success/abstention/failure and separate full12-case metrics. No installation, credentials, server or source store is needed. The full raw bundle stays local; [provenance](../../demo/provenance.json) hashes are integrity references, not independent execution proof. Older compiled portfolio documents are explicitly historical.
 
 Tracked-tree archive `4e67f378` passes the standard-library verifier with `-I -S` and minimal environment, without `.env`, `.venv`, data or the local run. All five browser selections preserve exact text; desktop/mobile/dark layouts pass, JS errors/external requests0. Changed payload rejects. Current documentation authority2/2 passes. This is local package validation, not a fresh evaluation, remote CI or deployment; runtime/model/settings and paid accounting are unchanged.
 

@@ -1,5 +1,11 @@
 # DART Filing RAG
 
+**[웹 데모 바로 보기 · 설치 없이 사례 체험](https://woojune511.github.io/dart-rag-agent/)**
+
+저장된 질문 5개를 선택해 실제 답변과 인용 원문을 비교할 수 있습니다.
+조회·계산·답변 보류·실패 사례를 포함하며, 직접 질문 입력이나 API 호출은 없습니다.
+[데모 안내](demo/README.md) · [평가 보고서](docs/evaluation/simple_rag_final_result.md)
+
 A document QA application for Korean DART filings. It preserves source structure,
 uses hybrid retrieval, and generates an answer with inspectable source text.
 The default application is **simple RAG**: one scoped search and at most one
@@ -21,6 +27,12 @@ retrieval supplied complete required evidence for 9/9 answerable cases versus
 5/9 for dense-only; fully correct, complete and source-supported answers were
 also 9/9 versus 5/9. This development-exposed comparison supports the retrieval
 choice, not a general accuracy claim.
+
+The separate [table-structure answer comparison](docs/evaluation/structure_answer_result.md)
+sampled all four flat/structured × dense/RRF conditions once. On eight primary
+questions, flat+RRF had5/8 fully supported answers versus structured+RRF4/8.
+It identifies a specific table-boundary recovery, but no aggregate structure
+advantage; rubric sensitivities and development exposure are disclosed.
 
 ```mermaid
 flowchart LR
@@ -64,15 +76,16 @@ production HTTP latency or a paired comparison.
 
 Download or clone the repository and open **[demo/index.html](demo/index.html)**
 in your browser. No install, API key, server or source store is needed. The viewer
-includes five selected actual answers and all their cited source text. It opens
-on the failure: an annual-revenue average substituted for an unavailable daily
-fact. GitHub's source preview does not run HTML; open the downloaded file.
+includes five selected actual answers and all their cited source text. F02 opens
+first; the case buttons also expose the F12 failure, where an annual-revenue
+average substitutes for an unavailable daily fact. GitHub's source preview does
+not run HTML; use the hosted demo or open the downloaded file.
 
 ```powershell
 Start-Process (Resolve-Path 'demo/index.html').Path
 ```
 
-Read the [one-page introduction](docs/overview/portfolio_one_pager.md),
+Read the [one-page introduction](docs/overview/project_overview.md),
 [walkthrough](docs/overview/simple_rag_demo.md) and
 [full result report](docs/evaluation/simple_rag_final_result.md). The
 [vanilla-dense comparison](docs/evaluation/vanilla_dense_comparison.md) explains
@@ -102,7 +115,7 @@ panel but remains development-exposed and its raw artifacts are not checked in.
 The checked-in demo fixture is a separate evidence surface; it does not reproduce
 or independently verify either benchmark. See the
 [vanilla comparison](docs/evaluation/vanilla_dense_comparison.md) and historical
-[experiment report](docs/overview/portfolio_experiment_report.md) for their
+[experiment report](docs/overview/experiment_report.md) for their
 different methods and limits.
 
 ## Historical compiled fixture review
@@ -121,7 +134,7 @@ the default simple-RAG application. For that historical surface:
 2. Run the demo and inspect `Semantic Plan`, `Retrieval Trace`, `Calculation
    Trace`, citations, and critic acceptance.
 3. Inspect the historical scope and claim boundaries in the
-   [compiled fixture walkthrough](docs/overview/portfolio_demo_walkthrough.md).
+   [compiled fixture walkthrough](docs/overview/demo_walkthrough.md).
 
 The fixture-backed demo is a checked-in curated contract example, not a live
 DART ingest or provider call. Its
@@ -147,9 +160,9 @@ Historical compiled-workflow deep dives:
 | Question | Document |
 | --- | --- |
 | How does one question move through the code? | [Question trace walkthrough](docs/overview/question_trace_walkthrough.md) |
-| What evidence supports the result claims? | [Experiment report](docs/overview/portfolio_experiment_report.md) |
+| What evidence supports the result claims? | [Experiment report](docs/overview/experiment_report.md) |
 | What are the main implementation techniques? | [Technical highlights](docs/overview/technical_highlights.md) |
-| How is the fixture-backed demo assembled? | [Demo walkthrough](docs/overview/portfolio_demo_walkthrough.md) |
+| How is the fixture-backed demo assembled? | [Demo walkthrough](docs/overview/demo_walkthrough.md) |
 
 ## Run the API
 
@@ -204,7 +217,7 @@ write approval.
 
 ## Scope boundary
 
-| Surface | Role | Portfolio treatment |
+| Surface | Role | Project role |
 | --- | --- | --- |
 | Core runtime | parser, hybrid retrieval, source-ID checks, answer projection | Main product story |
 | Evaluation | evaluator, benchmarks, gates, regression fixtures | Supporting proof, never imported by the default runtime |

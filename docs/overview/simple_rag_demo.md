@@ -26,11 +26,13 @@ This viewer is included in Git; it does not start the app or call a provider.
 The original 12-case viewer and raw bundle remain local ignored artifacts.
 GitHub's HTML source preview is not a running demo; open the downloaded file.
 See [demo/README.md](../../demo/README.md) for platform-independent instructions
-and the optional standard-library data-integrity check. No hosted deployment is implied.
+and the optional standard-library data-integrity check. The same saved examples
+are also available in the [static web demo](https://woojune511.github.io/dart-rag-agent/).
+This is not a hosted live RAG service.
 
 ## Five-minute route
 
-1. **F12, the initial selection:** read the daily-revenue request and model answer,
+1. **F12, select the failure case:** read the daily-revenue request and model answer,
    then expand the annual revenue source. The formula is correct but the requested
    daily fact is unavailable. The reviewer marks failure even though the source
    ID passes and the model adds an average-value caveat.
@@ -64,6 +66,6 @@ the same saved answers and sources, not repeating the evaluation or a paid sampl
 For implementation review, follow the
 [application contract](../architecture/agent_runtime_contract.md) and
 [code map](codebase_map.md). The older
-[compiled fixture demo](portfolio_demo_walkthrough.md) remains a separate
+[compiled fixture demo](demo_walkthrough.md) remains a separate
 historical contract example. Its Planner/Compiler/calculation guarantees do not
 describe the default simple-RAG application.

@@ -1,4 +1,10 @@
-# DART RAG offline demo
+# DART RAG saved-example demo
+
+**[Open the web demo](https://woojune511.github.io/dart-rag-agent/)** — choose a saved
+question and inspect its answer and cited source text. There is no question input,
+backend or provider call.
+
+## Open offline
 
 Open [index.html](index.html) in a browser after downloading or cloning this
 repository. No install, Python, API key, `.env`, store or server is needed to view
@@ -13,12 +19,12 @@ Start-Process (Resolve-Path 'demo/index.html').Path
 
 On other systems, open `demo/index.html` with your browser's **Open file** command.
 GitHub's source preview does not execute HTML; download/clone and open the file.
-This repository artifact does not imply a hosted deployment.
+The downloadable file offers the same examples as the hosted site.
 
 ## What is included
 
 These are five selected saved outputs from the
-[2026-09-22 application evaluation](../docs/evaluation/simple_rag_final_result.md):
+[2026-09-22 application evaluation](https://github.com/woojune511/dart-rag-agent/blob/2f3aea223a70648a700092604990f7b0392bf69e/docs/evaluation/simple_rag_final_result.md):
 
 | Case | Why included |
 | --- | --- |
@@ -28,7 +34,8 @@ These are five selected saved outputs from the
 | F11 | Model abstention with a separately recorded wording caveat |
 | F12 | Failed abstention; annual-average revenue substituted for actual daily revenue |
 
-F12 opens first. Select another question and expand its citations. Exact question,
+F02 opens first. Use the five case buttons or the question selector, then expand
+its citations. The failure (F12) and caveated abstention (F11) are equally accessible. Exact question,
 answer, abstention, caller scope, validation labels and all six cited chunk texts
 are retained, together with per-case timings and separate assistant reviewer notes.
 Sources are stored parser text, including contextual prefixes, not rendered DART XML.
@@ -64,5 +71,23 @@ result hashes are provenance references: the unpublished raw files are required
 to independently compare them. The checker does not recalculate full-panel
 metrics or assess semantic correctness. Browser behavior is checked separately.
 
-For the architecture and tradeoffs, start with the
-[one-page introduction](../docs/overview/portfolio_one_pager.md).
+For the evaluated application and its limits, see the application evaluation
+report linked above.
+
+
+## Publication
+
+The `Publish saved-example demo` workflow verifies the package and publishes only
+`index.html`, `provenance.json` and `.nojekyll`. No store, settings, source code,
+raw run bundle or credential is included in the Pages artifact. Pull requests
+build the artifact; deployment runs only on `main`. GitHub Pages must use the
+GitHub Actions source in repository settings.
+
+The original public package came from revision `2f3aea223a70648a700092604990f7b0392bf69e`.
+This UI changes the initial selection from F12 to F02 and adds case navigation;
+all saved questions, answers, source texts, reviews and evaluation metrics remain
+unchanged. The payload hash changes only because `initial_case` changes. Linked
+reports remain pinned to that source revision to preserve evaluation provenance.
+The current application is Simple RAG; the older compiled workflow is retained
+only for explicit comparisons. Publishing the viewer does not execute either
+runtime. See the [current project overview](../docs/overview/project_overview.md).

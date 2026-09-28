@@ -1,7 +1,7 @@
 # Question Trace Walkthrough
 
 > Historical compiled-workflow material. The current simple-RAG product and its
-> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> guarantees are described in the [one-page introduction](project_overview.md)
 > and [offline demo](simple_rag_demo.md).
 
 이 문서는 현재 single-agent runtime에서 질문 하나가 통과하는 경계만 설명한다.

@@ -283,7 +283,7 @@
 
 > Internal experiment log, not a first-read portfolio document. Start with
 > [../../README.md](../../README.md) and
-> [../overview/portfolio_experiment_report.md](../overview/portfolio_experiment_report.md)
+> [../overview/experiment_report.md](../overview/experiment_report.md)
 > for the compressed experiment story. This file preserves detailed historical
 > runs and should stay append-oriented.
 

@@ -1,7 +1,7 @@
-# Portfolio Demo Walkthrough
+# Compiled Demo Walkthrough
 
 > Historical compiled-workflow material. The current simple-RAG product and its
-> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> guarantees are described in the [one-page introduction](project_overview.md)
 > and [offline demo](simple_rag_demo.md).
 
 This walkthrough explains the smallest reviewer-facing demo for the current
@@ -28,7 +28,7 @@ uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_d
 
 ## Review Order
 
-The default output keeps the core portfolio story in execution order:
+The default output shows the runtime stages in execution order:
 
 1. `Semantic Plan` shows the planner strategy, operation, and required
    operands.

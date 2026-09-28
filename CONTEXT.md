@@ -89,9 +89,16 @@ Tampered data rejects. Existing26 tracked historical summary files are retained.
 Source runtime and paid accounting are unchanged; no provider call, push or deployment.
 Receipts: `benchmarks/results/simple_rag_public_demo_2026-09-22/` (ignored).
 
+Subsequent main integration preserves PR98's static Pages workflow and five-case
+navigation (F02 first), plus PR99's public guide names and neutral wording.
+Current SimpleRag guarantees and the table answer comparison remain authoritative.
+Saved answer/source data is unchanged; only the demo's initial selection changed.
+Integration gates: full2,129/2,129, focused22, domain audit35, demo integrity and
+188 result/156 input hashes pass. No paid run or runtime-source change.
+
 ## Completion and hard stops
 
-1. The final evaluation, [vanilla baseline](docs/evaluation/vanilla_dense_comparison.md), [updated introduction](docs/overview/portfolio_one_pager.md) and [packaged offline demo](demo/README.md) are complete. The scoped portfolio and sharing-preparation work is closed; no automatic experiment or deployment is queued.
+1. The final evaluation, [vanilla baseline](docs/evaluation/vanilla_dense_comparison.md), [updated introduction](docs/overview/project_overview.md) and [packaged offline demo](demo/README.md) are complete. The scoped portfolio and sharing-preparation work is closed; no automatic experiment or deployment is queued.
 2. Do not restart a per-question repair queue or silently restore Compiler fallback. The default change is user-authorized, not evidence of general superiority.
 3. No automatic paid batch/retry or consumed-manifest reuse. Broader independent evaluation, remote publication or deployment is separately scoped work.
 4. Preserve source stores, historical raw outputs and accounting. The inactive default `data/chroma_dart` manifest mismatch remains; this change does not adopt or rebuild it.

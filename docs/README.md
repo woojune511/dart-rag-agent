@@ -18,7 +18,7 @@ work queue나 release evidence로 사용하지 않는다.
 
 구현 사실은 source와 tests로 다시 확인한다. 문서가 충돌하면 runtime behavior는
 runtime contract와 source/tests를, 현재 상태와 다음 작업은 `project_status.md`를
-우선한다. history, release note, portfolio 문서는 이 권위를 덮지 않는다.
+우선한다. history, release note, 소개 문서는 이 권위를 덮지 않는다.
 
 ## Developer Path
 
@@ -38,8 +38,8 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | 순서 | 문서 | 역할 |
 | --- | --- | --- |
 | 1 | [../README.md](../README.md) | 프로젝트 요약, 실행 명령, claim boundary |
-| 2 | [overview/portfolio_one_pager.md](overview/portfolio_one_pager.md) | 현재 단순 RAG 구조와 비교 실험에 따른 설계 판단 |
-| 3 | [overview/portfolio_resume_snippets.md](overview/portfolio_resume_snippets.md) | 검증된 현재 제품과 비교 결과에 맞춘 이력서 문구 |
+| 2 | [overview/project_overview.md](overview/project_overview.md) | 현재 단순 RAG 구조와 비교 실험에 따른 설계 판단 |
+| 3 | [overview/project_summary.md](overview/project_summary.md) | 현재 구현·설계 판단·비교 결과와 한계 |
 | 4 | [overview/simple_rag_demo.md](overview/simple_rag_demo.md) | Git에 포함된 5개 실제 답변·원문의 오프라인 데모 |
 | 5 | [evaluation/simple_rag_final_result.md](evaluation/simple_rag_final_result.md) | 전체 12문항 평가, 실패·비용·시간과 근거 한계 |
 | 6 | [evaluation/vanilla_dense_comparison.md](evaluation/vanilla_dense_comparison.md) | 동일 답변 경로에서 hybrid와 dense-only 근거 선택 비교 |
@@ -48,12 +48,12 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | 9 | [overview/portfolio_scope.md](overview/portfolio_scope.md) | 완료된 범위와 남은 제품 한계 |
 | 10 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 구현 ownership과 비교 경로의 구분 |
 
-이전 [experiment report](overview/portfolio_experiment_report.md),
+이전 [experiment report](overview/experiment_report.md),
 [technical highlights](overview/technical_highlights.md),
-[compiled fixture walkthrough](overview/portfolio_demo_walkthrough.md)는 과거
+[compiled fixture walkthrough](overview/demo_walkthrough.md)는 과거
 Planner/Compiler checkpoint 자료다. 현재 앱 데모나 품질 결과로 읽지 않는다.
 
-포트폴리오 문서의 수치와 상태는 checkpoint-specific이다. 현재 release 상태는 항상
+소개 문서의 수치와 상태는 checkpoint-specific이다. 현재 release 상태는 항상
 `project_status.md`에서 확인한다. 용어와 claim 수준은
 [documentation_claim_boundaries.md](overview/documentation_claim_boundaries.md)를
 따른다.
@@ -94,7 +94,7 @@ its fixtures and older walkthroughs do not establish the default application's g
 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark guide와 누적 실행 로그 |
 | [evaluation/runtime_contract_gate.md](evaluation/runtime_contract_gate.md) | 이전 runtime gate profile 기록 |
 | [releases/v0.1.0-runtime-contract-ready.md](releases/v0.1.0-runtime-contract-ready.md) | 과거 release checkpoint |
-| [releases/v0.2.0-portfolio-ready.md](releases/v0.2.0-portfolio-ready.md) | 과거 portfolio checkpoint |
+| [v0.2.0 검토 체크포인트](releases/v0.2.0-portfolio-ready.md) | 과거 검토 checkpoint |
 | [releases/v0.3.0-runtime-contract-ready.md](releases/v0.3.0-runtime-contract-ready.md) | 현재 source-bundle/runtime 계약 checkpoint |
 
 ## Maintenance Rules

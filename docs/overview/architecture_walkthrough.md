@@ -1,19 +1,19 @@
-# Portfolio Presentation Outline
+# Architecture Walkthrough
 
 > Historical compiled-workflow material. The current simple-RAG product and its
-> guarantees are described in the [one-page introduction](portfolio_one_pager.md)
+> guarantees are described in the [one-page introduction](project_overview.md)
 > and [offline demo](simple_rag_demo.md).
 
-This outline is for a short portfolio presentation, interview walkthrough, or
-project review. It assumes the audience already knows LLM/RAG basics, so the
+This outline is for a technical walkthrough of the project.
+It assumes the audience already knows LLM/RAG basics, so the
 talk should focus on the engineering story: making financial RAG answers
 inspectable through runtime contracts, traces, and gates.
 
-For spoken answers, start from
-[portfolio_interview_narrative.md](portfolio_interview_narrative.md). This file
+For design context, start from
+[design_rationale.md](design_rationale.md). This file
 is the slide structure.
 
-## Slide 1. Title And Claim
+## Slide 1. Project And Scope
 
 **DART Financial Agentic RAG: Auditable Numeric QA**
 
@@ -175,7 +175,7 @@ Recorded benchmark evidence and validation references:
 | Plain retrieval diagnostic comparison | older `5 / 9`; not synchronized after PR #78 |
 | Runtime domain-term audit | revision and result live in [project_status.md](project_status.md) |
 | Demo fixture contract | expected `fixture_contract_ready`; curated fixture only; validation snapshot in [project_status.md](project_status.md) |
-| Portfolio review gates | expected `review_surface_ready`; unit/audit `not_run`; validation snapshot in [project_status.md](project_status.md) |
+| Review gates | expected `review_surface_ready`; unit/audit `not_run`; validation snapshot in [project_status.md](project_status.md) |
 
 Reviewer commands:
 

@@ -52,7 +52,8 @@ provides separate live hybrid-retrieval results on the smaller default path.
 6. [Saved-response demo](simple_rag_demo.md): the original local viewer retains
    all12 answers. The subsequently authorized [public package](../../demo/README.md)
    includes five selected exact answers and all their cited sources, with the
-   failure visible first. Full raw logs and stores remain local.
+   F02 selected first and the F12 failure accessible by its case button. Full raw
+   logs and stores remain local.
 
 This scoped milestone is complete. No runtime or prompt was tuned after the final
 answers. The run's paid authority is consumed. Existing store and historical-result
@@ -61,7 +62,7 @@ identities remain intact, and Compiler remains comparison-only.
 ## Completed sharing preparation
 
 The user authorized updating the introduction, packaging a shareable demo and
-verifying use from a fresh checkout. The [one-pager](portfolio_one_pager.md), README
+verifying use from a fresh checkout. The [one-pager](project_overview.md), README
 and reviewer path now describe the current product; compiled portfolio material
 is labeled historical. `demo/index.html` runs with only a browser. Selected data
 and lineage metadata are explicitly reviewed publication content, separate from
