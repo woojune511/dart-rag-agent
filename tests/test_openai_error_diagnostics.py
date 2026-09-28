@@ -56,6 +56,12 @@ class OpenAIErrorDiagnosticsTests(unittest.TestCase):
                 self.assertEqual(result["availability"]["error_code"],state)
                 self.assertNotIn("PRIVATE",json.dumps(result))
 
+    def test_json_delimiters_inside_strings_do_not_count_as_nesting(self):
+        body=json.dumps({"error":{"code":"server_is_overloaded","message":"["*5000}}).encode()
+        result=self.project(body=body)
+        self.assertEqual(result["error_code"],"server_is_overloaded")
+        self.assertEqual(result["availability"]["error_code"],"captured")
+
     def test_unavailable_body_remains_distinct_from_missing_code(self):
         result=openai_http_error_metadata(status_code=503,headers={},body=None)
         self.assertEqual(result["availability"]["error_code"],"unavailable")

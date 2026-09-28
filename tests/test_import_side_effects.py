@@ -166,7 +166,6 @@ class ImportSideEffectTests(unittest.TestCase):
         package_names = [
             "src.agent",
             "src.api",
-            "src.experimental",
             "src.ingestion",
             "src.ops",
             "src.schema",

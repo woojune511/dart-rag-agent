@@ -14,6 +14,7 @@ import re
 _ERROR_CODES = frozenset({"server_is_overloaded", "slow_down", "rate_limit_exceeded"})
 _REQUEST_ID = re.compile(r"req_[A-Za-z0-9]{6,128}", re.ASCII)
 _MAX_BODY_BYTES = 65536
+_MAX_JSON_NESTING = 128
 _MAX_RETRY_SECONDS = 604800
 
 
@@ -26,6 +27,31 @@ def _header(headers: Mapping[str, str], name: str):
     return values[0].strip(" \t"), "present"
 
 
+def _json_nesting_exceeds_limit(body: bytes) -> bool:
+    """Bound nesting before decoder behavior can vary across platforms."""
+    depth = 0
+    in_string = False
+    escaped = False
+    for value in body:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif value == ord("\\"):
+                escaped = True
+            elif value == ord('"'):
+                in_string = False
+            continue
+        if value == ord('"'):
+            in_string = True
+        elif value in (ord("["), ord("{")):
+            depth += 1
+            if depth > _MAX_JSON_NESTING:
+                return True
+        elif value in (ord("]"), ord("}")) and depth:
+            depth -= 1
+    return False
+
+
 def _error_code(body: bytes | None):
     if body is None:
         return None, "unavailable"
@@ -33,6 +59,8 @@ def _error_code(body: bytes | None):
         return None, "invalid_body"
     if len(body) > _MAX_BODY_BYTES:
         return None, "body_too_large"
+    if _json_nesting_exceeds_limit(body):
+        return None, "unreadable_json"
     try:
         payload = json.loads(body)
     except (ValueError, RecursionError):
@@ -112,6 +140,8 @@ def _request_error_object(body: bytes | None):
         return None, "invalid_body"
     if len(body) > _MAX_BODY_BYTES:
         return None, "body_too_large"
+    if _json_nesting_exceeds_limit(body):
+        return None, "unreadable_json"
 
     def unique_object(pairs):
         result = {}

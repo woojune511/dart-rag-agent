@@ -35,7 +35,11 @@ The subsequent [vanilla dense baseline](../evaluation/vanilla_dense_comparison.m
 
 Before execution, provider-admission/simple-RAG tests27/27, a full12-case blocked-network SDK rehearsal and six terminal failure controls pass. All135 protected files,86 runtime/dependency files and144 frozen raw outputs retain their hashes. Desktop/mobile demo checks cover12 selections, exact answers/sources, no JS errors or horizontal overflow. Documentation gates pass. Runtime source is unchanged from `a9270221`.
 
-The preceding [simple-RAG transition](../architecture/simple_rag_adoption.md) passed **2,125/2,125 tests** (64.083s), including16 new application-boundary controls. Focused56, final API/profile48, comparison/import48, domain audit35 and documentation/topology checks passed. That transition was provider-free; its full suite was not rerun for this documentation-only evaluation close.
+The current repository close passes **2,126/2,126 local Python 3.13 tests**
+(66.283s). This includes deterministic deep-JSON diagnostics across platforms and
+the absence of the retired `src.experimental` package; their focused 50-test set
+passes. The earlier simple-RAG transition's focused56, final API/profile48,
+comparison/import48, domain audit35 and documentation/topology gates also passed.
 
 ## Packaged offline review
 
