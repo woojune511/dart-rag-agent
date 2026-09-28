@@ -1,6 +1,6 @@
 # Documentation Claim Boundaries
 
-This note defines the reader profile and terminology boundary for portfolio and
+This note defines the reader profile and terminology boundary for overview and
 architecture documents in this repo.
 
 ## Target Reader

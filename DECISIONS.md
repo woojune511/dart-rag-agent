@@ -13,12 +13,12 @@
 
 ## 과거 핵심 결정 요약
 
-이 섹션은 **작성 당시 포트폴리오 관점에서 중요했던 기술 결정**을 모아 둔
+이 섹션은 **작성 당시 주요 기술 결정**을 모아 둔
 historical summary다. 현재 설명은 `README.md`와
 `docs/overview/project_status.md`를 따른다.
 과거의 상세 실험 로그와 히스토리는 아래 `상세 결정`부터 이어진다.
 
-## 포트폴리오용 Decision Scorecard
+## Technical Decision Scorecard
 
 | 영역 | 핵심 결정 | 왜 중요한가 | 정량 근거 / 증거 | 상태 |
 | --- | --- | --- | --- | --- |
@@ -33,8 +33,8 @@ historical summary다. 현재 설명은 `README.md`와
 | Roadmap | `MAS skeleton -> Analyst -> Critic -> Researcher -> reflection -> cross-company` 순으로 확장 | role separation과 communication contract를 먼저 고정 | [CONTEXT.md](CONTEXT.md), [docs/planning/backlog_and_next_epics.md](docs/planning/backlog_and_next_epics.md) | 진행 중 |
 | MAS topology | real `Orchestrator + Analyst + Researcher + Critic + Merge` walking skeleton을 먼저 개통 | 이후 quality tuning과 self-reflection을 E2E baseline 위에서 검증 가능 | `mas_analyst_smoke`, `mas_researcher_smoke`, `mas_e2e_smoke` | 진행 중 |
 | Parser normalization | source XML을 직접 고치지 않고 parser가 `local_heading`과 sanitize layer로 숨은 구조를 복원 | DART 원문의 invalid XML-like markup를 LLM-friendly structure로 바꾸기 위함 | `naver_2023_structure_outline.json`, parser structure smoke | 진행 중 |
-| Decision policy | **중요한 기술 결정은 반드시 benchmark/replay 실험과 artifact를 남긴 뒤 닫는다** | 포트폴리오와 설계 신뢰성을 동시에 확보 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | 유지 |
-| Artifact policy | 실험 자산은 repo에 남기고 scratch만 무시 | 포트폴리오/면접에서 재현 가능한 evidence 확보 | benchmark results / summary tracked | 유지 |
+| Decision policy | **중요한 기술 결정은 반드시 benchmark/replay 실험과 artifact를 남긴 뒤 닫는다** | 설계 판단의 근거와 신뢰성 확보 | [docs/evaluation/benchmarking.md](docs/evaluation/benchmarking.md) | 유지 |
+| Artifact policy | 실험 자산은 repo에 남기고 scratch만 무시 | 설계 검토 시 추적 가능한 evidence 확보 | benchmark results / summary tracked | 유지 |
 
 ## 핵심 결정 해설
 

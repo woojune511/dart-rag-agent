@@ -71,8 +71,8 @@ result hashes are provenance references: the unpublished raw files are required
 to independently compare them. The checker does not recalculate full-panel
 metrics or assess semantic correctness. Browser behavior is checked separately.
 
-For the architecture and tradeoffs, start with the
-[one-page introduction](https://github.com/woojune511/dart-rag-agent/blob/2f3aea223a70648a700092604990f7b0392bf69e/docs/overview/portfolio_one_pager.md).
+For the evaluated application and its limits, see the application evaluation
+report linked above.
 
 
 ## Publication

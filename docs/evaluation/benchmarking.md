@@ -1,8 +1,8 @@
 # Benchmarking Guide And Historical Run Log
 
-> Internal benchmark operations log, not a first-read portfolio document. Start
+> Internal benchmark operations log. For an introduction, start
 > with [../../README.md](../../README.md) and
-> [../overview/portfolio_experiment_report.md](../overview/portfolio_experiment_report.md)
+> [../overview/experiment_report.md](../overview/experiment_report.md)
 > for the reviewer-facing experiment summary. This file keeps the detailed gate,
 > replay, and artifact interpretation history.
 >
