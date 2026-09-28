@@ -1,5 +1,17 @@
 # DART Financial Agentic RAG
 
+**[웹 데모 바로 보기 · 설치 없이 사례 체험](https://woojune511.github.io/dart-rag-agent/)**
+
+저장된 질문 5개를 선택해 실제 답변과 인용 원문을 비교할 수 있습니다.
+조회·계산·답변 보류·실패 사례를 포함하며, 직접 질문 입력이나 API 호출은 없습니다.
+[데모 안내](demo/README.md) · [평가 보고서](https://github.com/woojune511/dart-rag-agent/blob/2f3aea223a70648a700092604990f7b0392bf69e/docs/evaluation/simple_rag_final_result.md)
+
+The web demo contains saved outputs from the newer simple-RAG application revision
+linked in its report. The compiled-workflow implementation described below is a
+separate version; its calculation guarantees do not apply to these demo answers.
+
+---
+
 An evidence-first financial QA agent for Korean DART filings. It combines
 hybrid retrieval, LLM-based semantic planning, deterministic calculation, and
 traceable provenance so a reviewer can inspect how each numeric answer was
