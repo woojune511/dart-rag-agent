@@ -66,7 +66,7 @@
   1. Continue runtime/API cost work through model routing and retrieval
      fan-out cleanup, not low-API/offline deterministic fallback.
   2. Use store-fixed focused canaries before any broader policy gate refresh.
-  3. Keep the new overview docs current as the portfolio/code walkthrough
+  3. Keep the new overview docs current as the project/code walkthrough
      entry points.
 
 ## 2026-06-02 Official Retrieval Budget Gate

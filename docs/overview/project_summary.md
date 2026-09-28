@@ -1,46 +1,45 @@
-# Portfolio Resume Snippets
+# Project Summary
 
-Use these as concise resume, portfolio, or LinkedIn project descriptions. The
-wording is intentionally scoped: it presents the project as applied
-systems/research-engineering work, not as a new model architecture or a general
-TableQA SOTA result.
+This document summarizes the runtime, engineering decisions, and recorded
+evaluation evidence. Results describe the named experiments and do not establish
+a new model architecture or a general TableQA SOTA result.
 
-## One-Line Version
+## Runtime Overview
 
-Built a contract-driven Agentic RAG runtime for Korean DART filings that
+The project implements a contract-driven Agentic RAG runtime for Korean DART filings that
 accepts numeric financial answers through structured evidence, deterministic
 calculation traces, critic reports, and deterministic reviewer checks with
 explicit evidence limits.
 
-## Three-Bullet Version
+## Core Design
 
-- Designed a financial-document RAG runtime where accepted numeric answers
+- Accepted numeric answers in the financial-document RAG runtime
   expose source evidence, required operands, formula execution,
   `resolved_calculation_trace`, critic acceptance, and task/artifact integrity.
-- Separated LLM semantic planning from deterministic execution: LLMs handle
+- LLM semantic planning is separate from deterministic execution: LLMs handle
   intent/concept interpretation, while code handles operand binding, arithmetic,
   unit handling, dedupe, validation, and final rendering.
-- Validated the design with trace-based gates and store-fixed benchmark
+- Validation uses trace-based gates and store-fixed benchmark
   refreshes: the latest recorded expanded structural result is `9 / 9` numeric
   PASS across six company runs, with raw artifacts not published; the older
   plain retrieval `5 / 9` comparison remains diagnostic rather than a
   synchronized leaderboard ablation.
 
-## Technical Portfolio Version
+## Runtime State
 
-Implemented the single-agent `FinancialAgent` runtime for financial QA over DART
-filings. The runtime publishes typed `tasks`, `artifacts`, `evidence_pool`,
+The single-agent `FinancialAgent` runtime handles financial QA over DART
+filings. It publishes typed `tasks`, `artifacts`, `evidence_pool`,
 `critic_reports`, and `task_artifact_trace` state rather than relying on
 free-form reasoning text. Numeric answers are accepted only after source-backed
 operand binding, deterministic formula execution, canonical trace rendering,
 and artifact/critic gate checks. Role-oriented multi-agent orchestration remains
 an optional experiment around the core product surface.
 
-## Research-Engineering Version
+## Failure Modes
 
-Investigated failure modes in financial-document RAG where answer-level
+The evaluation examines failure modes in financial-document RAG where answer-level
 faithfulness can mask wrong row selection, unit-scale drift, stale calculation
-mirrors, or missing operand provenance. Built a value-cell-first structured
+mirrors, or missing operand provenance. The runtime uses a value-cell-first structured
 metadata and runtime-contract approach that preserves table/row context through
 retrieval, extraction, calculation, and final rendering. Evaluation uses
 trace-based numeric grounding rather than final-text exact match alone.
@@ -52,9 +51,9 @@ structured traces through final rendering. The final KBF/SKH repair closed stale
 growth projection and disjoint-source operand overwrite without adding
 benchmark-specific runtime branches.
 
-## Conservative Version
+## Evidence Limits
 
-Built and evaluated an evidence-first RAG prototype for DART financial filings,
+This evidence-first RAG prototype for DART financial filings is
 focused on making numeric answers auditable. The project combines
 structure-aware retrieval, deterministic numeric execution, typed task/artifact
 state, and reviewer-facing gates. Recorded results support a narrow claim:
@@ -64,7 +63,7 @@ numeric PASS, with raw artifacts not published; the plain retrieval comparison
 remains diagnostic baseline evidence, not a freshly synchronized final
 ablation.
 
-## Korean Short Version
+## 한국어 요약
 
 한국 DART 공시 문서 기반 재무 QA를 위한 contract-driven Agentic RAG runtime을
 구축했습니다. 최종 답변 텍스트만 평가하지 않고, source evidence, operand,
@@ -73,7 +72,7 @@ formula execution, `resolved_calculation_trace`, critic report,
 초점을 두었습니다. LLM은 intent/concept 해석과 planning에 사용하고, 산술,
 단위 처리, operand binding, validation은 deterministic code path로 분리했습니다.
 
-## Avoid These Claims
+## Unsupported Claims
 
 - "Achieved SOTA on financial TableQA"
 - "Eliminated hallucination"
@@ -81,7 +80,7 @@ formula execution, `resolved_calculation_trace`, critic report,
 - "Used cell-level embeddings"
 - "RAGAS proved the final system quality"
 
-Safer alternatives:
+Supported engineering scope:
 
 - "Made numeric financial RAG answers inspectable through runtime contracts"
 - "Moved arithmetic and unit handling out of free-form generation"

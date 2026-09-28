@@ -17,7 +17,7 @@ hybrid retrieval, LLM-based semantic planning, deterministic calculation, and
 traceable provenance so a reviewer can inspect how each numeric answer was
 produced.
 
-> Portfolio scope: the product is the single-agent `FinancialAgent` runtime.
+> Product scope: the product is the single-agent `FinancialAgent` runtime.
 > Multi-agent orchestration, cache promotion, and extended review machinery are
 > experiments around the core, not the main product claim.
 
@@ -106,7 +106,7 @@ The structural and plain results are retained engineering records, not a freshly
 synchronized leaderboard ablation. Their raw artifacts are not checked in and
 availability varies by run. The checked-in demo fixture is a separate evidence
 surface; it does not reproduce or independently verify the benchmark runs. See
-[portfolio_experiment_report.md](docs/overview/portfolio_experiment_report.md)
+[experiment_report.md](docs/overview/experiment_report.md)
 for the methodology and limitations.
 
 ## Five-minute review
@@ -124,7 +124,7 @@ Use the five minutes as follows:
 2. Run the demo and inspect `Semantic Plan`, `Retrieval Trace`, `Calculation
    Trace`, citations, and critic acceptance.
 3. Scan the representative result and scope boundary in the
-   [portfolio one-pager](docs/overview/portfolio_one_pager.md).
+   [project overview](docs/overview/project_overview.md).
 
 The fixture-backed demo is a checked-in curated contract example, not a live
 DART ingest or provider call. Its
@@ -150,9 +150,9 @@ Optional deep dives:
 | Question | Document |
 | --- | --- |
 | How does one question move through the code? | [Question trace walkthrough](docs/overview/question_trace_walkthrough.md) |
-| What evidence supports the result claims? | [Experiment report](docs/overview/portfolio_experiment_report.md) |
+| What evidence supports the result claims? | [Experiment report](docs/overview/experiment_report.md) |
 | What are the main implementation techniques? | [Technical highlights](docs/overview/technical_highlights.md) |
-| How is the fixture-backed demo assembled? | [Demo walkthrough](docs/overview/portfolio_demo_walkthrough.md) |
+| How is the fixture-backed demo assembled? | [Demo walkthrough](docs/overview/demo_walkthrough.md) |
 
 ## Run the API
 
@@ -177,7 +177,7 @@ write approval.
 
 ## Scope boundary
 
-| Surface | Role | Portfolio treatment |
+| Surface | Role | Project role |
 | --- | --- | --- |
 | Core runtime | parser, retrieval, evidence binding, calculation, answer projection | Main product story |
 | Evaluation | evaluator, benchmarks, gates, regression fixtures | Supporting proof, never imported by the default runtime |

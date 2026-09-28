@@ -1,4 +1,4 @@
-# Portfolio Demo Walkthrough
+# Compiled Demo Walkthrough
 
 This walkthrough explains the smallest reviewer-facing demo for the current
 single-agent runtime contract. It is fixture-backed, so it runs without DART
@@ -24,7 +24,7 @@ uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_d
 
 ## Review Order
 
-The default output keeps the core portfolio story in execution order:
+The default output shows the runtime stages in execution order:
 
 1. `Semantic Plan` shows the planner strategy, operation, and required
    operands.

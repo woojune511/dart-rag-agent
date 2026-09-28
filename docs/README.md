@@ -17,7 +17,7 @@ work queue나 release evidence로 사용하지 않는다.
 
 구현 사실은 source와 tests로 다시 확인한다. 문서가 충돌하면 runtime behavior는
 runtime contract와 source/tests를, 현재 상태와 다음 작업은 `project_status.md`를
-우선한다. history, release note, portfolio 문서는 이 권위를 덮지 않는다.
+우선한다. history, release note, 소개 문서는 이 권위를 덮지 않는다.
 
 ## Developer Path
 
@@ -37,12 +37,12 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | 순서 | 문서 | 역할 |
 | --- | --- | --- |
 | 1 | [../README.md](../README.md) | 프로젝트 요약, 실행 명령, claim boundary |
-| 2 | [overview/portfolio_one_pager.md](overview/portfolio_one_pager.md) | 짧은 포트폴리오 설명 |
-| 3 | [overview/portfolio_experiment_report.md](overview/portfolio_experiment_report.md) | 기록된 실험 방법과 한계 |
+| 2 | [프로젝트 개요](overview/project_overview.md) | 프로젝트 개요와 설계 근거 |
+| 3 | [overview/experiment_report.md](overview/experiment_report.md) | 기록된 실험 방법과 한계 |
 | 4 | [overview/technical_highlights.md](overview/technical_highlights.md) | 주요 구현 surface |
-| 5 | [overview/portfolio_demo_walkthrough.md](overview/portfolio_demo_walkthrough.md) | fixture-backed demo 검토 순서 |
+| 5 | [overview/demo_walkthrough.md](overview/demo_walkthrough.md) | fixture-backed demo 검토 순서 |
 
-포트폴리오 문서의 수치와 상태는 checkpoint-specific이다. 현재 release 상태는 항상
+소개 문서의 수치와 상태는 checkpoint-specific이다. 현재 release 상태는 항상
 `project_status.md`에서 확인한다. 용어와 claim 수준은
 [documentation_claim_boundaries.md](overview/documentation_claim_boundaries.md)를
 따른다.
@@ -76,7 +76,7 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | [evaluation/benchmarking.md](evaluation/benchmarking.md) | benchmark guide와 누적 실행 로그 |
 | [evaluation/runtime_contract_gate.md](evaluation/runtime_contract_gate.md) | 이전 runtime gate profile 기록 |
 | [releases/v0.1.0-runtime-contract-ready.md](releases/v0.1.0-runtime-contract-ready.md) | 과거 release checkpoint |
-| [releases/v0.2.0-portfolio-ready.md](releases/v0.2.0-portfolio-ready.md) | 과거 portfolio checkpoint |
+| [v0.2.0 검토 체크포인트](releases/v0.2.0-portfolio-ready.md) | 과거 검토 checkpoint |
 | [releases/v0.3.0-runtime-contract-ready.md](releases/v0.3.0-runtime-contract-ready.md) | 현재 source-bundle/runtime 계약 checkpoint |
 
 ## Maintenance Rules

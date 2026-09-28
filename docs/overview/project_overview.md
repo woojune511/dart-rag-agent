@@ -1,4 +1,4 @@
-# Portfolio One-Pager
+# Project Overview
 
 ## DART Financial Agentic RAG
 
@@ -7,10 +7,10 @@ structured source evidence, uses an LLM to plan the required analysis, executes
 numeric operations deterministically, and returns an answer with inspectable
 calculation and provenance traces.
 
-The portfolio claim is applied LLM systems engineering. It is not a new model,
+The project focuses on applied LLM systems engineering. It is not a new model,
 a general TableQA algorithm, or a multi-agent framework.
 
-## Problem
+## Problem and Motivation
 
 Financial-document RAG often produces plausible but incorrect answers because
 it selected the wrong row, subtotal, period, unit, segment, or reporting entity.
@@ -101,7 +101,7 @@ These numbers are not presented as a freshly synchronized leaderboard
 ablation or as independently reproducible evidence from this checkout. They are
 recorded engineering evidence for the failure taxonomy. The methodology and
 limitations are in
-[portfolio_experiment_report.md](portfolio_experiment_report.md).
+[experiment_report.md](experiment_report.md).
 
 A compact representative case is the CIR calculation:
 
@@ -142,7 +142,7 @@ reports `fixture_contract_ready`, not live-runtime or publication readiness.
 run the unit suite or domain audit; the CI workflow owns those publication
 checks. The demo is not a live provider call.
 Use the [question trace walkthrough](question_trace_walkthrough.md),
-[experiment report](portfolio_experiment_report.md), or
+[experiment report](experiment_report.md), or
 [technical highlights](technical_highlights.md) only when a deeper code,
 evidence, or implementation review is useful.
 
@@ -159,5 +159,5 @@ The default product runtime is `FinancialAgent.run()`.
 - Legacy: compatibility imports and response mirrors scheduled for removal once
   callers and contract tests no longer require them.
 
-This boundary keeps the portfolio story focused while preserving deeper
-experiments as optional evidence of system design work.
+This boundary separates the supported runtime from optional experiments and
+their evaluation evidence.

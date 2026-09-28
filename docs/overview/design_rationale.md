@@ -1,16 +1,16 @@
-# Portfolio Interview Narrative
+# Design Rationale
 
-This is the compact version of the project story for a portfolio review,
-screening call, or interview. It assumes the listener already understands RAG,
+This document explains the problem, design decisions, and evaluation evidence.
+It assumes the reader already understands RAG,
 LLM agents, retrieval traces, and grounding/evaluation terminology.
 
-## 30-Second Version
+## Design Summary
 
-I built a contract-driven financial RAG runtime for Korean DART filings. The
+This project implements a contract-driven financial RAG runtime for Korean DART filings. The
 main problem is that numeric answers can look grounded while using the wrong
 row, period, subtotal, unit, or provenance path.
 
-My approach separates LLM semantics from deterministic execution: the LLM helps
+The design separates LLM semantics from deterministic execution: the LLM helps
 with intent and planning, while code owns operand binding, arithmetic, unit
 handling, validation, and final rendering. The latest recorded structural
 store-fixed replay is `9 / 9` numeric PASS across six company runs; its raw
@@ -18,9 +18,9 @@ artifacts are not published with the repository. Separately, local reviewer
 commands report `fixture_contract_ready` and `review_surface_ready` for their
 scoped fixture and review surfaces.
 
-## 2-Minute Version
+## Design Overview
 
-I built a contract-driven financial RAG runtime for Korean DART filings. The
+This project implements a contract-driven financial RAG runtime for Korean DART filings. The
 project is not a new foundation model or a SOTA TableQA benchmark; the systems
 claim is that numeric financial answers should be accepted through inspectable
 runtime state, not through plausible final text.
@@ -44,7 +44,7 @@ product claim.
 The strongest recorded benchmark evidence is narrow and trace-based. The latest
 expanded structural store-fixed refresh reached `9 / 9` numeric PASS, but its
 raw artifacts are not published with the repository. The most recent
-plain-retrieval comparison remains `5 / 9`; I use it as diagnostic evidence for
+plain-retrieval comparison remains `5 / 9`; it serves as diagnostic evidence for
 display/unit, denominator, and row-binding failure modes rather than as a
 freshly synchronized leaderboard. The local reviewer commands validate a
 separate curated fixture and optional review surfaces, not a live benchmark
@@ -57,7 +57,7 @@ the fix synchronized final-answer numeric surfaces back into the growth trace.
 overwrite them with a conflicting row from another source, so the fix protected
 task-output slots by source-row provenance and improved table-label matching.
 
-## 5-Minute Walkthrough
+## Runtime Walkthrough
 
 Start with the problem: a financial RAG system can cite a relevant DART filing
 chunk and still answer incorrectly because the selected number came from the
@@ -190,19 +190,19 @@ necessary but not sufficient: the current fix also protects task-output operands
 from disjoint conflicting evidence and synchronizes final-answer numeric
 surfaces into the public calculation projection.
 
-## What I Would Emphasize In An Interview
+## Engineering Principles
 
-- I did not solve numeric reliability by prompt wording alone.
-- I kept domain vocabulary in ontology, policy, config, or data artifacts
+- Numeric reliability depends on runtime contracts as well as prompts.
+- Domain vocabulary stays in ontology, policy, config, or data artifacts
   instead of adding benchmark-specific runtime branches.
-- I used LLMs where semantic judgment is useful and deterministic code where
+- The runtime uses LLMs where semantic judgment is useful and deterministic code where
   execution must be auditable.
-- I treated evaluation as trace inspection: operands, formula, unit handling,
+- Evaluation includes trace inspection: operands, formula, unit handling,
   source references, critic state, and rendered display.
-- I kept cache serving, retrieval bypass, cache writes, and LLM critic authority
+- The runtime keeps cache serving, retrieval bypass, cache writes, and LLM critic authority
   intentionally disabled until their safety contracts are proven.
 
-## What I Would Not Overclaim
+## Limits
 
 - This is not a new model architecture.
 - This is not a general TableQA SOTA result.
@@ -224,9 +224,9 @@ uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_d
 
 Then open:
 
-- [portfolio_one_pager.md](portfolio_one_pager.md)
-- [portfolio_experiment_report.md](portfolio_experiment_report.md)
+- [project_overview.md](project_overview.md)
+- [experiment_report.md](experiment_report.md)
 - [technical_highlights.md](technical_highlights.md)
-- [portfolio_deep_dive_qa.md](portfolio_deep_dive_qa.md)
-- [portfolio_resume_snippets.md](portfolio_resume_snippets.md)
+- [technical_qa.md](technical_qa.md)
+- [project_summary.md](project_summary.md)
 - [structural_trace_diagnostics.md](../evaluation/structural_trace_diagnostics.md)

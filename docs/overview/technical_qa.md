@@ -1,11 +1,11 @@
-# Portfolio Deep-Dive Q&A
+# Technical Q&A
 
-이 문서는 DART financial RAG 프로젝트를 면접에서 깊게 설명하기 위한
-질문/답변 노트다. 짧은 소개는
-[portfolio_interview_narrative.md](portfolio_interview_narrative.md)를 먼저
-보고, 이 문서는 follow-up 질문에 대비할 때 사용한다.
+이 문서는 DART financial RAG의 설계 선택과 동작을 설명하는
+기술 질문/답변 노트다. 짧은 소개는
+[design_rationale.md](design_rationale.md)를 먼저
+보고, 세부 계약과 한계는 아래 질문별 설명을 참고한다.
 
-## 1. Project Positioning
+## 1. Project Scope
 
 ### Q1. 이 프로젝트를 한 문장으로 설명하면?
 
@@ -129,7 +129,7 @@ ledger state로 handoff를 inspectable하게 만든 것입니다.
 
 ### Q9. `task_artifact_trace`는 왜 중요한가?
 
-면접에서 이렇게 답하면 됩니다:
+설계 근거는 다음과 같습니다:
 
 `task_artifact_trace`는 final answer 뒤의 runtime integrity projection입니다.
 어떤 task가 있었고, 어떤 artifact가 생성됐고, integrity issue가 있었는지
@@ -359,7 +359,7 @@ current code path로 agent answer generation과 evaluator를 다시 실행합니
 
 ### Q27. 최신 검증 상태를 어떻게 말할까?
 
-면접에서는 이렇게 말하면 됩니다.
+검증 결과는 다음 범위로 해석합니다.
 
 - latest recorded expanded structural store-fixed eval-only: `9 / 9` numeric
   PASS; the named raw bundle and heartbeat are not present in this checkout
@@ -422,8 +422,8 @@ benchmark-specific하지 않다"입니다.
 
 다만 이 복잡도는 무조건 좋은 것은 아닙니다. 그래서 최근에는 문서화와 refactor
 plan을 통해 core runtime, review trace, debug/eval/experimental surface를
-분리하려고 했습니다. 지금 당장은 기능 리팩터링보다 claim boundary와 면접
-설명이 더 ROI가 높다고 판단했습니다.
+분리하는 방향을 정리했습니다. 추가 변경은 검증된 실패 원인과 영향 범위에
+맞춰 진행하며, 문서에서는 현재 보장 범위를 명확히 구분합니다.
 
 ### Q31. 지금 남은 가장 큰 한계는?
 
@@ -437,7 +437,7 @@ plan을 통해 core runtime, review trace, debug/eval/experimental surface를
 
 ### Q32. 다음 기술 작업을 한다면 무엇을 하겠나?
 
-면접 답변으로는 이렇게 말하는 것이 좋습니다.
+검토할 수 있는 개선 방향은 다음과 같습니다. 현재 작업 계획은 별도 상태 문서를 따릅니다.
 
 1. core runtime과 review/debug/eval surface를 더 분리한다.
 2. numeric pipeline의 owner boundary를 좁혀 calculation/projection repair가 한
@@ -447,7 +447,7 @@ plan을 통해 core runtime, review trace, debug/eval/experimental surface를
 4. cache consumer는 candidate-only에서 serving으로 바로 올리지 않고 promotion
    risk gate를 추가한다.
 
-## 11. Behavioral Interview Hooks
+## 11. Engineering Lessons
 
 ### Q33. 이 프로젝트에서 가장 중요한 engineering judgement는?
 
@@ -476,9 +476,9 @@ LLM/RAG 시스템에서는 "보이는 답"과 "downstream이 읽는 contract"가
   docs에 기록한다.
 - Public answer와 public trace가 diverge하면 user-visible answer가 맞아도 bug다.
 
-## 12. Quick Practice Answers
+## 12. Design Summary
 
-### "왜 이 프로젝트가 좋은 포트폴리오인가?"
+### "어떤 기술 문제를 다루는가?"
 
 단순히 RAG 앱을 만든 것이 아니라, 금융 RAG에서 실제로 문제가 되는 wrong row,
 wrong unit, stale trace, provenance overwrite 같은 failure를 runtime contract로
@@ -495,12 +495,11 @@ benchmark 결과의 raw artifact는 repository에 모두 공개되어 있지 않
 충돌할 때 source-row provenance를 기준으로 어느 slot을 유지할지 결정하는 부분이
 핵심입니다.
 
-### "리팩터링보다 면접 준비를 선택한 이유는?"
+### "추가 리팩터링의 기준은?"
 
-최신 기록 benchmark residual은 닫혔고 scoped reviewer commands도
-통과했습니다. 추가 리팩터링은 regression risk가 있고 포트폴리오 가치가
-제한적입니다. 반면 면접에서는 왜 이 구조가 필요했는지, 어떤 failure를 어떻게
-일반화해서 고쳤는지 설명하는 능력이 더 중요합니다.
+기록된 benchmark residual과 scoped reviewer command 결과를 바탕으로,
+새 변경이 해결할 실패 원인과 regression risk를 먼저 확인합니다. 검증된
+문제가 없는 상태에서 구조 변경 자체를 목표로 삼지는 않습니다.
 
 ### "한계까지 포함해서 솔직하게 말하면?"
 
