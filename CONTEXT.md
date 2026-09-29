@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 ## Product boundary
 
@@ -24,11 +24,13 @@ Source-ID validity is not entailment or numeric correctness. `FinancialAgent` an
 its source/calculation checks remain only for explicit comparison/replay under
 [compiled_workflow_contract.md](docs/architecture/compiled_workflow_contract.md).
 Shared model construction does not import that path into the application.
-Ingest/parser/store/embedding identities and data are unchanged. `openai` keeps
+Parser schema is v5; the local full11 successor store is compatible/ready=true. Embedding model identity is preserved. `openai` keeps
 answer/ingest-context routes; `openai_compiler` is comparison-only and rejected by
 application startup. The old embedded evaluation dashboard is removed.
 
 ## Evidence and accounting
+
+The [parser v5 adoption](docs/architecture/parser_v5_adoption.md) records the user-approved parser/tests/docs commit separately from the unchanged [answer regression](docs/evaluation/paragraph_heading_v5_answer_regression.md): core14/14,strict11/14,stable4/7 (absence-wording sensitivity12/14,still gate not met). Plain and paragraph-style heading ownership, table-body preservation and bounded separator parsing are adopted. The verified local full11 v5 store has15,608 chunks; source/metadata delivery fixes do not certify all headings or general answer accuracy. Remaining added-claim citation omissions and overbroad absence wording are separate follow-up items. No new provider calls,prompt tuning,store mutation or automatic rerun is authorized by this adoption.
 
 The [development comparison](docs/evaluation/portfolio_workflow_comparison_successor.md)
 on `6bc4aae5` completed four familiar pairs using shared frozen evidence. It found

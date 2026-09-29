@@ -21,6 +21,7 @@ def collect_blocks(
     soft_heading_path: Callable[[List[str]], Optional[str]],
     build_table_object: Callable[[Any], Dict[str, Any]],
     extract_standalone_table_context_hint: Callable[[Dict[str, Any]], Optional[str]],
+    extract_table_unit_suffix: Callable[[Dict[str, Any]], Optional[str]],
     build_table_context_bundle: Callable[..., Dict[str, Any]],
     extract_paragraph_heading_parts: Callable[..., Any],
     is_single_bracket_heading: Callable[[str], bool],
@@ -136,7 +137,7 @@ def collect_blocks(
                             context_prefix=pending_table_context_hint,
                         ),
                     )
-                    pending_table_context_hint = None
+                    pending_table_context_hint = extract_table_unit_suffix(table_object)
             pending_section_label = None
             return
         if tag == "TABLE":
@@ -163,7 +164,7 @@ def collect_blocks(
                         context_prefix=pending_table_context_hint,
                     ),
                 )
-                pending_table_context_hint = None
+                pending_table_context_hint = extract_table_unit_suffix(table_object)
             pending_section_label = None
             return
         if tag == "P":

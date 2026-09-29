@@ -80,7 +80,9 @@ _INLINE_BODY_START_RE = re.compile(
     r"(\d{4}년|연결회사는|회사는|당사는|당사가|당기 및 전기 중|당기말 및 전기말 현재|당기말 현재)"
 )
 _INLINE_BODY_SEPARATOR_RE = re.compile(
-    r"([①②③④⑤⑥⑦⑧⑨⑩]|-\s*[A-Za-z가-힣&]+(?:\s*[A-Za-z가-힣&]+)*\s*:)"
+    # Adjacent letter groups are one word. Require whitespace between groups
+    # so a missing colon cannot trigger exponential equivalent partitions.
+    r"([①②③④⑤⑥⑦⑧⑨⑩]|-\s*[A-Za-z가-힣&]+(?:\s+[A-Za-z가-힣&]+)*\s*:)"
 )
 _PROBABLE_XML_MARKUP_RE = re.compile(
     r"^/?[A-Za-z_][A-Za-z0-9._:-]*(?:\s+[A-Za-z_][A-Za-z0-9._:-]*\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*/?$"
@@ -91,6 +93,27 @@ DEFAULT_SECTION_PARSE_WARN_SEC = float(os.getenv("DART_PARSER_SECTION_WARN_SEC",
 DEFAULT_SECTION_PARSE_BUDGET_SEC = float(os.getenv("DART_PARSER_SECTION_BUDGET_SEC", "2.0"))
 _UNIT_HINT_RE = re.compile(r"(십억원|천원|백만원|억원|%)")
 _UNIT_CONTEXT_RE = re.compile(r"단위\s*[:：]?\s*(십억원|천원|백만원|억원|원|%)")
+# A small row/column count does not imply a label: DART also puts whole prose
+# sections in one cell. Only complete label syntax may consume a table as context.
+# Unknown text stays a body table; finding a period/unit somewhere is insufficient.
+_TABLE_CONTEXT_LABEL_RE = re.compile(
+    r"(?:"
+    r"(?:요약\s*)?(?:(?:연결|별도)\s*)?(?:재무상태표|포괄손익계산서|손익계산서|자본변동표|현금흐름표)"
+    r"|제\s*\d+\s*기(?:말|초)?|(?:전전기|전기|당기)(?:말|초)?"
+    r"|20\d{2}\s*년(?:\s*\d{1,2}\s*월(?:\s*\d{1,2}\s*일)?)?"
+    r"|20\d{2}[./-]\d{1,2}[./-]\d{1,2}\.?"
+    r"|사업연도|작성기준일|이행현황기준일|기준일|현재|기준|부터|까지|누적|요약"
+    r"|(?:원화|외화)?단위\s*[:：]\s*"
+    r"(?:[A-Z]+\s+[가-힣]+|[A-Za-z가-힣%$€¥]+)"
+    r"(?:\s*[,/\-]\s*(?:[A-Z]+\s+[가-힣]+|[A-Za-z가-힣%$€¥]+))*"
+    r"|[\s|()\[\]<>:：,~\-]"
+    r")+"
+)
+_TABLE_UNIT_SUFFIX_RE = re.compile(
+    r"(?P<label>\(\s*"
+    r"(?:(?:원화|외화|원)?단위\s*[:：]|(?:원화|외화)\s*[:：])"
+    r"[A-Za-z가-힣\s%$€¥,:：/\-]+\))\s*$"
+)
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
     ("연결재무제표", ["연결재무제표"]),
@@ -335,6 +358,8 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
         return None
 
     combined = " ".join(rows)
+    if not _TABLE_CONTEXT_LABEL_RE.fullmatch(combined):
+        return None
     period_labels = _extract_period_labels(combined)
     unit_hint = _infer_unit_hint(combined)
     # Some filings place `(단위 : 백만원)` in a standalone table without an
@@ -352,6 +377,24 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
     if unit_hint and unit_hint not in combined:
         hint_parts.append(f"(단위: {unit_hint})")
     return _normalize("\n".join(hint_parts))
+
+
+def _extract_table_unit_suffix(table_object: Dict[str, Any]) -> Optional[str]:
+    """Keep a compact mixed table's body and forward only its explicit unit label.
+
+    Captions/prose are never promoted by this path. A terminal parenthesized
+    unit declaration remains adjacent context even if the preceding text is
+    unknown; finding a unit word or percentage in prose is insufficient.
+    """
+    rows = int(table_object.get("row_count") or 0)
+    columns = int(table_object.get("column_count") or 0)
+    if not (1 <= rows <= 2 and 1 <= columns <= 3):
+        return None
+    if (table_object.get("header_scope_source") in {"thead", "column_header_cells"}
+            and rows > int(table_object.get("header_row_count") or 0)):
+        return None
+    match = _TABLE_UNIT_SUFFIX_RE.search(str(table_object.get("table_text") or ""))
+    return match.group("label") if match else None
 
 
 def _infer_statement_type(section_path: str, header_context: Optional[str]) -> str:
@@ -580,10 +623,29 @@ def _push_heading(stack: List[str], heading: str, section_path: str = "") -> Lis
         return list(stack)
 
     next_stack = _prepare_stack_for_heading(stack, normalized, section_path)
+    bracket_indices = [i for i, value in enumerate(next_stack) if _BRACKET_HEADING_RE.match(value)]
+    if _BRACKET_HEADING_RE.match(normalized):
+        # A named subsection belongs to the observed numbered parent. Its next
+        # named peer replaces it, rather than discarding that parent as level 2.
+        if bracket_indices:
+            next_stack = next_stack[:bracket_indices[-1]]
+        return [*next_stack, normalized]
+
     level = _infer_heading_level(normalized)
+    floor = 0
+    if bracket_indices:
+        bracket_index = bracket_indices[-1]
+        outer = next_stack[:bracket_index]
+        if any(_infer_heading_level(value) >= level for value in outer):
+            # Returning to an observed parent level closes its named children.
+            next_stack = outer
+        else:
+            # Without an observed outer peer, numbered headings remain children
+            # of the named subsection; do not infer a scope reset from its name.
+            floor = bracket_index + 1
     next_levels = [_infer_heading_level(value) for value in next_stack]
 
-    while next_levels and next_levels[-1] >= level:
+    while len(next_levels) > floor and next_levels[-1] >= level:
         next_levels.pop()
         next_stack.pop()
 
@@ -652,7 +714,9 @@ def _soft_heading_path(stack: List[str]) -> Optional[str]:
         return headings[0]
     if len(headings) == 2:
         return " > ".join(headings)
-    return f"{headings[0]} > {headings[-1]}"
+    # Preserve a named owner between a numbered parent and its numbered child.
+    middle = [value for value in headings[1:-1] if _BRACKET_HEADING_RE.match(value)]
+    return " > ".join([headings[0], *middle, headings[-1]])
 
 
 def _build_reference_index(raw_sections: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -886,6 +950,69 @@ class FinancialParser:
             "table_has_spans": table_has_spans,
         }
 
+    def _extract_plain_heading_parts(self, paragraph_elem, raw_text: str):
+        """Locate explicit headings without applying structured prose splitting.
+
+        Keep the entire source text, including newly recognized heading text, in
+        body segments. Heading events only establish boundaries and provenance.
+        Whole bracket captions are handled by the caller's existing contract.
+        """
+        events: Dict[int, Dict[str, Any]] = {}
+
+        def observe(text: str, offset: int, *, bracket_prefix: bool = False,
+                    preserve_existing: bool = False):
+            candidate = _normalize(text)
+            prefix = re.match(r"\s*(\[[^\]\r\n]+\])", text) if bracket_prefix else None
+            if prefix:
+                candidate = prefix.group(1)
+            elif (
+                "\n" in candidate or candidate.endswith((".", "。", ";"))
+                or re.match(r"^\d{4,}\.", candidate)
+                or not _looks_like_local_heading(candidate)
+            ):
+                return
+            span = source_text_span(raw_text, candidate, offset, offset + len(text))
+            if span is not None and (not preserve_existing or span[0] not in events):
+                events[span[0]] = {"kind": "heading", "text": candidate, "source_span": span}
+
+        # A bracket at the start of a paragraph may share the paragraph with its
+        # body. Numbered unformatted headings must occupy the whole paragraph.
+        observe(raw_text, 0, bracket_prefix=True)
+        # A heading can be written directly in a bold P, while its body is
+        # carried by child SPANs. Keep existing SPAN heading eligibility separate.
+        paragraph_bold = False
+        for mark in paragraph_elem.get("USERMARK", "").split():
+            if mark in {"B", "!B"}:
+                paragraph_bold = mark == "B"
+        if paragraph_bold:
+            observe(paragraph_elem.text or "", 0, bracket_prefix=True, preserve_existing=True)
+        offset = len(paragraph_elem.text or "")
+        for child in paragraph_elem:
+            child_text = "".join(child.itertext())
+            if child.tag == "SPAN" and "B" in child.get("USERMARK", ""):
+                observe(child_text, offset, bracket_prefix=True)
+            elif child.tag == "SPAN" and paragraph_bold:
+                observe(child_text, offset, bracket_prefix=True, preserve_existing=True)
+            if paragraph_bold:
+                # A child's tail belongs to its parent P, including its style.
+                observe(child.tail or "", offset + len(child_text), bracket_prefix=True, preserve_existing=True)
+            offset += len(child_text) + len(child.tail or "")
+        if not events:
+            return None, [{"kind": "text", "text": _normalize(raw_text), "source_span": [0, len(raw_text)]}]
+
+        parts = []
+        positions = sorted(events)
+        if raw_text[:positions[0]].strip():
+            parts.append({"kind": "text", "text": _normalize(raw_text[:positions[0]]),
+                          "source_span": [0, positions[0]]})
+        for index, start in enumerate(positions):
+            end = positions[index + 1] if index + 1 < len(positions) else len(raw_text)
+            parts.append(events[start])
+            parts.append({"kind": "text", "text": _normalize(raw_text[start:end]), "source_span": [start, end]})
+        if parts[0]["kind"] == "heading":
+            return [parts[0]], parts[1:]
+        return None, parts
+
     def _extract_paragraph_heading_parts(
         self,
         paragraph_elem,
@@ -908,7 +1035,7 @@ class FinancialParser:
                 return None, []
             if _BRACKET_HEADING_RE.match(combined):
                 return heading_parts(combined, 0, len(raw_text)), []
-            return None, [{"kind": "text", "text": combined, "source_span": [0, len(raw_text)]}]
+            return self._extract_plain_heading_parts(paragraph_elem, raw_text)
 
         parts: List[Dict[str, Any]] = []
         offset = 0
@@ -1032,6 +1159,7 @@ class FinancialParser:
             soft_heading_path=_soft_heading_path,
             build_table_object=self._build_table_object,
             extract_standalone_table_context_hint=_extract_standalone_table_context_hint,
+            extract_table_unit_suffix=_extract_table_unit_suffix,
             build_table_context_bundle=self._build_table_context_bundle,
             extract_paragraph_heading_parts=self._extract_paragraph_heading_parts,
             is_single_bracket_heading=lambda text: bool(_BRACKET_HEADING_RE.match(text)),

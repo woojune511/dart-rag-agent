@@ -12,21 +12,23 @@ from src.processing.table_structure import build_table_object
 
 
 class TableHeaderScopeTests(unittest.TestCase):
-    def test_new_parser_default_does_not_silently_adopt_a_v1_store(self):
+    def test_new_parser_default_does_not_silently_adopt_an_older_store(self):
         from dataclasses import replace
         from src.config.runtime_contract import CANONICAL_PARSER_SCHEMA_VERSION
         from src.storage.store_manifest import canonical_store_manifest, write_store_manifest, assess_store_readiness
 
         expected = canonical_store_manifest(collection_name="test")
-        self.assertEqual(CANONICAL_PARSER_SCHEMA_VERSION, "financial_parser_v2_source_context")
-        old = replace(expected, ingest=replace(expected.ingest, parser_schema_version="financial_parser_v1"))
-        with tempfile.TemporaryDirectory() as directory:
-            path = write_store_manifest(directory, old)
-            before = path.read_bytes()
-            readiness = assess_store_readiness(directory, expected=expected)
-            self.assertFalse(readiness.ready)
-            self.assertEqual(readiness.status, "mismatch")
-            self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(CANONICAL_PARSER_SCHEMA_VERSION, "financial_parser_v5_inherited_heading_style")
+        for version in ("financial_parser_v1", "financial_parser_v3_heading_scope",
+                        "financial_parser_v4_label_only_table_context"):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
+                old = replace(expected, ingest=replace(expected.ingest, parser_schema_version=version))
+                path = write_store_manifest(directory, old)
+                before = path.read_bytes()
+                readiness = assess_store_readiness(directory, expected=expected)
+                self.assertFalse(readiness.ready)
+                self.assertEqual(readiness.status, "mismatch")
+                self.assertEqual(path.read_bytes(), before)
 
     def test_thead_does_not_absorb_a_textual_business_description(self):
         root = etree.parse(str(Path(__file__).parent / "fixtures/source_context_hierarchy.xml")).getroot()

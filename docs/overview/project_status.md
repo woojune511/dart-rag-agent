@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 ## Current implementation
 
@@ -20,12 +20,14 @@ The default API and Streamlit runtime is `SimpleRagAgent`, on
 | Response | Answer, cited source text, abstention and validation labels; empty compiler result/trace fields |
 | Observation | Optional JSON-native retrieval/review data, usage, timing and interrupted diagnostics |
 
-Ingest/parser/store/embedding identity is unchanged. Application model construction
+Parser schema is v5; the local full11 successor store is compatible/ready=true. Embedding model identity is preserved. Application model construction
 uses only answer and ingest-context routes; compiler-only profile selection is
 rejected. The old Streamlit compiled-evaluation tab is removed. Comparisons remain
 separate; their [contract](../architecture/compiled_workflow_contract.md) is preserved.
 
 ## Current verification
+
+The [parser v5 adoption](../architecture/parser_v5_adoption.md) records the user-approved parser/tests/docs commit separately from the unchanged [answer regression](../evaluation/paragraph_heading_v5_answer_regression.md): core14/14,strict11/14,stable4/7 (absence-wording sensitivity12/14,still gate not met). Plain and paragraph-style heading ownership, table-body preservation and bounded separator parsing are adopted. The verified local full11 v5 store has15,608 chunks; source/metadata delivery fixes do not certify all headings or general answer accuracy. Remaining added-claim citation omissions and overbroad absence wording are separate follow-up items. No new provider calls,prompt tuning,store mutation or automatic rerun is authorized by this adoption.
 
 The [final application evaluation](../evaluation/simple_rag_final_result.md) on `6083bf36` completed all12 frozen questions once: 9/9 answerable cases meet correctness/completeness/source-support criteria, safe abstention2/3 (deterministic1/1, model1/2). F11's abstention has an overbroad period explanation; F12 incorrectly substitutes an annual average for actual daily revenue. No positive retrieval miss was observed. This is assistant review on familiar NAVER2022/2023 filings, not independent gold or unseen-company performance. No post-result prompt/runtime tuning.
 

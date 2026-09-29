@@ -1,5 +1,9 @@
 ﻿# Experiment History
 
+## Parser v5 adoption decision (2026-09-29)
+
+- The [parser v5 adoption](../architecture/parser_v5_adoption.md) records the user-approved parser/tests/docs commit separately from the unchanged [answer regression](../evaluation/paragraph_heading_v5_answer_regression.md): core14/14,strict11/14,stable4/7 (absence-wording sensitivity12/14,still gate not met). Plain and paragraph-style heading ownership, table-body preservation and bounded separator parsing are adopted. The verified local full11 v5 store has15,608 chunks; source/metadata delivery fixes do not certify all headings or general answer accuracy. Remaining added-claim citation omissions and overbroad absence wording are separate follow-up items. No new provider calls,prompt tuning,store mutation or automatic rerun is authorized by this adoption.
+
 ## Table answer comparison completed (2026-09-28)
 
 - [Actual answer result](../evaluation/structure_answer_result.md): all36 calls completed once with unchanged SimpleRagAgent, exact rehearsed requests and frozen8-primary/1-diagnostic criteria. Fully correct/complete/cited-supported answers: flat dense2/8, flat RRF5/8, structured dense3/8, structured RRF4/8. Structured+RRF uniquely answers the FX gain/loss case; no aggregate structure advantage. Alternative evidence, missing cause explanations, period/basis confusion and source-display-versus-arithmetic differences are reviewed separately.
