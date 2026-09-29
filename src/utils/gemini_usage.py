@@ -1,4 +1,4 @@
-"""LangChain callback adapter for Gemini usage accounting."""
+"""LangChain usage adapter; the historical name also supports OpenAI counts."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from src.utils.gemini_usage_counts import (
 
 
 class GeminiUsageCallbackHandler(BaseCallbackHandler):
-    """Thread-local LangChain callback that accumulates Gemini token usage."""
+    """Accumulate disjoint answer/reasoning counts for both provider routes."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()

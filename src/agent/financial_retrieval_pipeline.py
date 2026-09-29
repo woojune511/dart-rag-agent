@@ -1,13 +1,15 @@
 """Retrieval pipeline owner for the FinancialAgent graph.
 
 This module owns retrieval query construction, filtering, search execution,
-reranking, candidate selection, and retrieval trace projection. Evidence
-construction and answer validation remain in financial_graph_evidence.py.
+reranking, candidate selection, and retrieval trace projection. All answer
+kinds use the same source selection and continue through the Compiler.
 """
 
 from __future__ import annotations
 
+from copy import deepcopy
 import logging
+import json
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
@@ -29,10 +31,14 @@ from src.agent.financial_retrieval_hints import (
     retrieval_hint_from_topic,
     supplement_section_terms_for_query,
 )
-from src.agent.financial_runtime_normalization import _normalise_spaces
+from src.agent.financial_runtime_normalization import (
+    _inline_numeric_unit_match,
+    _normalise_spaces,
+    _parse_number_text,
+)
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace
+from src.agent.financial_source_scope import source_section_allowed_for_query
 from src.agent.financial_scope_policies import (
-    desired_consolidation_scope,
     is_scope_only_period_surface,
     metadata_period_match_strength,
     report_scope_source_receipts,
@@ -42,23 +48,14 @@ from src.agent.financial_text_surface import (
     strip_index_metadata_prefix,
     strip_rerank_metadata,
     tokenize_terms,
-    query_focus_markers,
 )
-from src.config.report_scoped_cache import classify_report_cache_consumer_candidate
 from src.config.retrieval_policy import (
     METRIC_TOPIC_EXTRACTION_TERMS,
     NARRATIVE_RERANK_POLICY,
-    QUERY_FOCUS_MARKER_POLICY,
     SEMANTIC_REQUIRED_EVIDENCE_POLICY,
-    active_narrative_policies,
-    narrative_policy_active,
-    narrative_policy_facets,
-    narrative_policy_paragraph_priority_sections,
-    narrative_policy_preferred_sections,
-    narrative_policy_slot_groups,
-    narrative_policy_terms,
 )
-from src.routing import default_format_preference
+from src.storage.bm25_index import metadata_matches_filter
+from src.storage.search_scope import restrict_search_filter
 if TYPE_CHECKING:
     from langchain_core.documents import Document
 
@@ -66,6 +63,24 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def _retrieval_document_source_id(doc: Any) -> str:
+    """Use globally qualified parser identity, not a filing-local row number."""
+    metadata = dict(getattr(doc, "metadata", {}) or {})
+    source_id = str(metadata.get("chunk_uid") or "").strip()
+    if source_id:
+        return source_id
+    chunk_id = metadata.get("chunk_id")
+    if chunk_id is None or str(chunk_id).strip() == "":
+        return ""
+    for key in ("rcept_no", "document_id", "source_document_id"):
+        document_id = str(metadata.get(key) or "").strip()
+        if document_id and document_id.lower() not in {"unknown", "none", "null"}:
+            return json.dumps([key, document_id, str(chunk_id)], ensure_ascii=False)
+    # Company/year/report type do not establish a unique filing. Unknown
+    # sources stay separate rather than borrowing authority from a local index.
+    return ""
 
 
 def _stable_retrieval_source_ids(entries: List[Any]) -> tuple[List[str], int]:
@@ -95,85 +110,6 @@ def _metric_terms_from_topic(topic: str) -> set[str]:
     text = _normalise_spaces(topic)
     known_terms = [str(item) for item in METRIC_TOPIC_EXTRACTION_TERMS if str(item)]
     return {term for term in known_terms if term in text}
-
-
-def _report_cache_consumer_assessment_for_retrieval(state: Dict[str, Any]) -> Dict[str, Any]:
-    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
-    candidate = dict(trace.get("report_cache_candidate") or {})
-    if not candidate:
-        candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
-    if not candidate:
-        return {
-            "status": "not_available",
-            "eligible": False,
-            "enabled": False,
-            "mode": "trace_only",
-            "reasons": ["missing_candidate"],
-            "source": "none",
-        }
-    assessment = dict(candidate.get("retrieval_bypass") or {})
-    if not assessment:
-        assessment = classify_report_cache_consumer_candidate(candidate)
-    return {
-        "status": str(assessment.get("status") or "").strip(),
-        "eligible": bool(assessment.get("eligible")),
-        "enabled": bool(assessment.get("enabled")),
-        "mode": str(assessment.get("mode") or "trace_only").strip(),
-        "reasons": [str(reason) for reason in list(assessment.get("reasons") or [])],
-        "candidate_status": str(candidate.get("status") or "").strip(),
-        "candidate_key_id": str(candidate.get("key_id") or assessment.get("key_id") or "").strip(),
-        "source": "resolved_calculation_trace.report_cache_candidate",
-    }
-
-
-def _report_cache_index_diagnostics_for_retrieval(
-    state: Dict[str, Any],
-    index_path: Any,
-) -> Dict[str, Any]:
-    path_text = str(index_path or "").strip()
-    if not path_text:
-        return {
-            "status": "not_configured",
-            "enabled": False,
-            "serving_enabled": False,
-            "path": "",
-            "lookup_attempted": False,
-        }
-
-    # The persisted report-cache index is an optional runtime surface. Import
-    # it only when a caller explicitly configures an index path.
-    from src.storage.report_cache_index import ReportCacheIndex
-
-    trace = resolve_runtime_calculation_trace(dict(state), allow_legacy_top_level=False)
-    candidate = dict(trace.get("report_cache_candidate") or {})
-    if not candidate:
-        candidate = dict((dict(state.get("resolved_calculation_trace") or {}).get("report_cache_candidate") or {}))
-    key = candidate.get("key") if isinstance(candidate.get("key"), dict) else {}
-    if not key:
-        diagnostics = ReportCacheIndex(path_text).load_diagnostics()
-        return {
-            "status": str(diagnostics.get("status") or "").strip(),
-            "enabled": False,
-            "serving_enabled": False,
-            "path": str(diagnostics.get("path") or path_text),
-            "lookup_attempted": False,
-            "reason": "missing_report_cache_key",
-            "index": {
-                "status": diagnostics.get("status"),
-                "path": diagnostics.get("path"),
-                "readable_count": diagnostics.get("readable_count", 0),
-                "blocked_count": diagnostics.get("blocked_count", 0),
-                "malformed_count": diagnostics.get("malformed_count", 0),
-            },
-        }
-
-    diagnostics = ReportCacheIndex(path_text).lookup_diagnostics(key)
-    return {
-        **diagnostics,
-        "lookup_attempted": True,
-    }
-
-
 
 
 def make_document(*, page_content: str, metadata: Dict[str, Any]) -> Document:
@@ -299,7 +235,7 @@ def _semantic_query_ownership(
             if requirement_matches:
                 add_owner(
                     requirement_id,
-                    "numeric",
+                    owner_kind,
                     required_group=bool(requirement.get("required", True)),
                 )
 
@@ -513,6 +449,21 @@ def _apply_semantic_query_budget(
     }
 
 
+def _has_numeric_value_cell(row_text: str) -> bool:
+    """Recognize complete finite value cells without interpreting their role."""
+
+    if "|" not in row_text:
+        return False
+    for cell in row_text.split("|"):
+        value = _normalise_spaces(cell)
+        if _parse_number_text(value) is not None:
+            return True
+        inline = _inline_numeric_unit_match(value)
+        if inline and _parse_number_text(inline.group("value")) is not None:
+            return True
+    return False
+
+
 def _numeric_atomic_declared_surface_priority(
     metadata: Dict[str, Any],
     body_text: str,
@@ -527,16 +478,17 @@ def _numeric_atomic_declared_surface_priority(
     """
 
     atomic_surfaces: List[tuple[int, str]] = []
-    header_context = _normalise_spaces(
-        str(metadata.get("table_header_context") or "")
-    )
-    if "|" in header_context and re.search(r"\d", header_context):
-        atomic_surfaces.append((2, header_context))
+    # Keep physical lines separate: another header row cannot lend a value.
+    # Digits embedded in labels or references are not numeric value cells.
+    for line in str(metadata.get("table_header_context") or "").splitlines():
+        surface = _normalise_spaces(line)
+        if _has_numeric_value_cell(surface):
+            atomic_surfaces.append((2, surface))
 
     source_body = strip_index_metadata_prefix(str(body_text or ""))
     for line in source_body.splitlines():
         surface = _normalise_spaces(line)
-        if "|" in surface and re.search(r"\d", surface):
+        if _has_numeric_value_cell(surface):
             atomic_surfaces.append((1, surface))
 
     best = (0, 0, 0, 0)
@@ -573,10 +525,9 @@ def _numeric_atomic_declared_surface_priority(
 class FinancialRetrievalPipelineMixin:
     @staticmethod
     def _apply_strict_filter(docs, predicate):
-        """Apply a scope filter without turning a non-empty retrieval into zero evidence."""
+        """Keep only authorized sources, including an empty result when none match."""
 
-        filtered = [item for item in docs if predicate(item[0])]
-        return filtered if filtered else docs
+        return [item for item in docs if predicate(item[0])]
 
     def _supplement_section_seed_docs(
         self,
@@ -638,17 +589,7 @@ class FinancialRetrievalPipelineMixin:
         metadatas = list(getattr(self.vsm, "bm25_metadatas", []) or [])
         if not bodies or not metadatas:
             return []
-        companies = {
-            _normalise_spaces(str(value)).lower()
-            for value in (state.get("companies") or [])
-            if _normalise_spaces(str(value))
-        }
-        years = {
-            int(value)
-            for value in (state.get("years") or [])
-            if str(value or "").isdigit()
-        }
-        multi_period = intent in {"comparison", "trend"} and len(years) > 1
+        where_filter = self._build_scope_plan(state)["where_filter"]
         supplemented: List[tuple[Document, float]] = []
         group_candidates: Dict[
             str,
@@ -670,17 +611,11 @@ class FinancialRetrievalPipelineMixin:
         seen: set[str] = set()
         for body, raw_metadata in zip(bodies, metadatas):
             metadata = dict(raw_metadata or {})
+            if not metadata_matches_filter(metadata, where_filter):
+                continue
+            if not source_section_allowed_for_query(metadata, state.get("answer_obligations") or []):
+                continue
             company = _normalise_spaces(str(metadata.get("company") or "")).lower()
-            if companies and company not in companies and not any(
-                target in company or company in target for target in companies
-            ):
-                continue
-            try:
-                year = int(metadata.get("year") or 0)
-            except (TypeError, ValueError):
-                year = 0
-            if years and not multi_period and year not in years:
-                continue
 
             body_text = str(body or "")
             source_body = strip_index_metadata_prefix(body_text)
@@ -908,16 +843,6 @@ class FinancialRetrievalPipelineMixin:
     """Graph-node implementation for retrieval and deterministic candidate selection."""
 
 
-    def _active_narrative_policies_for_query(self, query: str) -> List[Dict[str, Any]]:
-        return list(active_narrative_policies(str(query or "")))
-
-    def _narrative_policy_terms_for_query(self, query: str, *keys: str) -> Dict[str, List[str]]:
-        active_policies = self._active_narrative_policies_for_query(query)
-        return {key: narrative_policy_terms(active_policies, key) for key in keys}
-
-    def _narrative_policy_facets_for_query(self, query: str, key: str) -> List[Dict[str, Any]]:
-        return narrative_policy_facets(self._active_narrative_policies_for_query(query), key)
-
     def _merge_retry_candidates(self, docs, previous_docs) -> List[tuple[Document, float]]:
         merged: List[tuple[Document, float]] = list(docs)
         seen_chunk_uids = {
@@ -971,20 +896,17 @@ class FinancialRetrievalPipelineMixin:
         format_preference = str(
             active_subtask.get("format_preference_override")
             or state.get("format_preference")
-            or default_format_preference(intent)
+            or "mixed"
         )
         metric_terms = _metric_terms_from_topic(state.get("topic") or state["query"])
         preferred_sections = _active_preferred_sections(state, state["query"], state.get("topic") or "", intent)
         desired_statement_types = set(_active_preferred_statement_types(state, state["query"], state.get("topic") or ""))
-        desired_consolidation = desired_consolidation_scope(state["query"], dict(state.get("report_scope") or {}))
-        query_years = sorted(years)
-        narrative_path = not _semantic_program_required(state)
-        query_focus_marker_values = (
-            query_focus_markers(str(state.get("query") or ""))
-            if narrative_path
-            else []
+        desired_consolidation = str(
+            dict(active_subtask.get("constraints") or {}).get("consolidation_scope") or "unknown"
         )
-
+        if desired_consolidation not in {"consolidated", "separate"}:
+            desired_consolidation = "unknown"
+        query_years = sorted(years)
         reranked = []
         for doc, score in docs:
             metadata = doc.metadata or {}
@@ -1051,703 +973,24 @@ class FinancialRetrievalPipelineMixin:
             elif format_preference == "table" and block_type == "paragraph":
                 boosted -= 0.04
 
-            if narrative_path:
-                if block_type == "paragraph":
-                    boosted += 0.12
-                elif block_type == "table":
-                    boosted -= 0.14
-                causal_markers = tuple(str(item) for item in (NARRATIVE_RERANK_POLICY.get("causal_markers") or ()))
-                if any(marker in body_text or marker in section_path for marker in causal_markers):
-                    boosted += 0.08
-                if query_focus_marker_values:
-                    focus_surface = _normalise_spaces(
-                        " ".join(
-                            part
-                            for part in (
-                                body_text,
-                                section_path,
-                                str(metadata.get("table_context") or ""),
-                                str(metadata.get("table_value_labels_text") or ""),
-                                str(metadata.get("table_row_labels_text") or ""),
-                                str(metadata.get("table_summary_text") or ""),
-                            )
-                            if part
-                        )
-                    ).lower()
-                    focus_hits = sum(1 for marker in query_focus_marker_values if marker.lower() in focus_surface)
-                    if focus_hits:
-                        boosted += min(0.08 * focus_hits, 0.32)
 
             reranked.append((doc, boosted))
 
         reranked.sort(key=lambda item: item[1], reverse=True)
         return reranked
 
-    def _select_narrative_summary_docs(self, reranked, state: FinancialAgentState, effective_k: int):
-        query = str(state.get("query") or "")
-        active_policies = self._active_narrative_policies_for_query(query)
-        impact_query = narrative_policy_active(active_policies, "impact_context")
-        dividend_policy_query = narrative_policy_active(active_policies, "dividend_policy")
-        technology_focus_query = narrative_policy_active(active_policies, "technology_focus")
-        policy_context_query = narrative_policy_active(active_policies, "policy_context")
-        preferred_section_markers = [item.lower() for item in narrative_policy_preferred_sections(active_policies)]
-        paragraph_priority_sections = [
-            item.lower()
-            for item in narrative_policy_paragraph_priority_sections(active_policies)
-        ]
-        policy_terms_by_key = self._narrative_policy_terms_for_query(
-            query,
-            "causal_terms",
-            "realized_terms",
-            "penalty_terms",
-            "focus_terms",
-            "technology_terms",
-            "payout_terms",
-            "policy_terms",
-            "liquidity_context_terms",
-            "outflow_terms",
-            "policy_section_terms",
-            "policy_period_markers",
-        )
-        causal_markers = policy_terms_by_key["causal_terms"]
-        realized_markers = policy_terms_by_key["realized_terms"]
-        penalty_terms = policy_terms_by_key["penalty_terms"]
-        focus_policy_terms = policy_terms_by_key["focus_terms"]
-        technology_terms = policy_terms_by_key["technology_terms"]
-        dividend_payout_terms = policy_terms_by_key["payout_terms"]
-        dividend_policy_terms = policy_terms_by_key["policy_terms"]
-        dividend_liquidity_context_terms = policy_terms_by_key["liquidity_context_terms"]
-        dividend_outflow_terms = policy_terms_by_key["outflow_terms"]
-        dividend_policy_section_terms = policy_terms_by_key["policy_section_terms"]
-        dividend_policy_period_markers = policy_terms_by_key["policy_period_markers"]
-        driver_groups = self._narrative_driver_groups(query)
-        query_focus_marker_values = query_focus_markers(query)
+    def _build_scope_plan(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """One source filter for search, local supplementation and final evidence."""
         active_subtask = dict(state.get("active_subtask") or {})
-        format_preference = str(
-            active_subtask.get("format_preference_override")
-            or state.get("format_preference")
-            or ""
-        ).strip().lower()
-
-        def _doc_surface(doc: Document) -> str:
-            metadata = doc.metadata or {}
-            return _normalise_spaces(
-                " ".join(
-                    part
-                    for part in (
-                        str(doc.page_content or ""),
-                        str(metadata.get("table_context") or ""),
-                        str(metadata.get("table_value_labels_text") or ""),
-                        str(metadata.get("table_row_labels_text") or ""),
-                        str(metadata.get("table_summary_text") or ""),
-                    )
-                    if part
-                )
-            )
-
-        def _paragraph_priority(item) -> tuple[int, float]:
-            doc, score = item
-            metadata = doc.metadata or {}
-            block_type = str(metadata.get("block_type") or "").strip().lower()
-            section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
-            text = _doc_surface(doc).lower()
-            focus_markers = list(dict.fromkeys([*query_focus_marker_values, *focus_policy_terms]))
-            priority = 0
-            if block_type == "paragraph":
-                priority += 3
-            if any(marker in section_path for marker in preferred_section_markers):
-                priority += 2
-            if any(marker in section_path for marker in paragraph_priority_sections):
-                priority += 1
-            if technology_focus_query:
-                if any(marker.lower() in text for marker in technology_terms):
-                    priority += 4
-            if any(marker.lower() in text for marker in causal_markers):
-                priority += 2
-            if impact_query:
-                if any(marker.lower() in text for marker in realized_markers):
-                    priority += 3
-                if any(marker.lower() in section_path or marker.lower() in text for marker in penalty_terms):
-                    priority -= 2
-            if dividend_policy_query:
-                if any(term.lower() in section_path for term in dividend_policy_section_terms):
-                    priority += 3
-                if any(term in section_path for term in paragraph_priority_sections):
-                    priority += 2
-                if any(marker.lower() in text for marker in (*dividend_payout_terms, *dividend_policy_terms)):
-                    priority += 3
-            if focus_markers:
-                focus_hits = sum(1 for marker in focus_markers if marker.lower() in text)
-                if focus_hits:
-                    priority += min(focus_hits, 3)
-                elif impact_query:
-                    priority -= 2
-            return priority, float(score)
-
-        def _driver_group_covered(doc_items, variants: List[str]) -> bool:
-            for candidate_item in doc_items:
-                candidate_doc = candidate_item[0] if isinstance(candidate_item, (tuple, list)) else candidate_item
-                lowered = _doc_surface(candidate_doc).lower()
-                if any(variant.lower() in lowered for variant in variants):
-                    return True
-            return False
-
-        def _has_any_term(surface: str, terms: tuple[str, ...]) -> bool:
-            lowered = surface.lower()
-            return any(term.lower() in lowered for term in terms)
-
-        def _active_policy_slot_groups() -> List[Dict[str, Any]]:
-            slot_groups = narrative_policy_slot_groups(active_policies)
-            return [
-                group
-                for group in slot_groups
-                if _has_any_term(query, tuple(group["query_terms"]))
-            ]
-
-        def _slot_group_preferences_satisfied(doc: Document, slot_group: Dict[str, Any]) -> bool:
-            metadata = getattr(doc, "metadata", {}) or {}
-            section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
-            scope = str(metadata.get("consolidation_scope") or "").strip().lower()
-            preferred_scopes = tuple(str(item).lower() for item in (slot_group.get("preferred_consolidation_scopes") or ()))
-            preferred_sections = tuple(str(item).lower() for item in (slot_group.get("preferred_section_markers") or ()))
-            if preferred_scopes and scope not in preferred_scopes:
-                return False
-            if preferred_sections and not any(marker in section_path for marker in preferred_sections):
-                return False
-            return True
-
-        def _doc_matches_entity_slot(doc: Document, variants: List[str], slot_group: Dict[str, Any]) -> bool:
-            evidence_terms = tuple(slot_group["evidence_terms"])
-            surface = _doc_surface(doc)
-            surface_lower = surface.lower()
-            if not any(variant.lower() in surface_lower for variant in variants):
-                return False
-            return _has_any_term(surface, evidence_terms)
-
-        def _entity_slot_group_covered(doc_items, variants: List[str], slot_group: Dict[str, Any]) -> bool:
-            for candidate_item in doc_items:
-                candidate_doc = candidate_item[0] if isinstance(candidate_item, (tuple, list)) else candidate_item
-                if _doc_matches_entity_slot(candidate_doc, variants, slot_group):
-                    if _slot_group_preferences_satisfied(candidate_doc, slot_group):
-                        return True
-            return False
-
-        def _focus_candidate_priority(item, variants: List[str]) -> tuple[int, float]:
-            doc, score = item
-            metadata = getattr(doc, "metadata", {}) or {}
-            block_type = str(metadata.get("block_type") or "").strip().lower()
-            period_focus = str(metadata.get("period_focus") or "").strip().lower()
-            section_path = str(metadata.get("section_path") or metadata.get("section") or "")
-            surface = _doc_surface(doc)
-            surface_lower = surface.lower()
-            content = _normalise_spaces(str(getattr(doc, "page_content", "") or ""))
-            priority = 0
-            focus_hits = sum(1 for marker in query_focus_marker_values if marker.lower() in surface_lower)
-            priority += min(focus_hits, 6) * 2
-            if block_type == "table":
-                priority += 2
-            if period_focus == "current":
-                priority += 2
-            for slot_group in _active_policy_slot_groups():
-                evidence_terms = tuple(slot_group.get("evidence_terms") or [])
-                term_hits = sum(1 for term in evidence_terms if term.lower() in surface_lower)
-                if term_hits:
-                    priority += min(2 + term_hits, 5)
-                    if _slot_group_preferences_satisfied(doc, slot_group):
-                        priority += 4
-            if technology_focus_query and any(marker.lower() in surface_lower for marker in focus_policy_terms):
-                priority += 3
-            if policy_context_query and any(marker.lower() in surface_lower for marker in focus_policy_terms):
-                priority += 3
-            for variant in variants:
-                variant_lower = variant.lower()
-                for line in content.splitlines():
-                    lowered_line = line.lower()
-                    if variant_lower not in lowered_line:
-                        continue
-                    if "|" in line:
-                        priority += 3
-                    if re.search(r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?", line):
-                        priority += 3
-                    break
-            if preferred_section_markers and any(marker in section_path.lower() for marker in preferred_section_markers):
-                priority += 1
-            return priority, float(score)
-
-        entity_slot_groups = _active_policy_slot_groups()
-        focus_groups = [
-            group
-            for group in driver_groups
-            if bool(group.get("query_focus")) and list(group.get("variants") or [])
-        ]
-        table_first_focus_query = bool(format_preference == "table" and focus_groups)
-
-        def _focus_table_priority(item: Any) -> int:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            metadata = getattr(doc, "metadata", {}) or {}
-            if str(metadata.get("block_type") or "").strip().lower() != "table":
-                return 0
-            return max(
-                (
-                    _focus_candidate_priority(item, list(group.get("variants") or []))[0]
-                    for group in focus_groups
-                    if list(group.get("variants") or [])
-                ),
-                default=0,
-            )
-
-        realized_policies = [
-            policy
-            for policy in active_policies
-            if narrative_policy_terms([policy], "realized_terms")
-            and (narrative_policy_terms([policy], "focus_terms") or query_focus_marker_values)
-        ]
-
-        def _policy_realized_priority_for_policy(item: Any, policy: Dict[str, Any]) -> tuple[int, float]:
-            doc, score = item
-            metadata = getattr(doc, "metadata", {}) or {}
-            block_type = str(metadata.get("block_type") or "").strip().lower()
-            period_focus = str(metadata.get("period_focus") or "").strip().lower()
-            section_path = str(metadata.get("section_path") or metadata.get("section") or "").lower()
-            surface_lower = _doc_surface(doc).lower()
-            policy_focus_terms = narrative_policy_terms([policy], "focus_terms")
-            if not policy_focus_terms:
-                policy_focus_terms = list(query_focus_marker_values)
-            policy_realized_terms = narrative_policy_terms([policy], "realized_terms")
-            required_realized_terms = narrative_policy_terms([policy], "required_realized_terms")
-            focus_hits = sum(1 for marker in policy_focus_terms if marker.lower() in surface_lower)
-            realized_hits = sum(1 for marker in policy_realized_terms if marker.lower() in surface_lower)
-            if required_realized_terms and not any(
-                marker.lower() in surface_lower for marker in required_realized_terms
-            ):
-                return 0, float(score)
-            if not (focus_hits and realized_hits):
-                return 0, float(score)
-            priority = min(focus_hits, 4) * 2 + min(realized_hits, 4) * 3
-            if block_type == "table":
-                priority += 2
-            if period_focus == "current":
-                priority += 2
-            if any(marker in section_path for marker in preferred_section_markers):
-                priority += 2
-            if any(marker in section_path for marker in paragraph_priority_sections):
-                priority += 1
-            return priority, float(score)
-
-        def _selected_policy_realized_count(policy: Dict[str, Any]) -> int:
-            return sum(1 for item in selected if _policy_realized_priority_for_policy(item, policy)[0] > 0)
-
-        focus_table_fill_limit = 0
-        if entity_slot_groups and focus_groups:
-            focus_table_fill_limit = min(
-                effective_k,
-                max(2, len(entity_slot_groups)),
-            )
-        elif focus_groups:
-            focus_table_fill_limit = min(effective_k, 2)
-        driver_focus_table_limit = min(effective_k, 2) if focus_groups else 0
-
-        def _selected_focus_table_count() -> int:
-            return sum(1 for item in selected if _focus_table_priority(item) > 0)
-
-        paragraph_candidates = []
-        remainder = []
-        for item in reranked:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            metadata = getattr(doc, "metadata", {}) or {}
-            if str(metadata.get("block_type") or "").strip().lower() == "paragraph":
-                paragraph_candidates.append(item)
-            else:
-                remainder.append(item)
-
-        paragraph_limit = min(max(effective_k // 2, 3), effective_k)
-        if entity_slot_groups or table_first_focus_query:
-            paragraph_limit = 0
-        paragraph_candidates.sort(key=_paragraph_priority, reverse=True)
-        selected = []
-        seen_chunk_ids = set()
-        if paragraph_limit > 0:
-            for item in paragraph_candidates:
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-                if chunk_id and chunk_id in seen_chunk_ids:
-                    continue
-                selected.append(item)
-                if chunk_id:
-                    seen_chunk_ids.add(chunk_id)
-                if len(selected) >= paragraph_limit:
-                    break
-
-        for group in driver_groups:
-            variants = list(group.get("variants") or [])
-            if not variants or _driver_group_covered(selected, variants):
-                continue
-            group_candidates = []
-            for item in reranked:
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
-                if chunk_id and chunk_id in seen_chunk_ids:
-                    continue
-                block_type = str(metadata.get("block_type") or "").strip().lower()
-                if block_type not in {"paragraph", "table"}:
-                    continue
-                lowered = _doc_surface(doc).lower()
-                if not any(variant.lower() in lowered for variant in variants):
-                    continue
-                group_candidates.append(item)
-            if not group_candidates:
-                continue
-            best_item = sorted(
-                group_candidates,
-                key=lambda candidate: _focus_candidate_priority(candidate, variants),
-                reverse=True,
-            )[0]
-            if (
-                driver_focus_table_limit
-                and _focus_table_priority(best_item) > 0
-                and _selected_focus_table_count() >= driver_focus_table_limit
-            ):
-                continue
-            selected.append(best_item)
-            best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
-            best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
-            if best_chunk_id:
-                seen_chunk_ids.add(best_chunk_id)
-
-        if entity_slot_groups:
-            for group in focus_groups:
-                variants = list(group.get("variants") or [])
-                for slot_group in entity_slot_groups:
-                    evidence_terms = tuple(slot_group["evidence_terms"])
-                    if _entity_slot_group_covered(selected, variants, slot_group):
-                        continue
-                    group_candidates = []
-                    for item in reranked:
-                        doc = item[0] if isinstance(item, (tuple, list)) else item
-                        metadata = getattr(doc, "metadata", {}) or {}
-                        chunk_id = str(metadata.get("chunk_id") or "")
-                        if chunk_id and chunk_id in seen_chunk_ids:
-                            continue
-                        surface = _doc_surface(doc)
-                        surface_lower = surface.lower()
-                        if not any(variant.lower() in surface_lower for variant in variants):
-                            continue
-                        if not _has_any_term(surface, evidence_terms):
-                            continue
-                        group_candidates.append(item)
-                    if not group_candidates:
-                        continue
-                    best_item = sorted(
-                        group_candidates,
-                        key=lambda candidate: _focus_candidate_priority(candidate, variants),
-                        reverse=True,
-                    )[0]
-                    best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
-                    replacement_index = None
-                    for index, selected_item in enumerate(selected):
-                        selected_doc = selected_item[0] if isinstance(selected_item, (tuple, list)) else selected_item
-                        if not _doc_matches_entity_slot(selected_doc, variants, slot_group):
-                            continue
-                        if _slot_group_preferences_satisfied(selected_doc, slot_group):
-                            continue
-                        replacement_index = index
-                        break
-                    if replacement_index is None:
-                        if any(
-                            _doc_matches_entity_slot(
-                                selected_item[0] if isinstance(selected_item, (tuple, list)) else selected_item,
-                                variants,
-                                slot_group,
-                            )
-                            for selected_item in selected
-                        ):
-                            continue
-                        selected.append(best_item)
-                    else:
-                        old_doc = selected[replacement_index][0] if isinstance(selected[replacement_index], (tuple, list)) else selected[replacement_index]
-                        old_chunk_id = str((getattr(old_doc, "metadata", {}) or {}).get("chunk_id") or "")
-                        if old_chunk_id:
-                            seen_chunk_ids.discard(old_chunk_id)
-                        selected[replacement_index] = best_item
-                    best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
-                    if best_chunk_id:
-                        seen_chunk_ids.add(best_chunk_id)
-
-            table_fill_candidates = []
-            for item in reranked:
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
-                if chunk_id and chunk_id in seen_chunk_ids:
-                    continue
-                if str(metadata.get("block_type") or "").strip().lower() != "table":
-                    continue
-                surfaces_match = False
-                for group in focus_groups:
-                    variants = list(group.get("variants") or [])
-                    if not variants:
-                        continue
-                    if any(
-                        _doc_matches_entity_slot(doc, variants, slot_group)
-                        for slot_group in entity_slot_groups
-                    ):
-                        surfaces_match = True
-                        break
-                if not surfaces_match:
-                    continue
-                table_fill_candidates.append(item)
-            for item in sorted(
-                table_fill_candidates,
-                key=lambda candidate: max(
-                    (
-                        _focus_candidate_priority(candidate, list(group.get("variants") or []))
-                        for group in focus_groups
-                        if list(group.get("variants") or [])
-                    ),
-                    default=(0, float(candidate[1] if isinstance(candidate, (tuple, list)) and len(candidate) > 1 else 0.0)),
-                ),
-                reverse=True,
-            ):
-                if focus_table_fill_limit and _selected_focus_table_count() >= focus_table_fill_limit:
-                    break
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-                if chunk_id and chunk_id in seen_chunk_ids:
-                    continue
-                selected.append(item)
-                if chunk_id:
-                    seen_chunk_ids.add(chunk_id)
-
-        if table_first_focus_query and not entity_slot_groups:
-            table_fill_candidates = []
-            for item in reranked:
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
-                if chunk_id and chunk_id in seen_chunk_ids:
-                    continue
-                if str(metadata.get("block_type") or "").strip().lower() != "table":
-                    continue
-                priority = _focus_table_priority(item)
-                if priority <= 0:
-                    continue
-                table_fill_candidates.append(item)
-            for item in sorted(
-                table_fill_candidates,
-                key=lambda candidate: max(
-                    (
-                        _focus_candidate_priority(candidate, list(group.get("variants") or []))
-                        for group in focus_groups
-                        if list(group.get("variants") or [])
-                    ),
-                    default=(0, float(candidate[1] if isinstance(candidate, (tuple, list)) and len(candidate) > 1 else 0.0)),
-                ),
-                reverse=True,
-            ):
-                if focus_table_fill_limit and _selected_focus_table_count() >= focus_table_fill_limit:
-                    break
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-                if chunk_id and chunk_id in seen_chunk_ids:
-                    continue
-                selected.append(item)
-                if chunk_id:
-                    seen_chunk_ids.add(chunk_id)
-
-        if dividend_policy_query:
-            def _append_dividend_specific_doc(predicate) -> None:
-                for item in reranked:
-                    doc = item[0] if isinstance(item, (tuple, list)) else item
-                    metadata = getattr(doc, "metadata", {}) or {}
-                    chunk_id = str(metadata.get("chunk_id") or "")
-                    if chunk_id and chunk_id in seen_chunk_ids:
-                        continue
-                    if not predicate(doc):
-                        continue
-                    selected.append(item)
-                    if chunk_id:
-                        seen_chunk_ids.add(chunk_id)
-                    break
-
-            def _is_payout_doc(doc: Document) -> bool:
-                metadata = getattr(doc, "metadata", {}) or {}
-                text = _doc_surface(doc)
-                section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or "")).lower()
-                local_heading = _normalise_spaces(str(metadata.get("local_heading") or "")).lower()
-                return (
-                    any(term in text for term in dividend_payout_terms)
-                    and bool(self._extract_dividend_amount_surface(text))
-                    and (
-                        any(term in section_path or term in local_heading for term in dividend_liquidity_context_terms)
-                        or any(term in text for term in dividend_outflow_terms)
-                    )
-                )
-
-            def _is_policy_doc(doc: Document) -> bool:
-                metadata = getattr(doc, "metadata", {}) or {}
-                text = _doc_surface(doc)
-                section_path = _normalise_spaces(str(metadata.get("section_path") or metadata.get("section") or "")).lower()
-                return (
-                    any(marker in text for marker in dividend_policy_terms)
-                    and (
-                        any(term in section_path for term in dividend_policy_section_terms)
-                        or (
-                            bool(dividend_policy_period_markers)
-                            and all(marker in text for marker in dividend_policy_period_markers)
-                        )
-                    )
-                )
-
-            _append_dividend_specific_doc(_is_payout_doc)
-            _append_dividend_specific_doc(_is_policy_doc)
-
-        for realized_policy in realized_policies:
-            if _selected_policy_realized_count(realized_policy) > 0:
-                continue
-            policy_realized_candidates = []
-            for item in reranked:
-                doc = item[0] if isinstance(item, (tuple, list)) else item
-                metadata = getattr(doc, "metadata", {}) or {}
-                chunk_id = str(metadata.get("chunk_id") or "")
-                if chunk_id and chunk_id in seen_chunk_ids:
-                    continue
-                if _policy_realized_priority_for_policy(item, realized_policy)[0] <= 0:
-                    continue
-                policy_realized_candidates.append(item)
-            if policy_realized_candidates and len(selected) < effective_k:
-                best_item = sorted(
-                    policy_realized_candidates,
-                    key=lambda candidate: _policy_realized_priority_for_policy(candidate, realized_policy),
-                    reverse=True,
-                )[0]
-                selected.append(best_item)
-                best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
-                best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
-                if best_chunk_id:
-                    seen_chunk_ids.add(best_chunk_id)
-            elif policy_realized_candidates and effective_k > 0:
-                best_item = sorted(
-                    policy_realized_candidates,
-                    key=lambda candidate: _policy_realized_priority_for_policy(candidate, realized_policy),
-                    reverse=True,
-                )[0]
-                replacement_index = None
-                replacement_key: tuple[int, float] = (10_000, float("inf"))
-                for index, selected_item in enumerate(selected):
-                    priority, score = _policy_realized_priority_for_policy(selected_item, realized_policy)
-                    if priority > 0:
-                        continue
-                    candidate_key = (priority, float(score))
-                    if candidate_key < replacement_key:
-                        replacement_index = index
-                        replacement_key = candidate_key
-                if replacement_index is not None:
-                    old_doc = selected[replacement_index][0] if isinstance(selected[replacement_index], (tuple, list)) else selected[replacement_index]
-                    old_chunk_id = str((getattr(old_doc, "metadata", {}) or {}).get("chunk_id") or "")
-                    if old_chunk_id:
-                        seen_chunk_ids.discard(old_chunk_id)
-                    selected[replacement_index] = best_item
-                    best_doc = best_item[0] if isinstance(best_item, (tuple, list)) else best_item
-                    best_chunk_id = str((getattr(best_doc, "metadata", {}) or {}).get("chunk_id") or "")
-                    if best_chunk_id:
-                        seen_chunk_ids.add(best_chunk_id)
-
-        final_candidates = []
-        for item in reranked:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-            if chunk_id and chunk_id in seen_chunk_ids:
-                continue
-            if (
-                focus_table_fill_limit
-                and _focus_table_priority(item) > 0
-                and _selected_focus_table_count() >= focus_table_fill_limit
-            ):
-                continue
-            final_candidates.append(item)
-
-        final_fill_priority = None
-        local_section_fill_floor = 0
-        if selected and (entity_slot_groups or table_first_focus_query):
-            def _item_metadata(doc_item: Any) -> Dict[str, Any]:
-                item_doc = doc_item[0] if isinstance(doc_item, (tuple, list)) else doc_item
-                return getattr(item_doc, "metadata", {}) or {}
-
-            selected_table_sections = list(
-                dict.fromkeys(
-                    _normalise_spaces(
-                        str(metadata.get("section_path") or metadata.get("section") or "")
-                    ).lower()
-                    for selected_item in selected
-                    for metadata in [_item_metadata(selected_item)]
-                    if str(metadata.get("block_type") or "").strip().lower() == "table"
-                )
-            )
-
-            def _final_fill_priority(candidate: Any) -> tuple[int, float]:
-                doc, score = candidate
-                metadata = getattr(doc, "metadata", {}) or {}
-                section_path = _normalise_spaces(
-                    str(metadata.get("section_path") or metadata.get("section") or "")
-                ).lower()
-                block_type = str(metadata.get("block_type") or "").strip().lower()
-                priority = 0
-                if section_path and section_path in selected_table_sections:
-                    priority += 5
-                elif section_path and any(
-                    selected_section
-                    and (section_path in selected_section or selected_section in section_path)
-                    for selected_section in selected_table_sections
-                ):
-                    priority += 2
-                if block_type == "table" and format_preference == "table":
-                    priority += 1
-                return priority, float(score)
-
-            final_fill_priority = _final_fill_priority
-            local_section_fill_floor = min(
-                effective_k,
-                max(3, len([section for section in selected_table_sections if section])),
-            )
-            final_candidates.sort(key=final_fill_priority, reverse=True)
-
-        for item in final_candidates:
-            doc = item[0] if isinstance(item, (tuple, list)) else item
-            chunk_id = str((getattr(doc, "metadata", {}) or {}).get("chunk_id") or "")
-            if (
-                final_fill_priority is not None
-                and local_section_fill_floor
-                and len(selected) >= local_section_fill_floor
-                and final_fill_priority(item)[0] <= 0
-            ):
-                continue
-            selected.append(item)
-            if chunk_id:
-                seen_chunk_ids.add(chunk_id)
-            if len(selected) >= effective_k:
-                break
-
-        return selected[:effective_k]
-
-    def _build_plan(self, state: FinancialAgentState) -> Dict[str, Any]:
-        """Normalize scope and construct the deterministic retrieval plan."""
-        query = state["query"]
-        retrieval_queries = [str(item).strip() for item in (state.get("retrieval_queries") or []) if str(item).strip()]
-        active_subtask = dict(state.get("active_subtask") or {})
-        active_subtask_query = str(active_subtask.get("query") or "").strip()
-        active_subtask_retrieval_queries = [
-            str(item).strip()
-            for item in (active_subtask.get("retrieval_queries") or [])
-            if str(item).strip()
-        ]
         report_scope = dict(state.get("report_scope") or {})
         companies = list(state.get("companies", []) or [])
         years = list(state.get("years", []) or [])
         scope_company = str(report_scope.get("company") or "").strip()
+        if scope_company:
+            # Caller report scope is a source boundary, not another planner
+            # entity to union into it. Explicit receipt lists still take priority.
+            companies = [scope_company]
         strict_company_scope = should_apply_strict_company_scope(companies, report_scope)
-        if scope_company and strict_company_scope and scope_company not in companies:
-            companies = [scope_company, *companies] if companies else [scope_company]
         scope_year_raw = report_scope.get("year")
         scope_year: Optional[int] = None
         try:
@@ -1762,16 +1005,7 @@ class FinancialRetrievalPipelineMixin:
         scope_source_receipts = report_scope_source_receipts(report_scope)
         has_multi_source_scope = len(scope_source_receipts) > 1
         scope_consolidation = str(report_scope.get("consolidation") or "").strip()
-        section_filter = state.get("section_filter")
         intent = str(active_subtask.get("intent_override") or state.get("intent") or state.get("query_type", "qa"))
-        reflection_count = int(state.get("reflection_count") or 0)
-        retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
-        effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
-        report_cache_consumer_assessment = _report_cache_consumer_assessment_for_retrieval(dict(state))
-        report_cache_index_diagnostics = _report_cache_index_diagnostics_for_retrieval(
-            dict(state),
-            state.get("report_cache_index_path") or getattr(self, "report_cache_index_path", ""),
-        )
 
         conditions = []
         if companies and strict_company_scope:
@@ -1786,6 +1020,9 @@ class FinancialRetrievalPipelineMixin:
                     "[retrieve] multi-report source scope detected; skipping strict metadata year filter and using source receipts only: %s",
                     scope_source_receipts,
                 )
+            elif scope_year is not None:
+                # Explicit document scope constrains sources without rewriting period hints.
+                conditions.append({"year": scope_year})
             elif intent in {"comparison", "trend"} and len(int_years) > 1:
                 logger.info(
                     "[retrieve] multi-period %s query detected; skipping strict metadata year filter and keeping years in query text only: %s",
@@ -1813,6 +1050,31 @@ class FinancialRetrievalPipelineMixin:
         else:
             where_filter = {"$and": conditions}
 
+        return {
+            "companies": companies, "years": years, "intent": intent,
+            "strict_company_scope": strict_company_scope,
+            "has_multi_source_scope": has_multi_source_scope,
+            "scope_report_type": scope_report_type,
+            "scope_consolidation": scope_consolidation,
+            "where_filter": where_filter,
+        }
+
+    def _build_plan(self, state: FinancialAgentState) -> Dict[str, Any]:
+        """Normalize scope and construct the deterministic retrieval plan."""
+        query = state["query"]
+        retrieval_queries = [str(item).strip() for item in (state.get("retrieval_queries") or []) if str(item).strip()]
+        active_subtask = dict(state.get("active_subtask") or {})
+        active_subtask_query = str(active_subtask.get("query") or "").strip()
+        active_subtask_retrieval_queries = [
+            str(item).strip()
+            for item in (active_subtask.get("retrieval_queries") or [])
+            if str(item).strip()
+        ]
+        scope_plan = self._build_scope_plan(state)
+        intent = str(scope_plan["intent"])
+        reflection_count = int(state.get("reflection_count") or 0)
+        retry_queries = [str(item).strip() for item in (state.get("retry_queries") or []) if str(item).strip()]
+        effective_k = self.k if reflection_count <= 0 else max(self.k * 2, 4)
         semantic_program_required = _semantic_program_required(state)
         retrieval_intent = intent
         if semantic_program_required and intent not in {"comparison", "trend", "numeric_fact"}:
@@ -1863,21 +1125,12 @@ class FinancialRetrievalPipelineMixin:
         hint_budget = query_budget_int(getattr(self, "retrieval_hint_query_token_budget", 16))
         section_budget = query_budget_int(getattr(self, "preferred_section_query_budget", 8))
         return {
+            **scope_plan,
             "query": query,
             "active_subtask": active_subtask,
-            "companies": companies,
-            "years": years,
-            "strict_company_scope": strict_company_scope,
-            "scope_report_type": scope_report_type,
-            "has_multi_source_scope": has_multi_source_scope,
-            "scope_consolidation": scope_consolidation,
-            "intent": intent,
             "reflection_count": reflection_count,
             "retry_queries": retry_queries,
             "effective_k": effective_k,
-            "report_cache_consumer_assessment": report_cache_consumer_assessment,
-            "report_cache_index_diagnostics": report_cache_index_diagnostics,
-            "where_filter": where_filter,
             "semantic_program_required": semantic_program_required,
             "retrieval_intent": retrieval_intent,
             "query_bundle": query_bundle,
@@ -1904,6 +1157,13 @@ class FinancialRetrievalPipelineMixin:
         hint_budget = int(plan["hint_budget"])
         section_budget = int(plan["section_budget"])
         where_filter = plan["where_filter"]
+        obligations = state.get("answer_obligations") or []
+        source_scope_search = {"applied": False, "reason": "unrestricted_output"}
+        if not source_section_allowed_for_query({}, obligations):
+            where_filter, source_scope_search = restrict_search_filter(
+                getattr(self.vsm, "bm25_metadatas", []) or [], where_filter=where_filter,
+                allowed=lambda metadata: source_section_allowed_for_query(metadata, obligations),
+            )
         effective_k = int(plan["effective_k"])
         retry_queries = list(plan["retry_queries"])
         reflection_count = int(plan["reflection_count"])
@@ -2153,6 +1413,7 @@ class FinancialRetrievalPipelineMixin:
             "retry_queries": retry_queries,
             "retrieval_hint": retrieval_hint,
             "preferred_sections": preferred_sections,
+            "source_scope_search": source_scope_search,
         }
 
     def _select_evidence(
@@ -2166,8 +1427,6 @@ class FinancialRetrievalPipelineMixin:
         supplemental_docs = list(searches["supplemental_docs"])
         companies = list(plan["companies"])
         years = list(plan["years"])
-        strict_company_scope = bool(plan["strict_company_scope"])
-        has_multi_source_scope = bool(plan["has_multi_source_scope"])
         where_filter = plan["where_filter"]
         reflection_count = int(plan["reflection_count"])
         retry_queries = list(searches["retry_queries"])
@@ -2186,29 +1445,35 @@ class FinancialRetrievalPipelineMixin:
             len(docs),
         )
 
-        # section_filter는 _rerank_docs에서 +0.20 부스트로만 반영.
-        # hard filter로 쓰면 LLM이 wrong section을 추출했을 때 관련 청크가 전부 제외됨.
+        # Legacy section_filter is a soft relevance hint. Explicit source_sections
+        # are separate query authority and never fall back to foreign sections.
 
-        if companies and strict_company_scope:
-            lowered_companies = {company.lower() for company in companies}
-            docs = self._apply_strict_filter(
-                docs,
-                lambda doc: (
-                    str(doc.metadata.get("company", "")).lower() in lowered_companies
-                    or any(
-                        target in str(doc.metadata.get("company", "")).lower()
-                        or str(doc.metadata.get("company", "")).lower() in target
-                        for target in lowered_companies
-                    )
-                ),
-            )
-
-        if years and not has_multi_source_scope:
-            valid_years = {int(year) for year in years}
-            docs = self._apply_strict_filter(
-                docs,
-                lambda doc: int(doc.metadata.get("year", 0)) in valid_years,
-            )
+        # Search backends, cached/retry docs and local sidecar scans all share
+        # this boundary. Never reintroduce rejected supplements into seed docs.
+        obligations = state.get("answer_obligations") or []
+        def scope_predicate(doc):
+            metadata = dict(doc.metadata or {})
+            return metadata_matches_filter(metadata, where_filter) and source_section_allowed_for_query(metadata, obligations)
+        input_count = len(docs)
+        supplemental_input_count = len(supplemental_docs)
+        docs = self._apply_strict_filter(docs, scope_predicate)
+        supplemental_docs = self._apply_strict_filter(supplemental_docs, scope_predicate)
+        scope_filter_trace = {
+            "input_count": input_count, "retained_count": len(docs),
+            "excluded_count": input_count - len(docs),
+            "supplemental_input_count": supplemental_input_count,
+            "supplemental_retained_count": len(supplemental_docs),
+        }
+        if any(owner.get("source_sections") for owner in obligations):
+            scope_filter_trace["source_sections_by_owner"] = {
+                str(owner.get("obligation_id") or ""): list(owner.get("source_sections") or [])
+                for owner in obligations
+            }
+        if any(owner.get("source_section_bindings") for owner in obligations):
+            scope_filter_trace["source_section_bindings_by_owner"] = {
+                str(owner.get("obligation_id") or ""): deepcopy(owner.get("source_section_bindings") or [])
+                for owner in obligations
+            }
 
         reranked = self._rerank_docs(docs, state)
 
@@ -2216,29 +1481,46 @@ class FinancialRetrievalPipelineMixin:
         format_preference = str(
             active_subtask.get("format_preference_override")
             or state.get("format_preference")
-            or default_format_preference(intent)
+            or "mixed"
         ).strip().lower()
-        if not semantic_program_required:
-            docs = self._select_narrative_summary_docs(reranked, state, effective_k)
+        def selection_key(item: Any) -> tuple[str, Any]:
+            source_id = _retrieval_document_source_id(item[0])
+            return ("source", source_id) if source_id else ("object", id(item[0]))
+
+        # Reserve distinct sources, retaining their original rerank order.
+        # Anonymous objects do not establish equality with another source.
+        unique_ranked: Dict[tuple[str, Any], Any] = {}
+        for item in reranked:
+            unique_ranked.setdefault(selection_key(item), item)
+        ranked_docs = list(unique_ranked.values())
+        # format_preference에 따라 표/단락 비율 보장
+        if format_preference == "table":
+            # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
+            tables = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") == "table"]
+            paras = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") != "table"]
+            # Paragraphs are supplemental; keep a table in the visible window when available.
+            min_table = 1 if tables else 0
+            min_para = min(2, len(paras), max(effective_k - min_table, 0))
+            docs = (tables[: effective_k - min_para] + paras[:min_para])
+        elif format_preference == "paragraph":
+            # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
+            tables = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") == "table"]
+            paras = [(d, s) for d, s in ranked_docs if d.metadata.get("block_type") != "table"]
+            min_para = min(effective_k // 2, len(paras))
+            docs = (paras[:min_para] + tables[: effective_k - min_para])
+            docs.sort(key=lambda x: x[1], reverse=True)
         else:
-            # format_preference에 따라 표/단락 비율 보장
-            if format_preference == "table":
-                # 수치·추이 쿼리: 표 우선, 단락 최소 2개 보장
-                tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
-                paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
-                # Paragraphs are supplemental; keep a table in the visible window when available.
-                min_table = 1 if tables else 0
-                min_para = min(2, len(paras), max(effective_k - min_table, 0))
-                docs = (tables[: effective_k - min_para] + paras[:min_para])
-            elif format_preference == "paragraph":
-                # 개요·리스크·일반 쿼리: 단락 최소 절반 보장
-                tables = [(d, s) for d, s in reranked if d.metadata.get("block_type") == "table"]
-                paras = [(d, s) for d, s in reranked if d.metadata.get("block_type") != "table"]
-                min_para = min(effective_k // 2, len(paras))
-                docs = (paras[:min_para] + tables[: effective_k - min_para])
-                docs.sort(key=lambda x: x[1], reverse=True)
-            else:
-                docs = reranked
+            docs = ranked_docs[:effective_k]
+        # A missing source type must not waste the remaining visible budget.
+        # Keep the reserved ordering, then fill from authorized ranked input.
+        selected_keys = {selection_key(item) for item in docs}
+        for item in ranked_docs:
+            if len(docs) >= effective_k:
+                break
+            key = selection_key(item)
+            if key not in selected_keys:
+                docs.append(item)
+                selected_keys.add(key)
 
         seed_docs = reranked[: min(len(reranked), effective_k * 4)]
         if semantic_program_required and supplemental_docs:
@@ -2259,6 +1541,7 @@ class FinancialRetrievalPipelineMixin:
             "retrieved_unidentified_count": retrieved_unidentified_count,
             "seed_source_ids": seed_source_ids,
             "seed_unidentified_count": seed_unidentified_count,
+            "scope_filter": scope_filter_trace,
         }
 
     def _build_trace(
@@ -2280,12 +1563,6 @@ class FinancialRetrievalPipelineMixin:
         has_multi_source_scope = bool(plan["has_multi_source_scope"])
         scope_report_type = str(plan["scope_report_type"])
         scope_consolidation = str(plan["scope_consolidation"])
-        report_cache_consumer_assessment = dict(
-            plan["report_cache_consumer_assessment"]
-        )
-        report_cache_index_diagnostics = dict(
-            plan["report_cache_index_diagnostics"]
-        )
         docs = list(selection["docs"])
         seed_docs = list(selection["seed_docs"])
         reranked = list(selection["reranked"])
@@ -2370,17 +1647,9 @@ class FinancialRetrievalPipelineMixin:
                 "by_source": query_result_cache_by_source,
             },
             "cross_trace_reuse_candidates": cross_trace_reuse_candidates,
-            "report_cache_consumer_assessment": {
-                **report_cache_consumer_assessment,
-                "normal_retrieval_executed": bool(executed_queries),
-                "executed_query_count": len(executed_queries),
-            },
-            "report_cache_index_diagnostics": {
-                **report_cache_index_diagnostics,
-                "normal_retrieval_executed": bool(executed_queries),
-                "executed_query_count": len(executed_queries),
-            },
             "candidate_count": len(reranked),
+            "scope_filter": dict(selection.get("scope_filter") or {}),
+            "source_scope_search": dict(searches.get("source_scope_search") or {}),
             "seed_count": len(seed_docs),
             "selected_count": len(docs),
             "selected_chunks": selected_chunks,

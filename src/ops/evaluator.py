@@ -5,6 +5,7 @@ RAG evaluation pipeline for DART analysis.
 from __future__ import annotations
 
 import concurrent.futures
+from copy import deepcopy
 import json
 import logging
 import math
@@ -22,6 +23,7 @@ if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.config.retrieval_policy import FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES
+from src.utils.request_diagnostics import RequestDiagnosticSnapshot, capture_request_diagnostics
 logger = logging.getLogger(__name__)
 mlflow = None
 
@@ -358,6 +360,8 @@ class EvalResult:
     task_artifact_trace: Dict[str, Any] = field(default_factory=dict)
     calculation_operands: List[Dict[str, Any]] = field(default_factory=list)
     calculation_plan: Dict[str, Any] = field(default_factory=dict)
+    compiler_attempts: List[Dict[str, Any]] = field(default_factory=list)
+    interrupted_run: Optional[RequestDiagnosticSnapshot] = None
     calculation_result: Dict[str, Any] = field(default_factory=dict)
     agent_llm_usage: Dict[str, Any] = field(default_factory=dict)
     agent_llm_usage_by_phase: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -930,6 +934,17 @@ def _build_numeric_candidate(
     }
 
 
+# A count unit may end the token or take Korean grammatical suffixes. The
+# complete suffix must reach a word boundary; a unit prefix inside a noun is
+# not a quantity. Keep suffixes outside the candidate's exact value span.
+_COUNT_UNIT_END = re.compile(
+    r"(?:이었습니다|였습니다|입니다|이었다|였다|이다|이며|이고|이면|인데|이지만|"
+    r"이라고|이라는|이라서|이라면|이라도|이므로|이어서|이든지|인|"
+    r"에게서|에서|에게|으로|까지|부터|보다|처럼|만큼|가량|정도|내외|"
+    r"은|는|이|가|을|를|의|와|과|도|만|로|에|씩|당|뿐|나)*(?!\w)"
+)
+
+
 def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
     if not text:
         return []
@@ -983,6 +998,8 @@ def _extract_numeric_candidates(text: str) -> List[Dict[str, Any]]:
         for match in pattern.finditer(text):
             start, end = match.span()
             if _is_overlapping(start, end, occupied_spans):
+                continue
+            if kind == "count" and _COUNT_UNIT_END.match(text, end) is None:
                 continue
             raw_value = _parse_number(match.group("value"))
             unit = match.group("unit")
@@ -2139,6 +2156,10 @@ def _example_from_dict(item: Dict[str, Any]) -> EvalExample:
             raise ValueError(
                 f"accepted_calculation_variants[{index}].expected_calculation_result must be an object"
             )
+        for record in [*expected_variant_operands, expected_variant_result]:
+            errors = _explicit_source_constraint_errors(record)
+            if errors:
+                raise ValueError(f"accepted_calculation_variants[{index}]: {', '.join(errors)}")
         accepted_calculation_variants.append(
             EvalCalculationVariant(
                 id=str(variant.get("id") or ""),
@@ -3374,11 +3395,50 @@ def _constraint_equals(expected: Any, actual_values: List[str]) -> bool:
     return bool(expected_values & normalized_actual)
 
 
+_EXPLICIT_SOURCE_FIELDS = ("row_label", "source_period_surface", "source_document_id", "kind")
+
+
+def _normalise_strict_period_text(value: Any) -> str:
+    normalized = re.sub(r"\s+", "", str(value or "")).casefold()
+    return re.sub(r"^(20\d{2})년$", r"\1", normalized)
+
+
+def _explicit_source_constraint_errors(expected: Dict[str, Any]) -> List[str]:
+    """Validate opt-in fields without changing legacy label/period semantics."""
+    errors: List[str] = []
+    for key in _EXPLICIT_SOURCE_FIELDS:
+        if key not in expected:
+            continue
+        value = expected[key]
+        alternatives = value if isinstance(value, list) else [value]
+        if not alternatives or any(not isinstance(item, str) or not item.strip() for item in alternatives):
+            errors.append(f"invalid_{key}")
+    if "strict_period" in expected:
+        if not isinstance(expected["strict_period"], bool):
+            errors.append("invalid_strict_period")
+        elif expected["strict_period"] and (
+            not isinstance(expected.get("period"), str) or not expected["period"].strip()
+        ):
+            errors.append("strict_period_requires_period")
+    return errors
+
+
 def _record_matches_variant_constraints(
     expected: Dict[str, Any],
     actual: Dict[str, Any],
 ) -> Tuple[bool, List[str]]:
-    reasons: List[str] = []
+    reasons = _explicit_source_constraint_errors(expected)
+    if reasons:
+        return False, reasons
+    # Canonical source fields only: display labels/answer slots cannot supply
+    # missing source identity or override contradictory canonical metadata.
+    for key in _EXPLICIT_SOURCE_FIELDS:
+        if key in expected and not _constraint_equals(expected[key], [actual.get(key)]):
+            reasons.append(f"{key}_mismatch")
+    if expected.get("strict_period") and (
+        _normalise_strict_period_text(expected["period"]) != _normalise_strict_period_text(actual.get("period"))
+    ):
+        reasons.append("strict_period_mismatch")
     expected_label = str(expected.get("label") or "").strip()
     actual_labels = [
         str(actual.get(field) or "").strip()
@@ -3612,6 +3672,9 @@ def _compute_accepted_calculation_variant_match(
             contract_errors.append("missing_expected_calculation_result")
         elif not _expected_value_is_available(variant.expected_calculation_result):
             contract_errors.append("missing_expected_result_value")
+        for record in [*variant.expected_operands, variant.expected_calculation_result]:
+            if isinstance(record, dict):
+                contract_errors.extend(_explicit_source_constraint_errors(record))
 
         operand_candidate_indices: List[List[int]] = []
         operand_rows: List[Dict[str, Any]] = []
@@ -4830,6 +4893,9 @@ class RAGEvaluator:
         calculation_operands: List[Dict[str, Any]] = []
         calculation_variant_operands: List[Dict[str, Any]] = []
         calculation_plan: Dict[str, Any] = {}
+        compiler_attempts: List[Dict[str, Any]] = []
+        interrupted_run: Optional[RequestDiagnosticSnapshot] = None
+        observed_runs: List[RequestDiagnosticSnapshot] = []
         calculation_result: Dict[str, Any] = {}
         resolved_calculation_trace: Dict[str, Any] = {}
         runtime_projection: Dict[str, Any] = {}
@@ -4849,15 +4915,17 @@ class RAGEvaluator:
             reset_judge_embedding_usage()
 
         try:
-            result = self.agent.run(
-                example.question,
-                report_scope=_build_example_report_scope(example),
-                include_review_trace=True,
-                include_debug_bundle=True,
-            )
+            with capture_request_diagnostics() as observed_runs:
+                result = self.agent.run(
+                    example.question,
+                    report_scope=_build_example_report_scope(example),
+                    include_review_trace=True,
+                    include_debug_bundle=True,
+                )
             agent_answer = result.agent_answer
             review_trace = result.review_trace or {}
             debug_bundle = result.debug_bundle or {}
+            compiler_attempts = deepcopy(debug_bundle.get("compiler_attempts", []))
             agent_llm_usage = dict(debug_bundle.get("llm_usage", {}) or {})
             agent_llm_usage_by_phase = {
                 str(phase): dict(usage)
@@ -4938,6 +5006,8 @@ class RAGEvaluator:
                 contexts.append(getattr(doc, "content", None) or getattr(doc, "page_content", ""))
             contexts = _prioritize_runtime_evidence_contexts(contexts, runtime_evidence)
         except Exception as exc:
+            if observed_runs and any(event["kind"] == "run_interrupted" for event in observed_runs[-1]["events"]):
+                interrupted_run = deepcopy(observed_runs[-1])
             error = str(exc)
             logger.error("[%s] agent.run failed: %s", example.id, exc)
 
@@ -5331,6 +5401,8 @@ class RAGEvaluator:
             task_artifact_trace=task_artifact_trace,
             calculation_operands=calculation_operands,
             calculation_plan=calculation_plan,
+            compiler_attempts=compiler_attempts,
+            interrupted_run=interrupted_run,
             calculation_result=calculation_result,
             agent_llm_usage=agent_llm_usage,
             agent_llm_usage_by_phase=agent_llm_usage_by_phase,

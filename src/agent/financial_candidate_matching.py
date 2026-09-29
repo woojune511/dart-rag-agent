@@ -8,10 +8,13 @@ subject or unit conflict.
 from __future__ import annotations
 
 import re
+from collections import deque
 from dataclasses import dataclass, replace
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 
 from src.agent.financial_row_surfaces import strip_financial_label_annotations
+from src.agent.financial_source_interpretation import source_unit_options
+from src.agent.financial_scope_policies import is_period_only_surface
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
@@ -36,10 +39,13 @@ CANDIDATE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
     "applicability_state",
     "local_subject",
     "owner_kind",
-    "document_subject",
     "unit",
     "metric",
+    "source_basis",
     "structured_locality",
+)
+NARRATIVE_MATCH_RANK_FACTORS: Tuple[str, ...] = (
+    "reading_applicability", "reading_match", "request_anchor", "owner_kind", "unit", "format_neutral",
 )
 
 
@@ -62,6 +68,79 @@ def _compact(value: Any) -> str:
         for character in _normalise_spaces(str(value or ""))
         if character.isalnum()
     )
+
+
+def declared_local_subjects(
+    owner: Mapping[str, Any],
+    parent_owner: Optional[Mapping[str, Any]] = None,
+) -> Tuple[str, ...]:
+    """Query-declared spellings only; a filing company is not a local subject."""
+    return _ordered_surfaces(
+        dict(owner.get("semantic_target") or {}).get("local_subjects")
+        or dict((parent_owner or {}).get("semantic_target") or {}).get("local_subjects")
+    )
+
+
+def _subject_identity_key(value: str) -> str:
+    # Whitespace/case and parser annotations are presentation, but punctuation
+    # joining names and semantic qualifiers may change the represented entity.
+    return "".join(strip_financial_label_annotations(value).casefold().split())
+
+
+def structured_subject_evidence(
+    candidate: Mapping[str, Any], subjects: Sequence[str],
+) -> Dict[str, Any]:
+    """Ground a complete declared subject in this cell's own row/column axes.
+
+    Containment is not equivalence. Unknown abbreviations/expanded labels stay
+    unresolved instead of being classified as a different entity or discarded.
+    """
+    wanted = {_subject_identity_key(value) for value in subjects} - {""}
+    paths = (
+        ("candidate_row_identity", _ordered_surfaces(
+            candidate.get("row_headers") or [candidate.get("row_label")],
+        )),
+        ("candidate_column_identity", _ordered_surfaces(candidate.get("column_headers"))),
+    )
+    matches: list[Tuple[str, str]] = []
+    shadowed = False
+    for source, surfaces in paths:
+        keys = [_subject_identity_key(surface) for surface in surfaces]
+        for index, (surface, key) in enumerate(zip(surfaces, keys)):
+            if key not in wanted:
+                continue
+            # A narrower descendant label cannot borrow its parent's identity.
+            if any(later and later not in wanted and key in later for later in keys[index + 1:]):
+                shadowed = True
+            else:
+                matches.append((source, surface))
+    source, subject = matches[-1] if matches and not shadowed else ("candidate_cell_axes", "")
+    return {"state": "match" if subject else "unknown", "subject": subject, "source": source}
+
+
+def _numeric_subject_hint(candidate: Mapping[str, Any], subjects: Sequence[str]) -> str:
+    """A complete own-axis occurrence in a declared target is relevance only.
+
+    A descriptive request can contain an observed label without being that
+    label's identity. Preserve qualifiers/word separation; do not borrow body,
+    context, inferred entities or another cell's axes. Unknown identity stays
+    unknown and still needs Compiler interpretation.
+    """
+    if not subjects:
+        return "unspecified"
+    targets = _ordered_surfaces(subjects)
+    for kind, axes in (
+        ("row_axis_literal", candidate.get("row_headers") or [candidate.get("row_label")]),
+        ("column_axis_literal", candidate.get("column_headers") or []),
+    ):
+        for axis in _ordered_surfaces(axes):
+            label = _normalise_spaces(strip_financial_label_annotations(axis)).casefold()
+            if not any(character.isalnum() for character in label) or is_period_only_surface(label):
+                continue
+            pattern = r"(?<!\w)" + re.escape(label) + r"(?!\w)"
+            if any(re.search(pattern, target.casefold()) for target in targets):
+                return kind
+    return "unknown"
 
 
 def _identity_matches(expected: str, observed: str) -> bool:
@@ -162,15 +241,24 @@ class CandidateMatchV1:
     owner_kind_state: str
     metric_state: str
     unit_state: str
-    rank_vector: Tuple[int, int, int, int, int, int, int]
+    rank_vector: Tuple[int, ...]
     target_concept_keys: Tuple[str, ...]
     target_local_subjects: Tuple[str, ...]
+    selection_mode: str = "numeric"
+    reading_metric_state: str = ""
+    context_metric_state: str = ""
+    reading_subject_state: str = ""
+    reading_state: str = ""
+    reading_hint_state: str = ""
+    reading_joint_hint_state: str = ""
+    numeric_subject_hint: str = ""
+    numeric_basis_hint: str = ""
 
 
 def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
     """Return the explicit prompt/diagnostic projection for an immutable match."""
 
-    return {
+    projection = {
         "state": match.state,
         "scope_state": match.scope_state,
         "subject_state": match.subject_state,
@@ -182,6 +270,18 @@ def project_candidate_match(match: CandidateMatchV1) -> Dict[str, Any]:
         "target_concept_keys": list(match.target_concept_keys),
         "target_local_subjects": list(match.target_local_subjects),
     }
+    if match.selection_mode == "narrative":
+        projection.update(selection_mode=match.selection_mode,
+                          reading_metric_state=match.reading_metric_state,
+                          context_metric_state=match.context_metric_state,
+                          reading_subject_state=match.reading_subject_state,
+                          reading_state=match.reading_state,
+                          reading_hint_state=match.reading_hint_state,
+                          reading_joint_hint_state=match.reading_joint_hint_state)
+    else:
+        projection["numeric_subject_hint"] = match.numeric_subject_hint
+        projection["numeric_basis_hint"] = match.numeric_basis_hint
+    return projection
 
 
 def summarize_candidate_match_ranking(
@@ -191,6 +291,7 @@ def summarize_candidate_match_ranking(
     """Summarize factor tiers without collapsing them into one additive score."""
 
     rows: list[tuple[Tuple[int, ...], str, str]] = []
+    selection_modes: set[str] = set()
     unresolved_count = 0
     for candidate_id in dict.fromkeys(
         str(item).strip()
@@ -201,8 +302,10 @@ def summarize_candidate_match_ranking(
         if isinstance(raw_match, CandidateMatchV1):
             state = raw_match.state
             rank_vector = tuple(raw_match.rank_vector)
+            selection_mode = raw_match.selection_mode
         elif isinstance(raw_match, Mapping):
             state = str(raw_match.get("state") or "")
+            selection_mode = str(raw_match.get("selection_mode") or "numeric")
             try:
                 rank_vector = tuple(
                     int(value) for value in (raw_match.get("rank_vector") or [])
@@ -212,9 +315,12 @@ def summarize_candidate_match_ranking(
         else:
             state = ""
             rank_vector = ()
+            selection_mode = "numeric"
+        selection_modes.add(selection_mode)
         if state == "explicit_conflict":
             continue
-        if len(rank_vector) != len(CANDIDATE_MATCH_RANK_FACTORS):
+        factors = NARRATIVE_MATCH_RANK_FACTORS if selection_mode == "narrative" else CANDIDATE_MATCH_RANK_FACTORS
+        if len(rank_vector) != len(factors):
             unresolved_count += 1
             continue
         rows.append((rank_vector, candidate_id, state))
@@ -232,6 +338,7 @@ def summarize_candidate_match_ranking(
     else:
         relation = "separated"
 
+    factors = NARRATIVE_MATCH_RANK_FACTORS if selection_modes == {"narrative"} else CANDIDATE_MATCH_RANK_FACTORS
     first_differing_factor = ""
     first_differing_delta = 0
     if relation == "separated":
@@ -240,7 +347,7 @@ def summarize_candidate_match_ranking(
         ):
             if top_value == runner_up_value:
                 continue
-            first_differing_factor = CANDIDATE_MATCH_RANK_FACTORS[index]
+            first_differing_factor = factors[index]
             first_differing_delta = top_value - runner_up_value
             break
 
@@ -254,7 +361,7 @@ def summarize_candidate_match_ranking(
     unknown_only_count = state_counts["unknown_only"]
     return {
         "schema": "candidate_ranking_diagnostics_v1",
-        "factor_order": list(CANDIDATE_MATCH_RANK_FACTORS),
+        "factor_order": list(factors),
         "eligible_candidate_count": eligible_count,
         "unresolved_rank_vector_count": unresolved_count,
         "rank_tier_count": len({row[0] for row in rows}),
@@ -390,6 +497,7 @@ def project_candidate_fact(candidate: Mapping[str, Any]) -> CandidateFactViewV1:
             *(row.get("local_entity_surfaces") or []),
             row.get("row_label"),
             *(row.get("row_headers") or []),
+            *(row.get("column_headers") or []),
             row.get("segment"),
         ]
     )
@@ -406,7 +514,13 @@ def project_candidate_fact(candidate: Mapping[str, Any]) -> CandidateFactViewV1:
             *(row.get("row_headers") or []),
         ]
     )
-    text_metric_surfaces = () if structured else _ordered_surfaces([row.get("source_text")])
+    # Only source-linked local annotation text may supplement a structured row;
+    # a parent's full table/body must not supply another row's metric identity.
+    text_metric_surfaces = _ordered_surfaces([
+        row.get("row_context_text") if structured else row.get("source_text"),
+        *[context.get("source_text") for context in row.get("source_contexts") or []
+          if context.get("relation") in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}],
+    ])
     normalized_unit = str(row.get("normalized_unit") or "UNKNOWN").upper()
     if normalized_unit not in _VALID_UNIT_FAMILIES:
         normalized_unit = "UNKNOWN"
@@ -452,6 +566,22 @@ def _best_metric_state(
             for surface in surfaces
             for wanted in targets
         )
+
+    # Exact metric axes precede containment matches. These are ordered tiers,
+    # not additive word scores; a short alias inside another metric is weaker.
+    for surfaces, targets, state, rank in (
+        (fact.cell_metric_surfaces, target.concept_aliases, "concept_cell", 1200),
+        (fact.cell_metric_surfaces, target.metric_surfaces, "surface_cell", 1100),
+        (fact.row_metric_surfaces, target.concept_aliases, "concept_row", 1000),
+        (fact.row_metric_surfaces, target.metric_surfaces, "surface_row", 900),
+    ):
+        # Parser footnotes are not metric qualifiers. Normalize only comparison
+        # keys; source axes, local subjects, provenance and catalog IDs stay exact.
+        target_keys = {
+            _compact(strip_financial_label_annotations(wanted)) for wanted in targets
+        } - {""}
+        if any(_compact(strip_financial_label_annotations(surface)) in target_keys for surface in surfaces):
+            return state, rank
 
     if target.concept_aliases and any_match(
         fact.cell_metric_surfaces, target.concept_aliases
@@ -507,6 +637,186 @@ def _best_metric_state(
     return "unknown", 0
 
 
+def _narrative_metric_states(
+    candidate: Mapping[str, Any], fact: CandidateFactViewV1, target: ResolvedOwnerTargetV1,
+) -> tuple[str, str]:
+    """Read already exposed local text, without changing numeric fact identity.
+
+    A narrative may read a physical row's rendering and its attached context.
+    These are exposure hints, not proof that a row answers a theme. Body and
+    inherited-context matches stay separately observable; fine numeric metric
+    tiers and physical-cell precision do not rank narrative completeness.
+    """
+    contexts = candidate.get("source_contexts") or []
+    reading = replace(fact, text_metric_surfaces=_ordered_surfaces([
+        candidate.get("source_text"), candidate.get("row_context_text"),
+        *[context.get("source_text") for context in contexts
+          if context.get("relation") == "source_continuation"],
+    ]))
+    context = replace(fact, cell_metric_surfaces=(), row_metric_surfaces=(),
+        text_metric_surfaces=_ordered_surfaces([
+            item.get("source_text") for item in contexts
+            if item.get("relation") in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}
+        ]))
+    return _best_metric_state(reading, target)[0], _best_metric_state(context, target)[0]
+
+
+def _narrative_subject_mention(
+    candidate: Mapping[str, Any], fact: CandidateFactViewV1, subjects: Sequence[str],
+) -> str:
+    """A literal reading hint, NOT subject identity, attribution or quote authority.
+
+    Unlike identity comparison, occurrence in a longer passage has no minimum
+    name length. Preserve punctuation/word separation; do not infer an alias.
+    Even occurrence within another name is only a hint, never equivalence.
+    """
+    if not subjects:
+        return "unspecified"
+    contexts = candidate.get("source_contexts") or []
+    local = [candidate.get("source_bundle_text", candidate.get("source_text")), candidate.get("row_context_text"),
+        *[item.get("source_text") for item in contexts if item.get("relation") == "source_continuation"]]
+    if fact.structured:
+        local.extend([candidate.get("row_label"), *(candidate.get("row_headers") or []),
+                      *(candidate.get("column_headers") or [])])
+    inherited = [item.get("source_text") for item in contexts
+        if item.get("relation") in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}]
+    # Filing metadata, inferred local_entity_surfaces and hidden body tails
+    # cannot create this hint. Read separate surfaces, never concatenated text.
+    wanted = [_normalise_spaces(subject).casefold() for subject in subjects if subject.strip()]
+    for state, surfaces in (("local_literal", local), ("context_literal", inherited)):
+        if any(subject in surface.casefold() for surface in _ordered_surfaces(surfaces) for subject in wanted):
+            return state
+    return "unknown"
+
+
+def _reading_hint_terms(surfaces: Sequence[str]) -> frozenset[str]:
+    """Literal lexical features only, never shortened names or new aliases."""
+    return frozenset(
+        term.casefold() for surface in surfaces
+        for term in re.findall(r"[^\W_]+", surface, flags=re.UNICODE)
+        if len(term) >= 2 and any(character.isalpha() for character in term)
+        and not is_period_only_surface(term)
+    )
+
+
+def _numeric_basis_hint(candidate: Mapping[str, Any], terms: frozenset[str]) -> str:
+    """Declared basis terms in one attached context only break relevance ties.
+
+    This lexical hint is not source-scope validation or subject interpretation.
+    Metadata labels, row bodies and separate contexts/cells cannot supply it.
+    """
+    if not terms:
+        return "unspecified"
+    for context in candidate.get("source_contexts") or []:
+        if context.get("relation") not in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}:
+            continue
+        text = str(context.get("source_text") or "")
+        segments = context.get("source_segments") or []
+        surfaces = [text[slice(*segment["text_span"])] for segment in segments] if segments else [text]
+        if any(all(term in surface.casefold() for term in terms) for surface in surfaces):
+            return "context_terms"
+    return "unknown"
+
+
+def _narrative_joint_hint(
+    candidate: Mapping[str, Any], subject_terms: frozenset[str], hint_terms: frozenset[str],
+) -> str:
+    """Two distinct request terms in one retained surface are a reading hint.
+
+    A compound target may not occur verbatim. Co-occurrence is lexical
+    relevance only: it does not interpret the target or certify attribution.
+    Do not join contexts/cells or count repeated/nested spellings as two terms.
+    """
+    pairs = [(subject, hint) for subject in subject_terms for hint in hint_terms
+             if subject not in hint and hint not in subject]
+    if not pairs:
+        return "unknown"
+
+    def parts(text: str, provenance: Mapping[str, Any]) -> list[str]:
+        segments = provenance.get("source_segments") or []
+        if not segments:
+            return [text]
+        if provenance.get("source_text") != text:
+            return []
+        return [text[slice(*segment["text_span"])] for segment in segments]
+
+    body = str(candidate.get("source_bundle_text", candidate.get("source_text")) or "")
+    provenance = candidate.get("source_context_provenance") or {}
+    structured = bool(candidate.get("physical_table_id")) or candidate.get("candidate_kind") in _STRUCTURED_CANDIDATE_KINDS
+    # A legacy rendered row can concatenate different cells. A new joint
+    # signal needs its observed partitions, not an invented cell boundary.
+    local = parts(body, provenance) if not structured or provenance.get("source_segments") else []
+    inherited: list[str] = []
+    for context in candidate.get("source_contexts") or []:
+        relation = context.get("relation")
+        if relation == "source_continuation":
+            local.extend(parts(str(context.get("source_text") or ""), context))
+        elif relation in {"ancestor_heading", "intermediate_heading", "caption", "preceding_block"}:
+            inherited.extend(parts(str(context.get("source_text") or ""), context))
+    for state, surfaces in (("reading:joint_terms", local), ("context:joint_terms", inherited)):
+        for surface in surfaces:
+            text = surface.casefold()
+            spans = {term: [match.span() for match in re.finditer(re.escape(term), text)]
+                     for term in subject_terms | hint_terms}
+            if any(a_end <= b_start or b_end <= a_start
+                   for subject, hint in pairs
+                   for a_start, a_end in spans[subject] for b_start, b_end in spans[hint]):
+                return state
+    return "unknown"
+
+
+def narrative_candidate_source_path(candidate: Mapping[str, Any]) -> Tuple[Tuple[str, str], ...]:
+    """Source hierarchy for budget diversity only, never scope/identity authority.
+
+    Existing catalogs retain the canonical [company | year | section | relation]
+    anchor even when section_path is absent. The optional relation suffix is not
+    a section. No title vocabulary or presumed summary section is privileged.
+    """
+    fact = project_candidate_fact(candidate)
+    document = str(candidate.get("source_document_id") or candidate.get("source_document_sha256") or fact.source_key)
+    section = str(candidate.get("section_path") or "")
+    anchor = str(candidate.get("source_anchor") or "").strip()
+    if not section and anchor.startswith("[") and anchor.endswith("]"):
+        parts = anchor[1:-1].split("|")
+        if len(parts) >= 3:
+            section = parts[2].strip()
+    headings = tuple(part.strip() for part in section.split(">") if part.strip() and part.strip() != "?")
+    if not headings:
+        headings = _ordered_surfaces(
+            item.get("source_text") for item in candidate.get("source_contexts") or []
+            if item.get("relation") == "ancestor_heading"
+        )
+    return (("document", document), *[("section", heading) for heading in headings],
+            ("source", fact.source_key), ("row", fact.physical_row_id or fact.source_key))
+
+
+def _interleave_narrative_sources(
+    matches: Sequence[CandidateMatchV1], candidate_by_id: Mapping[str, Mapping[str, Any]],
+) -> Iterable[CandidateMatchV1]:
+    paths = {match.candidate_id: narrative_candidate_source_path(candidate_by_id[match.candidate_id])
+             for match in matches}
+
+    def walk(rows: Sequence[CandidateMatchV1], depth: int) -> Iterable[CandidateMatchV1]:
+        if all(depth >= len(paths[row.candidate_id]) for row in rows):
+            yield from rows  # The tier is already candidate-ID sorted.
+            return
+        groups: Dict[Tuple[str, str], list[CandidateMatchV1]] = {}
+        for row in rows:
+            path = paths[row.candidate_id]
+            key = path[depth] if depth < len(path) else ("candidate", row.candidate_id)
+            groups.setdefault(key, []).append(row)
+        queues = deque(iter(walk(groups[key], depth + 1)) for key in sorted(groups))
+        while queues:
+            queue = queues.popleft()
+            try:
+                yield next(queue)
+                queues.append(queue)
+            except StopIteration:
+                pass
+
+    yield from walk(matches, 0)
+
+
 def build_candidate_matches(
     catalog: Sequence[Mapping[str, Any]],
     *,
@@ -518,8 +828,21 @@ def build_candidate_matches(
 
     target = resolve_owner_target(owner, parent_owner=parent_owner)
     owner_kind = str(owner.get("kind") or (parent_owner or {}).get("kind") or "")
+    effective_scope = {**dict((parent_owner or {}).get("scope") or {}), **dict(owner.get("scope") or {})}
+    basis_terms = _reading_hint_terms([str(effective_scope.get("basis") or "")]) if owner_kind != "narrative" else frozenset()
     facts = [project_candidate_fact(candidate) for candidate in catalog]
+    candidate_by_id = {str(row.get("candidate_id") or ""): row for row in catalog}
+    declared_subjects = declared_local_subjects(owner, parent_owner)
+    strict_subject_by_id = {
+        str(candidate.get("candidate_id") or ""): structured_subject_evidence(candidate, declared_subjects)
+        for candidate, fact in zip(catalog, facts)
+        if declared_subjects and fact.structured and fact.kind == "numeric"
+    }
     if not target.local_subjects:
+        declared_metric_surfaces = _ordered_surfaces([
+            *target.concept_aliases,
+            *list(dict(owner.get("semantic_target") or {}).get("metric_surfaces") or []),
+        ])
         owner_text = _normalise_spaces(
             " ".join(
                 [
@@ -542,26 +865,58 @@ def build_candidate_matches(
             if len(_compact(observed)) >= 3
             and any(character.isalpha() for character in observed)
             and _surface_contains(owner_text, observed)
+            and not is_period_only_surface(strip_financial_label_annotations(observed))
             and not any(
-                _identity_matches(alias, observed)
-                for alias in target.concept_aliases
+                _surface_contains(metric, observed)
+                for metric in declared_metric_surfaces
             )
+            # A numeric owner's declared document basis is not an inferred
+            # value subject. Compare whole observed surfaces, never strip a
+            # substring from a longer name or alter an explicit target.
+            and not (owner_kind != "narrative" and _surface_contains(
+                str(effective_scope.get("basis") or ""), observed))
             and not (
                 scope_company and _identity_matches(scope_company, observed)
             )
         )
         if grounded_subjects:
             target = replace(target, local_subjects=grounded_subjects)
+    # Search hints already belong to this owner. They may connect a descriptive
+    # request label to a shorter observed topic, but cannot rewrite its semantic
+    # target, numeric matching, scope, identity or another requirement's intent.
+    reading_hint_target = None
+    joint_subject_terms = joint_hint_terms = frozenset()
+    if owner_kind == "narrative":
+        reading_scope = {**dict((parent_owner or {}).get("scope") or {}), **dict(owner.get("scope") or {})}
+        reading_hint_target = replace(target, concept_keys=(), concept_aliases=(),
+            metric_surfaces=_ordered_surfaces(
+                _without_scope_surfaces(hint, local_subjects=target.local_subjects,
+                    scope=reading_scope)
+                for hint in owner.get("retrieval_hints") or []))
+        joint_subject_terms = (_reading_hint_terms(declared_subjects)
+            - _reading_hint_terms([*target.metric_surfaces, *target.concept_aliases,
+                *(dict(owner.get("semantic_target") or {}).get("metric_surfaces") or [])])
+            - _reading_hint_terms([str(value or "") for value in reading_scope.values()]))
+        joint_hint_terms = _reading_hint_terms(reading_hint_target.metric_surfaces)
     matching_rows_by_table: Dict[str, set[str]] = {}
+
+    def subject_matches(fact: CandidateFactViewV1) -> bool:
+        if fact.candidate_id in strict_subject_by_id:
+            return strict_subject_by_id[fact.candidate_id]["state"] == "match"
+        surfaces = fact.subject_surfaces if fact.structured else _ordered_surfaces(
+            [*fact.subject_surfaces, *fact.text_metric_surfaces],
+        )
+        return any(
+            _identity_matches(expected, observed)
+            for expected in target.local_subjects
+            for observed in surfaces
+        )
+
     if target.local_subjects:
         for fact in facts:
             if not fact.physical_table_id or not fact.physical_row_id:
                 continue
-            if any(
-                _identity_matches(expected, observed)
-                for expected in target.local_subjects
-                for observed in fact.subject_surfaces
-            ):
+            if subject_matches(fact):
                 matching_rows_by_table.setdefault(fact.physical_table_id, set()).add(
                     fact.physical_row_id
                 )
@@ -575,20 +930,9 @@ def build_candidate_matches(
         if scope_state not in {"compatible", "unknown_only", "explicit_conflict"}:
             scope_state = "unknown_only"
 
-        subject_surfaces = (
-            fact.subject_surfaces
-            if fact.structured
-            else _ordered_surfaces(
-                [*fact.subject_surfaces, *fact.text_metric_surfaces]
-            )
-        )
         if not target.local_subjects:
             subject_state, subject_rank = "unspecified", 2
-        elif any(
-            _identity_matches(expected, observed)
-            for expected in target.local_subjects
-            for observed in subject_surfaces
-        ):
+        elif subject_matches(fact):
             subject_state, subject_rank = "match", 3
         elif (
             fact.structured
@@ -601,17 +945,28 @@ def build_candidate_matches(
         else:
             subject_state, subject_rank = "unknown", 1
 
+        numeric_subject_hint = (
+            _numeric_subject_hint(candidate_by_id[fact.candidate_id], declared_subjects)
+            if owner_kind != "narrative" and fact.structured and fact.kind == "numeric" else ""
+        )
+        if subject_state == "unknown" and numeric_subject_hint in {"row_axis_literal", "column_axis_literal"}:
+            # Between exact subject correspondence and no local hint; never
+            # upgrades applicability or changes source/interpretation checks.
+            subject_rank = 2
+
+        # Filing identity is scope authority, not an implicit subject/rank bonus.
         if target.document_company and any(
             _identity_matches(target.document_company, observed)
             for observed in fact.identity_surfaces
         ):
-            document_subject_state, document_subject_rank = "local_match", 2
+            document_subject_state = "local_match"
         else:
-            document_subject_state, document_subject_rank = "unknown", 1
+            document_subject_state = "unknown"
 
         if owner_kind == "narrative":
             owner_kind_state = "narrative" if fact.kind == "narrative" else "structured_fact"
-            owner_kind_rank = 2 if fact.kind == "narrative" else 1
+            # A physical row is reading evidence even when its carrier is numeric.
+            owner_kind_rank = 2 if fact.kind == "narrative" or fact.structured else 1
         else:
             owner_kind_state = "numeric" if fact.kind == "numeric" else "context"
             owner_kind_rank = 2 if fact.kind == "numeric" else 1
@@ -621,24 +976,37 @@ def build_candidate_matches(
         elif fact.normalized_unit == target.expected_unit_family:
             unit_state, unit_rank = "match", 2
         elif fact.normalized_unit == "UNKNOWN":
-            unit_state, unit_rank = "unknown", 1
+            # A source-linked option improves exposure, not applicability or
+            # execution authority. The Compiler still must select and ground it.
+            possible = any(option["normalized_unit"] == target.expected_unit_family
+                           for option in source_unit_options(candidate_by_id[fact.candidate_id]))
+            unit_state, unit_rank = "unknown", 2 if possible else 1
         else:
             unit_state, unit_rank = "conflict", 0
 
-        metric_state, metric_rank = _best_metric_state(fact, target)
+        reading_metric_state = context_metric_state = ""
+        if owner_kind == "narrative":
+            reading_metric_state, context_metric_state = _narrative_metric_states(
+                candidate_by_id[fact.candidate_id], fact, target,
+            )
+            metric_state = (f"reading:{reading_metric_state}" if reading_metric_state != "unknown"
+                            else f"context:{context_metric_state}" if context_metric_state != "unknown"
+                            else "unknown")
+            metric_rank = int(metric_state != "unknown")
+        else:
+            metric_state, metric_rank = _best_metric_state(fact, target)
         metric_is_declared = bool(
             target.concept_aliases or target.metric_surfaces
         )
         explicit_conflict = (
             scope_state == "explicit_conflict"
-            or subject_state == "conflict"
             or unit_state == "conflict"
         )
         if explicit_conflict:
             state = "explicit_conflict"
         elif (
             scope_state == "compatible"
-            and subject_state != "unknown"
+            and subject_state in {"unspecified", "match"}
             and unit_state != "unknown"
             and (not metric_is_declared or metric_state != "unknown")
         ):
@@ -655,6 +1023,49 @@ def build_candidate_matches(
             if fact.candidate_kind == "chunk"
             else 0
         )
+        if owner_kind == "narrative":
+            locality_rank = 0
+        numeric_basis_hint = (_numeric_basis_hint(candidate_by_id[fact.candidate_id], basis_terms)
+            if owner_kind != "narrative" and fact.kind == "numeric" else "")
+        rank_vector = (state_rank, subject_rank, owner_kind_rank, unit_rank, metric_rank,
+                       int(numeric_basis_hint == "context_terms"), locality_rank)
+        reading_subject_state = reading_state = reading_hint_state = reading_joint_hint_state = ""
+        if owner_kind == "narrative":
+            reading_hint_state = "unknown"
+            if reading_hint_target and reading_hint_target.metric_surfaces:
+                candidate = candidate_by_id[fact.candidate_id]
+                hint_local, hint_context = _narrative_metric_states(
+                    {**candidate, "source_text": candidate.get("source_bundle_text", candidate.get("source_text"))},
+                    fact, reading_hint_target)
+                reading_hint_state = (f"reading:{hint_local}" if hint_local != "unknown"
+                    else f"context:{hint_context}" if hint_context != "unknown" else "unknown")
+            reading_subject_state = _narrative_subject_mention(
+                candidate_by_id[fact.candidate_id], fact, target.local_subjects,
+            )
+            # A complete subject mention must not disable an independent topic
+            # hint that was available for the same compound request spelling.
+            reading_joint_hint_state = _narrative_joint_hint(
+                candidate_by_id[fact.candidate_id], joint_subject_terms, joint_hint_terms)
+            has_joint_hint = reading_joint_hint_state != "unknown"
+            has_topic_match = metric_state != "unknown" or reading_hint_state != "unknown"
+            reading_metric_rank = int(has_topic_match or has_joint_hint)
+            # A lexical pair is a fallback reading hint. It cannot displace a
+            # literal subject with an independently matched topic/search hint.
+            request_anchor_rank = (2 if has_topic_match and reading_subject_state in {"local_literal", "context_literal"}
+                else int(reading_subject_state != "unknown" or has_joint_hint))
+            # Keep applicability/identity diagnostics and all conflict gates.
+            # Scope/unit eligibility is independent of whether this passage
+            # repeats a name. Within a scope tier, topic relevance precedes a
+            # request anchor; an issuer overview cannot starve subject-implicit
+            # readings. Neither hint grants attribution or numeric authority.
+            if explicit_conflict:
+                reading_state = "explicit_conflict"
+            elif scope_state == "compatible" and unit_state != "unknown":
+                reading_state = "compatible"
+            else:
+                reading_state = "unknown_only"
+            reading_rank = {"explicit_conflict": 0, "unknown_only": 1, "compatible": 2}[reading_state]
+            rank_vector = (reading_rank, reading_metric_rank, request_anchor_rank, owner_kind_rank, unit_rank, 0)
         matches[fact.candidate_id] = CandidateMatchV1(
             candidate_id=fact.candidate_id,
             state=state,
@@ -664,17 +1075,18 @@ def build_candidate_matches(
             owner_kind_state=owner_kind_state,
             metric_state=metric_state,
             unit_state=unit_state,
-            rank_vector=(
-                state_rank,
-                subject_rank,
-                owner_kind_rank,
-                document_subject_rank,
-                unit_rank,
-                metric_rank,
-                locality_rank,
-            ),
+            rank_vector=rank_vector,
             target_concept_keys=target.concept_keys,
             target_local_subjects=target.local_subjects,
+            selection_mode="narrative" if owner_kind == "narrative" else "numeric",
+            reading_metric_state=reading_metric_state,
+            context_metric_state=context_metric_state,
+            reading_subject_state=reading_subject_state,
+            reading_state=reading_state,
+            reading_hint_state=reading_hint_state,
+            reading_joint_hint_state=reading_joint_hint_state,
+            numeric_subject_hint=numeric_subject_hint,
+            numeric_basis_hint=numeric_basis_hint,
         )
     return matches
 
@@ -710,11 +1122,21 @@ def rank_candidate_matches(
     )
     selected: list[Dict[str, Any]] = []
     bounded_limit = max(0, int(limit))
+    if not bounded_limit:
+        return []
     for tier_vector in tier_vectors:
         tier = sorted(
             (match for match in eligible if match.rank_vector == tier_vector),
             key=lambda item: item.candidate_id,
         )
+        if all(match.selection_mode == "narrative" for match in tier):
+            for match in _interleave_narrative_sources(tier, candidate_by_id):
+                selected.append(candidate_by_id[match.candidate_id])
+                if len(selected) >= bounded_limit:
+                    break
+            if len(selected) >= bounded_limit:
+                break
+            continue
         by_source: Dict[str, list[CandidateMatchV1]] = {}
         for match in tier:
             source_key = project_candidate_fact(candidate_by_id[match.candidate_id]).source_key

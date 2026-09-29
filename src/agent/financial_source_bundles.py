@@ -147,7 +147,13 @@ class SourceBundleV1:
     source_text: str
     candidate_ids: Tuple[str, ...]
     candidate_value_spans: Tuple[Tuple[str, int, int], ...] = ()
+    context_links: Tuple[Tuple[str, str], ...] = ()
+    source_segments: Tuple[Tuple[int, int, str, str], ...] = ()
     schema_version: str = SOURCE_BUNDLE_SCHEMA_VERSION
+
+    def segment_projection(self) -> list[dict[str, Any]]:
+        return [{'text_span': [start, end], **({'cell_locator': cell, 'row_locator': row} if cell else {})}
+                for start, end, cell, row in self.source_segments]
 
     def value_span_by_candidate_id(self) -> Dict[str, list[int]]:
         return {
@@ -167,6 +173,9 @@ class SourceBundleV1:
             "source_text": self.source_text,
             "candidate_ids": list(self.candidate_ids),
             "value_spans_by_candidate_id": self.value_span_by_candidate_id(),
+            **({'source_segments': self.segment_projection()} if self.source_segments else {}),
+            **({"context_ids": [key for key, _ in self.context_links],
+                "context_relations": dict(self.context_links)} if self.context_links else {}),
         }
 
 
@@ -212,6 +221,16 @@ def build_semantic_source_bundles(
         material = dict(group["material"])
         member_candidates = dict(group["members"])
         text = str(material["source_text"])
+        segment_variants = {
+            tuple((int(s['text_span'][0]), int(s['text_span'][1]),
+                   str(s.get('cell_locator') or ''), str(s.get('row_locator') or ''))
+                  for s in context['source_segments'])
+            for candidate in member_candidates.values()
+            for context in [candidate.get('source_context_provenance') or {}]
+            if context.get('source_text') == text and context.get('source_segments')
+        }
+        if len(segment_variants) > 1:
+            raise ValueError(f'conflicting source segments: {source_bundle_id}')
         members = {
             candidate_id: _candidate_value_span(candidate, text)
             for candidate_id, candidate in member_candidates.items()
@@ -241,6 +260,13 @@ def build_semantic_source_bundles(
                 source_text=str(material["source_text"]),
                 candidate_ids=tuple(ordered_members),
                 candidate_value_spans=spans,
+                source_segments=next(iter(segment_variants), ()),
+                context_links=tuple(sorted({
+                    (str(context["context_id"]), str(context["relation"]))
+                    for member in member_candidates.values()
+                    for context in member.get("source_contexts") or []
+                    if context.get("context_id") and context.get("relation")
+                })),
             )
         )
     return tuple(sorted(bundles, key=lambda bundle: bundle.source_bundle_id))

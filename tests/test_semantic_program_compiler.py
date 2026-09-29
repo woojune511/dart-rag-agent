@@ -4,6 +4,40 @@ from tests.semantic_program_test_support import *
 
 
 class SemanticCalculationProgramCompilerTests(unittest.TestCase):
+    def test_compact_compiler_json_preserves_exact_source_and_provenance(self) -> None:
+        from src.agent.financial_graph_calculation import _compiler_json
+
+        payload = {"bundles": [{"source_text": "  원문 (1,200)\n다음 행\t표현  ",
+                                "provenance": {"span": [2, 18], "row_id": "row:1"},
+                                "ids": ["left", "right"]}]}
+        compact = _compiler_json(payload)
+        self.assertEqual(json.loads(compact), payload)
+        self.assertLess(len(compact.encode("utf-8")), len(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")))
+        self.assertNotIn("\n ", compact)
+
+    def test_terminal_admission_error_propagates_without_semantic_retry(self) -> None:
+        from src.utils.provider_errors import ProviderAdmissionError
+
+        error = ProviderAdmissionError("budget_reservation_exceeded", "next request exceeds cap")
+
+        class StoppedLLM(_StructuredQueueLLM):
+            def invoke(self, prompt):
+                self.prompts.append(prompt)
+                raise error
+
+        llm = StoppedLLM()
+        agent = FinancialAgent.__new__(FinancialAgent)
+        agent.llm = llm
+        catalog = [_candidate("value", 10)]
+        with self.assertRaises(ProviderAdmissionError) as raised:
+            agent._compile_semantic_calculation_program({
+                "query": "quantity", "answer_obligations": [_obligation("amount", "direct_value", "quantity")],
+                "semantic_candidate_catalog_prebuilt": True,
+                "semantic_source_candidates": catalog, "semantic_candidate_catalog": catalog,
+            })
+        self.assertIs(raised.exception, error)
+        self.assertEqual(len(llm.prompts), 1)
+
     def test_expression_schema_requires_explicit_source_display_decision(self) -> None:
         schema = SemanticCalculationProgram.model_json_schema()
         expression_schema = schema["$defs"]["SemanticProgramExpression"]
@@ -33,7 +67,7 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
             {
                 "topic": "opening and closing quantities",
                 "obligations": [
-                    {
+                    {"request_unit_ids": ["request_001"],
                         "obligation_id": "growth",
                         "kind": "derived_value",
                         "label": "change rate",
@@ -147,8 +181,10 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         row = payload["candidates_by_id"]["late-context"]
         bundle = payload["source_bundles_by_id"][row["source_bundle_id"]]
         self.assertNotIn("source_text", row)
-        self.assertNotIn("requested semantic context", bundle["source_text"])
-        self.assertEqual(bundle["source_text"], "quantity 10 items")
+        from tests.compiler_presentation_test_support import bundle_text
+        self.assertNotIn("source_text", bundle)
+        self.assertNotIn("requested semantic context", bundle_text(payload, row["source_bundle_id"]))
+        self.assertEqual(bundle_text(payload, row["source_bundle_id"]), "quantity 10 items")
 
     def test_targeted_retry_merge_preserves_valid_output_bytes(self) -> None:
         preserved = {
@@ -221,11 +257,11 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         compiler = CALCULATION_PROMPT_POLICY["semantic_program_prompt_template"]
         self.assertIn("evidence_mode를 source_defined_group", planner)
         self.assertIn("evidence_requirements는 비워", planner)
-        self.assertIn("같은 질문·회사·보고서에 속한다는 이유만으로 묶지", planner)
-        self.assertIn("evidence_mode가 source_defined_group", compiler)
-        self.assertIn("구조화된 표의 숫자 셀", compiler)
-        self.assertIn("원문에 기재된 항목 이름과 값을 보존", compiler)
-        self.assertIn("호환성을 명시하는 narrative candidate ID", compiler)
+        self.assertIn("output_relationships", planner)
+        self.assertIn("source_defined_group_selection", compiler)
+        self.assertIn("numeric 셀을 행 설명으로만", compiler)
+        self.assertIn("원문의 항목 이름과 값을 빠뜨리지", compiler)
+        self.assertIn("compatibility_refs는 실제 호환성 근거", compiler)
 
     def test_semantic_prompts_require_relation_grounded_narrative_evidence(self) -> None:
         planner_prompt = str(
@@ -241,15 +277,15 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
         self.assertIn("표준 항목을 추정", planner_prompt)
         self.assertIn("인과", compiler_prompt)
         self.assertIn("직접 연결", compiler_prompt)
-        self.assertIn("일반적 맥락", compiler_prompt)
-        self.assertIn("required evidence_requirements", compiler_prompt)
-        self.assertIn("variable binding의 scope_applicability_fields", compiler_prompt)
+        self.assertIn("일반 배경이나 동시 변화로 원인을 만들지", compiler_prompt)
+        self.assertIn("필수 requirement", compiler_prompt)
+        self.assertIn("scope_applicability_fields", compiler_prompt)
 
     def test_cagr_and_time_series_outputs_share_the_restricted_program(self) -> None:
         obligations = [
             _obligation("start", "direct_value", "start", scope=_scope(period="2021")),
             _obligation("end", "direct_value", "end", scope=_scope(period="2024")),
-            _obligation("cagr", "derived_value", "three-year CAGR", display_unit="%"),
+            _obligation("cagr", "derived_value", "three-year CAGR", display_unit="%", depends_on=["start", "end"]),
             _obligation(
                 "change_1",
                 "derived_value",
@@ -292,7 +328,8 @@ class SemanticCalculationProgramCompilerTests(unittest.TestCase):
                     ],
                     "formula": "((END / START) ** (1 / 3) - 1) * 100",
                     "result_unit": "%",
-                    "constants": [{"value": 3, "origin": "query", "source_text": "3 years"}],
+                    "constants": [{"value": 3, "origin": "query", "source_text": "3 years",
+                        "request_unit_id": "request_001", "interpretation": "The requested duration is three intervals."}],
                     "source_display_candidate_id": None,
                     "source_display_reason": "The fixture provides operands without a matching source-stated result.",
                 },

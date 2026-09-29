@@ -144,7 +144,7 @@ CONSOLIDATION_SCOPE_POLICY: Dict[str, Any] = {
 NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     "inline_value_unit_pattern": (
         r"(?P<value>[-+]?\(?[\d,]+(?:\.\d+)?\)?)\s*"
-        rf"(?P<unit>조\s*원?|십억\s*원|억\s*원?|백만\s*원|천\s*원|원|백만\s*달러|달러|USD|\$|%p|%|퍼센트|items?|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
+        rf"(?P<unit>조\s*원?|십억\s*원|억\s*원?|백만\s*원|만\s*원|천\s*원|원|백만\s*달러|달러|USD|\$|%p|%|퍼센트|items?|{KOREAN_COUNT_UNIT_RE_FRAGMENT})"
     ),
     "inline_unit_aliases": {"억": "억원", "조": "조원", "십억": "십억원"},
     "canonical_units": {
@@ -164,6 +164,7 @@ NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     "krw_scales": {
         "원": 1.0,
         "천원": 1_000.0,
+        "만원": 10_000.0,
         "백만원": 1_000_000.0,
         "억원": 100_000_000.0,
         "십억원": 1_000_000_000.0,
@@ -175,6 +176,32 @@ NUMERIC_UNIT_NORMALIZATION_POLICY: Dict[str, Any] = {
     "percent_units": ("%", "퍼센트"),
     "percent_display_units": ("%p",),
 }
+
+
+# Structural unit labels, not metric-specific ranking rules. A label can select
+# only among units explicitly declared in the attached table context.
+TABLE_COLUMN_UNIT_POLICY: Dict[str, Any] = {
+    "declaration_pattern": r"(?:단위|units?)\s*[:：]\s*(?P<units>[^)\]\r\n]+)",
+    "unit_separator_pattern": r"\s*(?:[,，;/]|\s+(?:and|및)\s+)\s*",
+    "header_unit_pattern": r"[([]([^()\[\]]+)[)\]]",
+    "context_relations": ("preceding_block", "caption"),
+    "column_groups": (
+        {"headers": ("비중", "비율", "구성비", "점유율", "share", "ratio", "percentage"), "dimensions": ("PERCENT",)},
+        {"headers": ("금액", "공시금액", "amount", "value"), "dimensions": ("KRW", "USD")},
+        {"headers": ("수량", "quantity", "count"), "dimensions": ("COUNT",)},
+    ),
+}
+
+
+# Semantic count readings offered for exact, cell-owned axis labels. These are
+# choices for the Compiler, not automatic unit declarations or metric recipes.
+SOURCE_COUNT_UNIT_POLICY = (
+    {"labels": ("건수",), "unit": "건"},
+    {"labels": ("개수",), "unit": "개"},
+    {"labels": ("인원수",), "unit": "명"},
+    {"labels": ("count", "number of cases", "case count"), "unit": "COUNT"},
+    {"labels": ("item count", "number of items"), "unit": "items"},
+)
 
 
 STRUCTURED_CELL_AFFINITY_POLICY: Dict[str, Any] = {
@@ -238,14 +265,6 @@ OPERAND_CANDIDATE_SCORING_POLICY: Dict[str, Any] = {
     "location_entity_context_penalty": -1.0,
 }
 
-VALUE_NEAR_MATCH_POLICY: Dict[str, Any] = {
-    "value_pattern": r"([\d,]+\s*조\s*[\d,]+\s*억(?:\s*원)?|[\d,]+\s*억(?:\s*원)?|[\d,]+\s*백만원|[\d,.]+%)",
-    "percent_markers": ("%",),
-    "million_krw_unit": "백만원",
-    "composite_krw_markers": ("조", "억"),
-    "composite_krw_unit": "원",
-}
-
 KOREAN_WON_COMPACT_FORMAT_POLICY: Dict[str, Any] = {
     "hundred_million_threshold": 100_000_000,
     "trillion_scale": 1_0000_0000_0000,
@@ -299,26 +318,11 @@ NUMERIC_SECTION_HINT_POLICIES: tuple[Dict[str, Any], ...] = (
 
 
 NARRATIVE_RERANK_POLICY: Dict[str, Any] = {
-    "causal_markers": ("영향", "기여", "편입효과", "배경", "요인", "성장"),
     "lower_priority_section_markers_by_query_type": {
         "numeric_fact": ("주석",),
         "trend": ("주석",),
     },
     "lower_priority_section_penalty": -0.12,
-}
-
-
-SENTENCE_NORMALISATION_POLICY: Dict[str, Any] = {
-    "intro_patterns": (
-        "다음과 같습니다",
-        "다음과 같",
-        "주요 재무 리스크는",
-        "주요 사업은",
-        "영위하는 주요 사업은",
-    ),
-    "missing_support_reason": "근거 claim이 연결되지 않음",
-    "summary_intro_reason": "요약형 질문의 도입 문장으로 유지",
-    "redundant_intro_reason": "후속 문장이 동일 질문에 직접 답하므로 도입 문장은 제거",
 }
 
 
@@ -346,8 +350,6 @@ CALCULATION_NARRATIVE_POLICY: Dict[str, Any] = {
         "impact",
     ),
     "context_stopwords": (
-        "2023년",
-        "2022년",
         "전년",
         "대비",
         "증감률",
@@ -437,7 +439,7 @@ CALCULATION_RENDER_POLICY: Dict[str, Any] = {
     "count_or_percent_normalized_units": ("COUNT", "PERCENT", "%", "퍼센트"),
     "percent_display_units": ("%", "%p"),
     "krw_normalized_unit": "KRW",
-    "krw_display_units": ("원", "천원", "백만원", "억원", "십억원", "조원"),
+    "krw_display_units": ("원", "천원", "만원", "백만원", "억원", "십억원", "조원"),
     "krw_display_unit_scales": dict(NUMERIC_UNIT_NORMALIZATION_POLICY["krw_scales"]),
     "count_display_units": ("개", "명"),
     "inline_unit_right_boundary_block_pattern": r"[0-9A-Za-z가-힣]",
@@ -528,41 +530,114 @@ CALCULATION_FEEDBACK_POLICY: Dict[str, Any] = {
 }
 
 
+_COMPILER_COMPACT_JSON_INSTRUCTIONS = (
+    "Return one JSON object matching the schema. Omit optional whitespace, indentation "
+    "and line breaks outside JSON strings; do not add Markdown fences or text outside "
+    "the object. This is a serialization rule only: retain every required field, output, "
+    "claim, qualification and evidence reference. Do not shorten content to satisfy it. "
+    "Do not remove or normalize whitespace inside string values, especially spaces, "
+    "line breaks and punctuation in exact source quotations.\n\n"
+)
+
+_COMPILER_SHARED_INSTRUCTIONS = (
+    _COMPILER_COMPACT_JSON_INSTRUCTIONS +
+    "검색된 원문을 읽고 CompilerResponseV2의 outputs를 작성하세요. 별도의 독해 호출이나 원문 이름의 허용 목록은 없습니다.\n"
+    "Compilation scope의 active_obligation_ids만 출력하며 각 request_unit_ids의 정확한 요청 구간과 한정 조건을 보존하세요. label/rationale은 상세 요청이나 공개 답변을 대신하지 않습니다. 같은 설명의 공유 조건과 독립적으로 요청된 설명 주제를 구별하세요.\n"
+    "Compilation scope의 output_relationships는 요청에 연결된 공통 기준 관계입니다. relationship_declarations의 해당 관계 키에 공통 해석을 한 번만 쓰고, 각 ready result의 relationship_refs에 자신이 속한 모든 관계를 명시하세요. 모든 구성원이 보류하면 선언은 null로 둘 수 있습니다. 개별 원문의 basis 해석을 같은 문장으로 바꾸지 마세요. read_only_relationship_declarations는 이미 통과한 출력과 공유하는 고정 선언이므로 다시 작성하지 말고 해당 관계를 참조하세요. 관계 참조는 원문·주체·범위 검증을 대체하지 않으며, 겹치는 관계의 해석은 각각 독립적입니다.\n"
+    "입력은 bounded excerpts입니다. 개별 본문이 완전해도 보고서 전체의 coverage를 뜻하지 않습니다. 근거가 부족하면 해당 출력의 status=missing 또는 ambiguous, result=null로 남기며 전체 문서의 부재를 단정하지 마세요.\n"
+    "cohorts의 candidate_ids는 owner별 사용 권한입니다. 동일한 출처 조건의 요구사항은 노출된 근거를 공유할 수 있지만 숨은 후보, 다른 보고서·제한 섹션·명시적 측정 기간·연결 범위는 공유하지 않습니다. 검색 힌트/주체 문자열 차이는 금지 사유가 아닙니다.\n"
+    "source_sections/source_section_bindings와 상위 출력의 제한을 모두 지키세요. 제목·본문에 언급됐다는 이유로 다른 절을 사용할 수 없습니다. evidence_bundle_constraints의 물리적 공유 행 option은 반드시 유지하세요.\n"
+    "source_readings의 enclosing_contexts → preceding_contexts → bodies → following_contexts를 함께 읽으세요. source_continuation은 같은 본문의 이어지는 구간이고 surface_ref는 이미 제시된 동일 표면입니다. 각 surface의 같은 partition 안 연속 pieces만 하나의 원문 구간입니다. 서로 다른 셀/표면을 이어 붙이지 마세요.\n"
+    "제목/행/열 계층과 본문이 실제 가리키는 주체·범위를 해석하세요. document_provenance의 공시 회사·year, parser local_heading, 인접 관계만으로 값이나 문장의 주체를 확정하지 않습니다. 다른 행 이름이나 미연결 제목을 빌려 쓰지 마세요.\n"
+    "year는 보고서의 사업연도이며 접수일의 연도가 아닙니다. 숫자의 측정기간과 자동으로 같지는 않습니다. period/value_year는 period_source와 연결된 원문으로 확인하고 unknown이나 unbound_table 힌트만으로 기간을 확정하지 마세요.\n"
+    "출력/요구사항/요청은 주어진 중첩 키를 쓰고, 후보와 표면은 짧은 참조만 선택하세요. 모델이 숫자 결과나 새로운 출처 ID를 만들지 않습니다. 의미 정확성은 Compiler의 책임이며 코드가 검증하는 것은 원문 연결과 실행 계약입니다.\n"
+)
+
+_COMPILER_NUMERIC_INSTRUCTIONS = (
+    "direct result는 selection, derived result는 inputs와 formula입니다. 각 입력은 그 requirement 키 안에 두고 변수 이름을 variable로 적습니다. source_ref는 허용된 후보 또는 선언된 선행 출력입니다. requirements와 dependencies가 함께 있으면 선행 출력만 inputs.dependencies에 둡니다.\n"
+    "직접 조회에서는 보고된 행의 조회와 여러 행의 합산 요청을 구별하세요. 전체 행·열 계층과 연결 문맥이 요청 주체·항목·범위를 뒷받침하면 그 보고된 값을 선택하세요. 하위·유사 이름 행이나 같은 값이 함께 있다는 사실만으로 요청되지 않은 합계를 상정하거나 모호하다고 하지 마세요. 반대로 계층만으로 포함·제외·합산 관계를 단정하지 않습니다. 보류한다면 원문에 남은 실제 대안 해석이나 필요한 근거의 공백을 rationale에 설명하세요.\n"
+    "숫자 대상·범위는 interpretation에 요청 구간과 해석한 subject/metric/scope를 남기세요. 선택한 셀의 전체 행·열 축은 코드가 그대로 연결하므로 axis_refs를 쓰지 않습니다. 문장 해석에는 interpretation.source_evidence_text로 자기 원문을 명시하세요. schema가 null을 허용할 때도 selection.context_evidence의 연결 문맥이 해석을 뒷받침하는 경우에만 null을 선택합니다. source_ref 선택만으로 주체·항목 해석 근거가 자동으로 채워지지 않습니다. 의미가 같은지는 문자 동일성으로 판정하지 않습니다.\n"
+    "표 밖 문맥이 필요하면 selection.context_evidence에 원문 인용을 한 번만 적으세요: schema에 노출된 context_ref, 정확한 evidence_text, 대상·항목 해석 근거이면 supports_interpretation=true, 기간/범위 보완은 resolves의 field/value로 표현합니다. 각 문맥은 선택한 셀에 실제로 연결되어야 합니다. 해당 입력 schema에 문맥 필드가 없으면 쓰지 말고, 이미 축/메타데이터로 확인된 조건에 새 문맥을 만들지 마세요. context_bindings는 모델 출력 필드가 아닙니다.\n"
+    "source_column_period_evidence가 있으면 같은 열의 원문 셀을 먼저 읽고, 그 셀이 선택값의 측정연도를 뜻할 때만 interpretation.period_ref로 자기 period_options 중 하나를 선택하세요. 숫자나 연도를 새로 쓰지 마세요. 다른 열의 연도, 표 앞 문장의 일부 인용, 사업연도로 이 열 연결을 대신할 수 없습니다. 연도 선택지가 없는 합계 등은 특정 연도 값으로 해석하지 말고 missing/ambiguous로 남기세요.\n"
+    "period/value_year가 비어 있어도 선택 셀에 연결된 원문 문맥의 상대기간이 명확하면 해당 후보의 사업연도 year를 기준으로 해석할 수 있습니다. 당기는 그 사업연도, 전기는 직전 사업연도입니다. selection.context_evidence에 정확한 기간 인용과 resolves의 field=period/value=해석한 연도를 남기세요. 원문에 명시된 연도가 있으면 우선하며, 사업연도가 없거나 기간이 모호하면 상대기간을 특정 연도로 채우지 말고 missing/ambiguous로 남기세요. 다른 셀·표의 기간이나 year만으로 측정기간을 만들지 마세요.\n"
+    "prose 숫자는 source_ref로 선택합니다. 코드가 해당 후보의 전체 값 span을 원문 그대로 연결하므로 selection.evidence_text를 쓰지 않습니다. 표 셀은 기존 물리 출처를 사용합니다. 문맥 해석은 명시적 보고서/기간/연결 범위 충돌을 덮지 않습니다.\n"
+    "비교 수식은 연결된 요청에서 기준점과 비교점을 먼저 해석하세요. comparison_request_unit_id로 소유한 요청 구간을 선택하고, 기준 입력의 variable은 reference, 비교 입력은 target으로 지정하여 formula에도 그 이름을 쓰세요. 요청 원문은 코드가 그대로 연결하므로 다시 쓰지 않습니다. 비교가 아닌 계산은 comparison_request_unit_id=null입니다. 입력의 기간 라벨이나 나열 순서는 비교 방향을 정하지 않습니다. 시간상 앞·뒤나 관행적인 증가율로 요청한 방향을 대체하지 마세요. 코드는 요청·변수 연결만 확인하며 방향의 의미를 대신 판단하지 않습니다.\n"
+    "원문 부호/배율을 유지하고 필요한 의미 변환은 formula에 표현하세요. 부호 있는 값과 크기는 다릅니다: (abs(A)-abs(B))/abs(B)*100, (A-B)/abs(B)*100, (A-B)/B*100은 서로 다른 비교입니다. 원하는 답의 부호로 고르지 말고 비교 대상과 분모를 rationale에 설명하세요.\n"
+    'formula는 operation/arguments 단계 배열이며 마지막 단계가 결과입니다. inputs 변수는 {{"variable":"이름"}}, 앞 단계의 결과는 {{"step":1부터 시작하는 앞 단계 번호}}로 사용합니다. 모든 단계는 마지막 결과에 기여해야 합니다. 괄호/쉼표/연산자 토큰을 나열하지 마세요. add/subtract/multiply/divide/power는 arguments 두 개를 순서대로 계산하고 positive/negative는 부호, identity는 인수 그대로, min/max/abs/round/log/exp는 같은 이름의 함수를 뜻합니다. 중립 숫자 0/1/100은 문자열 인수입니다. 요청 수량은 사용하는 인수 위치에 {{"value":수량,"request_unit_id":"소유한 요청 주소","interpretation":"해석"}}를 넣으세요. 별도 request_inputs/이름/상수 목록, origin/source_text를 쓰지 않습니다. 코드는 소유한 요청 구간 전체를 보존하며 부정·대조 조건을 포함한 전체 지시를 해석하세요. 숫자 표기와 자연어 수량의 계약은 같습니다. 입력 개수는 문자열 "binding_count"로 쓰며 코드가 source/dependency inputs만 셉니다. 모든 inputs 변수는 사용하고 이름을 중복하지 마세요. 원문·선행 계산값은 inputs로 선택하며 요청 수량으로 복사하지 않습니다. 요청 연결은 수량 해석의 의미 정확성 증명이 아닙니다. 분모 0을 작은 상수로 보정하지 마세요.\n'
+    "단위 차원과 scale은 코드가 추론합니다. 원문 배율을 formula에 재적용하지 말고 display_unit은 표시 의도만 적으세요. 백분율과 percentage-point를 구별하며 나눗셈 비율을 %로 계산할 때만 formula의 *100이 필요합니다.\n"
+    "source_display는 필수 nullable 선택이며 선택하면 최종 주 표시값이 됩니다. 명시적인 요청이 원문 우선 기본값보다 우선합니다. 연결된 요청 구간에서 원하는 결과가 원문 보고값인지, 입력으로 계산한 값인지, 둘 다인지 먼저 판단하세요. 계산값만 요청하면 source_display=null로 두고 원문 보고값으로 대체하지 마세요. 두 값이 같아도 요청 의도에 따라 결정합니다.\n"
+    "원문 보고값이 요청 결과와 부합할 때만 동일 의미의 원문 파생값을 선택하세요. 별도 표시 지시가 없으면 원문 우선·계산 병기를 적용합니다. source_display_reason에는 단순히 원문 값이 있다는 사실이 아니라 요청과 선택/null의 관계를 쓰세요. 선택해도 formula/원시 입력을 유지하고, 차이를 억지로 맞추거나 근거 없는 반올림 설명을 만들지 마세요.\n"
+    "interpretation.scope.basis는 그 선택 원문의 개별 해석입니다. 공통 기준 관계에 속한 숫자 출력도 각 선택 원문의 interpretation을 제공해야 합니다. 공통 기준 문장을 복사하여 개별 근거의 차이를 덮지 마세요. 동일 기준의 의미 판단과 실제 동일 행 사용 여부는 별개입니다. compatibility_refs는 실제 호환성 근거만 가리키며 출처 충돌을 허용하지 않습니다.\n"
+    "직접 조회의 compatibility_refs는 선택값의 범위를 보완하는 owner 노출 narrative 후보에만 쓰세요. 선택한 셀의 축·메타데이터나 selection.context_evidence로 필요한 범위가 확인되면 []로 둡니다. 선택값과 동일 원문 문맥에 연결된 witness가 있어야 하며, 같은 보고서·주제·유사한 숫자를 반복하는 다른 절만으로는 충분하지 않습니다. context_evidence의 context_ref를 이 목록에 복사하거나 보조 근거로 선택값의 해석·명시적 출처·기간 충돌을 덮지 마세요.\n"
+    "재시도의 read_only_dependency_outputs는 검증된 계산값이지 원문 표시값이 아닙니다. 허용된 dependency ID를 source_ref로 쓰고 상수로 복사하거나 accepted 출력을 다시 작성하지 마세요. 그 candidate IDs는 provenance일 뿐 선택 권한이 아닙니다.\n"
+)
+
+_COMPILER_NARRATIVE_INSTRUCTIONS = (
+    "narrative result는 subjects입니다. 각 subject에 선택된 원문의 주체 표기, 별도 support, 그리고 text/evidence를 가진 claims를 중첩하세요. subject ID/requirement ID를 selection에 반복 작성하거나 expression을 만들지 않습니다.\n"
+    "주체 철자·대소문자·문장부호·단어 경계·집단 범위를 보존하세요. 줄바꿈/연속 공백만 표시용으로 바꿀 수 있고 원문 위치가 유일해야 합니다. 제목에 이름과 본문에 사실이 각각 있다는 것만으로 그 주체의 사실이 되지는 않습니다. 대명사, 다른 주체, 부정과 전체/일부 범위를 원문 문맥으로 읽으세요.\n"
+    "support와 fact evidence는 독립 선택입니다. 각 요구사항 키 안에 source_ref, surface_ref, first_piece_ref, last_piece_ref를 적고 시작/끝을 포함한 동일 partition의 연속 구간만 선택하세요. 공통 주체/보조 근거는 own에 둘 수 있지만 필수 requirement를 충족하지는 않습니다. 다른 셀/원문은 별도 selection으로 종합합니다.\n"
+    "각 claim의 모든 문장·절은 선택한 fact evidence가 뒷받침해야 합니다. 요약·비교·부연에서도 주체별 행위와 대상, 조건·정도·부정·시제를 유지하세요. 서로 다른 행위를 하나로 묶어 다른 대상에 적용하지 마세요. 원문 표현을 그대로 반복할 필요는 없지만, 요청 충족에 불필요한 재진술로 새 의미를 더하지 마세요.\n"
+    "claim의 숫자는 그 claim의 fact evidence에 있는 표기만 사용하세요. 공유 support나 다른 claim/미선택 주변 값은 사실과 숫자의 대체 근거가 아닙니다. text에 주체가 없으면 코드가 그 주체 라벨을 붙이지만 관계를 검증했다고 주장하지는 않습니다.\n"
+    "요청한 구분·관계·한계를 text에서 실제로 설명하세요. 전체/주요 구성을 한 사례로 대신하거나 한 구성원의 사실을 집단 전체로 넓히지 마세요. 인과를 말하려면 원문이 결과와 요인을 직접 연결해야 하며 일반 배경이나 동시 변화로 원인을 만들지 않습니다.\n"
+    "kind=narrative 본문/읽기용 표 행은 일반 evidence로 읽습니다. numeric 셀을 행 설명으로만 읽을 때는 해당 셀의 전체 행 계층에 속하는 정확한 row_description_quote를 선택하고 숫자 operand로 재해석하지 마세요.\n"
+    "source_defined_group_selection이 complete_physical_row면 required_candidate_ids의 모든 셀을 해당 requirement에서 선택하고 원문의 항목 이름과 값을 빠뜨리지 마세요. 표준 항목을 추정해 추가하지 않습니다.\n"
+    "의미상 segment/basis 적용은 scope_applicability_fields로 명시할 수 있습니다. 연결 범위 unknown은 연결된 근거로 보완할 수 있으나 명시적 보고서/기간/연결 충돌은 그대로 금지됩니다. basis_interpretation은 이 출력 원문의 개별 해석이며 다른 출력과 같은 문구일 필요는 없습니다.\n"
+    "unvalidated_narrative_drafts/unvalidated_compiler_response는 실패한 모델 초안이지 정답·원문·새 권한이 아닙니다. 오류 위치를 보고 현재 허용된 근거로만 수정하세요. 수정 권한이 없는 계획 오류나 실제 근거 부족을 새 출처 발명으로 메우지 마세요.\n"
+    "{row_description_instructions}\n"
+)
+
+_COMPILER_INPUT_FIELDS = (
+    "원본 질문:\n{query}\n\n"
+    "Compilation scope:\n{compilation_scope}\n\n"
+    "Answer obligations:\n{obligations}\n\n"
+    "{output_responsibility_context}"
+    "{axis_source_instructions}"
+    "Source bundles, candidate cohorts, and candidates_by_id:\n{candidate_catalog}\n\n"
+    "재시도 피드백(없으면 -):\n{retry_feedback}\n"
+)
+
 CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
-    'semantic_program_prompt_template': "당신은 검색된 재무 근거를 실행 가능한 의미 프로그램으로 컴파일합니다.\n"
-            "질문을 lookup, ratio, growth_rate 같은 고정 타입으로 먼저 분류하지 마세요.\n"
-            "각 answer obligation을 충족할 실제 candidate를 고르고, 파생값만 제한 수식으로 표현하세요.\n\n"
-            "필수 규칙:\n"
-            "- candidate payload의 cohorts에서 해당 obligation 또는 evidence requirement에 허용한 candidate_id만 참조하세요. candidates_by_id나 source_bundles_by_id에 없는 값, 단위, 출처 ID를 새로 만들지 마세요.\n"
-            "- 같은 candidate가 보여도 다른 owner cohort의 ID를 가져다 쓰지 마세요. row_headers, local_entity_surfaces, physical provenance, match_by_owner의 subject·metric·unit factor를 함께 확인하세요.\n"
-            "- evidence_bundle_constraints가 있으면 runtime이 owner별 cohort 순위로 미리 고른 단 하나의 물리적 행 option만 payload에 노출합니다. 각 constraint의 모든 owner는 그 option 안의 candidate_id만 사용하고, 숨겨진 다른 행이나 option을 만들거나 선택하지 마세요.\n"
-            "- 원문 값을 그대로 답하는 obligation은 direct_bindings에 둡니다.\n"
-            "- 각 candidate는 source_bundle_id로 원문 묶음을 참조합니다. 같은 묶음의 값은 서로 경쟁하는 top-1 label이 아니라 함께 읽어야 하는 원문 사실들입니다. source_value_span과 source bundle의 당기·전기·부호·괄호 문맥을 함께 확인하세요.\n"
-            "- candidate_kind가 sentence_value인 숫자를 direct binding, expression input, source display로 선택하면 source_assertions에 source_bundle_id, 함께 읽은 candidate_ids, byte-exact 연속 evidence_text를 반드시 반환하세요. evidence_text는 해당 bundle 원문에서 그대로 복사하고 참조한 모든 값 span을 포함해야 합니다. 표 셀과 narrative evidence에는 source assertion을 만들지 마세요.\n"
-            "- 비슷한 row_label이라도 공제·가산·집계 단계·기준이 다르면 같은 값으로 취급하지 마세요. aggregate_label과 aggregation_stage는 원문의 구분을 보존하므로 질문 표현과 원문 설명에 가장 직접 대응하는 후보를 선택하세요.\n"
-            "- direct candidate의 범위 metadata가 unknown이지만 같은 원문·표의 narrative candidate가 그 범위를 명시하면 direct binding의 compatibility_candidate_ids에 넣으세요. 명시적으로 반대인 범위는 이렇게 덮어쓸 수 없습니다.\n"
-            "- 계산에 필요한 원시 입력은 derived_value obligation의 evidence_requirements에 미리 선언되어 있어야 합니다. candidate_id 변수에는 그 입력의 source_requirement_id도 함께 바인딩하고, 앞서 생성된 obligation_id를 참조할 때는 비워 두세요.\n"
-            "- 계산 변수 candidate의 segment 또는 basis metadata만 unknown이고 그 candidate의 로컬 원문이 해당 input requirement에 적용된다고 판단하면 variable binding의 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period, consolidation_scope는 이 선언으로 보완할 수 없습니다.\n"
-            "- candidate_id, obligation_id, evidence requirement ID는 제공된 목록에 있는 값만 사용하며 새 ID를 만들지 마세요.\n"
-            "- formula에는 변수, 숫자 상수, + - * / **, min/max/abs/round/log/exp만 사용합니다.\n"
-            "- 0, 1, 100 이외 상수는 constants에 query 또는 deterministic_cardinality origin으로 선언합니다.\n"
-            "- 모든 expression에서 source_display_candidate_id와 source_display_reason을 반드시 반환하세요. 선택한 원문 묶음에 해당 obligation과 같은 의미의 파생 결과가 직접 제시돼 있으면 그 candidate ID를 지정하고, 선택하지 않으면 null을 지정하세요. source_display_reason에는 원문 맥락상 선택하거나 선택하지 않은 구체적 이유를 쓰세요. 빈 문자열이나 필드 생략으로 판단을 대신하지 마세요.\n"
-            "- source display를 선택해도 deterministic formula와 원시 입력 바인딩을 유지하세요. 시스템은 원문 기재값을 우선 표시하고 계산값을 별도로 표시합니다. 둘의 차이를 맞추려고 원문 값이나 수식을 바꾸거나 원문에 없는 반올림 이유를 추측하지 마세요.\n"
-            "- 서로 다른 회사·연결기준·부문·기준·source context를 섞어야 한다면 이를 명시적으로 뒷받침하는 narrative candidate ID를 compatibility_candidate_ids에 넣으세요.\n"
-            "- narrative obligation은 근거 candidate_ids와 그 근거만으로 작성한 짧은 text를 함께 반환합니다. 숫자는 선택한 원문에 보이는 표기 그대로만 쓰고, 질문에 필수적이지 않은 숫자는 생략하세요.\n"
-            "- narrative candidate의 consolidation_scope·segment·basis metadata만 unknown이고 문맥상 해당 obligation에 적용된다고 판단하면 scope_applicability_fields에 그 필드만 선언할 수 있습니다. 명시적 충돌, company, period는 이 선언으로 보완할 수 없습니다.\n"
-            "- narrative obligation에 required evidence_requirements가 있으면 선택한 candidate_ids가 그 사실과 관계 요구를 모두 충족해야 하며, evidence_bindings에 각 candidate_id와 source_requirement_id를 연결하세요. 일반 배경 후보로 관계 근거를 대신하지 마세요.\n"
-            "- evidence_mode가 source_defined_group이면 런타임이 만든 하나의 원문 그룹 requirement를 사용합니다. 이 cohort에는 원문 문장뿐 아니라 구조화된 표의 숫자 셀도 함께 보일 수 있습니다. source_defined_group_selection의 selection_mode가 complete_physical_row이면 required_candidate_ids를 모두 선택하고 같은 source_requirement_id에 각각 바인딩하며, 각 셀의 원문에 기재된 항목 이름과 값을 보존해 text에 모두 포함하세요. 관행적인 예상 항목으로 원문 항목을 대체하거나 새로운 필수 항목을 만들지 마세요.\n"
-            "- 원인·이유·영향을 요구하는 narrative obligation에서는 선택한 근거가 대상 결과나 변화와 설명 요인을 인과 관계로 직접 연결할 때만 그 요인을 원인으로 서술하세요. 다른 지표의 동시 변화, 일반적 맥락, 위험관리 절차의 나열은 그 자체로 대상 변화의 원인이 아닙니다. 직접 연결 근거가 없으면 해당 obligation을 missing 또는 ambiguous로 남기세요.\n"
-            "- 같은 coupling_key를 가진 출력은 공통 의미 기준을 만족해야 합니다. 서로 다른 source context를 결합할 때는 그 호환성을 명시하는 narrative candidate ID를 compatibility_candidate_ids에 연결하고, 근거가 없으면 missing 또는 ambiguous로 남기세요. coupling_key가 빈 독립 출력은 서로 다른 표에서 선택할 수 있지만 각 출력의 scope와 단위 검증은 그대로 적용됩니다.\n"
-            "- 재시도에서는 repair_contract를 먼저 따르세요. formula AST의 변수 이름 집합과 variable_bindings의 variable 집합을 정확히 같게 만들고, 대상 obligation에 선언된 required evidence requirement를 빠짐없이 한 번씩 바인딩한 뒤 자체 점검하세요.\n"
-            "- 근거가 부족하거나 의미가 모호하면 억지로 선택하지 말고 status와 missing/ambiguous obligation IDs를 표시합니다.\n"
-            "- status는 모든 필수 obligation이 결정되면 ready, 빠지면 incomplete, 후보 의미를 결정할 수 없으면 ambiguous입니다.\n\n"
-            "원본 질문:\n{query}\n\n"
-            "Answer obligations:\n{obligations}\n\n"
-            "Source bundles, candidate cohorts, and candidates_by_id:\n{candidate_catalog}\n\n"
-            "재시도 피드백(없으면 -):\n{retry_feedback}\n"
-,
+    'semantic_program_axis_source_instructions': (
+        "Each interpretation_axis_sources entry inherits the exact provenance fields in its own "
+        "candidate's axis_source_common, when present. Its field and full path remain local. "
+        "This representation adds no evidence or selection permissions.\n"
+    ),
+    'semantic_program_subject_selection_repair_invariant': (
+        "source_selection_check compares your declared subject with only the exact text your selected addresses resolve to. "
+        "It is read-only feedback, not evidence permissions, an attribution verdict or replacement addresses. "
+        "Pieces are mechanical addresses, not complete semantic units. If supported, select a continuous first-to-last "
+        "range containing the complete source-copied subject within one permitted partition; never join cells/surfaces. "
+        "contains_declared_subject is literal containment. Optional subject_grounding reports whitespace-only correspondence "
+        "within those same selections; multiple source occurrences require a narrower selection or abstention. "
+        "Only whitespace layout may differ, never spelling, punctuation, word boundaries or entity scope. "
+        "Otherwise revise the subject/claim from permitted source support or abstain. Do not copy diagnostics into the output schema."
+    ),
+    'semantic_program_narrative_repair_invariant': (
+        "Nest each claim under its subject with separate support and claim evidence. "
+        "Keep valid fact ranges; repair the failed surface/piece references using currently permitted addresses. "
+        "Share subject support only within that subject, never previous-claim inheritance or filing metadata. "
+        "Each selection uses source_ref, surface_ref, first_piece_ref and last_piece_ref inside its requirement key "
+        "within one partition. Code extracts exact bytes; do not recopy evidence_text or join cells. "
+        "Shared subject support does not authorize a claim's numbers. Text may omit the subject; code labels it. "
+        "Repair requested coverage, not just the error. Drafts are unvalidated, not evidence or permissions; "
+        "revise unsupported attribution or abstain, never infer it from co-occurrence alone."
+    ),
+    'semantic_program_output_responsibility_context_template': (
+        "Output responsibility context:\n{context}\n"
+        "This is planned output responsibility, not source evidence or proof that another output succeeded. "
+        "Use it to distinguish the active explanation from separately requested topics. "
+        "Retain conditions and relationships needed to make an active answer accurate, even when shared. "
+        "Emit only active obligation IDs; select evidence only from their existing visible cohorts. "
+        "Do not merge or delete outputs because they share a subject, request, source or wording.\n\n"
+    ),
+    'semantic_program_prompt_template': (
+        _COMPILER_SHARED_INSTRUCTIONS + _COMPILER_NUMERIC_INSTRUCTIONS
+        + _COMPILER_NARRATIVE_INSTRUCTIONS + _COMPILER_INPUT_FIELDS
+    ),
+    'semantic_program_narrative_prompt_template': (
+        _COMPILER_SHARED_INSTRUCTIONS + _COMPILER_NARRATIVE_INSTRUCTIONS + _COMPILER_INPUT_FIELDS
+    ),
+    'semantic_program_row_description_instructions': "- row_description_quote_options가 있는 numeric 후보에서 숫자 자체가 아니라 행 설명만 사용하려면 evidence binding의 row_description_quote를 지정할 수 있습니다. options는 기존 검증을 통과하는 원문 축 문구 예시이며, 다른 부분 인용도 source text와 row_label/row_headers 모두에 정확히 있어야 합니다. 문서 ID·연도, physical table/row ID가 필요하며 scalar 숫자를 인용하면 안 됩니다. 이 권한은 문서 범위의 설명만 허용하고 측정기간을 확정하거나 알려진 scope 충돌을 덮지 않습니다. 일반 kind=narrative 근거나 scalar를 사용하는 근거에서는 비워 두세요.\n",
     'semantic_program_render_templates': {
             "item": "{label}: {value}",
             "item_sentence_ko": "{subject}{topic_particle} {value}입니다.",
@@ -574,6 +649,22 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "derived_input_joiner": ", ",
             "narrative": "{text}",
             "missing": "필요한 근거를 충분히 확인하지 못했습니다: {labels}",
+            "evidence_limit": {
+                "ko": {
+                    "answer": "{selection}조회된 근거만으로는 다음 요청을 확인할 수 없습니다: {targets}. 자료 전체에 해당 정보가 없다는 뜻은 아닙니다.",
+                    "target_period": "{label} (요청 기간: {period})",
+                    "selected_scope": "선택한 자료 범위({source})에서 ",
+                    "selected_material": "선택한 자료에서 ",
+                    "report_year": "보고서 연도: {year}",
+                },
+                "en": {
+                    "answer": "The retrieved evidence{selection} is insufficient to answer: {targets}. This does not establish that the information is absent from the complete source.",
+                    "target_period": "{label} (requested period: {period})",
+                    "selected_scope": " within the selected source scope ({source})",
+                    "selected_material": " within the selected materials",
+                    "report_year": "report year: {year}",
+                },
+            },
             "korean_text_pattern": "[가-힣]",
             "period_year_pattern": "(?:19|20)\\d{2}",
             "period_year_suffix": "년",
@@ -589,6 +680,8 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
             "compatibility_narrative_candidates_per_numeric_obligation": 2,
             "numeric_source_chars": 420,
             "narrative_source_chars": 600,
+            "narrative_source_window_chars": 1200,
+            "narrative_source_total_chars": 4800,
         }
 ,
 }
@@ -597,6 +690,53 @@ CALCULATION_PROMPT_POLICY: Dict[str, Any] = {
 SEMANTIC_REQUIRED_EVIDENCE_POLICY: Dict[str, int] = {
     "max_seed_candidates": 8,
     "max_narrative_candidates_per_group": 6,
+}
+
+
+# Whole labels only: a calendar spelling is context, not an inferred entity.
+# Do not search this grammar inside names or use it to assign a value's year.
+CALENDAR_PERIOD_LABEL_PATTERN = (
+    r"(?i)(?:FY\s*)?(?:['’]\s*)?(?:\d{4}|\d{2})"
+    r"(?:\s*년(?:\s*\d{1,2}\s*월(?:\s*\d{1,2}\s*일)?)?"
+    r"|[./-]\d{1,2}(?:[./-]\d{1,2})?\.?)?(?:\s*말)?"
+)
+
+
+ANNUAL_RELATIVE_PERIOD_LABEL_POLICY = (
+    # Cell/header labels only; do not match these inside prose or subject words.
+    (0, r"(?<!\w)당기(?:말)?(?!\w)"),
+    (-1, r"(?<!\w)전기(?:말)?(?!\w)"),
+    (-2, r"(?<!\w)전전기(?:말)?(?!\w)"),
+    (0, r"(?i)^(?:current|closing|ending)(?:[ _](?:period|balance))?$"),
+    (-1, r"(?i)^(?:prior|previous|opening|beginning)(?:[ _](?:period|balance))?$"),
+)
+
+
+# Compatibility is restricted to complete annual labels, never a year found
+# inside a request sentence. Date grammar is for located source axes only.
+MEASUREMENT_PERIOD_POLICY = {
+    "legacy_annual_labels": (
+        r"(?i)(?:FY\s*)?(?:19|20)\d{2}(?:\s*(?:년|사업연도))?",
+        *(pattern for _offset, pattern in ANNUAL_RELATIVE_PERIOD_LABEL_POLICY),
+    ),
+    "source_date_pattern": (
+        r"(?<!\d)(?P<year>\d{4})(?:\s*년\s*|[./-])"
+        r"(?P<month>\d{1,2})(?:\s*월\s*|[./-])"
+        r"(?P<day>\d{1,2})(?:\s*일|\.)?(?!\d)"
+    ),
+    "source_range_separator": r"(?i)\s*(?:~|～|–|—|-|to|through|부터)\s*",
+    "source_period_declaration_suffix": r"(?i)\s*(?:현재|까지|as\s+(?:of|at))?\s*",
+    "source_partial_range_pattern": r"(?i)(?:\d|~|～|–|—|부터|까지|\bto\b|\bthrough\b)",
+    # Located source-axis grammar, never a request-intent classifier. A year
+    # projection must not erase explicit month/quarter/partial-period markers.
+    "source_subannual_patterns": (
+        r"(?i)(?<![a-z])(?:q\s*[1-4]|h\s*[12])(?![a-z0-9])",
+        r"(?i)\b(?:[1-4](?:st|nd|rd|th)?\s+quarter|quarter\s+[1-4]|half[ -]year|year[ -]to[ -]date|ytd)\b",
+        r"(?<!\d)[1-4]\s*분기|상반기|하반기|(?<!\d)(?:[1-9]|1[0-2])\s*월",
+        r"(?<!\d)\d{4}[./-](?:0?[1-9]|1[0-2])(?!\d)",
+        r"(?i)\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b",
+        r"(?i)\b(?:[1-9]|1[01])\s*months?\b",
+    ),
 }
 
 
@@ -614,6 +754,12 @@ SEMANTIC_CANDIDATE_POLICY: Dict[str, Any] = {
 
 
 INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
+    # Additional labels emitted by structural source prefixes. Narrative body
+    # projection recognizes these without stripping arbitrary bracketed notes.
+    "structural_line_labels": (
+        "local_heading", "table_context", "table_row_labels", "table_value_labels",
+        "parent_section", "parent_local_heading", "parent_preview",
+    ),
     "line_labels": (
         "회사",
         "연도",
@@ -632,31 +778,63 @@ INDEX_PREFIX_METADATA_POLICY: Dict[str, Any] = {
 
 
 PLANNING_POLICY: Dict[str, Any] = {
+    'source_section_inventory_max_sections': 256,
+    'source_section_inventory_max_bytes': 65536,
+    'source_section_heading_max_hints': 64,
+    'source_section_heading_max_bytes': 16384,
+    'source_axis_inventory_max_axes': 64,
+    'source_axis_inventory_max_bytes': 16384,
     'requirement_planner_prompt_template': "당신은 DART 재무 질문의 검색 전 의미 요구사항을 정리합니다.\n"
             "계산 종류를 lookup, ratio, growth_rate 같은 고정 operation으로 분류하지 마세요.\n"
             "사용자가 최종 답변에서 확인해야 할 출력 각각을 answer obligation으로 표현하세요.\n\n"
             "규칙:\n"
-            "- kind는 원문 값을 그대로 보여 주는 direct_value, 근거 값으로 계산하는 derived_value, 설명을 요구하는 narrative 중 하나입니다.\n"
+            "- Request units는 코드가 원문 그대로 나눈 주소 목록입니다. 각 obligation의 request_unit_ids에 수행할 구간 ID를 연결하고 모든 구간을 하나 이상의 출력에 연결하세요. 하나의 출력을 여러 구간에, 하나의 구간을 여러 출력에 연결할 수 있습니다. 공통 조건은 관련 출력 모두에 연결하세요. 구간 수에 맞춰 출력을 늘리거나 새 ID를 만들지 마세요. label은 짧은 출력 이름으로 쓰고 상세 조건은 연결한 원문으로 보존합니다. rationale은 출력 요구를 대신하지 않습니다.\n"
+            "- kind는 사용자가 요청한 최종 답의 의미로 선택하세요. 원문에서 직접 조회하는 요청된 단일 수치는 direct_value, 근거 수치로 계산하는 결과는 derived_value, 상태·발생 여부·조건·관계 및 설명은 narrative입니다.\n"
+            "- 수치 결과 자체를 요구하지 않는 짧은 예/아니오 답이나 원문에 명시된 상태도 narrative입니다. 질문이나 근거에 숫자·금액·날짜가 나타난다는 이유로 상태 설명을 수치 조회로 바꾸거나 관련 금액으로 대신 답하지 마세요. 해당 사실과 한정 조건은 narrative의 원문 요청과 evidence_requirements에 보존하고, 별도로 요청한 수치 출력은 독립적인 direct_value 또는 derived_value로 유지하세요.\n"
+            "- direct_value는 출력 자체가 원문 조회의 근거 소유자이므로 evidence_requirements를 빈 배열로 유지하고 evidence_mode는 declared_inputs로 둡니다. 요청한 주체·항목·범위·검색 힌트는 해당 obligation에 보존하며 별도 입력 requirement로 복제하지 마세요.\n"
+            "- direct_value·derived_value의 display_unit에는 요청이 구체적으로 지정한 측정 단위와 배율만 보존합니다. 원·백만원·%·%p처럼 명시한 단위는 그대로 적으세요. 단위를 지정하지 않았거나 원문에서 단위를 따르라고 한 요청이면 빈 문자열로 두고, 검색 전 원문 단위를 추측하지 마세요.\n"
+            "- 원문 단위 유지·원문 표기 그대로·정확한 값·소수점 자릿수 같은 지시는 측정 단위 이름이 아니라 표시 의도이므로 display_format과 연결된 원문 요청에 보존합니다. 구체적인 단위와 표시 형식을 함께 요청했다면 두 필드를 각각 채우세요. 명시된 단위가 지원되지 않더라도 display_unit에 그대로 남겨 검증에서 드러나게 하고, 빈 문자열·UNKNOWN·다른 단위로 대체하지 마세요.\n"
+            "- narrative는 단일 수치 단위가 없으므로 display_unit을 반드시 빈 문자열로 두고, 요청한 표현 형식은 display_format에 적으세요. 서술에 필요한 사실·수치는 원문 요청과 evidence_requirements에 보존하며, 별도로 요청한 수치 출력은 direct_value 또는 derived_value로 유지하세요.\n"
             "- 하나의 질문에 여러 값과 설명이 필요하면 obligation을 모두 보존합니다.\n"
+            "- 서술형 질문도 독립적으로 요청된 설명 주제마다 obligation을 보존합니다. 명시된 주제를 다른 주제의 설명으로 대체하거나 생략하지 마세요. intent와 출력 형식은 이 의무를 생략할 이유가 아닙니다.\n"
+            "- 같은 설명을 한정하는 조건은 그 설명의 narrative obligation에 함께 담고 관련 request_unit_ids를 모두 연결하세요. 조건이 다른 request unit에 있다는 이유만으로 별도 출력을 만들지 마세요.\n"
+            "- 같은 주어·문장·request unit을 공유한다는 이유로 독립적인 설명을 합치지 마세요. 출력 개수를 미리 정하지 마세요.\n"
+            "- 질문이 근거를 특정 문서 절로 명시적으로 제한하면 source_section_bindings로 요청과 실제 위치를 연결하세요. first_request_unit_id와 last_request_unit_id는 그 제한이 담긴 연속 요청 구간의 처음과 마지막 ID입니다. 한 구간이면 같은 ID를 쓰세요. 번호·따옴표가 있는 제목은 여러 구간에 걸칠 수 있으므로 전체 경로와 한정 조건을 모두 포함하고 사이의 모든 구간을 해당 출력의 request_unit_ids에 소유하세요. 코드는 선택된 구간 전체의 원문·공백·문장 부호를 그대로 복사합니다. 요청 인용문이나 위치 숫자를 새로 쓰지 마세요. section_ids는 source_section_inventory에서 의미에 맞는 관측된 절 ID 목록입니다. 목록 안 ID는 대안이며 각 binding과 상위 obligation·근거 입력의 제한은 교집합입니다. 명시적으로 지정된 제목·경로는 다른 절로 바꿀 수 없습니다. 같은 제한을 source_sections에도 중복 작성하지 마세요.\n"
+            "- source_section_inventory.table_heading_hints는 표에 직접 연결된 가장 가까운 상위 제목과 기존 section_id의 관계를 보여 주는 독해 참고 자료입니다. 요청한 표 제목이 독립 절로 없더라도 이 관계를 읽고 그 표가 속한 관측 절을 선택할 수 있습니다. 제목이나 context_id를 새 section_id로 만들지 마세요. 상위 절을 선택해도 요청한 표·범위·제외 조건은 원문 요청에 그대로 남기며, 같은 절의 모든 표가 요청에 맞는다는 뜻은 아닙니다. 실제 표와 값의 의미 대응은 검색 후 Compiler가 근거와 함께 판단합니다. 제목은 인용 근거나 후보 권한이 아니고, omitted_heading_count 또는 빈 목록은 원문 부재의 증명이 아닙니다.\n"
+            "- 관측된 위치를 결정할 수 없거나 목록에서 찾지 못하면 요청 범위 ID를 유지하고 section_ids를 비워 unresolved로 남기세요. 제한을 삭제하거나 다른 절로 대체하지 마세요. inventory는 저장된 위치 목록일 뿐 본문이나 보고서 전체의 완전성 증명이 아니며 omitted_section_count가 있으면 일부 위치가 생략됐습니다. 명시적 절 제한이 없으면 source_section_bindings와 source_sections를 비우세요. 추정 검색 위치·본문 주제·ontology hint를 제한으로 만들지 마세요. source_sections는 질문이 정확히 명명한 제목·경로를 그대로 지정하는 기존 형식에만 쓰며, retrieval_hints와 label은 선택 권한이 아닙니다.\n"
             "- 질문이 특정 하위 항목 이름을 열거하지 않고 원문 표의 요약·구성·주요 항목처럼 source schema가 항목을 정하는 묶음을 요청하면 관행적인 표준 항목을 추정해 여러 direct_value obligation으로 만들지 마세요. 그 묶음은 하나의 narrative obligation으로 보존하고, 실제 원문 항목과 값은 검색 후 compiler가 선택하게 하세요. 질문에 명시된 개별 수치만 별도 direct_value 또는 derived_value obligation으로 만듭니다.\n"
             "- 위처럼 원문이 항목을 정하는 narrative 요약은 evidence_mode를 source_defined_group으로 지정하고 evidence_requirements는 비워 두세요. 런타임이 그 obligation의 label·scope·retrieval_hints·concept_hints를 보존한 하나의 필수 원문 그룹 requirement를 만듭니다. evidence_requirements나 검색 힌트에 관행적인 개별 항목을 추정해 넣지 마세요.\n"
             "- obligation_id는 짧고 고유하게 작성합니다. 런타임이 이후 안정 ID로 정규화합니다.\n"
             "- company, period, consolidation_scope, segment, basis처럼 의미가 다른 범위를 scope에 명시합니다.\n"
+            "- scope.period는 각 출력·입력에 요청된 측정 기간입니다. 시작·끝 날짜, 기간 범위와 상대 기간을 보존하고 선택한 보고서 연도로 바꾸지 마세요. 보고서 연도는 문서 선택 범위이며 측정 기간의 기본값이 아닙니다. 요청이 해당 보고서의 측정 기간을 실제로 지칭할 때만 그 기간으로 해석하세요.\n"
+            "- 측정 기간을 지정하지 않은 출력은 scope.period를 비웁니다. 빈 입력 기간은 명시된 상위 출력 기간만 상속하므로 비교·복수 기간 계산의 각 입력에는 해당 입력의 기간을 각각 적으세요. 서로 다른 기간을 하나로 합치거나 코드의 연도 보정을 기대하지 마세요.\n"
+            "- scope.measurement_period는 한 형식으로 작성합니다. 먼저 precision을 요청의 정밀도로 선택하세요: 측정 기간 미지정은 unspecified, 절대·상대 연도는 모두 year, 명시된 정확한 날짜는 date, 명시된 양 끝 날짜의 포함 구간은 date_interval, 요청 자체를 해석할 수 없을 때만 unresolved입니다. 원문 근거의 존재·실제 기간 충족 여부는 검색 후 검증합니다.\n"
+            "- precision=year이면 reference_year·year_offset·coverage를 모두 작성하고 start_date·end_date는 null입니다. 절대 연도는 그 연도와 offset 0, 상대 연도는 요청의 기준 연도와 부호 있는 offset을 씁니다. 기준 연도를 미리 이동시키지 마세요. 연간 전체가 필요하면 whole_year, 그 연도 안의 시점·부분 기간도 허용하면 within_year입니다. 둘 다 회계연도 시작·끝 날짜가 필요 없으며, 임의의 1월~12월 날짜로 바꾸거나 날짜 부재를 unresolved의 이유로 삼지 마세요.\n"
+            "- precision=date이면 start_date만, date_interval이면 start_date·end_date를 원문이 지정한 ISO 날짜로 작성하세요. 두 경우 reference_year·year_offset·coverage는 null입니다. unspecified·unresolved는 이 다섯 값 모두 null입니다. request_unit_ids는 기간·기준 연도·이동량·포함 범위를 뒷받침하는 소유한 요청 구간을 연결하고, unspecified일 때만 비웁니다. 사용하지 않는 값을 채우거나 코드를 통한 의미 보정을 기대하지 마세요.\n"
+            "- 날짜 구간의 양 끝은 포함하며, 이를 연도 이름이나 종료일 한 점으로 바꾸지 마세요. 선택한 precision과 coverage가 원문 범위를 표현하는지 확인하고, rationale 설명으로 잘못된 실행 제약을 대신하지 마세요.\n"
+            "- 모든 기간 근거 request_unit_ids는 해당 출력이 소유해야 하며 상대 기간·기준·범위 설명도 포함하세요. 코드는 명시된 연도 차이만 계산하며 문장에서 대상 기간이나 범위를 추정하지 않습니다. 보고서 선택 연도만으로 측정 기간을 만들지 마세요. 비교 입력마다 자기 기간 구조를 선언하고, 계산 출력에 여러 입력 기간을 하나의 연도 목록으로 합치지 마세요. 자유형 period와 원문 요청은 그대로 보존합니다.\n"
             "- scope.company는 공시 문서의 회사 범위입니다. 표 행이나 문장 안에서 실제 값의 주체가 되는 회사·사업·대상은 semantic_target.local_subjects에 적고 scope.company로 대체하지 마세요.\n"
             "- 각 obligation과 evidence requirement의 semantic_target을 작성하세요. local_subjects에는 질문이 직접 지목한 local entity만, concept_keys에는 아래 목록에 실제로 있는 ontology concept key만, metric_surfaces에는 질문에 보이는 지표 표현을 보존하세요. 정확한 concept가 없으면 concept_keys를 비운 채 metric_surfaces를 사용하세요.\n"
+            "- local_subjects는 검색과 독해를 위한 요청 표현입니다. 이름·집단·부문 등의 한정 조건을 보존하고, 원문 이름의 허용 목록으로 만들지 마세요. 원문 축과 요청 표현의 의미 대응은 검색 후 Compiler가 근거와 함께 해석합니다. Planner는 접미사를 삭제하거나 원문 표현을 추측하여 요청을 고치지 않습니다.\n"
+            "- 설명 표현을 주체 이름에 붙이지 않는 것은 요청 조건을 버리는 것이 아닙니다. 기간·지역·연결 범위·제외 조건·전체와 일부의 구별은 해당 request_unit_ids 원문과 적용 가능한 scope/requirements에 보존하세요. 같은 원칙을 각 evidence requirement의 실제 입력 주체에도 적용하며, 다른 입력의 주체나 최종 출력의 주체를 무조건 복사하지 마세요. 명확히 지목된 주체를 비우거나 질문에 없는 별칭을 만들어 불일치를 우회하지 마세요.\n"
+            "- source_axis_inventory는 현재 보고서의 저장된 행·열 축 중 질문과 문자 그대로 겹치는 표기를 전체 계층·관측 출처와 함께 보여 주는 참고 자료입니다. local_subjects를 정하기 전에 원래 질문과 함께 읽어 이름과 주변 설명을 구분하세요. 겹친 문자열이 주체라는 뜻은 아니며 축에는 지표·기간도 포함됩니다. 짧은 이름이 보인다고 완전한 이름·집단·한정 조건을 줄이거나 다른 대상으로 치환하지 마세요. 질문에 없는 이름·별칭을 추가하지 마세요. 목록은 후보 선택 권한이나 인용 근거가 아니며, 생략·미일치·빈 목록은 원문 부재나 주체 불일치의 증명이 아닙니다.\n"
+            "- 질문이 같은 entity를 여러 언어·이름으로 병기하면 local_subjects에 질문에 나온 각 표기를 모두 보존하세요. 질문에 없는 번역이나 다른 entity 이름은 추가하지 마세요.\n"
             "- derived_value는 사용자에게 표시할 결과 scope와 별도로, 계산에 필요한 각 원시 입력을 evidence_requirements에 선언합니다. 입력마다 고유 requirement_id, label, period 및 다른 scope, retrieval_hints를 적고 이 입력들은 사용자 출력 obligation으로 만들지 않습니다.\n"
             "- depends_on에는 이 obligation의 계산에 앞서 결과가 필요한 다른 answer obligation의 obligation_id만 적으세요. 같은 obligation의 원시 입력이나 evidence requirement ID는 적지 않습니다. 원시 입력 관계는 evidence_requirements만으로 선언합니다.\n"
             "- evidence_mode의 기본값은 declared_inputs입니다. 원시 계산 입력과 질문에 명시된 사실·관계에는 이 모드를 유지하세요. 이 모드의 narrative obligation은 답변에 필요한 각 사실과 관계, 특히 인과 설명을 evidence_requirements에 선언합니다. 대상 변화와 설명 요인을 함께 식별할 수 있는 label과 retrieval_hints를 사용하고, 다른 지표의 변화나 일반적 배경을 대상 변화의 직접 원인 근거로 대용하지 마세요.\n"
-            "- 총액과 구성비처럼 공통 기준으로 결합되어야 하는 출력만 같은 coupling_key를 사용합니다. 같은 질문·회사·보고서에 속한다는 이유만으로 묶지 마세요. 독립적으로 요청된 출력은 coupling_key를 비워 두며 서로 다른 표를 근거로 사용할 수 있습니다. coupling_key는 반복 없는 64자 이하의 짧고 안정적인 식별자로 작성하세요.\n"
+            "- 공통 기준이 필요한 출력은 output_relationships에 kind=shared_basis, output_ids와 그 관계를 요구한 request_unit_id 및 정확한 request_text를 기록하세요. 같은 회사·문장·주제라는 이유로 관계를 만들지 마세요. 독립 출력은 관계 목록에서 제외합니다. 계산상 의존성은 depends_on, 물리적 행 공유는 별도 근거 계약입니다.\n"
             "- ontology hints는 검색과 후보 의미 결합에 쓰는 제한된 vocabulary입니다. 질문에 맞는 정확한 concept가 없다고 비슷한 key를 만들거나 obligation을 삭제하지 마세요.\n"
             "- retrieval_hints와 retrieval_queries는 질문의 표현과 선택 가능한 ontology hint를 이용하되 계산식을 넣지 마세요.\n"
-            "- 질문에 없는 회사·기간·범위를 만들지 말고 report_scope 기본값만 사용할 수 있습니다.\n"
+            "- 질문에 없는 회사·기간·범위를 만들지 마세요. report_scope의 문서 선택 범위와 요청한 값의 측정 범위를 구분하세요.\n"
             "- consolidation_scope의 consolidated 또는 separate는 질문이 그 범위를 명시한 경우에만 사용하고, report_scope의 문서 metadata나 관행으로 사용자 의도를 추정하지 마세요. 명시가 없으면 unknown으로 두세요.\n"
             "- scope 필드에는 실제 값만 쓰고 report_scope, unknown 같은 placeholder를 값으로 복사하지 마세요.\n\n"
             "질문:\n{query}\n\n"
+            "Request units:\n{request_units}\n\n"
             "topic:\n{topic}\n\n"
             "intent:\n{intent}\n\n"
             "report_scope:\n{report_scope}\n\n"
+            "관측된 source_section_inventory (위치 선택용, 인용 본문 아님):\n{source_section_inventory}\n\n"
+            "관측된 source_axis_inventory (이름 해석 참고용, 선택 권한 아님):\n{source_axis_inventory}\n\n"
             "선택 가능한 ontology retrieval hints:\n{ontology_hints}\n"
 ,
     'money_surface_pattern': r"(?P<raw>\(?\d[\d,]*(?:\.\d+)?\)?)(?:\s*)"
@@ -745,12 +923,6 @@ HELPER_RUNTIME_POLICY: Dict[str, Any] = {
 
 QUERY_FOCUS_STOPWORDS = frozenset(
     {
-        "2021년",
-        "2022년",
-        "2023년",
-        "2024년",
-        "2025년",
-        "2026년",
         "사업보고서",
         "재무제표",
         "연결",
@@ -887,262 +1059,6 @@ NARRATIVE_BASE_PARAGRAPH_PRIORITY_SECTIONS = (
 )
 
 
-ENTITY_TABLE_SUMMARY_ASSEMBLY_POLICY: Dict[str, Any] = {
-    "consolidated_query_terms": ("연결",),
-    "section_score_rules": (
-        {"text": "타법인출자", "field": "section_path", "score": 2},
-        {"text": "재무제표 주석", "field": "section_path", "score": 2},
-        {"text": "타법인출자", "field": "text", "score": 4},
-    ),
-    "text_score_terms": (("투자자산", "관계기업", "공동기업"), 3),
-    "negative_text_terms_without_anchor": {
-        "terms": ("연결대상", "종속기업"),
-        "anchor": "타법인출자",
-        "score": -4,
-    },
-    "non_consolidated_section_penalty": {"section_marker": "연결재무제표 주석", "score": -1},
-    "investment_metric_terms": ("소유지분율", "지분율", "장부금액", "투자자산"),
-    "summary_metric_terms": ("계속영업손익", "계속영업이익", "계속영업손실", "총포괄손익"),
-    "default_unit": "백만원",
-    "period_fallback": "",
-    "role_labels": {
-        "prior_ownership_ratio": "기초 지분율",
-        "ownership_ratio": "기말 지분율",
-        "investment_carrying_amount": "투자장부금액",
-        "continuing_profit_loss": "계속영업손익",
-        "continuing_loss": "계속영업손실",
-        "total_comprehensive_profit_loss": "총포괄손익",
-        "total_comprehensive_loss": "총포괄손실",
-    },
-    "investment_sentence_template": "{entity_label}의 {parts}입니다.",
-    "summary_sentence_template": "요약 손익은 {parts}입니다.",
-    "number_pattern": r"\(?-?\d[\d,]*(?:\.\d+)?\)?%?",
-    "part_templates": {
-        "prior_current_ratio": "{prior_label}은 {prior_percent}, {current_label}은 {percent}",
-        "current_ratio": "{current_label}은 {percent}",
-        "amount": "{amount_label}은 {amount}{unit}",
-    },
-}
-
-EVIDENCE_COMPRESSION_GUIDANCE_POLICY: Dict[str, Any] = {
-    "trend_instruction": "시계열 변화와 근거에 직접 있는 원인만 짧게 정리하세요.",
-    "trend_context_instruction": (
-        "시계열 변화와 함께 실적에 직접 기여한 운영 요인을 1~2개까지 정리하세요. "
-        "계약 목적이나 기대효과보다 근거 문서에 실제 성과 원인으로 명시된 요인을 우선하세요."
-    ),
-    "trend_output_style": "2~4문장.",
-    "trend_context_output_style": "2~5문장.",
-    "instructions": {
-        "numeric_fact": (
-            "질문이 요청한 숫자·금액·비율만 답하세요. claim과 quote_span에 있는 표기를 그대로 유지하고, "
-            "동일 값을 다른 단위나 다른 숫자 표기로 바꾸지 마세요."
-        ),
-        "business_overview": (
-            "질문에 직접 필요한 사업 구조를 정리하되, 각 부문을 설명할 때 "
-            "근거에 등장하는 구체적인 예시(제품명, 주요 역할 등)를 생략하지 말고 포함하세요. "
-            "같은 사실을 반복하거나 evidence에 없는 배경 설명은 빼세요. "
-            "evidence에 parent_category가 명시된 항목들은 해당 상위 부문을 먼저 적고 "
-            "그 아래에 하위 항목을 묶어서 구조화하세요."
-        ),
-        "risk": (
-            "근거에 있는 리스크 항목만 추출하세요. 각 항목을 나열할 때 이름만 적지 말고, "
-            "근거에 있는 구체적인 정의나 영향을 한 줄씩 함께 요약하세요. "
-            "evidence에 parent_category가 명시된 항목들은 해당 상위 범주(예: 시장위험)를 먼저 적고 "
-            "그 아래에 하위 항목을 묶어서 구조화하세요. "
-            "evidence에 없는 새로운 상위 범주를 만들지 마세요."
-        ),
-        "comparison": "각 항목을 나란히 비교하되, evidence에 직접 있는 차이만 정리하세요.",
-        "qa": "질문에 직접 답하는 핵심 사실만 짧게 답하세요.",
-    },
-    "output_styles": {
-        "numeric_fact": "최대 1문장.",
-        "business_overview": "각 부문의 구체적 제품/역할이 포함된 3~5개의 bullet.",
-        "risk": "항목별로 이름과 짧은 설명(1~2줄)이 함께 있는 bullet. 항목 수는 evidence 범위를 넘기지 말 것.",
-        "comparison": "짧은 bullet 비교.",
-        "qa": "짧고 직접적으로.",
-    },
-    "coverage_notes": {
-        "sparse": "근거가 제한적입니다. evidence에 직접 적힌 claim과 quote_span만 사용하세요.",
-        "conflicting": "근거가 서로 상충하면 충돌을 명시하세요.",
-    },
-    "driver_phrase_joiner": ", ",
-    "driver_pair_joiner": "와",
-    "driver_final_joiner": ", 그리고 ",
-    "driver_addition_template": "또한 {clause}도 실적 성장에 기여했습니다.",
-}
-
-EVIDENCE_EXTRACTION_POLICY: Dict[str, Any] = {
-    "extra_rules_by_query_type": {
-        "risk": (
-            "\n- 리스크 유형명은 컨텍스트에 명시된 단어만 사용하세요. "
-            "컨텍스트에 없는 리스크 카테고리(예: '운영위험', '규제위험' 등)를 새로 만들지 마세요."
-            "\n- [중요] 컨텍스트에 여러 개의 독립적인 리스크 항목이 나열되어 있다면, "
-            "임의로 그룹화하거나 생략하지 마세요. "
-            "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
-            "\n- 문서에서 여러 하위 항목이 상위 범주 아래 묶여 있다면(예: '시장위험' 아래 환율변동위험·이자율변동위험·주가변동위험), "
-            "각 하위 항목의 parent_category 필드에 해당 상위 범주 명칭을 그대로 적으세요. "
-            "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
-        ),
-        "business_overview": (
-            "\n- [중요] 컨텍스트에 여러 개의 독립적인 사업 부문이나 항목이 나열되어 있다면, "
-            "임의로 그룹화하거나 생략하지 마세요. "
-            "문서에 존재하는 각 항목을 하나씩 독립적인 EvidenceItem으로 빠짐없이 추출하세요."
-            "\n- 문서에서 여러 하위 항목이 상위 부문 아래 묶여 있다면(예: 'DS부문' 아래 메모리·시스템반도체·파운드리), "
-            "각 하위 항목의 parent_category 필드에 해당 상위 부문 명칭을 그대로 적으세요. "
-            "상위 범주가 문서에 명시되어 있지 않으면 None으로 두세요."
-        ),
-    },
-    "extra_rules_by_answer_mode": {
-        "narrative_summary": (
-            "\n- 질문이 영향/원인을 묻는 경우, 계약 목적이나 예상효과만 적힌 문단보다 "
-            "실제 실적 변화의 원인·기여 요인을 설명하는 문단을 우선하세요."
-            "\n- 질문 focus terms에 고유명사, 약어, 괄호 표현, 정책/규제/대응/필요성 관련 표현이 있으면, "
-            "그 표현들이 들어간 원문 문장을 독립 EvidenceItem으로 추출하세요. "
-            "질문 focus terms가 직접 들어간 문장을 넓은 시장/연혁 배경 설명으로 대체하지 마세요."
-            "\n- 가능하면 서로 다른 관점의 근거를 2개 이상 추출하세요. "
-            "예: (1) 실적 변화나 성장률을 직접 설명하는 문단, "
-            "(2) 그 변화의 배경 driver를 문서 표현 그대로 설명하는 문단."
-            "\n- '주요 계약' 문단은 실제 성과 영향 문단이 부족할 때만 보조 근거로 사용하세요."
-        ),
-    },
-    "focus_term_stopwords": (
-        "2023년",
-        "2022년",
-        "전년",
-        "대비",
-        "계산",
-        "계산해",
-        "계산하고",
-        "사업보고서",
-        "사업보고서에서",
-        "요약",
-        "요약해",
-        "설명",
-        "설명해",
-        "대한",
-        "등",
-        "줘",
-    ),
-    "max_focus_terms": 12,
-    "focus_term_token_pattern": r"[가-힣A-Za-z0-9()]+",
-    "focus_term_particle_suffix_pattern": r"(?:에서|에게|으로|로|을|를|은|는|이|가|의|에|와|과|도|만)$",
-    "prompt_template": """당신은 기업 공시 분석 보조자입니다.
-질문에 답하기 전에, 아래 검색 결과에서 질문과 직접적으로 관련된 근거만 뽑아주세요.
-
-규칙:
-- 제공된 컨텍스트 밖의 정보를 추가하지 마세요.
-- 각 근거는 반드시 아래 제공된 source_anchor 중 하나를 정확히 사용하세요.
-- 숫자, 기간, 조건이 보이면 그대로 유지하세요.
-- quote_span에는 실제 근거 원문 일부를 짧게 그대로 옮기세요.
-- allowed_terms에는 답변에 사용 가능한 핵심 용어만 넣으세요.
-- 근거가 부족하면 coverage를 sparse로, 서로 충돌하면 conflicting으로 설정하세요.
-- 아예 답할 근거가 없으면 coverage를 missing으로 두고 evidence는 비우세요.{extra_rules}
-
-질문: {query}
-핵심 주제: {topic}
-질문 focus terms: {focus_terms}
-
-사용 가능한 source_anchor:
-{available_anchors}
-
-컨텍스트:
-{context}
-""",
-}
-
-EVIDENCE_RUNTIME_POLICY: Dict[str, Any] = {
-    "location_subject_pattern": r"[가-힣A-Za-z0-9]+(?:에서|에서는)[가-힣A-Za-z0-9]+(?:은|는)",
-    "lookup_aggregate_result_pattern": (
-        r"(차이|차액|격차|합계|합산|더한|더하면|총합|차감|뺀|비율|비중|성장률|증가율|감소율|몇\s*배|더\s*(?:큽|작|많|적))"
-    ),
-    "direct_numeric_lookup_instruction": (
-        "{focused} 원문 수치만 찾으세요. "
-        "차이, 합계, 비율, 증감액 같은 계산 결과가 아니라 해당 항목 자체의 값을 추출하세요."
-    ),
-    "numeric_not_found_answer": "관련 공시 문서에서 요청한 수치를 찾지 못했습니다.",
-    "no_direct_evidence_answer": (
-        "관련 공시 문서에서 질문에 직접 답할 수 있는 근거를 찾지 못했습니다. "
-        "공시 문서에 정보가 없거나, 현재 검색 결과만으로는 확인하기 어렵습니다."
-    ),
-    "duplicate_claim_reason": "같은 claim을 반복 설명함",
-    "aggregate_supported_reason": "여러 evidence의 합집합을 요약한 supported 문장",
-    "overextended_reason": "근거 claim보다 과도하게 일반화되거나 확장됨",
-    "compression_prompt_template": (
-        "당신은 한국 기업 공시(DART) 분석 전문가입니다.\n"
-        "아래 structured evidence를 질문 범위에 맞게 압축해 typed output을 만드세요.\n\n"
-        "Compression 규칙:\n"
-        "- evidence에 없는 내용은 추가하지 마세요.\n"
-        "- 먼저 question_relevance가 high인 evidence만으로 답 구성을 시도하세요.\n"
-        "- claim을 기본 단위로 사용하고, 필요할 때만 quote_span의 원문 표현을 그대로 가져오세요.\n"
-        "- allowed_terms에 없는 새로운 분류명이나 핵심 용어는 만들지 마세요.\n"
-        "- 질문이 요구하지 않은 배경 설명, 예시, 장황한 연결 문장은 넣지 마세요.\n"
-        "- 가능한 한 중복 claim을 합치고, 같은 사실은 한 번만 말하세요.\n"
-        "- draft_answer와 draft_points 안에 `[회사 | 연도 | ...]` 형태의 source_anchor 원문을 절대 그대로 쓰지 마세요. 출처 추적은 selected_claim_ids로만 수행합니다.\n"
-        "{coverage_note}\n\n"
-        "질문 유형 지침:\n{instruction}\n\n"
-        "출력 형식 지침:\n{output_style}\n\n"
-        "Structured Evidence:\n{evidence}\n\n"
-        "질문: {query}\n\n"
-        "반드시 다음 필드를 채우세요.\n"
-        "- selected_claim_ids: 실제로 사용한 evidence_id만\n"
-        "- draft_points: 중복을 제거한 핵심 포인트 목록\n"
-        "- draft_answer: 사용자에게 보여줄 짧은 초안 답변\n"
-    ),
-    "validation_prompt_template": (
-        "다음 답변 초안을 structured evidence와 대조해 문장 단위로 검증하고 typed output을 만드세요.\n\n"
-        "Validator 규칙:\n"
-        "- 새 정보는 절대 추가하지 마세요.\n"
-        "- 근거로 뒷받침되지 않는 문장, 구, 세부사항만 삭제하거나 더 짧게 축소하세요.\n"
-        "- 질문에 직접 필요하지 않은 배경 설명은 삭제하세요.\n"
-        "- 숫자, 단위, 비율은 evidence의 quote_span 또는 claim 표기를 그대로 유지하세요.\n"
-        "- risk: evidence에 없는 상위 taxonomy나 재분류를 만들지 마세요.\n"
-        "- business_overview / risk: 여러 evidence에 흩어진 정보를 하나의 문장이나 bullet로 종합한 경우, 각 표현이 evidence 합집합으로 뒷받침되면 supported로 판단하세요.\n"
-        "- business_overview / risk: 특정 문장이 단일 evidence와 1:1로 대응하지 않아도, supporting_claim_ids의 합집합이 그 문장을 직접 지지하면 keep 할 수 있습니다.\n"
-        "- duplicated claim은 하나만 남기세요.\n"
-        "- 가능한 한 기존 source_anchor는 유지하세요.\n"
-        "- 초안을 문장 단위로 나눈 뒤 각 문장을 아래 verdict 중 하나로 판정하세요.\n"
-        "  - keep\n"
-        "  - drop_overextended\n"
-        "  - drop_unsupported\n"
-        "  - drop_redundant\n"
-        "- supporting_claim_ids에는 그 문장을 직접 지지하는 evidence_id만 넣으세요.\n"
-        "- keep가 아닌 문장은 unsupported_sentences에도 넣으세요.\n"
-        "- kept_claim_ids / dropped_claim_ids는 sentence_checks와 일관되게 작성하세요.\n"
-        "- final_answer는 keep verdict를 받은 문장만 자연스럽게 이어 붙인 결과여야 합니다.\n"
-        "- keep 문장이 하나도 없으면, 질문에 직접 답할 수 있는 근거를 찾지 못했다는 짧은 문장만 남기세요.\n\n"
-        "질문 유형: {query_type}\n"
-        "질문: {query}\n\n"
-        "Structured Evidence:\n{evidence}\n\n"
-        "초안 답변:\n{answer}\n\n"
-        "반드시 다음 필드를 채우세요.\n"
-        "- kept_claim_ids: 최종 답변에 실제로 남긴 evidence_id\n"
-        "- dropped_claim_ids: 제거한 evidence_id\n"
-        "- unsupported_sentences: 삭제하거나 축소한 문장/구\n"
-        "- sentence_checks: 각 문장에 대한 verdict, reason, supporting_claim_ids\n"
-        "- final_answer: 최종 사용자 답변\n"
-    ),
-    "numeric_extractor_prompt_template": (
-        "당신은 재무 데이터 전문 분석가입니다.\n"
-        "아래 질문에 답하기 위해 공시 문서 컨텍스트에서 정확한 수치를 추출하세요.\n\n"
-        "지시사항:\n"
-        "1. 표(Table)에서 행과 열의 교차점을 정확히 확인하세요.\n"
-        "2. 당기/전기, 연결/별도, 금액 단위를 최우선으로 확인하세요.\n"
-        "3. raw_value는 문서에서 찾은 숫자를 변환 없이 그대로 적으세요.\n"
-        "4. final_value는 raw_value와 unit을 바탕으로 질문에 직접 답하는 자연스러운 한국어 한 문장으로 작성하세요.\n"
-        "5. 수치를 찾지 못한 경우 raw_value와 final_value를 빈 문자열로 두세요.\n\n"
-        "질문: {query}\n\n"
-        "컨텍스트:\n{context}\n"
-    ),
-    "numeric_extractor_incomplete_retry_prompt_template": (
-        "직전 structured 응답은 final_value를 작성했지만 raw_value를 비워 schema 계약을 위반했습니다.\n"
-        "최종 문장을 역으로 파싱하지 말고, 아래 원문 컨텍스트에서 요청한 값을 다시 확인하세요.\n"
-        "값을 찾았다면 raw_value에 원문 숫자를 그대로 넣고 unit과 final_value를 함께 채우세요.\n"
-        "근거로 확정할 수 없다면 raw_value와 final_value를 모두 빈 문자열로 두세요.\n\n"
-        "질문: {query}\n\n"
-        "컨텍스트:\n{context}\n"
-    ),
-}
-
 QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
     "strip_chars": "()[]{}'\"“”‘’,.·:;",
     "leading_connector_pattern": r"^(또는|및|등)\s+",
@@ -1160,29 +1076,6 @@ QUERY_FOCUS_MARKER_POLICY: Dict[str, Any] = {
     "english_token_pattern": r"[A-Za-z][A-Za-z0-9./-]{2,}",
     "generic_token_pattern": r"[가-힣A-Za-z0-9]+",
     "label_template": "query_focus_{index}",
-}
-
-
-DIVIDEND_POLICY_ASSEMBLY_POLICY: Dict[str, Any] = {
-    "amount_patterns": (
-        r"(\d+\s*조\s*\d{1,3}(?:,\d{3})?\s*억원)",
-        r"(\d{1,3}(?:,\d{3})+\s*억원)",
-        r"(\d{1,3}(?:,\d{3})+\s*백만원)",
-    ),
-    "rank_patterns": {
-        "trillion_eok": r"(\d+)\s*조(?:\s*(\d{1,3}(?:,\d{3})?))?\s*억원",
-        "eok": r"(\d{1,3}(?:,\d{3})+)\s*억원",
-        "million_krw": r"(\d{1,3}(?:,\d{3})+)\s*백만원",
-    },
-    "million_krw_to_eok_divisor": 100.0,
-    "trillion_to_eok_multiplier": 10000,
-    "clause_split_pattern": r"(?<=[.!?])\s+|\n+",
-    "clause_max_chars": 240,
-    "year_pattern": r"(20\d{2})년",
-    "year_prefix_template": "{year}년 ",
-    "preferred_policy_period_markers": ("2024", "2026"),
-    "stale_policy_period_markers": ("2021", "2023"),
-    "payout_priority_section_terms": ("이사의 경영진단",),
 }
 
 
@@ -1416,7 +1309,6 @@ NARRATIVE_RETRIEVAL_POLICIES: tuple[Dict[str, Any], ...] = (
         "outflow_terms": ("유출",),
         "table_policy_terms": ("현금배당금총액", "배당성향"),
         "policy_section_terms": ("배당에 관한 사항",),
-        "policy_period_markers": ("2024", "2026"),
         "cash_generation_terms": ("잉여현금흐름", "free cash flow"),
         "payout_amount_patterns": (
             r"배당금(?:의)?\s*지급[^0-9]{0,24}(\d+\s*조(?:\s*\d{1,3}(?:,\d{3})?)?\s*억원)",
@@ -1586,20 +1478,6 @@ def narrative_policy_paragraph_priority_sections(policies: Sequence[Dict[str, An
             *narrative_policy_terms(policies, "paragraph_priority_sections"),
         ]
     )
-
-
-def narrative_policy_driver_groups(policies: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    groups: List[Dict[str, Any]] = []
-    for policy in policies:
-        for group in tuple(policy.get("driver_groups", ()) or ()):
-            groups.append(
-                {
-                    "label": str(group.get("label") or ""),
-                    "variants": [str(item) for item in tuple(group.get("variants", ()) or ()) if str(item).strip()],
-                    "phrase": str(group.get("phrase") or ""),
-                }
-            )
-    return groups
 
 
 def narrative_policy_slot_groups(

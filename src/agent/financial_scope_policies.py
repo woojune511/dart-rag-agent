@@ -1,4 +1,4 @@
-"""Generic report-scope and consolidation helpers used during retrieval."""
+"""Shared report, candidate-period and consolidation scope helpers."""
 
 from __future__ import annotations
 
@@ -6,7 +6,78 @@ import re
 from typing import Any, Dict, List
 
 from src.agent.financial_runtime_normalization import _normalise_spaces
-from src.config.retrieval_policy import CONSOLIDATION_SCOPE_POLICY
+from src.config.retrieval_policy import (
+    ANNUAL_RELATIVE_PERIOD_LABEL_POLICY,
+    CALENDAR_PERIOD_LABEL_PATTERN,
+    CONSOLIDATION_SCOPE_POLICY,
+    SEMANTIC_CANDIDATE_POLICY,
+)
+
+
+def is_period_only_surface(surface: str) -> bool:
+    """Recognize whole period labels, never temporal fragments inside names.
+
+    This only bounds legacy subject inference. It neither resolves value years
+    nor overrides a query-declared subject that happens to resemble a period.
+    """
+    normalized = _normalise_spaces(surface)
+    return bool(normalized) and any(
+        re.fullmatch(pattern, normalized)
+        for pattern in (
+            CALENDAR_PERIOD_LABEL_PATTERN,
+            SEMANTIC_CANDIDATE_POLICY["fiscal_period_ordinal_pattern"],
+            *(pattern for _offset, pattern in ANNUAL_RELATIVE_PERIOD_LABEL_POLICY),
+        )
+    )
+
+
+def relative_period_offsets(*surfaces: Any) -> set[int]:
+    """Read annual offsets from cell-local labels, retaining ambiguity.
+
+    Callers supply period/header surfaces only, never row subjects or prose.
+    An offset needs a report-year anchor before it can become a value year.
+    """
+
+    return {
+        offset
+        for offset, pattern in ANNUAL_RELATIVE_PERIOD_LABEL_POLICY
+        if any(
+            re.search(pattern, _normalise_spaces(str(surface or "")))
+            for surface in surfaces
+        )
+    }
+
+
+def explicit_period_years(*surfaces: Any) -> set[int]:
+    """Collect calendar years from caller-scoped period evidence only."""
+    return {
+        int(year)
+        for surface in surfaces
+        for year in re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", str(surface or ""))
+    }
+
+
+def annual_period_evidence(
+    *surfaces: Any, report_year: Any = None,
+) -> tuple[bool, int | None]:
+    """Resolve located period labels, not filing/body-wide date inventories.
+
+    Repeated spellings of one calendar year/offset are one period. A calendar
+    year overrides a relative label; multiple calendar years stay unresolved.
+    The boolean distinguishes missing evidence from ambiguous/unanchored labels.
+    """
+
+    years = explicit_period_years(*surfaces)
+    if years:
+        return True, next(iter(years)) if len(years) == 1 else None
+    offsets = relative_period_offsets(*surfaces)
+    if not offsets:
+        return False, None
+    try:
+        anchor = int(report_year)
+    except (TypeError, ValueError):
+        return True, None
+    return True, anchor + next(iter(offsets)) if len(offsets) == 1 else None
 
 
 def is_scope_only_period_surface(surface: str, scope: Dict[str, Any]) -> bool:

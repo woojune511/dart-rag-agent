@@ -13,7 +13,6 @@ if __package__ in {None, ""} and str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.ops.portfolio_fixture_contract import evaluate_fixture_contract
-from src.ops.review_report_cache_index_contract import run_review
 
 
 DEFAULT_DEMO_PAYLOAD_PATH = (
@@ -47,7 +46,6 @@ def build_demo(
     *,
     demo_payload_path: str | Path = DEFAULT_DEMO_PAYLOAD_PATH,
     evidence_manifest_path: str | Path = DEFAULT_DEMO_EVIDENCE_MANIFEST_PATH,
-    include_cache_review: bool = False,
 ) -> Dict[str, Any]:
     payload_path = Path(demo_payload_path)
     manifest_path = Path(evidence_manifest_path)
@@ -58,7 +56,6 @@ def build_demo(
         manifest_path=manifest_path,
         payload_path=payload_path,
     )
-    cache_review = run_review() if include_cache_review else None
     return {
         "demo_id": payload.get("demo_id"),
         "question": payload.get("question"),
@@ -81,9 +78,6 @@ def build_demo(
         ),
         "critic_acceptance": dict(
             fixture_contract.get("critic_acceptance") or {}
-        ),
-        "cache_reviewer_handoff": (
-            dict(cache_review.get("reviewer_handoff") or {}) if cache_review else None
         ),
         "readiness": dict(fixture_contract.get("readiness") or {}),
     }
@@ -126,7 +120,6 @@ def render_text(demo: Dict[str, Any]) -> str:
     ]
     task_artifact = dict(demo.get("task_artifact_integrity") or {})
     critic = dict(demo.get("critic_acceptance") or {})
-    cache_handoff = dict(demo.get("cache_reviewer_handoff") or {})
     readiness = dict(demo.get("readiness") or {})
     fixture_evidence = dict(demo.get("fixture_evidence") or {})
     readiness_checks = dict(readiness.get("checks") or {})
@@ -219,25 +212,6 @@ def render_text(demo: Dict[str, Any]) -> str:
             ],
         ]
     )
-    if cache_handoff:
-        lines.extend(
-            [
-                "",
-                "Cache Reviewer Handoff:",
-                f"  - status: {cache_handoff.get('status')}",
-                f"  - mode: {cache_handoff.get('mode')}",
-                (
-                    "  - retrieval_bypass_enabled: "
-                    f"{_format_bool(cache_handoff.get('retrieval_bypass_enabled'))}"
-                ),
-                f"  - write_enabled: {_format_bool(cache_handoff.get('write_enabled'))}",
-                f"  - serving_enabled: {_format_bool(cache_handoff.get('serving_enabled'))}",
-                (
-                    "  - ledger_insertion_enabled: "
-                    f"{_format_bool(cache_handoff.get('ledger_insertion_enabled'))}"
-                ),
-            ]
-        )
     return "\n".join(lines) + "\n"
 
 
@@ -268,17 +242,6 @@ def parse_args(argv: List[str] | None = None) -> argparse.Namespace:
         default="text",
         help="Output format.",
     )
-    cache_group = parser.add_mutually_exclusive_group()
-    cache_group.add_argument(
-        "--include-cache-review",
-        action="store_true",
-        help="Also run and render the optional candidate-only cache review.",
-    )
-    cache_group.add_argument(
-        "--skip-cache-review",
-        action="store_true",
-        help=argparse.SUPPRESS,
-    )
     parser.add_argument("--output", type=Path, help="Optional output file path.")
     return parser.parse_args(argv)
 
@@ -288,7 +251,6 @@ def main(argv: List[str] | None = None) -> int:
     demo = build_demo(
         demo_payload_path=args.demo_payload,
         evidence_manifest_path=args.evidence_manifest,
-        include_cache_review=args.include_cache_review,
     )
     if args.format == "json":
         rendered = f"{json.dumps(demo, ensure_ascii=False, indent=2)}\n"

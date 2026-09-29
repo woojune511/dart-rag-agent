@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import json
+import hashlib
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -19,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from lxml import etree
 from src.processing.block_collection import collect_blocks
+from src.processing.source_context import bind_document_contexts, source_text_span
 from src.processing.chunking import (
     chunk_blocks,
     looks_like_table_header_row,
@@ -78,7 +80,9 @@ _INLINE_BODY_START_RE = re.compile(
     r"(\d{4}년|연결회사는|회사는|당사는|당사가|당기 및 전기 중|당기말 및 전기말 현재|당기말 현재)"
 )
 _INLINE_BODY_SEPARATOR_RE = re.compile(
-    r"([①②③④⑤⑥⑦⑧⑨⑩]|-\s*[A-Za-z가-힣&]+(?:\s*[A-Za-z가-힣&]+)*\s*:)"
+    # Adjacent letter groups are one word. Require whitespace between groups
+    # so a missing colon cannot trigger exponential equivalent partitions.
+    r"([①②③④⑤⑥⑦⑧⑨⑩]|-\s*[A-Za-z가-힣&]+(?:\s+[A-Za-z가-힣&]+)*\s*:)"
 )
 _PROBABLE_XML_MARKUP_RE = re.compile(
     r"^/?[A-Za-z_][A-Za-z0-9._:-]*(?:\s+[A-Za-z_][A-Za-z0-9._:-]*\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*/?$"
@@ -89,6 +93,27 @@ DEFAULT_SECTION_PARSE_WARN_SEC = float(os.getenv("DART_PARSER_SECTION_WARN_SEC",
 DEFAULT_SECTION_PARSE_BUDGET_SEC = float(os.getenv("DART_PARSER_SECTION_BUDGET_SEC", "2.0"))
 _UNIT_HINT_RE = re.compile(r"(십억원|천원|백만원|억원|%)")
 _UNIT_CONTEXT_RE = re.compile(r"단위\s*[:：]?\s*(십억원|천원|백만원|억원|원|%)")
+# A small row/column count does not imply a label: DART also puts whole prose
+# sections in one cell. Only complete label syntax may consume a table as context.
+# Unknown text stays a body table; finding a period/unit somewhere is insufficient.
+_TABLE_CONTEXT_LABEL_RE = re.compile(
+    r"(?:"
+    r"(?:요약\s*)?(?:(?:연결|별도)\s*)?(?:재무상태표|포괄손익계산서|손익계산서|자본변동표|현금흐름표)"
+    r"|제\s*\d+\s*기(?:말|초)?|(?:전전기|전기|당기)(?:말|초)?"
+    r"|20\d{2}\s*년(?:\s*\d{1,2}\s*월(?:\s*\d{1,2}\s*일)?)?"
+    r"|20\d{2}[./-]\d{1,2}[./-]\d{1,2}\.?"
+    r"|사업연도|작성기준일|이행현황기준일|기준일|현재|기준|부터|까지|누적|요약"
+    r"|(?:원화|외화)?단위\s*[:：]\s*"
+    r"(?:[A-Z]+\s+[가-힣]+|[A-Za-z가-힣%$€¥]+)"
+    r"(?:\s*[,/\-]\s*(?:[A-Z]+\s+[가-힣]+|[A-Za-z가-힣%$€¥]+))*"
+    r"|[\s|()\[\]<>:：,~\-]"
+    r")+"
+)
+_TABLE_UNIT_SUFFIX_RE = re.compile(
+    r"(?P<label>\(\s*"
+    r"(?:(?:원화|외화|원)?단위\s*[:：]|(?:원화|외화)\s*[:：])"
+    r"[A-Za-z가-힣\s%$€¥,:：/\-]+\))\s*$"
+)
 _SECTION_LABELS: List[Tuple[str, List[str]]] = [
     ("요약재무", ["요약재무정보"]),
     ("연결재무제표", ["연결재무제표"]),
@@ -312,6 +337,10 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
     rows = [row for row in table_text.splitlines() if row.strip()]
     row_count = int(table_object.get("row_count") or 0)
     column_count = int(table_object.get("column_count") or 0)
+    if (table_object.get("header_scope_source") in {"thead", "column_header_cells"}
+            and row_count > int(table_object.get("header_row_count") or 0)):
+        # An explicit header and body define a data table, even with one small value.
+        return None
     statement_title_hint = any(
         keyword in table_text
         for keyword in (
@@ -329,6 +358,8 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
         return None
 
     combined = " ".join(rows)
+    if not _TABLE_CONTEXT_LABEL_RE.fullmatch(combined):
+        return None
     period_labels = _extract_period_labels(combined)
     unit_hint = _infer_unit_hint(combined)
     # Some filings place `(단위 : 백만원)` in a standalone table without an
@@ -346,6 +377,24 @@ def _extract_standalone_table_context_hint(table_object: Dict[str, Any]) -> Opti
     if unit_hint and unit_hint not in combined:
         hint_parts.append(f"(단위: {unit_hint})")
     return _normalize("\n".join(hint_parts))
+
+
+def _extract_table_unit_suffix(table_object: Dict[str, Any]) -> Optional[str]:
+    """Keep a compact mixed table's body and forward only its explicit unit label.
+
+    Captions/prose are never promoted by this path. A terminal parenthesized
+    unit declaration remains adjacent context even if the preceding text is
+    unknown; finding a unit word or percentage in prose is insufficient.
+    """
+    rows = int(table_object.get("row_count") or 0)
+    columns = int(table_object.get("column_count") or 0)
+    if not (1 <= rows <= 2 and 1 <= columns <= 3):
+        return None
+    if (table_object.get("header_scope_source") in {"thead", "column_header_cells"}
+            and rows > int(table_object.get("header_row_count") or 0)):
+        return None
+    match = _TABLE_UNIT_SUFFIX_RE.search(str(table_object.get("table_text") or ""))
+    return match.group("label") if match else None
 
 
 def _infer_statement_type(section_path: str, header_context: Optional[str]) -> str:
@@ -395,26 +444,47 @@ def _sanitize_xml_like_text(raw: str) -> Tuple[str, int]:
     replacements = 0
     idx = 0
     raw_len = len(raw)
+    invalid_ampersand = re.compile(r"&(?!(?:amp|lt|gt|apos|quot|#[0-9]+|#x[0-9A-Fa-f]+);)")
+    quoted_tag = re.compile(r'''<(?:[^<>"']|"[^"]*"|'[^']*')*>''')
+
+    def preserve_text(text: str) -> str:
+        nonlocal replacements
+        escaped, count = invalid_ampersand.subn("&amp;", text)
+        replacements += count
+        return escaped
 
     while idx < raw_len:
         start = raw.find("<", idx)
         if start < 0:
-            sanitized_parts.append(raw[idx:])
+            sanitized_parts.append(preserve_text(raw[idx:]))
             break
 
-        sanitized_parts.append(raw[idx:start])
-        end = raw.find(">", start + 1)
+        sanitized_parts.append(preserve_text(raw[idx:start]))
+        # These lexical regions already carry literal text, not entity references.
+        terminator = next((end for begin, end in (
+            ("<![CDATA[", "]]>"), ("<!--", "-->"), ("<?", "?>"),
+        ) if raw.startswith(begin, start)), None)
+        if terminator is not None:
+            end = raw.find(terminator, start + 2)
+            end = raw_len if end < 0 else end + len(terminator)
+            sanitized_parts.append(raw[start:end])
+            idx = end
+            continue
+
+        # A greater-than sign inside a quoted attribute does not close its tag.
+        tag = quoted_tag.match(raw, start)
+        end = tag.end() - 1 if tag else raw.find(">", start + 1)
         if end < 0:
-            sanitized_parts.append(raw[start:])
+            sanitized_parts.append(preserve_text(raw[start:]))
             break
 
         candidate = raw[start + 1 : end]
         if _is_probable_xml_markup(candidate):
-            sanitized_parts.append(raw[start : end + 1])
+            sanitized_parts.append(preserve_text(raw[start : end + 1]))
         else:
             replacements += 1
             sanitized_parts.append("&lt;")
-            sanitized_parts.append(candidate)
+            sanitized_parts.append(preserve_text(candidate))
             sanitized_parts.append("&gt;")
         idx = end + 1
 
@@ -485,7 +555,10 @@ def _classify_bracket_heading(
         if _bracket_label_inner_length(normalized) <= _SHORT_BRACKET_LABEL_MAX_CHARS:
             return "defer_section_label"
         return "section_label"
-    return "discard"
+    # A source-written peer heading is not disposable merely because this
+    # section has no title-specific policy. Dropping it leaves the prior peer's
+    # scope active. Immediate table labels and dated notes were handled above.
+    return "section_label"
 
 
 def _should_promote_deferred_bracket_heading(heading: str, section_path: str) -> bool:
@@ -550,10 +623,29 @@ def _push_heading(stack: List[str], heading: str, section_path: str = "") -> Lis
         return list(stack)
 
     next_stack = _prepare_stack_for_heading(stack, normalized, section_path)
+    bracket_indices = [i for i, value in enumerate(next_stack) if _BRACKET_HEADING_RE.match(value)]
+    if _BRACKET_HEADING_RE.match(normalized):
+        # A named subsection belongs to the observed numbered parent. Its next
+        # named peer replaces it, rather than discarding that parent as level 2.
+        if bracket_indices:
+            next_stack = next_stack[:bracket_indices[-1]]
+        return [*next_stack, normalized]
+
     level = _infer_heading_level(normalized)
+    floor = 0
+    if bracket_indices:
+        bracket_index = bracket_indices[-1]
+        outer = next_stack[:bracket_index]
+        if any(_infer_heading_level(value) >= level for value in outer):
+            # Returning to an observed parent level closes its named children.
+            next_stack = outer
+        else:
+            # Without an observed outer peer, numbered headings remain children
+            # of the named subsection; do not infer a scope reset from its name.
+            floor = bracket_index + 1
     next_levels = [_infer_heading_level(value) for value in next_stack]
 
-    while next_levels and next_levels[-1] >= level:
+    while len(next_levels) > floor and next_levels[-1] >= level:
         next_levels.pop()
         next_stack.pop()
 
@@ -622,7 +714,9 @@ def _soft_heading_path(stack: List[str]) -> Optional[str]:
         return headings[0]
     if len(headings) == 2:
         return " > ".join(headings)
-    return f"{headings[0]} > {headings[-1]}"
+    # Preserve a named owner between a numbered parent and its numbered child.
+    middle = [value for value in headings[1:-1] if _BRACKET_HEADING_RE.match(value)]
+    return " > ".join([headings[0], *middle, headings[-1]])
 
 
 def _build_reference_index(raw_sections: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -737,6 +831,9 @@ class FinancialParser:
         context_prefix: Optional[str] = None,
     ) -> Dict[str, Any]:
         header_context = self._extract_table_header_context(table_text)
+        if table_object is not None and "header_row_count" in table_object:
+            header_context = _normalize(format_table_grid(
+                table_object["grid"][:table_object["header_row_count"]]))
         row_labels_text = ""
         summary_text = header_context or table_text[:400]
         table_row_count = 0
@@ -804,7 +901,9 @@ class FinancialParser:
                     seen_value_labels.add(line)
                     value_label_lines.append(line)
                 table_value_labels_text = "\n".join(value_label_lines)
-            header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
+            header_row_count = table_object.get("header_row_count")
+            if header_row_count is None:
+                header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
             RowRecord = _row_record_model()
             TableObject = _table_object_model()
             ValueRecord = _value_record_model()
@@ -826,6 +925,9 @@ class FinancialParser:
                 values=[ValueRecord(**record) for record in table_value_records],
                 table_header_context=header_context or "",
                 table_summary_text=summary_text,
+                source_table_locator=table_object.get("source_table_locator", ""),
+                source_contexts=table_object.get("source_contexts", []),
+                header_scope_source=table_object.get("header_scope_source", "inferred"),
             )
             table_object_json = table_model.model_dump_json()
         return {
@@ -848,61 +950,140 @@ class FinancialParser:
             "table_has_spans": table_has_spans,
         }
 
+    def _extract_plain_heading_parts(self, paragraph_elem, raw_text: str):
+        """Locate explicit headings without applying structured prose splitting.
+
+        Keep the entire source text, including newly recognized heading text, in
+        body segments. Heading events only establish boundaries and provenance.
+        Whole bracket captions are handled by the caller's existing contract.
+        """
+        events: Dict[int, Dict[str, Any]] = {}
+
+        def observe(text: str, offset: int, *, bracket_prefix: bool = False,
+                    preserve_existing: bool = False):
+            candidate = _normalize(text)
+            prefix = re.match(r"\s*(\[[^\]\r\n]+\])", text) if bracket_prefix else None
+            if prefix:
+                candidate = prefix.group(1)
+            elif (
+                "\n" in candidate or candidate.endswith((".", "。", ";"))
+                or re.match(r"^\d{4,}\.", candidate)
+                or not _looks_like_local_heading(candidate)
+            ):
+                return
+            span = source_text_span(raw_text, candidate, offset, offset + len(text))
+            if span is not None and (not preserve_existing or span[0] not in events):
+                events[span[0]] = {"kind": "heading", "text": candidate, "source_span": span}
+
+        # A bracket at the start of a paragraph may share the paragraph with its
+        # body. Numbered unformatted headings must occupy the whole paragraph.
+        observe(raw_text, 0, bracket_prefix=True)
+        # A heading can be written directly in a bold P, while its body is
+        # carried by child SPANs. Keep existing SPAN heading eligibility separate.
+        paragraph_bold = False
+        for mark in paragraph_elem.get("USERMARK", "").split():
+            if mark in {"B", "!B"}:
+                paragraph_bold = mark == "B"
+        if paragraph_bold:
+            observe(paragraph_elem.text or "", 0, bracket_prefix=True, preserve_existing=True)
+        offset = len(paragraph_elem.text or "")
+        for child in paragraph_elem:
+            child_text = "".join(child.itertext())
+            if child.tag == "SPAN" and "B" in child.get("USERMARK", ""):
+                observe(child_text, offset, bracket_prefix=True)
+            elif child.tag == "SPAN" and paragraph_bold:
+                observe(child_text, offset, bracket_prefix=True, preserve_existing=True)
+            if paragraph_bold:
+                # A child's tail belongs to its parent P, including its style.
+                observe(child.tail or "", offset + len(child_text), bracket_prefix=True, preserve_existing=True)
+            offset += len(child_text) + len(child.tail or "")
+        if not events:
+            return None, [{"kind": "text", "text": _normalize(raw_text), "source_span": [0, len(raw_text)]}]
+
+        parts = []
+        positions = sorted(events)
+        if raw_text[:positions[0]].strip():
+            parts.append({"kind": "text", "text": _normalize(raw_text[:positions[0]]),
+                          "source_span": [0, positions[0]]})
+        for index, start in enumerate(positions):
+            end = positions[index + 1] if index + 1 < len(positions) else len(raw_text)
+            parts.append(events[start])
+            parts.append({"kind": "text", "text": _normalize(raw_text[start:end]), "source_span": [start, end]})
+        if parts[0]["kind"] == "heading":
+            return [parts[0]], parts[1:]
+        return None, parts
+
     def _extract_paragraph_heading_parts(
         self,
         paragraph_elem,
         structured: bool,
-    ) -> Tuple[Optional[List[str]], List[Dict[str, Any]]]:
+    ) -> Tuple[Optional[List[Dict[str, Any]]], List[Dict[str, Any]]]:
+        raw_text = "".join(paragraph_elem.itertext())
+
+        def heading_parts(value: str, start: int, end: int) -> List[Dict[str, Any]]:
+            located = []
+            for heading in _split_compound_heading_text(value):
+                span = source_text_span(raw_text, heading, start, end)
+                located.append({"kind": "heading", "text": heading, "source_span": span})
+                if span is not None:
+                    start = span[1]
+            return located
+
         if not structured:
-            combined = _normalize("".join(paragraph_elem.itertext()))
+            combined = _normalize(raw_text)
             if not combined:
                 return None, []
             if _BRACKET_HEADING_RE.match(combined):
-                return [combined], []
-            return None, [{"kind": "text", "text": combined}]
+                return heading_parts(combined, 0, len(raw_text)), []
+            return self._extract_plain_heading_parts(paragraph_elem, raw_text)
 
         parts: List[Dict[str, Any]] = []
+        offset = 0
 
         def append_text(value: Optional[str]):
+            nonlocal offset
+            start = offset
+            offset += len(value or "")
             normalized = _normalize(value or "")
             if normalized:
-                parts.append({"kind": "text", "text": normalized})
-
-        def append_heading(value: Optional[str]):
-            normalized = _normalize(value or "")
-            if not normalized:
-                return
-            for heading in _split_compound_heading_text(normalized):
-                parts.append({"kind": "heading", "text": heading})
+                parts.append({"kind": "text", "text": normalized, "source_span": [start, offset]})
 
         append_text(paragraph_elem.text)
         for child in paragraph_elem:
-            candidate = _normalize("".join(child.itertext()))
+            child_text = "".join(child.itertext())
+            candidate = _normalize(child_text)
+            start, end = offset, offset + len(child_text)
             usermark = child.get("USERMARK", "") if hasattr(child, "get") else ""
             if child.tag == "SPAN" and "B" in usermark:
                 inline_split = _split_inline_heading_body(candidate)
                 if inline_split:
                     headings, body_text = inline_split
                     for heading in headings:
-                        parts.append({"kind": "heading", "text": heading})
-                    append_text(body_text)
+                        located = heading_parts(heading, start, end)
+                        parts.extend(located)
+                        if located[-1]["source_span"] is not None:
+                            start = located[-1]["source_span"][1]
+                    parts.append({"kind": "text", "text": body_text, "source_span": [start, end]})
+                    offset = end
                 elif _looks_like_local_heading(candidate):
-                    append_heading(candidate)
+                    parts.extend(heading_parts(candidate, start, end))
+                    offset = end
                 else:
-                    append_text("".join(child.itertext()))
+                    append_text(child_text)
             else:
-                append_text("".join(child.itertext()))
+                append_text(child_text)
             append_text(child.tail)
 
         if not parts:
             return None, []
 
         grouped: List[Dict[str, Any]] = []
-        pending_text: List[str] = []
+        pending_text: List[Dict[str, Any]] = []
 
         def flush_text():
             if pending_text:
-                grouped.append({"kind": "text", "text": _normalize(" ".join(pending_text))})
+                grouped.append({"kind": "text", "text": _normalize(" ".join(p["text"] for p in pending_text)),
+                                "source_span": [pending_text[0]["source_span"][0], pending_text[-1]["source_span"][1]]})
                 pending_text.clear()
 
         for part in parts:
@@ -910,16 +1091,23 @@ class FinancialParser:
                 flush_text()
                 grouped.append(part)
             else:
-                pending_text.append(part["text"])
+                pending_text.append(part)
         flush_text()
 
         if len(grouped) == 1 and grouped[0]["kind"] == "text":
             inline_split = _split_inline_heading_body(grouped[0]["text"])
             if inline_split:
                 headings, body_text = inline_split
-                return headings, [{"kind": "text", "text": body_text}]
+                start, end = grouped[0]["source_span"]
+                located = []
+                for heading in headings:
+                    pieces = heading_parts(heading, start, end)
+                    located.extend(pieces)
+                    if pieces[-1]["source_span"] is not None:
+                        start = pieces[-1]["source_span"][1]
+                return located, [{"kind": "text", "text": body_text, "source_span": [start, end]}]
             if _looks_like_local_heading(grouped[0]["text"]):
-                return _split_compound_heading_text(grouped[0]["text"]), []
+                return heading_parts(grouped[0]["text"], *grouped[0]["source_span"]), []
 
         promoted: List[Dict[str, Any]] = []
         idx = 0
@@ -932,19 +1120,18 @@ class FinancialParser:
                 and _looks_like_local_heading(grouped[idx + 1]["text"])
             ):
                 promoted.append(part)
-                for heading in _split_compound_heading_text(grouped[idx + 1]["text"]):
-                    promoted.append({"kind": "heading", "text": heading})
+                promoted.extend(heading_parts(grouped[idx + 1]["text"], *grouped[idx + 1]["source_span"]))
                 idx += 2
                 continue
             promoted.append(part)
             idx += 1
 
-        leading_headings: List[str] = []
+        leading_headings: List[Dict[str, Any]] = []
         body_segments: List[Dict[str, Any]] = []
         saw_body = False
         for part in promoted:
             if not saw_body and part["kind"] == "heading":
-                leading_headings.append(part["text"])
+                leading_headings.append(part)
                 continue
             if part["kind"] == "text":
                 saw_body = True
@@ -972,6 +1159,7 @@ class FinancialParser:
             soft_heading_path=_soft_heading_path,
             build_table_object=self._build_table_object,
             extract_standalone_table_context_hint=_extract_standalone_table_context_hint,
+            extract_table_unit_suffix=_extract_table_unit_suffix,
             build_table_context_bundle=self._build_table_context_bundle,
             extract_paragraph_heading_parts=self._extract_paragraph_heading_parts,
             is_single_bracket_heading=lambda text: bool(_BRACKET_HEADING_RE.match(text)),
@@ -1114,6 +1302,7 @@ class FinancialParser:
             return []
 
         reference_index = _build_reference_index(raw_sections)
+        bind_document_contexts(raw_sections, hashlib.sha256(Path(file_path).read_bytes()).hexdigest())
 
         chunks: List[DocumentChunk] = []
         chunk_id = 0
@@ -1168,6 +1357,8 @@ class FinancialParser:
                 }
                 if period_labels:
                     metadata["period_labels"] = period_labels
+                if chunk_block.get("source_contexts_json"):
+                    metadata["source_contexts_json"] = chunk_block["source_contexts_json"]
                 reference_paths = _extract_reference_section_paths(chunk_block["text"], reference_index)
                 if reference_paths:
                     metadata["reference_section_paths"] = reference_paths

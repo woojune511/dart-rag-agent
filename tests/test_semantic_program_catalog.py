@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 
 from tests.semantic_program_test_support import *
 
@@ -31,7 +32,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         self.assertEqual([item["raw_value"] for item in numeric], ["343", "380"])
         self.assertTrue(all(item["context_fingerprint"].startswith("table-a") for item in numeric))
 
-    def test_table_period_focus_and_labels_reach_candidate_without_entering_identity(self) -> None:
+    def test_unbound_table_period_labels_remain_hints_without_entering_identity(self) -> None:
         source = {
             "candidate_id": "table-row",
             "source_anchor": "[sample | 2023 | notes]",
@@ -66,11 +67,11 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         )
 
         self.assertEqual(candidate["candidate_id"], rebuilt["candidate_id"])
-        self.assertEqual(candidate["period"], "2022")
-        self.assertEqual(candidate["value_year"], 2022)
-        self.assertEqual(candidate["period_role"], "prior")
+        self.assertEqual(candidate["period"], "")
+        self.assertIsNone(candidate["value_year"])
+        self.assertEqual(candidate["period_role"], "")
         self.assertEqual(candidate["period_label_surfaces"], ["prior period"])
-        self.assertEqual(candidate["period_source"], "table_period_focus")
+        self.assertEqual(candidate["period_source"], "source_surface_unresolved")
         self.assertEqual(candidate["table_context"], "investment note")
 
     def test_candidate_stage_diagnostics_distinguish_three_generic_loss_stages(self) -> None:
@@ -436,7 +437,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
                 for item in numeric
             )
         )
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -720,7 +721,8 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
             semantic_candidate_catalog_fingerprint(second_catalog),
         )
         target = next(item for item in first_numeric if item["raw_value"] == "26")
-        self.assertEqual(target["physical_table_id"], table_source_id)
+        self.assertEqual(target["table_source_id"], table_source_id)
+        self.assertTrue(target["physical_table_id"].startswith("physical_table_v1_"))
         self.assertEqual(target["physical_row_id"], "2:0")
         self.assertEqual(target["physical_cell_id"], "2:0:2")
         self.assertEqual(
@@ -750,9 +752,13 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
             },
         )
 
-    def test_canonical_operand_projection_resolves_local_unit_and_current_period(self) -> None:
+    def test_canonical_operand_projection_preserves_unit_identity_without_inventing_period(self) -> None:
         fixture = _contract_residual_fixture()["canonical_operand_projection"]
         expected = fixture["expected_after_repair"]
+        # The historical fixture supplied only parser focus, not located period
+        # evidence. Keep its identity/unit/subject checks, without a year claim.
+        for owner in fixture["obligations"]:
+            owner["scope"]["period"] = ""
         catalog = build_semantic_candidate_catalog([fixture["source_candidate"]])
         numeric = {
             tuple(item.get("column_headers") or []): item
@@ -784,22 +790,22 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         )
         self.assertEqual(
             [share["period"], amount["period"]],
-            [expected["period"], expected["period"]],
+            ["", ""],
         )
         self.assertEqual(
             [share["value_year"], amount["value_year"]],
-            [expected["value_year"], expected["value_year"]],
+            [None, None],
         )
         self.assertEqual(
             [share["period_source"], amount["period_source"]],
-            [expected["period_source"], expected["period_source"]],
+            ["source_surface_unresolved", "source_surface_unresolved"],
         )
         self.assertEqual(
             [share["source_period_surface"], amount["source_period_surface"]],
             ["ownership share", "carrying amount"],
         )
 
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -838,7 +844,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         self.assertEqual(operands[share["candidate_id"]]["subject"], expected["subject"])
         self.assertEqual(
             operands[share["candidate_id"]]["subject_source"],
-            "candidate_row_identity",
+            "compiler_source_interpretation",
         )
 
     def test_pipe_table_rows_preserve_local_value_association_without_structured_metadata(self) -> None:
@@ -968,7 +974,7 @@ class SemanticCalculationProgramCatalogTests(unittest.TestCase):
         expected = fixture["same_row_expected"]
 
         self.assertEqual(candidate.get("row_headers"), expected["row_headers"])
-        execution = execute_semantic_calculation_program(
+        execution = execute_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [

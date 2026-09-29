@@ -5,13 +5,14 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
 
 from src.config.retrieval_policy import (
     KOREAN_COUNT_SCALE_PREFIXES,
     KOREAN_COUNT_UNITS,
     KOREAN_WON_COMPACT_FORMAT_POLICY,
     NUMERIC_UNIT_NORMALIZATION_POLICY,
+    TABLE_COLUMN_UNIT_POLICY,
 )
 
 
@@ -174,6 +175,94 @@ def resolve_source_numeric_unit(raw_value: str, source_unit_hint: str) -> tuple[
     if hinted_unit:
         return hinted_unit, "cell_or_table_hint"
     return "", "unknown"
+
+
+def resolve_structured_source_unit(
+    raw_value: str,
+    source_unit_hint: str,
+    *,
+    column_headers: Sequence[str] = (),
+    row_headers: Sequence[str] = (),
+    source_contexts: Sequence[Mapping[str, Any]] = (),
+) -> tuple[str, str, dict[str, Any]]:
+    """Resolve column units without changing inherited parser/identity material."""
+    unit, origin = resolve_source_numeric_unit(raw_value, source_unit_hint)
+    if origin == "inline_value":
+        return unit, origin, {}
+    policy = TABLE_COLUMN_UNIT_POLICY
+
+    def options(surface: str) -> list[str]:
+        return [part.strip() for part in re.split(
+            policy["unit_separator_pattern"], surface, flags=re.I
+        ) if part.strip()]
+
+    def distinct(surfaces: Sequence[str]) -> dict[tuple[str, float], str]:
+        units = {}
+        for surface in sorted(set(surfaces)):
+            spec = resolve_unit_spec(surface)
+            if spec:
+                units.setdefault((spec.normalized_dimension, spec.scale), surface)
+        return units
+
+    def explicit_units(header: str, *, allow_bare: bool = True) -> dict[tuple[str, float], str]:
+        return distinct((options(header) if allow_bare else []) + [
+            part for group in re.findall(policy["header_unit_pattern"], header)
+            for part in options(group)
+        ])
+
+    declarations: list[str] = []
+    contexts: list[dict[str, str]] = []
+    for context in source_contexts:
+        if context.get("relation") not in policy["context_relations"]:
+            continue
+        for match in re.finditer(policy["declaration_pattern"], str(context.get("source_text") or ""), re.I):
+            declarations.extend(options(match.group("units")))
+            contexts.append({"context_id": str(context.get("context_id") or ""), "evidence_text": match.group(0)})
+    declared = distinct(declarations)
+    mixed = len(declared) > 1 or (
+        len(set(declarations)) > 1 and any(resolve_unit_spec(s) is None for s in declarations)
+    )
+    provenance = {
+        "context_ids": sorted({c["context_id"] for c in contexts if c["context_id"]}),
+        "declarations": sorted(contexts, key=lambda c: (c["context_id"], c["evidence_text"])),
+        "declared_units": sorted(set(declarations)),
+    }
+
+    def resolved(
+        choices: dict[tuple[str, float], str], source: str, header: str,
+    ) -> tuple[str, str, dict[str, Any]]:
+        # Multiple dimensions/scales are not interchangeable even within a family.
+        if len(choices) == 1:
+            return next(iter(choices.values())), source, {**provenance, "column_header": header}
+        return "", "ambiguous_column_unit", {**provenance, "column_header": header}
+
+    row_units: dict[tuple[str, float], str] = {}
+    for raw_header in reversed(row_headers):
+        header = _normalise_spaces(str(raw_header))
+        # A row can name a currency category while its amounts use the table unit.
+        # Only a unit annotation, not a bare category label, overrides that hint.
+        row_units = explicit_units(header, allow_bare=False)
+        if row_units:
+            provenance["row_header"] = header
+            break
+
+    for raw_header in reversed(column_headers):
+        header = _normalise_spaces(str(raw_header))
+        dimensions = {dimension for group in policy["column_groups"]
+                      if header.casefold() in {label.casefold() for label in group["headers"]}
+                      for dimension in group["dimensions"]}
+        # Generic column labels select declared units; they do not reset a scale.
+        explicit = explicit_units(header, allow_bare=not dimensions)
+        if explicit:
+            return resolved({**row_units, **explicit}, "column_header_unit", header)
+        if mixed and not row_units and dimensions:
+            return resolved({key: value for key, value in declared.items() if key[0] in dimensions},
+                            "mixed_table_column", header)
+    if row_units:
+        return resolved(row_units, "row_header_unit", "")
+    if mixed:
+        return "", "ambiguous_column_unit", provenance
+    return unit, origin, {}
 
 
 def _normalise_operand_value(raw_value: str, raw_unit: str) -> tuple[Optional[float], str]:

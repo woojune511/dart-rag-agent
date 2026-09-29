@@ -1,146 +1,137 @@
 # Project Status
 
-Last updated: 2026-09-06
+Last updated: 2026-09-30
 
 ## Current implementation
 
-The product is the single-agent `FinancialAgent`, on `main`. The verified
-`codex/bounded-semantic-tiebreaker` source was fast-forwarded locally at
-`f46e331`. Contract repairs start from `5e13bc6`; the latest planner
-dependency-boundary fix is `af9a07e`.
-Public HTTP fields, `FinancialRunResultV1`, candidate identity inputs, catalog
-fingerprints, parser table structure, and stored formats remain compatible.
+The default API and Streamlit runtime is `SimpleRagAgent`, on
+`codex/reviewed-compiler-selection-gate`, adopted by explicit user direction from
+`2a926a6e`. [Decision and compatibility](../architecture/simple_rag_adoption.md).
+`FinancialAgent` is now an explicitly invoked compiled comparison/replay path.
 
-The implemented boundaries are:
+| Boundary | Application behavior |
+| --- | --- |
+| Request | Exact question and explicit caller report scope; no inferred company/year filters |
+| Retrieval | One existing hybrid search, scope before top-K and after retrieval |
+| Context | Whole source text/context, document-qualified IDs, 65,536-byte packet bound with omission reasons |
+| Generation | One structured answer call; empty evidence abstains without a call; no retry/Compiler fallback |
+| Validation | Response shape, source IDs and explicit metadata scope only |
+| Limitations | Arithmetic is not executed; semantic support and output coverage are not checked |
+| Response | Answer, cited source text, abstention and validation labels; empty compiler result/trace fields |
+| Observation | Optional JSON-native retrieval/review data, usage, timing and interrupted diagnostics |
 
-- Shared unit scales and source-preserving numeric display; canonical
-  KRW/USD/PERCENT/COUNT, signed composite amounts, USD lookups, and finite-value
-  checks use one normalizer contract.
-- Planner unit errors block only affected islands. Compiler format retries keep
-  candidates; explicit candidate conflicts carry exact replacement ownership.
-- Structured-output `null`/`none` sentinels normalize to blank only for optional
-  planner display/coupling text. Genuine unsupported units remain fail-closed.
-- `depends_on` is reserved for other answer obligations. Same-obligation raw
-  evidence requirement IDs are removed at planner projection, while known answer
-  dependencies, unknown IDs, and self references retain preflight validation.
-- `CompilationEnvelopeV2` checks full execution content before revalidation or
-  arithmetic. Existing visibility/program/validation checks remain independent.
-- Bundle-first selection retains adjacent source values and counts the actual
-  query-wide unique selectable IDs, including retry replacement.
-- Source-first output and separately labelled recomputation coexist.
-  Dependencies use calculated values; primary answer slots use display values.
-- Formula inputs retain their validated evidence-requirement label, period,
-  year, and role when projected into execution and evaluator operand rows.
-  Requirement-derived periods are marked separately from source period text.
-- Atomic payload-superset/graph-last persistence, failure propagation, strict
-  source coverage, and provider-free sidecar recovery replace partial publication.
-- Graph-source vector rebuilds use one expected store manifest for collection,
-  embedding, and ingest identity. The manifest is published only after health;
-  an interrupted side-by-side target stays unready and resumable.
-- API query/readiness snapshots share a lock. DB/ingest/readiness refresh work is
-  off the event loop. Health reads cached readiness only.
-- Concrete phase inputs/outputs replace the production full-state merge.
-  Numeric/narrative owners return facts; final assembly precedes ledger assembly.
-  `run()` does not rebuild the answer. TypedDicts are not immutability guarantees.
+Parser schema is v5; the local full11 successor store is compatible/ready=true. Embedding model identity is preserved. Application model construction
+uses only answer and ingest-context routes; compiler-only profile selection is
+rejected. The old Streamlit compiled-evaluation tab is removed. Comparisons remain
+separate; their [contract](../architecture/compiled_workflow_contract.md) is preserved.
 
-No role classifier, cross-encoder, metric-specific runtime branch, new provider
-call, source-store mutation, evaluator relaxation, or dataset correction is part
-of these repairs. MAS and Streamlit remain experimental, without physical moves.
+## Current verification
 
-## Local acceptance
+The [parser v5 adoption](../architecture/parser_v5_adoption.md) records the user-approved parser/tests/docs commit separately from the unchanged [answer regression](../evaluation/paragraph_heading_v5_answer_regression.md): core14/14,strict11/14,stable4/7 (absence-wording sensitivity12/14,still gate not met). Plain and paragraph-style heading ownership, table-body preservation and bounded separator parsing are adopted. The verified local full11 v5 store has15,608 chunks; source/metadata delivery fixes do not certify all headings or general answer accuracy. Remaining added-claim citation omissions and overbroad absence wording are separate follow-up items. No new provider calls,prompt tuning,store mutation or automatic rerun is authorized by this adoption.
 
-Python 3.13 is the verification interpreter.
+The [table-context preservation fix](../evaluation/table_context_hint_preservation.md) restores prose tables previously consumed as period/unit labels. Eleven original reports/473 sections preserve all19,408 prior block texts/headings and table grids;1,559 blocks are added, including four carbon-policy tables verified through chunking. Mixed captions retain their bodies and forward only explicit unit declarations.10 regression tests and full2,154 pass. At parser-fix completion, v3 store/.env were unchanged and readiness was mismatch; the subsequent v4 rebuild resolved that mismatch at its checkpoint; the v5 successor above now resolves the subsequent paragraph-style mismatch. At fix completion answer quality was NOT_RUN with no provider calls; the later v4 regression supplied bounded answer evidence for that version. Prior strict11/12 and v3 audit are historical, unchanged.
 
-- Numeric/compiler independent snapshot: full unittest `837 / 837`.
-- Persistence/API independent snapshot: focused + import/topology/docs `79 / 79`.
-- Final integrated source before provider replay: full unittest `874 / 874`.
-- Planner dependency successor: planner `5 / 5`, semantic contracts `164 / 164`,
-  import/topology `28 / 28`, full unittest `878 / 878`.
-- Post-fast-forward integration recheck: Python 3.14.5 full unittest
-  `878 / 878`; existing LangChain/Pydantic compatibility warnings only.
-- Python warning cleanup: the local environment now uses Python 3.13.13, API
-  first-body validation emits no Pydantic field-alias warning, and full unittest
-  discovery passes `879 / 879`.
-- Runtime domain audit: pass, `84` reviewed literals.
-- Import/topology, pycompile, and `git diff --check`: pass.
-- Tests inject failures into actual lower file writes, check same-process and
-  restart recovery, and prove no context/embedding calls during sidecar repair.
-- Actual graph-node tests check declared phase keys, unchanged inputs, and exact
-  public answer/structured-result/trace agreement with the final ledger artifact.
-- The graph-rebuild manifest seam passes 59/59 Python 3.13 adjacent tests,
-  runtime domain audit, pycompile, topology/import coverage, and diff checks.
-- The operand-projection seam passes 135/135 semantic focused tests and the
-  three-case provider-free replay. The reviewed T2 operands now retain their
-  2023/2022 requirement context, moving deterministic operand selection from
-  `0.0` to `1.0` without changing candidates, formula, answer, or evaluator;
-  the integrated Python 3.13 suite passes `880 / 880`.
-- The exact-trace seam passes semantic `106 / 106`, structural `24 / 24`, and
-  integrated Python 3.13 unittest `887 / 887`.
+The [offline release-readiness review](../operations/release_readiness_2026-09-30.md) is PASS_OFFLINE_REGRESSION:default API/Streamlit construction ignores experimental caption sidecars;only an explicit `experimental_caption_links_path` enables the preserved comparison path. A red default-isolation test now passes;focused64/full2,177 tests and35-literal domain audit pass. Read-only store inspection finds compatible/ready metadata and15,608 matching graph/vector-record IDs across11 filings. Provider calls/cost0;source store and prior experiment evidence unchanged. Caption adoption remains COMPLETE_GATE_NOT_MET;the saved citation-criteria review remains diagnostic,not new accuracy. Existing source dependencies are classified together;no staging,commit,push,deployment or new paid evaluation. The subsequent [commit packaging review](../operations/commit_packaging_2026-09-30.md) prepares two ordered patches (9 code/test/contract files,67 record files);a Git-only source export passes64 focused tests and domain audit using installed dependencies. Actual index/HEAD unchanged;commit,push,fresh dependency install and remote CI NOT_RUN.
 
-New local outputs under `benchmarks/results/` are not committed.
+The [full11 store activation](../operations/full11_store_activation_2026-09-29.md) is PASS_ACTIVATED by subsequent user authorization, separate from the unchanged strict11/12 answer gate. Only two local dotenv store settings changed. Actual FastAPI startup/readiness and11 companies/2023 reports/14005 chunks pass; six actual hybrid searches with saved exact-query embeddings find all required witnesses. At activation there were no provider calls or persistent server; the subsequent v4 and current v5 successors are separate checkpoints.762 protected files unchanged; target SQLite bytes changed on open while sidecars/index bytes stayed unchanged. Rollback records preserve previous settings.
 
-## Read-only saved-case replay
+The [heading delivery verification](../evaluation/heading_scope_delivery_verification.md) confirms the existing parser correction through persisted graph/table metadata, actual temporary Chroma reopen, dense/BM25/RRF, alternating cached queries and SimpleRagAgent packets. Three new integration tests fail with the pre-fix HEAD parser and pass with current code; focused58 pass. KB/Samsung original table bodies are unchanged, and corrected headings match the rebuilt store and four saved real provider requests. That delivery check made no additional product-code changes, provider calls, source-store writes or app activation; the separate citation gate remains unmet.
 
-`src.ops.replay_runtime_contract_cases` reads immutable result and source JSON
-without constructing a provider, vector store, agent, or benchmark runner.
-All three complete catalog IDs/fingerprints verify; original input SHA-256 values
-are unchanged after replay.
+The [new-store answer regression](../evaluation/heading_scope_answer_regression.md) is COMPLETE_ACTIVATION_GATE_NOT_MET: six exposed questions x two actual SimpleRagAgent calls on an identical store copy. Required evidence and core answers12/12; strict cited support11/12 (5/6 then6/6), stable strict5/6. KB/Samsung target confusion is absent and four prior successes hold twice; first KB answer adds correct domestic ratings from a delivered but uncited source.12 answers+12 fresh query embeddings, no errors/retries/omissions; conservative USD0.24016150/6, application batch60.77s.35 focused tests,12 blocked-network rehearsals and3 fault controls pass;963 protected files verify. At that regression stage, no product/prompt changes, app activation or paid follow-up occurred; activation was subsequently authorized separately above. Not a heading-only causal comparison or independent accuracy claim.
 
-| Case | Provider-free result | Claim limit |
-| --- | --- | --- |
-| T2 | `11.5% (재계산값 11.4%)`; calculated value `11.395646606914212` | A copy explicitly selects the already-visible source display |
-| T3 | `26%`, `700,691백만원`, and the existing four-value narrative | Saved program bytes, physical rows, and evidence remain unchanged |
-| Samsung | `28,352,769백만원` plus the existing narrative | A copy restores the recorded first binding and first-attempt authority |
+The [fresh rank-gate validation](../evaluation/rank_gate_validation_result.md) completed60 generations+8 query embeddings, no live errors/retries/NOT_RUN, estimated USD1.904832/20,195.73s. Eight new source-authored positives+2 dependent removal controls, two repetitions. Frozen disagreement>6/7 calls only G03; both paths pass it twice. RRF/conditional positives6–7/8 then7/8, always-selector7/8 twice; G07 first RRF18.9% vs exact18.950342% remains precision-undetermined because rounding/truncation tolerance was not preregistered. G02 all four answers misattribute KB Financial ratings to KB Life; original heading/context conflict recorded, causal metadata effect not isolated. Controls2/2 each repeat, zero requested-value fabrication. No confirmed stable benefit; even strict-rounding sensitivity yields only one missed G07 benefit. Progression fails. Conditional estimated USD0.487708 vs RRF0.372364 (+31.0%) and always1.532576. Nine contract tests/10 fault controls,60 request reconstructions and zero packet omissions; runtime/old artifacts unchanged, authority consumed.
 
-Both modified programs are labelled counterfactual. These checks prove
-validator/executor/display behavior, not that a new LLM will select the same
-program. Receipt: `benchmarks/results/runtime_contract_provider_free_replay_2026-09-05/replay_final.json`.
-Synthetic actual-node tests separately verify ledger integrity; the replay is
-not an evaluator or release run.
+The [selector-call audit](../evaluation/selector_call_audit.md) is COMPLETE_OFFLINE_NOT_ADOPTED. Saved strict-supported/nonabstaining outcomes: development never3/12, always9/12, oracle9/12 with6 calls; separate panel never11/12, always11/12, oracle12/12 with1 call. One unlabeled-development-median dense/BM25 disagreement rule calls4/12 development (5 passes, misses4/6 primary wins, induces1 core/evidence regression),2/12 separate (12 passes, N02 improvement/N05 tie). Separate saved estimated costs USD0.256140 never,0.416701 rule,1.067338 always; not new paid evaluation or validated routing. Both panels exposed, all candidate pools have sufficient evidence per at least one saved arm; no corpus-insufficient cases. Nine blocked-network tests and1,204 protected inputs verify. No provider/embedding calls, runtime router or automatic follow-up.
 
-The 2026-09-06 successor also verifies formula-input trace metadata and reports
-T2 operand selection `1.0`. A generic exact-trace audit then loaded 11 distinct
-saved plans: all 9 current-schema variants replayed (`6 ready/ok`,
-`3 partial/partial`), while 2 old structured outputs were explicitly skipped.
-These are only 3 unique questions. Reversed input order produced byte-identical
-receipts (`9901c8fc...e9180`) without provider/compiler calls or store writes;
-this expands runtime trace coverage, not compiler or question coverage.
+The [lossless structural catalog audit](../evaluation/structural_selection_feasibility.md) is COMPLETE_OFFLINE_NO_GO. All text/context/IDs/order preserved on24 saved inputs (785 candidate occurrences);12 blocked-network tests,34 old anchor controls and21 separate-panel witness occurrences pass. Local request tokens decrease3.53% on development12 and7.74% on separate N01–N12, below frozen50% gate. No cross-panel source-ID overlap, but familiar/exposed reports, not independent holdout. No provider/embedding/ingest calls, runtime change or automatic follow-up; model quality/cost NOT_RUN.2,261 input hashes protected. This successor resolves truncation loss mechanically, not model interpretation or high selector cost.
 
-## Provider status and next gate
+The [compact-selection feasibility audit](../evaluation/compact_selection_feasibility.md) is COMPLETE_OFFLINE_NO_GO: six exposed questions x flat/table,391 candidate occurrences, local paired request tokens750,537→338,938 (-54.8%). Representative candidate clues are lost in9/12 inputs; this is not model accuracy or exhaustive pool coverage. Nine network-blocked contract tests pass; original IDs/order,1,685 exact spans and full-source rehydration verify. No provider/embedding/ingest calls, paid comparison or runtime changes. Frozen v1 rejected without post-review tuning. A historical SKH DRAM witness annotation points to raw-material share; actual selected654:2 supports DRAM share. Old scores/artifacts remain unchanged; see report for limits.
 
-The defined source-consistent runtime release gate is `3 / 3 PASS`. Immutable
-`HYU_T3_072` and `SAM_T2_078` successes are carried by exact artifact hashes;
-the final row was confirmed by admission `0f0c0d52...0445`, consumed once on
-clean commit `58551c7`.
+The [header-link reader pilot](../evaluation/header_link_pilot_result.md) completed64/64 calls: A original and B original plus mechanical column/header links both pass12/12 positive questions and4/4 dependent missing-source controls in each of two repetitions. Stable B wins0, regressions0; progression gate not met. B input tokens+17.4%, conservative cost+14.5%; total USD0.846894,183.26s. Fixed gold-containing context on four familiar reports, not retrieval or independent/new-report evaluation. H16 refuses the requested values but adds correctly distinguished supported average-balance calculations. No production adoption, tuning or follow-up; one-run authority consumed. Original sources, runtime and previous experiment outputs preserved.
 
-OpenAI-store-fixed `HYU_T2_010` completed both obligations with runtime error `0`
-and ledger `ok`. Numeric `ob_001` selected `87.0만 대`, `78.1만 대`, and source
-display `11.5%`; it retained deterministic value `11.395646606914212` as the
-labelled recalculation `11.4%`. Narrative `ob_002` selected
-`cand_bbd863eb396fa724d814`. The final answer has faithfulness/completeness
-`1.0 / 1.0`, four selected candidates, two outputs, and no missing obligation.
+The [new-question selector comparison](../evaluation/semantic_selection_new_questions_result.md) completed12/12 pairs with36 generations and12 query embeddings, no errors/retries/NOT_RUN. Both arms delivered sufficient evidence12/12; frozen supported-complete criteria11/12 RRF versus11/12 LLM selection (explicit-question sensitivity11/12 versus12/12). One period-reading improvement and one rubric-sensitive answer omission, not retrieval recovery. Average sources8.00→1.92; workflow cost4.17x/time1.57x, total estimated USD1.32334789 and151.31s. Four familiar reports, source-authored non-independent positive-only panel. Actual candidate/answer omissions0;12 search/12 selection/24 answer packets and790 protected hashes verify. No production adoption or post-result tuning; one-run authority consumed.
 
-Both island preflights had zero errors, confirming `af9a07e`. The numeric island
-used the permitted one internal retry to correct source-assertion structure while
-keeping the same cohort; the narrative island and runner process were not
-retried. There was no fresh fetch, parse, ingest, document embedding, or source
-mutation.
+The [chunk-reference ledger batch](../evaluation/agentic_ledger_chunk_refs_result.md) completes6/6 with22 generations and6 query embeddings, zero execution errors/retries/NOT_RUN. Source_id+note replaces coordinates/duplicated quotes; validation is chunk linkage, not exact spans/semantics/arithmetic. Kakao decline survives; Celltrion merger total is recovered; Samsung misses Welstory and omits delivered joint liability; SKH retrieves correct operands but computes -1,480,004 instead of -332,236 million, regressing a prior success. Current core-content1/5→2/5 after search, historical final3/5→2/5; corpus-omission control remains partial/abstained=false. Exposed assistant review, no causal or general accuracy claim. USD1.25090466,164.50s; historical workflow cost1.05x/time1.45x.12 decisions/10 answers/6 search traces/61 chunk references and2,078 protected files verify. Authority consumed; no post-result tuning or product adoption.
 
-The process exited zero in `118.936s`, with 7 total LLM calls / 71,359 tokens and
-11 query / 0 document embedding calls. Recorded non-embedding cost is USD
-`0.0664263`; actual billing and embedding cost are unavailable. Source store is
-unchanged at `6231cd8e...24e9`, no disposable store remains, root result SHA-256
-is `a765a132...0ad9`, and ignored receipt SHA-256 is `4dd004f2...a3b4`.
+The [single-selection live batch](../evaluation/agentic_ledger_single_selection_live_result.md) stopped on the first decision:0 completed,1 ERROR,5 NOT_RUN. Provider/JSON completed, but an existing visible source selected pieces1–11 (11 pieces) over the per-reference maximum8. Five of six references pass physical validation; this is a span-length contract error, not missing coordinates or duplicate selection. One generation, zero search/answer calls; conservative USD0.127243,11.27s. No retry/repair/resume; one-run authority consumed.1,753 protected files verify. Answer quality remains NOT_RUN, with production and historical outputs unchanged.
 
-`numeric_final_judgement=null` is N/A for this mixed question and is not a
-runtime failure because numeric execution, faithfulness, completeness, retrieval,
-error rate, and ledger are healthy. The admission is exhausted; no further
-provider retry is authorized or needed for this release gate.
+The [single-selection successor](../evaluation/agentic_ledger_single_selection.md) removes model-owned selected_ids from the isolated ledger experiment: code derives unique sources from evidence and qualifications for retention and answer delivery.24 contract tests,42 blocked-network mock calls and15 fault/scope controls pass;18 decisions/12 answers/12 search traces reconstruct. Eight new-candidate omissions, zero retained-source omissions.1,438 protected files and prior1,043/394 manifest/seal hashes verify. No fresh provider calls, live entry disabled, quality NOT_RUN; old failures remain unchanged. This completes the authorized offline contract work, not a new evaluation or default-app adoption.
 
-Deferred: formula-wide rounding-error propagation. T3 dataset/evaluator
-governance completed on 2026-09-03; runtime and dataset ownership remain
-separate, and tolerances and faithfulness policy are unchanged.
+The [addressed-ledger live result](../evaluation/agentic_ledger_addressed_result.md) completed3 cases then rejected the fourth because a visible, valid ledger reference was absent from selected_ids; two remaining cases are NOT_RUN.13 generation +4 query-embedding calls, USD1.06809,138.51s, no retry/resume. Kakao preserved the decline qualification, Samsung retained uncertainty/joint liability but still missed Welstory, and Celltrion falsely declared sufficiency without total consideration. Completed-case historical cost1.47x, phase time1.91x; not a full six-case comparison or adoption result.7 decisions/5 answer requests/4 searches and53 accepted references reconstruct;1,043 protected files unchanged. This successor is now consumed/sealed. The earlier [quote-ledger failure](../evaluation/agentic_ledger_result.md), USD0.1261835, remains separate. Production stays SimpleRagAgent; no automatic follow-up batch.
 
-See [runtime contract](../architecture/agent_runtime_contract.md),
-[checked topology](runtime_flow_roles.md), and
-[experiment history](../history/experiment_history.md).
+The [bounded Agentic search comparison](../evaluation/agentic_search_result.md) completed six exposed table cases with21 generation and5 query-embedding calls, no retry/error/NOT_RUN. Celltrion total consideration is recovered; Kakao gains acquisition figures but loses a decline qualification; Samsung stops while missing Welstory litigation; the corpus-omission control remains partial with abstained=false. Two controls share unchanged initial answers by design. Estimated USD1.21970122/15; workflow cost1.85x and recorded phase time1.42x fixed-evidence selection. KAK completeness sensitivity is explicit. Production remains SimpleRagAgent; the prototype and traces are local experiment artifacts, with no automatic follow-up run.
+
+The [fixed-pool selection comparison](../evaluation/fixed_pool_selection_result.md) completed36 calls once on six exposed discordant questions x A/C (12 inputs): provided-evidence sufficiency6/12→11/12, core content6/12→11/12, strict all-claim/citation support3/12→10/12 (9/12 also nonabstaining). Six missing evidence components recovered, but one previous-success input regressed by dropping current-period evidence. Fresh RRF answers differ from historical outputs; Samsung separate-scope acceptance and unsupported-rounding sensitivity are disclosed. Estimated USD1.9092735/12, no retries/errors/NOT_RUN; selection+answer cost4.04x RRF answer cost. No production adoption, prompt tuning or automatic full rerun.
+
+The offline [full77 failure-boundary audit](../evaluation/structure_full77_failure_boundaries.md) traces all77 failed positive question/arm outputs:16 before candidates (14 reviewed source/component recall gaps and2 corpus omissions),39 useful required sources lost below top8,17 failures despite sufficient delivered evidence, and5 unresolved unit/row-linkage cases. Of39 representative selection witnesses,34 are BM25-only and5 dense-only. All231 saved RRF lists and actual request packets match;33 frozen corpora verify. These are failure locations, not77 independent questions or39 recovered answers. No new calls, runtime changes or rescoring; original sealed outputs remain intact.
+
+The user-requested [full77 three-arm ablation](../evaluation/structure_full77_result.md) completed231/231 once: flat/document/table correct-complete-cited-supported positives38/55,18/55,32/55; frozen-policy refusals17/19,17/19,18/19. Newly discovered HYU_T3_036 reference conflict is disclosed; excluding it gives38/54,18/54,31/54. Unit-support leniency changes B to26/55 but not ordering. Exposed-data assistant review, not independent gold; extraction/chunking/context jointly differ. All arms share receipt-level exact-dense/BM25/RRF; old77 outputs are not a reused arm. Estimated USD10.38216732 under consumed USD12 authority,664 HTTP calls, zero retries/errors/NOT_RUN. Raw3,153/frozen241/protected201/review-packet9 hashes verify; no production/runtime/dataset/store changes or post-result tuning. Preparation mocks/controls and the experiment-local regex adapter remain documented separately.
+
+The offline [question-type and paired-matrix analysis](../evaluation/structure_full77_question_types.md) preserves all231 judgments. C improves over B in four quantitative request groups and ties on narrative summaries; against A, only the four subtraction/difference cases favor C4/4 versus A3/4, driven by one FX case. A/C disagree on16 questions and required-evidence sufficiency also differs in15. Post-hoc exploratory labels, not preregistered/independent subgroup evidence; no fresh provider calls.
+
+The [full curated 77-question evaluation](../evaluation/simple_rag_full77_result.md) completed77/77 once across11 companies: positive answers30/55 meet correctness/completeness/source-support criteria, refusal18/19; three reference-scope conflicts are disclosed separately from the58 positive questions. Numeric15/20 and summary/mixed15/35 pass after those exclusions. Of25 positive failures,22 have insufficient provided evidence and3 fail despite sufficient evidence. This is assistant source review on a development-exposed self-curated dataset, not independent gold or holdout accuracy. Document/query embedding plus generation cost an estimated USD2.97644236 under the consumed USD5 cap; retries/errors/NOT_RUN0. Agent mean4.34s, evaluation wall413.51s excluding store preparation. Original inputs and1,364 raw JSON hashes verify; no post-result runtime/prompt tuning.
+
+The [final application evaluation](../evaluation/simple_rag_final_result.md) on `6083bf36` completed all12 frozen questions once: 9/9 answerable cases meet correctness/completeness/source-support criteria, safe abstention2/3 (deterministic1/1, model1/2). F11's abstention has an overbroad period explanation; F12 incorrectly substitutes an annual average for actual daily revenue. No positive retrieval miss was observed. This is assistant review on familiar NAVER2022/2023 filings, not independent gold or unseen-company performance. No post-result prompt/runtime tuning.
+
+The actual application service path used11 answer calls/12 embeddings, with errors/retries/unknown usage/NOT_RUN0. Question mean4.02s, generation-case mean4.37s, overall57.73s including startup; these local instrumented times are not production HTTP latency. Estimated incremental cost USD0.20762954, no new funding. The [saved-response demo](simple_rag_demo.md) shows all answers/cited sources and opens on the failure; raw artifacts remain local and ignored.
+
+The subsequent [vanilla dense baseline](../evaluation/vanilla_dense_comparison.md) keeps the same exposed panel, answer model, prompt/schema and top-8 limit. Hybrid versus dense-only positive required-evidence coverage and fully supported answers are9/9 versus5/9. Dense-only has6/9 correct-complete positive contents and safe abstention3/3; three answerable retrieval misses remain unanswered. It uses saved query vectors, so its30.74s batch is not live retrieval latency. Eleven answer calls, zero new embeddings/retries/errors, 62,127 input and2,046 output tokens were observed; conservative accounting is USD0.1798695 under the consumed standalone USD1.65 cap, not billing.
+
+The [flat/structured × dense/RRF retrieval comparison](../evaluation/structure_retrieval_factorial.md) uses nine exposed table questions across six filings. Original annotation coverage is13/26,18/26,12/26,19/26, not semantic coverage: the NIM reference incorrectly uses bank values for a group question. Excluding it leaves13/24,16/24,10/24,17/24. Representation jointly changes extraction, chunking and metadata; one supporting Celltrion sentence is missing. Embedding phase:118 calls/11,355,288 tokens, zero retries/errors, estimated USD1.47618744; USD1.60 authority consumed.
+
+The subsequent [actual answer comparison](../evaluation/structure_answer_result.md) completes36/36 once,8 primary questions plus1 diagnostic per arm. Correct/complete/cited-supported answers are flat dense2/8, flat RRF5/8, structured dense3/8, structured RRF4/8. No aggregate structured-RRF advantage; a specific FX table recovery succeeds. Samsung narrative attribution and SK borrowing-scope sensitivities are explicit, not hidden score changes.36 calls/402,659 input/10,571 output tokens, zero errors/retries/NOT_RUN/embeddings; conservative USD1.1334995 under consumed USD6.85 cap.188 sealed files and156 frozen inputs verify; focused26 tests and prior two36-case offline rehearsals/five stop controls pass. No runtime/prompt tuning.
+
+The current main-integration close passes **2,129/2,129 local Python 3.13 tests**
+(79.057s), including three public-guide merge regressions. This includes deterministic deep-JSON diagnostics across platforms and
+the absence of the retired `src.experimental` package; their focused 50-test set
+passes. The earlier simple-RAG transition's focused56, final API/profile48,
+comparison/import48, domain audit35 and documentation/topology gates also passed.
+
+## Packaged offline review
+
+Main integration retains PR98's static Pages workflow/F02-first case navigation and PR99's renamed public guides. The current SimpleRag contract and latest paired/table evaluations are preserved; historical compiled material stays labeled. Published demo payload changes only `initial_case` versus the original package, not answers, sources or evaluation metrics.
+
+The [one-page introduction](project_overview.md) now describes simple RAG and the evidence behind simplification. [demo/index.html](../../demo/index.html) is included in Git: five selected saved cases, exact answers and all six cited chunks, with success/abstention/failure and separate full12-case metrics. No installation, credentials, server or source store is needed. The full raw bundle stays local; [provenance](../../demo/provenance.json) hashes are integrity references, not independent execution proof. Older compiled portfolio documents are explicitly historical.
+
+Tracked-tree archive `4e67f378` passes the standard-library verifier with `-I -S` and minimal environment, without `.env`, `.venv`, data or the local run. All five browser selections preserve exact text; desktop/mobile/dark layouts pass, JS errors/external requests0. Changed payload rejects. Current documentation authority2/2 passes. This is local package validation, not a fresh evaluation, remote CI or deployment; runtime/model/settings and paid accounting are unchanged.
+
+## Prior checkpoints
+
+Earlier detailed checkpoints are preserved in the [historical status excerpt](../history/project_status_prior_checkpoints_2026-09-29.md). They do not establish current-build acceptance.
+
+## Compiled evidence archive
+
+Detailed compiler-only probes and their immutable source/output restrictions remain
+in [experiment history](../history/experiment_history.md) and the
+[reviewed evidence index](../evaluation/reviewed_case_evidence_status.md).
+They do not establish current simple-RAG model quality or runtime acceptance.
+
+## Historical evidence, not current-build acceptance
+
+- Preceding Google [subject-grounding full-agent run](../../benchmarks/results/subject_grounding_full_agent_2026-09-14/RESULTS.md)
+  on `054c6b22`: 2/3 runtime complete, 3/5 outputs accepted, runtime errors 0,
+  ledger 3/3 ok. Admission `af784682...a8f0` consumed; no new release claim.
+- [Addressed compiler-only run](../../benchmarks/results/narrative_address_compiler_2026-09-14/RESULTS.md)
+  on `9771417f`: 9/9 structurally complete and source-reviewed against pre-fixed
+  criteria; not human gold, unseen holdout or current full-agent performance.
+- [Independent pilot](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md):
+  7/12 runtime complete, 4/9 reference-scalar questions, all three narratives had
+  a completeness/faithfulness concern in source review. Source-exposed, immutable.
+- [Reviewed-case index](../evaluation/reviewed_case_evidence_status.md) and
+  [experiment history](../history/experiment_history.md) retain earlier results,
+  source/fixture provenance and their claim limits. No predecessor bytes were edited.
+
+## Completion and remaining limits
+
+The provider-free [failure-boundary audit](../evaluation/retrieval_failure_boundary_audit.md) reproduces all18 saved RRF rankings and32 primary packets: six of seven failed hybrid pairs lose a useful existing candidate at final selection; one lacks required asset values in the pool. No recovered-answer claim, runtime change or new paid run. A fixed-pool semantic-selection comparison is proposed only; the milestone remains closed.
+
+1. The [scoped portfolio milestone](portfolio_scope.md) and subsequent sharing preparation are complete: frozen panel, one actual-app evaluation, paired vanilla baseline, reports, current introduction and packaged offline demo. No automatic follow-up experiment is queued.
+2. Broader independent evaluation, remote publication and deployment remain separately scoped work. Package validation is not a release or general accuracy guarantee.
+3. Do not add per-question prompt/schema rules or restore Planner/Compiler as an automatic fallback.
+4. Historical compiled comparisons remain explicit tools; previous one-batch approvals are consumed.
+
+Shared conservative accounting is USD21.20953897/26.32, remaining5.11046103,
+pending0. Final-run authorization `ae05c617...c9543` is consumed; no paid retry or
+reuse of the unused run allowance. Historical charges and loss ceilings are preserved.
+The inactive default-store manifest mismatch and previously observed semantic/
+retrieval failures are not repaired by this architecture change.

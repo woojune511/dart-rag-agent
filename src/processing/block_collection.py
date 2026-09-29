@@ -6,6 +6,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional
 
 from src.processing.section_extraction import SECTION_TAGS, SectionParseTimeout
+from src.processing.source_context import ancestor_heading_contexts, bounded_source_contexts, source_fragment
 
 
 def collect_blocks(
@@ -20,6 +21,7 @@ def collect_blocks(
     soft_heading_path: Callable[[List[str]], Optional[str]],
     build_table_object: Callable[[Any], Dict[str, Any]],
     extract_standalone_table_context_hint: Callable[[Dict[str, Any]], Optional[str]],
+    extract_table_unit_suffix: Callable[[Dict[str, Any]], Optional[str]],
     build_table_context_bundle: Callable[..., Dict[str, Any]],
     extract_paragraph_heading_parts: Callable[..., Any],
     is_single_bracket_heading: Callable[[str], bool],
@@ -29,9 +31,13 @@ def collect_blocks(
 ) -> List[Dict[str, Any]]:
     blocks: List[Dict[str, Any]] = []
     heading_stack: List[str] = []
+    heading_sources: List[Optional[Dict[str, Any]]] = []
+    section_contexts = ancestor_heading_contexts(section_elem) + [
+        source_fragment(title, "ancestor_heading") for title in section_elem.findall("TITLE")]
     pending_table_heading: Optional[str] = None
+    pending_table_heading_source: Optional[Dict[str, Any]] = None
     pending_table_context_hint: Optional[str] = None
-    pending_section_label: Optional[str] = None
+    pending_section_label: Optional[tuple[str, Optional[Dict[str, Any]]]] = None
     table_counter = 0
     structured = is_structured_section(section_path) if structured_override is None else structured_override
     section_started_at = time.perf_counter()
@@ -42,6 +48,34 @@ def collect_blocks(
         now = time.perf_counter()
         if now > deadline_monotonic:
             raise SectionParseTimeout(timeout_label or section_path, stage, now - section_started_at)
+
+    def push_located_heading(heading: str, context: Optional[Dict[str, Any]]) -> None:
+        next_stack = push_heading(heading_stack, heading, section_path)
+        heading_sources[:] = heading_sources[:len(next_stack) - 1] + [context]
+        heading_stack[:] = next_stack
+
+    def enclosing_contexts() -> List[Dict[str, Any]]:
+        return bounded_source_contexts(section_contexts + [c for c in heading_sources if c is not None])
+
+    def contextual_table(element: Any) -> Dict[str, Any]:
+        table = build_table_object(element)
+        excluded = set()
+        for neighbor in (element.getprevious(), element.getnext()):
+            if neighbor is None or neighbor.tag != "P":
+                continue
+            leading, parts = extract_paragraph_heading_parts(neighbor, structured=structured)
+            headings = [*(leading or []), *(part for part in parts if part["kind"] == "heading")]
+            if any(classify_bracket_heading(part["text"], section_path, None,
+                       has_body_segments=bool(parts)) != "discard" for part in headings):
+                # A mixed/peer heading paragraph is not wholesale adjacency
+                # evidence. Its active, located heading is carried separately.
+                excluded.add(neighbor.getroottree().getpath(neighbor))
+        contexts = enclosing_contexts()
+        if pending_table_heading_source is not None:
+            contexts.append({**pending_table_heading_source, "relation": "caption"})
+        contexts.extend(c for c in table.get("source_contexts", []) if c["source_locator"] not in excluded)
+        table["source_contexts"] = bounded_source_contexts(contexts)
+        return table
 
     def emit_block(
         text: str,
@@ -61,10 +95,19 @@ def collect_blocks(
         }
         if extra_metadata:
             block.update(extra_metadata)
+        contexts = enclosing_contexts()
+        if local_heading_override is not None and pending_table_heading_source is not None:
+            contexts.append({**pending_table_heading_source, "relation": "caption"})
+        if contexts:
+            block["source_contexts"] = bounded_source_contexts(contexts)
+        if local_heading_override is not None:
+            # A table caption labels the table, not a new enclosing section.
+            # Keep its enclosing scope for adjacency checks during chunking.
+            block["local_heading_scope"] = soft_heading_path(heading_stack)
         blocks.append(block)
 
     def process(elem: Any, next_tag: Optional[str] = None) -> None:
-        nonlocal pending_table_heading, pending_table_context_hint, pending_section_label, table_counter
+        nonlocal pending_table_heading, pending_table_heading_source, pending_table_context_hint, pending_section_label, table_counter
         check_deadline(f"process:{getattr(elem, 'tag', 'unknown')}")
         tag = elem.tag
         if tag in SECTION_TAGS:
@@ -72,7 +115,7 @@ def collect_blocks(
         if tag == "TABLE-GROUP":
             for table in elem.findall("TABLE"):
                 check_deadline("table-group")
-                table_object = build_table_object(table)
+                table_object = contextual_table(table)
                 context_hint = extract_standalone_table_context_hint(table_object)
                 if context_hint:
                     pending_table_context_hint = context_hint
@@ -94,12 +137,12 @@ def collect_blocks(
                             context_prefix=pending_table_context_hint,
                         ),
                     )
-                    pending_table_context_hint = None
+                    pending_table_context_hint = extract_table_unit_suffix(table_object)
             pending_section_label = None
             return
         if tag == "TABLE":
             check_deadline("table")
-            table_object = build_table_object(elem)
+            table_object = contextual_table(elem)
             context_hint = extract_standalone_table_context_hint(table_object)
             if context_hint:
                 pending_table_context_hint = context_hint
@@ -121,7 +164,7 @@ def collect_blocks(
                         context_prefix=pending_table_context_hint,
                     ),
                 )
-                pending_table_context_hint = None
+                pending_table_context_hint = extract_table_unit_suffix(table_object)
             pending_section_label = None
             return
         if tag == "P":
@@ -130,29 +173,36 @@ def collect_blocks(
                 elem,
                 structured=structured,
             )
+            def located(part: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+                span = part.get("source_span")
+                return source_fragment(elem, "intermediate_heading", span) if span is not None else None
+
             check_deadline("paragraph:parsed")
             heading_only_bracket = (
                 leading_headings
                 and not body_segments
                 and len(leading_headings) == 1
-                and is_single_bracket_heading(leading_headings[0])
+                and is_single_bracket_heading(leading_headings[0]["text"])
             )
             if pending_table_heading is not None and (leading_headings or body_segments):
                 pending_table_heading = None
+                pending_table_heading_source = None
             if pending_table_context_hint is not None and (leading_headings or body_segments):
                 pending_table_context_hint = None
             if leading_headings:
                 if heading_only_bracket and next_tag in {"TABLE", "TABLE-GROUP"}:
                     bracket_role = classify_bracket_heading(
-                        leading_headings[0],
+                        leading_headings[0]["text"],
                         section_path,
                         next_tag,
                         has_body_segments=False,
                     )
                     if bracket_role == "table_label":
-                        pending_table_heading = leading_headings[0]
+                        pending_table_heading = leading_headings[0]["text"]
+                        pending_table_heading_source = located(leading_headings[0])
                 else:
-                    for heading in leading_headings:
+                    for part in leading_headings:
+                        heading = part["text"]
                         bracket_role = classify_bracket_heading(
                             heading,
                             section_path,
@@ -162,19 +212,15 @@ def collect_blocks(
                         if bracket_role == "discard":
                             continue
                         if bracket_role == "defer_section_label":
-                            pending_section_label = heading
+                            pending_section_label = (heading, located(part))
                             continue
                         if pending_section_label and should_promote_deferred_bracket_heading(
                             heading,
                             section_path,
                         ):
-                            heading_stack[:] = push_heading(
-                                heading_stack,
-                                pending_section_label,
-                                section_path,
-                            )
+                            push_located_heading(*pending_section_label)
                         pending_section_label = None
-                        heading_stack[:] = push_heading(heading_stack, heading, section_path)
+                        push_located_heading(heading, located(part))
             for part in body_segments:
                 if part["kind"] == "heading":
                     bracket_role = classify_bracket_heading(
@@ -186,19 +232,15 @@ def collect_blocks(
                     if bracket_role == "discard":
                         continue
                     if bracket_role == "defer_section_label":
-                        pending_section_label = part["text"]
+                        pending_section_label = (part["text"], located(part))
                         continue
                     if pending_section_label and should_promote_deferred_bracket_heading(
                         part["text"],
                         section_path,
                     ):
-                        heading_stack[:] = push_heading(
-                            heading_stack,
-                            pending_section_label,
-                            section_path,
-                        )
+                        push_located_heading(*pending_section_label)
                     pending_section_label = None
-                    heading_stack[:] = push_heading(heading_stack, part["text"], section_path)
+                    push_located_heading(part["text"], located(part))
                 else:
                     if pending_section_label and not pending_table_heading:
                         pending_section_label = None

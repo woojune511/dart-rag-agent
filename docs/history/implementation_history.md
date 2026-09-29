@@ -5,6 +5,426 @@
 > product boundary and gates, and [experiment_history.md](experiment_history.md)
 > for benchmark and evaluation chronology.
 
+## Shareable simple-RAG review package (2026-09-22)
+
+- Starting at `763b4082`, the user authorized the current one-page introduction, an offline public demo and fresh-checkout verification. [demo/](../../demo/README.md) contains five selected saved cases (F02/F05/F10/F11/F12), exact answers and all six cited chunks from the completed final run. The failed daily-revenue substitution opens first; F11's successful abstention and ancillary wording concern remain separate. Full12-case metrics are explicitly distinct from the after-run selection. Raw logs, stores and settings stay local; no source/answer rewriting or new provider call.
+- The standalone HTML needs only a browser. The manifest binds canonical embedded data and records original result hashes with unavailable upstream raw files clearly stated. A small standard-library verifier checks package integrity only. README/one-pager/walkthrough/claim guidance now describe the current simple-RAG guarantees; older compiled presentation material is labeled historical.
+- Tracked-tree archive `4e67f378` validates with isolated Python `-I -S` and a minimal environment, with no `.env`, `.venv`, data or local final-run bundle. Five browser selections preserve exact answers/sources; desktop/mobile/dark rendering passes with no overflow, JS errors or external page requests. A changed payload fails the verifier. The first local absence assertion was corrected because26 historical summary files are already tracked under `benchmarks/results`; those are preserved, and actual local runtime stores/evaluation bundles are absent. No runtime tests or new model-quality claim is inferred from these package checks.
+- Current docs2/2 pass; runtime and shared accounting remain unchanged at USD21.20953897/26.32, remaining5.11046103, pending0. Receipts are ignored under `benchmarks/results/simple_rag_public_demo_2026-09-22/`. Only reviewed `demo/` content and documentation are staged; no remote push, hosted deployment or broad release claim.
+
+## Simple RAG as the default application (2026-09-22)
+
+- Starting at `2a926a6e`, the user authorized the [simple-RAG application](../architecture/simple_rag_adoption.md) after reviewing its reduced guarantees. FastAPI/Streamlit now use one existing scoped hybrid search and at most one answer call. Empty evidence abstains without generation; malformed citations, scope leaks and conflicting source identities fail without retries or Compiler fallback.
+- Public output adds workflow, abstention, cited source text and validation limits. Arithmetic is not executed; semantic support and request completeness are not checked. Compiler result/trace objects are empty and no ledger is fabricated. Explicit scope filters intersect supplied metadata; source-report alternatives remain paired unions. Unknown scopes are rejected by the HTTP schema.
+- `FinancialAgent` remains an explicitly invoked comparison/replay path with its source/execution contracts preserved. Shared chat-model construction is extracted unchanged; application startup constructs only answer/ingest-context clients and rejects the compiler-only profile. Removed the old embedded evaluation tab and separated current and compiled runtime contracts. Lightweight reviewer CI no longer runs a full-dependency graph test; the full suite retains it.
+- Full provider-free suite **2,125/2,125** (64.083s), 16 new controls, focused56, final API/profile48, comparison/import48, audit35 and docs/topology/diff checks pass. Actual SDK/HTTP transport is mocked. All110 protected store/settings/comparison files retain hashes. No paid calls, ingest/store mutation or fresh accuracy/latency claim; shared accounting remains USD21.00190943/26.32, remaining5.31809057, pending0.
+
+## Portfolio feature retirement and direct Planner entry (2026-09-22)
+
+- Starting at `d9f323f9`, removed the separate question classifier/embedding/fallback, MAS graphs/workers, report-result cache/promotion, unused reflection helpers and uncalled ratio-answer repair, together with their dedicated tools/tests. Deleted63 files; source/configuration/tools under `src/` are net **10,855 lines smaller** (53 added/10,908 removed). [Scope and compatibility](../architecture/portfolio_feature_retirement.md).
+- The seven-node product graph starts at the Planner. Initial filing hints come only from explicit caller scope; query years are no longer regex-derived filing filters. Public query_type is neutral qa and unspecified retrieval format is mixed. Planner/Compiler and source, period, arithmetic, ownership and coverage contracts remain.
+- Full provider-free suite **2,109/2,109** (73.338s), focused81+64, domain audit35, import/topology/documentation and diff checks pass. Removed31 obsolete literal-baseline entries, with no new runtime vocabulary. All110 protected settings/store/comparison files remain hash-identical. New controls cover construction without classifier embeddings and exact-query/explicit-scope preservation.
+- No paid calls, ingest or new model-quality/latency comparison. Shared accounting remains USD21.00190943/26.32, remaining5.31809057, pending0. The preceding fixed-evidence comparison already bypassed the classifier and deleted experiments; its 3.47x cost/4.79x elapsed-time result is unchanged historical evidence. This cleanup does not establish that the remaining Planner/Compiler is worth its cost.
+
+## Portfolio scope and retired narrative path (2026-09-22)
+
+- Starting at `af129e93`, removed the unused extraction/compression/validation graph branch, dividend-policy supplementation/hybrid answers, entity-table summaries, driver/sentence repair and alternate narrative document selection. Removed seven dedicated policy dictionaries, four structured-output models, obsolete phase state/loaders and private helper tests together. Runtime/config net reduction: **3,723 lines** (70 added/3,793 removed).
+- All public intents continue through the existing Planner/Compiler/executor; failed planning remains incomplete without another generation. Source anchors and structural expansion retain identical bodies/signatures; active request, source, period/scope, unit, arithmetic and coverage checks remain. Updated graph topology/state tests and shared diagnostic fixtures; no contract weakening or new vocabulary baseline entries.
+- Full provider-free suite **2,255/2,255** (79.243s), focused checks, import/topology/docs gates, domain audit **66**, syntax and diff checks pass. Removed 17 stale audit entries only. All **15,050** files in the preceding protected manifest and `.env` remain hash-identical. Historical artifacts/stores, paid accounting and model outputs were not changed.
+- [Portfolio completion scope](../overview/portfolio_scope.md) replaces the accumulating per-error queue with a frozen simple-RAG comparison, at most one justified improvement, and final evaluation/demo. The known year-end semantic miss remains a limitation. New model accuracy, provider/full-app acceptance and paid evaluation: **NOT_RUN**.
+
+## Structured request measurement periods (2026-09-21)
+
+- Baseline `5df6e9d6`; [contract/result](../evaluation/structured_measurement_period.md). Added a typed Planner scope union with owned request refs: unspecified/year/relative-year/date/full inclusive interval/unresolved. Deterministic offset arithmetic and full date-shape comparison replace request sentence year-set guessing. New strict wire requires an object; internal absent structures retain their legacy serialization and only complete annual labels retain annual matching. Complex legacy text is not migrated. Explicit child constraints override inherited targets, with copied reference lists.
+- Generic source-date geometry reads retained period/header axes using reviewed policy grammar without joining axes, source mutation, new retrieval or changed candidate IDs. Company/section/unit/source interpretation and V2 protections remain active. Shared errors run during planning, compilation preflight and final validation; request ownership does not certify semantic interpretation. Source explicit-year/relative-label precedence stays unchanged; exact date operands retain their source axis.
+- **21 new tests**, **93 focused**, full **2165/2165** (64.281s), domain audit **83**, import/topology/docs and syntax/diff checks pass. New controls include shifted anchors, invalid dates, year overflow, partial/point/wrong-endpoint sources, separate comparison inputs, request ownership, V2 tampering, source preservation and deliberately wrong but well-formed semantic interpretations. Installed SDK carries all six union shapes with external connections blocked. Old strict-wire fixtures now explicitly declare unspecified periods; a malformed child error path and legacy serialization roundtrip were fixed without weakening contracts.
+- **42 provider-free replays/264 assertions** preserve predecessor/source/response bytes. Runtime success uses separately authored new structures, not repaired paid plans or new model samples. Calls/cost zero, remaining USD 1.05143757. Next fresh Planner schema probe preparation and whole-batch funding admission; no paid retry/ingest/consumed-manifest reuse.
+
+## Candidate-local Compiler axis provenance (2026-09-19)
+
+- Base `c8b325bf`; [production presentation and evidence](../evaluation/compiler_axis_provenance.md). The presentation owner now shares ten exactly equal present provenance fields within each candidate's axes after short-reference/piece projection. Changed payloads use v11 and a conditional 234-byte instruction; other requests retain their exact v9/v10 wire. Unknown/unequal/missing fields and all axis paths/addresses remain local; reserved fields fail closed.
+- No canonical catalog, source text, reference map, response schema, owner permission, lowering, arithmetic, V2 fingerprint or provider/retry setting changes. Ten new contracts plus Compiler regression 118, phase/API/import/topology 46 and documentation 2 pass (176 total); audit 83. Mocked SDK replies preserve programs, validation, execution and envelopes across direct/calculation/narrative/mixed/shared-basis/retry cases. An initial new-test fixture projection mismatch was corrected without changing runtime guards.
+- Both frozen app payloads restore exactly. Canonical request bytes, including production explanation/escaping, fall **97,309 → 89,817 (7.6992%)** and **65,447 → 65,090 (0.5455%)**. This is not sampled-model quality, actual tokens, billing savings or budget-fit evidence. Different-address repeated source text remains intact.
+- No provider/count/embedding/ingest calls or added cost. All 9050 predecessor files, 24 stores and settings retain hashes; three source files change, 171/174 do not. Shared **14.57777845/15**, remaining **0.42222155**, pending zero. The prior app stop and consumed manifests remain unchanged; future sampled v11 validation needs fresh funding/admission.
+
+## Compact JSON Compiler default (2026-09-18)
+
+- Base `23e8ef8d`; user approved [default adoption](../evaluation/compiler_compact_json_default.md). The exact previously tested 466-character instruction now prefixes shared numeric/mixed/narrative initial and retry prompts. Only `src/config/retrieval_policy.py` changes in production; all other prompt text, schemas, source strings, validation and call/retry settings are preserved.
+- Three new policy/retry contracts plus focused 39, execution/source/public/ledger 45 and import/topology/docs 24 pass (108 total); audit 83. Four stored replies retain six outputs, 16 byte-identical API payloads, 20 canonical files and four schemas. The 32 mocked SDK requests match frozen candidate requests: 16 positives, 14 expected rejections, two retained semantic negatives.
+- No provider/count/embedding calls or added accounting. All 8683 predecessor files, seven runtime owners, 24 stores and settings retain hashes; 173/174 source files unchanged. Shared 14.10619659/15, remaining 0.89380341, pending zero. Default adoption is complete; prior sampled savings remain limited evidence, not a new accuracy or savings measurement.
+
+## Compiler records at the public result boundary (2026-09-18)
+
+- Base `d4fab63f`; [contract and replay evidence](../evaluation/compiler_display_format_boundary.md). A saved mixed response's Japanese internal `display_format` appeared at six default API trace paths; final answer text remained Korean. The defect is caller projection, not calculation or source semantics.
+- Two runtime owners now omit whole Compiler program/validation/history records from the two public trace copies after final/ledger assembly. Canonical program, validation, execution, final graph answer and ledger stay byte-identical; explicit review/debug retain original records. Source text, Planner display intent, formulas, periods, amounts and citations are preserved without language filtering or numeric repair.
+- Three new contracts fail before and pass after; focused caller/API 25, execution/ledger/evaluator/portfolio 135, import/topology/docs 24 (184 total), domain audit 83 pass. Four stored responses yield six outputs and 16 in-memory HTTP 200 responses on each version. Only eight specified record paths are removed per API response; all other fields, opt-in payloads and 20 canonical files are identical.
+- No provider/count/embedding calls, added cost, store/settings mutation or compact-JSON default adoption. All 8589 predecessor files and 24 stores retain hashes; 172/174 source files are unchanged. Shared accounting remains 14.10619659/15, allowance 0.89380341, pending zero. This replay does not establish new Planner/retrieval/provider/browser or unseen-source accuracy.
+
+## Planner section request ranges (2026-09-18)
+
+- Base `34cd0068`; [contract and evidence](../evaluation/planner_section_request_ranges.md). Production section bindings select owned first/last request-unit IDs and observed section IDs. Code copies the contiguous whole range, retaining punctuation and qualifiers without changing request segmentation. Source-group inputs preserve the new typed references.
+- Legacy quote records retain exact validation and are absent from generation; no automatic conversion, quote repair, source widening, title/company rule or extra model call. Range ownership and copied text/spans are revalidated; V2 binds them through execution. Physical linkage does not certify the selected restriction or section meaning.
+- Six anonymous controls frozen before edits; baseline 47 and current focused 160 pass. Seventeen new contracts cover schema/SDK, exact copying, malformed/foreign refs, source intersection, preflight isolation, final answer/ledger, retry and tampering. The saved response retains two errors; an explicitly authored range recovers only the known graph-node eligibility. Four malformed variants stay blocked. Prior model answer and semantic judgments are unchanged.
+- Full suite **2058/2058**, no skips/external connections, domain audit **83**, documentation/compilation/diff checks pass; receipts are in the local packet. Initial integration fixture company scope and a one-line documentation limit failure were corrected without weakening runtime guards or tests. Four runtime/policy source files change; 6659 predecessor files, 24 stores and settings retain hashes. Provider/count/embedding calls and added cost zero; shared 10.91938255/14, remaining 3.08061745, pending zero. No new paid admission.
+
+## Numeric supplement value-cell recognition (2026-09-17)
+
+- Baseline `4688a070`: the latest paid cash question's primary/seed window omitted
+  its requested full-statement table. The preserved Planner had no explicit section
+  binding. Read-only replay of all 1,872 committed source chunks found that a notes
+  header's numbered column names received stronger atomic-value priority than the
+  actual statement row, displacing it from the one numeric supplement reservation.
+- The retrieval owner now recognizes complete finite pipe-delimited cells with
+  shared numeric/unit parsing. Header lines stay separate; label/reference digits
+  and values on another line cannot grant atomic priority. No domain vocabulary,
+  source permission, query enrichment, score, quota, parser or model change.
+- Eight anonymous contracts pass, focused **98/98**, full **1,898/1,898**, no skips
+  (55.322s), domain audit 83; external connection attempts/provider calls 0.
+  Initial anonymous seed-test setup omitted plan keys; corrected fixtures reproduce
+  baseline behavior with no test errors before validating the change.
+- [Frozen source/plan replay](../../benchmarks/results/cash_source_retrieval_2026-09-17/RESULTS.md)
+  changes only the latest cash supplement from `205:97` to `101:0`; the requested
+  3,576,456,533,329원 is cataloged, owner-authorized and in Compiler schema choices.
+  Replaying the existing seed-merge boundary adds one source to the saved 32-source
+  window. Six other catalog/payloads are byte-identical, retaining the prior margin
+  input repair and saved accepted evidence. The displaced summary cash remains in
+  the catalog, but no longer in the bounded exposure; its historical reply is intact.
+  All 790 protected predecessor files remain unchanged. This is no primary-search
+  rerun or new model answer; bounded fresh source/calculation/decimal checks remain.
+
+## Numeric requirement exposure by declared source basis (2026-09-17)
+
+- Baseline `0d4f619d`: the last paid margin question retrieved both exact inputs,
+  but implicit subject inference treated statement-type wording as a value subject.
+  Removing that diagnostic hint alone recovered profit, while equally ranked summary
+  rows still displaced exact revenue. This is a candidate-exposure bug.
+- The matching owner now excludes observed basis fragments from numeric inferred
+  subjects, retaining explicit targets and longer names. After metric rank, all
+  distinct non-temporal basis terms in one attached heading/caption/preceding
+  partition supply one relevance tier. No cross-context/cell joining, word-count
+  score, model call, source authority change or company/metric-specific vocabulary.
+  Existing two-bundle and 96/32 capacity/atomicity rules remain intact.
+- Eight anonymous contracts reproduce the former failures and pass after the
+  change. Focused **164/164**, full **1,890/1,890**, no skips (53.692s), and audit
+  83 pass; external connection attempts/provider calls 0.
+- [Frozen seven-case replay](../../benchmarks/results/numeric_requirement_exposure_2026-09-17/RESULTS.md)
+  exposes both exact margin cells in their input permissions and Compiler schema;
+  the other six payloads are byte-identical. All saved program source IDs, catalog,
+  query/plan/source-window bytes and 765 protected files are preserved. The current
+  missing answer stays unchanged; this is no new model response or live accuracy.
+  Cash full-statement retrieval and bounded real-answer/decimal verification remain.
+
+## Final-round decimal presentation (2026-09-17)
+
+- Baseline `5ede1b83`: the saved calculation already contained a request-grounded
+  final `round(..., 2)` and the correct value 15.4, but rendering stripped the zero.
+  This is a calculated-presentation bug; no retrieval, arithmetic or model change.
+- Execution passes only the validated outermost round's precision to calculated
+  slots. Rendering preserves zeros, shifts precision with power-of-ten display
+  units and bounds fixed output to 324 decimal places. Intermediate operations,
+  dependencies and free-form presentation text do not infer precision. Direct and
+  selected source displays retain their exact original precision independently.
+- Nine new contracts cover wire-to-final/ledger propagation, signs/zero/small
+  values, unit scaling, bounded formatting, source/calculation separation,
+  dependencies, fractional-precision failure and V2 tampering. Focused **156/156**,
+  full unittest **1,882/1,882**, no skips (53.272s), audit 83 pass; external
+  connection attempts/provider calls 0.
+- [Exact stored-program replay](../../benchmarks/results/fixed_decimal_display_2026-09-17/RESULTS.md)
+  changes final/slot/trace presentation from `15.4%` to `15.40%`, with catalog,
+  source rows, program, obligations, visibility, validation, values and provenance
+  unchanged; ledger ok. All 684 protected predecessor files remain intact.
+  This is local execution evidence, not a new provider answer or a relabeling of
+  the prior paid results. Fresh normal-application verification remains separate.
+
+## Direct lookup Planner evidence boundary (2026-09-17)
+
+- Baseline `f0d7fb5a`: the saved cash-balance answer had a correct source binding
+  but partial status because Planner attached child inputs to a direct output.
+  Generation admitted this shape while the final validator already rejected it.
+- Direct/derived/narrative generation branches now require an empty direct-input
+  list, retaining lookup subject/scope/hints on the output. Planning diagnostics and
+  island preflight preserve invalid historical rows and block their whole dependent
+  component with `repair_requirements`; independent valid outputs continue.
+  Final source/program validation, arithmetic, units and rendering stay unchanged.
+- Six new contracts plus real-SDK strict-schema checks pass. Two old authored scope
+  fixtures now use valid calculations when declaring inputs; direct and derived
+  subject/scope preservation remain tested without weakening assertions.
+  Focused 164, scope regression 44, import/topology/docs 24, audit 83, full unittest
+  **1,873/1,873**, no skips (52.591s), pycompile and diff checks pass. External
+  connection attempts/provider calls 0; no fresh ingest or configuration change.
+- [Frozen-source replay](../../benchmarks/results/direct_lookup_contract_2026-09-17/RESULTS.md)
+  preserves catalog/program hashes, original direct/context proofs and all 659
+  protected predecessor files. An authored valid-plan copy is not a new model answer;
+  the sampled paid result remains 2/3 complete with the cash lookup partial.
+  Requested fixed decimal presentation remains a separate pending seam.
+
+## Narrative Planner unit generation boundary (2026-09-17)
+
+- Baseline clean `243bddf2`: the saved normal-application Planner put presentation
+  labels in narrative `display_unit`, preventing both narrative Compiler dispatches.
+  This is a generic Planner/schema bug, not a narrative source-quality measurement.
+- Separate numeric/narrative generation branches share the existing field contract.
+  Narratives require the empty unit literal and retain presentation in `display_format`;
+  numeric units stay available to unchanged strict unit validation. No format-label
+  allowlist, runtime coercion, source substitution or historical answer rewrite.
+- Six authored tests and an expanded real-SDK mock cover schema enforcement,
+  optional-null normalization, source-defined and declared narrative requirements,
+  mixed numeric isolation, source-grounded assembly and unsupported-number rejection.
+  Full unittest **1,867/1,867** (52.611s), focused 158, audit 83 and boundary gates
+  pass; no external connection attempts/provider calls or fresh ingest. All 564
+  protected files are unchanged. [Offline evidence](../../benchmarks/results/narrative_unit_contract_2026-09-17/RESULTS.md)
+  does not upgrade the prior paid result (1/3 questions, 2/4 outputs); fresh narrative
+  generation and semantic review remain separate work.
+
+## Bounded operation steps instead of punctuation generation (2026-09-16)
+
+- Baseline clean `fc24fb9e`; compiler formula transport bug seam, not parser,
+  unit engine, source permission or question-specific interpretation. The prior
+  paid result remains 4/6; two responses emitted over 1,400 opening parentheses
+  in their first formula before half/negative operations. No model/decoder causal
+  isolation, malformed JSON repair, larger token allowance or new provider call.
+- Production now requests operation/arguments steps with prior one-based references;
+  the final step is the result and all steps must contribute. Arity-specific shapes
+  contain variable, prior-step, neutral literal/count or inline request-proof arguments.
+  Code assembles the stated arithmetic into the existing engine, preserving order
+  and source/dependency proof authority. Bounds: 64 steps, 4,096 expanded arithmetic
+  nodes, at most 96 min/max arguments; no truncation or source substitution.
+- Ten new contracts cover punctuation rejection, wrong arity, self/forward/unknown
+  references, unused operations, safe shared expansion, AST/precedence roundtrips,
+  proof reuse and target-local same-source repair preserving accepted program bytes.
+  Existing inline proof, schema, source, unit, display, fingerprint and retry tests
+  retain their checks; obsolete token positions become step-argument positions and
+  formula whitespace checks compare ASTs. Offline authored transport never adapts
+  sampled model responses or supplies undeclared request quantities; string/bool
+  constants stay invalid rather than becoming neutral literals or binding counts.
+- Python 3.13 full unittest **1,786/1,786**, no skips (59.807s); import/topology/docs
+  24, audit 83 and pycompile/diff checks pass. Six authored local witnesses retain
+  twelve numerical/display checks and six ledgers; one mock call/no retry each.
+  Thirty-two predecessor files stay byte-identical. [Local report](../../benchmarks/results/formula_steps_local_2026-09-16/RESULTS.md).
+- Input UTF-8 bytes 220,889 -> 247,463 (+12.0%); authored response bytes 9,589 ->
+  10,328. Shared argument schema removes 4,824 bytes from the first step-schema draft.
+  This trades a larger explicit operation schema for no punctuation generation;
+  model stability, semantic accuracy and latency/cost remain unmeasured.
+  No provider, fresh ingest, actual store/dataset mutation or artifact commit.
+
+## Inline request operands in typed infix formulas (2026-09-16)
+
+- Baseline clean `593ef2f7`; compiler formula/proof transport seam. The paid
+  named-input result remains 4/6. Correct `*2` / `/2` with empty declarations
+  showed that naming alone still required two independently authored fields to agree.
+- Production formula is a nonrecursive typed infix token array. Each request
+  quantity carries value, owned request address and interpretation exactly where
+  it is used. Operators/functions/parentheses and neutral 0/1/100 retain their
+  arithmetic roles; source/dependency variables remain explicit references.
+  There is no separate model request-input list or old free-string fallback.
+- A small deterministic lowerer preserves operator/parenthesis order and creates
+  position-derived internal names without capturing source or unbound variables.
+  Existing internal named proofs, AST/units/sign/display, dependency values, owner
+  visibility and V2 checks remain; binding_count still counts actual source inputs.
+  No inferred quantity, expression repair, semantic auto-validation or extra call.
+- Twelve new contracts cover bare/missing/foreign proof, nonfinite quantity,
+  injection, precedence/functions, equal quantities, collision-free names, source
+  substitution, wrong-but-linked semantic negatives and accepted retry bytes.
+  Python 3.13 full unittest **1,776/1,776**, no skips (63.499s); focused 100,
+  import/topology/docs 24, audit 83, pycompile/diff pass. An obsolete prompt-wording
+  assertion was updated after the first full run; its narrative isolation remains.
+- Six explicitly authored local witnesses pass 12 output checks and six ledgers,
+  one mock call/no retry each. All 11 pinned prior files are byte-identical; old
+  sampled replies are rejected by the new schema, not rewritten into successes.
+  Prompt/schema totals 153,126/67,097 -> 152,490/68,399 UTF-8 bytes: combined input
+  grows 666 bytes. Response witnesses shrink 9,844 -> 9,589 bytes, not model output
+  or SDK-token/cost measurements. [Local report](../../benchmarks/results/inline_request_operands_local_2026-09-16/RESULTS.md).
+- Model behavior under this schema remains unmeasured; structural admission does
+  not certify the right request quantity/operator or semantic proof completeness.
+  No provider call, store/parser/ID/dataset change or experiment artifact commit.
+
+## Named request inputs instead of duplicated scalar declarations (2026-09-16)
+
+- Baseline clean `42e398aa`; compiler output/execution-input contract seam.
+  The two prior sampled failures (missing scalar declaration and invented origin)
+  remain byte-identical and are not translated into corrected model answers.
+- Derived production outputs require `request_inputs`: variable, finite value,
+  owned request address and interpretation. Formula uses the name; no model-written
+  origin, repeated numeric literal, or request-text quote. Lowering copies the whole
+  owned instruction and preserves the formula. No inferred quantity or extra call.
+- Optional `binding_count_variable` selects a name only. Code counts actual source/
+  dependency bindings, excluding request scalars. Scalars have dimension SCALAR and
+  are separate from physical input rows, required evidence and dependency authority.
+  Neutral literals 0/1/100 remain legal; unknown/unused/colliding names are rejected.
+- The validator recomputes named constant resolutions and the existing executor
+  uses them without changing its arithmetic engine. Same-cohort retry preserves
+  accepted outputs/assertions; V2 rejects changed names, quantities, request proofs
+  and validation resolutions. Source signs, units, display and ledger stay intact.
+- Production rejects the old constants field. Explicit offline authored-fixture
+  transport alone converts already-proved literal declarations to named inputs;
+  missing, malformed or ungrounded declarations remain invalid. Historical internal
+  validation remains available, not an old model-wire production fallback.
+- Eleven new provider-free contracts plus migrated transport expectations pass.
+  Full unittest **1,764/1,764**, no skips, 56.833s on Python 3.13; focused 91 + 103,
+  narrative/input 25, import/topology/docs 24, domain audit 83, pycompile/diff pass.
+  The first full pass exposed one stale old-origin prompt assertion; its replacement
+  checks that both new numeric fields remain absent from narrative instructions.
+- No provider call, store/parser/ID/dataset change or artifact commit. The historical
+  paid result stays schema 5/6, runtime 4/6. Named-input model performance is unmeasured;
+  any successor needs its own bounded manifest and cost/approval boundary.
+
+## Addressed numeric and request proof assembly (2026-09-16)
+
+- Baseline `ac33fc49`; classified as a compiler transport/evidence-schema seam.
+  The prior paid 4/6 exposed unit-inclusive value-quote undercoverage and repeated
+  request-quote ambiguity. Its original responses and criteria remain immutable.
+- Production numeric selections no longer recopy `evidence_text`: the selected
+  source_ref addresses the existing complete bundle-local value span. Lowering
+  copies it, preserving source signs/units; absent spans fail. Subject/metric
+  interpretation and attached context still require their separate model evidence.
+- Query-origin constants retain explicit value, owned request_unit_id and
+  interpretation, but no source_text field. Code copies the whole selected unit,
+  including negation/contrast. This is whole-instruction linkage, not unique quantity
+  occurrence or meaning certification. No scalar inference, word rules or new call.
+- Cell/prose parsing cannot use another known source kind's shape to bypass its
+  interpretation requirements. Independent owner authority remains in lowering.
+  Old internal quote validators are unchanged; invalid/missing historical proofs
+  stay invalid in explicit offline transport, never repaired provider responses.
+- Ten new contracts cover signs/units, repeated quantities/equal values, owner
+  isolation, malformed refs, old proof violations, missing locations, explicit
+  semantics, and same-cohort retry preserving accepted program/assertion bytes.
+  Existing authored fixtures move to the new wire without changing expected values.
+- Python 3.13 full unittest **1,753/1,753**, no skips (55.438s); focused 99,
+  import/topology/docs 24, domain audit 83, pycompile and diff checks passed.
+- Same-six initial no-call projection preserves inputs/candidate IDs and 22 old
+  artifact hashes. Local prompt bytes 150,810 -> 152,160; schema 66,143 -> 64,559.
+  No SDK-token, latency or model-accuracy claim; paid acceptance is still 4/6.
+  No parser/store/ID/arithmetic redesign, provider call, store mutation or artifact commit.
+  [Local scope and measurements](../../benchmarks/results/addressed_numeric_proofs_local_2026-09-16/RESULTS.md).
+
+## Compiler required evidence fields (2026-09-16)
+
+- Baseline `59cc3977`. The preceding six-case paid run retained two prose
+  interpretation-quote omissions and one missing scalar declaration. New
+  provider-free regressions reproduced optional generation fields that runtime
+  validation later required. Paid responses and criteria were not repaired.
+- A supplied prose interpretation now requires nonempty own-body evidence when
+  no numeric context is exposed. With exposed context the field is required but
+  nullable; existing validation still requires actual attached interpretation
+  support for null. Value-span evidence remains separate. Cells and dependencies
+  do not gain prose-only fields, and interpretation applicability is unchanged.
+- Every calculation requires an explicit constant list, including `[]` when no
+  declaration is needed. An empty list cannot authorize an undeclared AST scalar.
+  No copied quote, inferred scalar, new quantity vocabulary or additional call.
+- Offline fixture transport drops only absent cell-body defaults; supplied
+  invalid cell quotes and missing prose proof still fail. Four existing authored
+  response test files explicitly declare empty lists; formulas, sources, expected
+  answers and all validator/executor rules remain unchanged.
+- Eight new tests cover direct/input/display omissions, attached context,
+  non-neutral constants, schema retry preserving an accepted independent island,
+  invalid offline projection and real SDK count/generation/parsing with mocked
+  HTTP and blocked sockets. They do not establish model accuracy or omission rate.
+- Python 3.13 full unittest **1,743/1,743**, no skips (68.814s); focused 104 and
+  related 58, import/topology/docs 24, domain audit 83, pycompile/diff pass.
+  Non-failing Windows event-loop cleanup and Chroma warnings remain separate.
+- No provider call or store mutation. All 17 protected manifest/input/raw-response
+  hashes remain identical. The paid 4/6 result stays 4/6; any actual improvement
+  needs a new bounded model run, not replay-time response reconstruction.
+
+## Request-grounded formula constants (2026-09-16)
+
+- Baseline `fd565be6`. The paid mixed-source response omitted a scalar declaration,
+  and the previous query-wide numeral allowlist could not accept worded quantities
+  even with a declaration. Provider-free tests reproduced that boundary first.
+- Query constants now carry an owned request ID, unique exact excerpt and explicit
+  Compiler interpretation. Validation resolves Python query spans and requires
+  finite, exactly used, unique scalars; cardinality equals the actual binding count.
+  No word-to-number vocabulary, inferred declaration or additional LLM call.
+- The wire requires query evidence per declaration and exposes owner-only request
+  IDs. Lowering resolves addresses without guessing. Historical internal parsing
+  has no missing-evidence execution fallback; offline cardinality transport removes
+  only empty internal defaults, not malformed evidence or wrong choices.
+- Eleven new tests cover natural-language multipliers, fractions, signs, decimal
+  literals, invalid/foreign/repeated quotes, missing declarations, schema, finite
+  exact values, cardinality, targeted retry, ledger and V2 program/content/proof
+  tampering. Authored source 21% / computed 20% / dependent 40% stays separate.
+  A linked but wrong interpretation intentionally remains a semantic negative.
+- Updated one authored literal declaration with its existing exact query evidence;
+  removed an unnecessary neutral-1 declaration that wrongly claimed one binding
+  for a two-input formula. No formula, source or expected answer was changed.
+- Python 3.13 full unittest **1,735/1,735**, no skips, 47.642s. Focused gates,
+  import/DAG/topology, domain audit (83 reviewed literals), pycompile/diff passed.
+  Non-failing Windows event-loop cleanup and Chroma deprecation warnings appeared
+  in the full suite; no unrelated cleanup was included.
+- Provider calls 0. Previous manifest and four raw-response SHA-256 values remain
+  identical. The paid 3/4 result is not upgraded: its missing declaration still
+  fails. New model declaration/semantic accuracy requires a bounded successor run.
+
+## Mixed numeric source contracts and unit policy (2026-09-16)
+
+- Baseline `ff9b6641`. Fixed four anonymous source/plan cases and separate offline
+  criteria before test implementation. They cover table/prose format swapping,
+  scaled amounts, signed adjustments and calculated dependencies with distinct
+  source-stated display. These are authored contracts, not actual planner/model
+  responses, DART examples or unseen holdout evidence.
+- Real catalog construction reproduced missing prose numeric candidates for
+  `4만원` / `0.8만원`; unit tests also reproduced missing scale/precision and
+  parenthesized-inline handling. Added the omitted `만원` declaration to the
+  existing extraction, normalization and display policy only. No company/metric
+  branch, parser/store/schema change, additional LLM call or arithmetic rewrite.
+- Four cases execute through the current source-choice wire, lowering, validation
+  and executor with one authored compiler reply each. Exact prose quotes remain
+  required; cells/dependencies keep their own fields. Reversed source carriers
+  preserve catalog IDs/fingerprint and initial prompt/schema; no criterion enters
+  initial transport. Source 21% / calculation 20% stays separate, and the dependent
+  calculation uses 20% to produce 40%, not 42%.
+- Eight integration tests cover malformed/missing quotes, source/program drift,
+  accepted expression/assertion bytes during targeted repair, read-only computed
+  dependency input and final-answer/ledger artifact equality. Input and criteria
+  hashes remain `6d5ca176...ed021c` / `14cf518c...791c` after implementation.
+- Python 3.13: focused 63/63, import/topology 22/22, full unittest 1,724/1,724
+  (67.705s, no skips); domain audit 83, reviewer surface, pycompile and diff passed.
+  Initial canonical JSON: prompt 23,960–24,364 bytes, schema 8,468–8,831 bytes,
+  three numeric candidates in two bundles per case. Not SDK token counts or a
+  prompt-reduction comparison. No provider dispatch, store mutation or past-result
+  rewrite; mixed-source model interpretation remains unmeasured.
+
+## Numeric source-choice generation schema (2026-09-15)
+
+- Baseline `a9b7f792`. Six generation-contract regressions reproduced owner-crossing
+  references, table-as-prose quotes, missing prose quotes, dependency grounding and
+  empty authority spaces. No benchmark/domain keyword rule or changed candidate ID.
+- Schema construction and lowering share the same attempt visibility. Numeric
+  source enums are partitioned by cell/prose/dependency, with reusable field sets;
+  mixed sources and multiple members remain possible. Ref parsing stays lossless
+  so forbidden addresses receive existing target-local lowering errors; enums do
+  not replace runtime authorization. There is no automatic input/quote repair.
+- Offline authored transport omits absent proofs only. Supplied invalid proofs,
+  provider responses, stored sources and past results remain unchanged.
+- Python 3.13 full unittest 1,716/1,716, no skips (58.824s); new contract tests 10/10,
+  numeric grounding/wire 18/18 and broader compiler/execution/retry 143/143 passed.
+  Import/topology/docs 24/24, domain audit 83, pycompile and diff checks pass. Paid semantic evidence is
+  separate; no direction interpretation is certified by schema/source validation.
+
+## Numeric axis/context transport consolidation (2026-09-15)
+
+- Baseline `dd61e466`. Reproduced context-free schemas exposing redundant axis/context
+  fields and schema-construction failures being masked by UnboundLocalError.
+- Production `CompilerResponseV2` assembles the selected cell's complete observed
+  axes in code. One selection-level context quote declares interpretation support
+  and/or scope resolutions. Context fields/finite addresses exist only for each
+  owner/input's exposed numeric attachments; dependencies gain no source contexts.
+- Lowering does not infer meaning or repair IDs/quotes. Existing attachment,
+  partition, scope, unit, assertion, visibility and immutable V2 execution checks
+  remain. Scope-only text-row context cannot become subject support implicitly.
+- Offline fixture transport consolidates only authored exact context uses and
+  refuses foreign legacy axes. One unknown-candidate retry fixture now removes the
+  old cell proof when authoring its fake ID; unknown selection and accepted-sibling
+  preservation assertions are unchanged. Foreign-axis rejection has its own test.
+- Python 3.13: focused 97/97; full unittest 1,672/1,672, no skips (57.422s);
+  domain audit 83, import/topology/docs 24, pycompile and diff checks pass. Real SDK
+  schema/count/generation round trips use mocked HTTP with external sockets blocked.
+- Local schema bytes before/after: axis-only 3,477/2,309, single-context 3,477/3,234,
+  parsed located-context fixture 3,469/3,293; numeric instructions 2,890/3,420.
+  A smaller schema need not mean a smaller total request. These are not SDK/token/cost measurements.
+  Provider/model-selection improvement remains unmeasured; no paid call, store,
+  dataset, historical artifact, parser, candidate identity or HTTP change.
+
 ## Why The Simplification Was Needed
 
 The repository accumulated several valid but competing surfaces: the verified
@@ -12638,3 +13058,339 @@ are complete. It remains only as an audit record, not an active priority.
 - The schema description and generic planner policy now state the same rule.
   Focused planner tests pass 5/5, semantic contracts 164/164, import/topology
   28/28, runtime audit 84, and full Python 3.13 unittest discovery 878/878.
+
+## Relative cell periods and bound cross-source formulas (2026-09-07)
+
+- Baseline `46bc658` documented the exhausted LG/NAV live admission, with two
+  missing arithmetic outputs despite healthy retrieval/API/ledger signals.
+  Regression tests reproduced generic `detail` roles hiding annual relative
+  period labels and physical source fingerprints acting as formula scope.
+- Policy-owned cell/header labels now resolve annual offsets against report
+  year. Explicit calendar years win; ambiguity or missing anchors remain unknown.
+  Source labels, candidate IDs/catalog fingerprints and physical provenance are
+  preserved. Legacy candidate applicability uses the same label policy.
+- Bound requirements and validated dependency values may compose across sources.
+  Formula checks retain company/consolidation/segment/basis; source-display scope,
+  units, assertions, visibility, explicit coupling and physical-row constraints
+  remain enforced. The cross-period-only exception was removed as redundant.
+- A two-process replay exposed set-order drift when one prose assertion covers
+  a direct value and a dependent calculation. Coverage now follows declared owner
+  order, keeping validation fingerprints deterministic without changing assertions.
+- Python 3.13.13: focused 187/187, audit 84, import/topology 22/22, docs 2/2,
+  pycompile/diff checks pass; final full discovery 978/978 in 29.075 seconds.
+  Generic fixtures changed only obsolete physical-equality expectations, not facts.
+- Socket-blocked exact live catalog replay with explicitly reconstructed formulas
+  and fake compiler responses completes LG/NAV 2/2, ledger ok, internal retries 0.
+  Accepted LG bindings/assertion and NAV narrative JSON stay byte-identical.
+  Final independent-process receipts match `d3b31544...5dcb`; original result and
+  source-store file hashes are unchanged. KB exact replay 2/2 and the existing
+  T2/T3/Samsung contract projections 3/3 also pass.
+- These are local contracts, not new provider/evaluator/release evidence. LG keeps
+  its selected approximate 6,769억원 component, not the precise reviewed-fixture
+  676,874백만원. Precision-aware source selection remains separate. All successor
+  artifacts stay ignored under `relative_period_context_repair_2026-09-07`;
+  fresh provider validation requires a new manifest/cost approval.
+
+## Filing-qualified physical table identity (2026-09-07)
+
+- Baseline `6ed51fd`. Parser-local table IDs collided across filings before row/cell
+  deduplication. Synthetic regressions reproduced four source cells becoming two,
+  including distinct receipts for the same company/year and identical values.
+- New physical IDs bind explicit receipt/document provenance plus the raw table ID.
+  Anonymous legacy tables use available report scope and table content; indistinguishable
+  anonymous copies do not prove distinct filings. Parser and stored formats are unchanged.
+- Raw IDs remain beside qualified provenance in bundles, prompt, operands and evidence.
+  Scope witnesses cannot bridge known different filings through a shared local ID/anchor.
+  Candidate hashing is unchanged but new table identity inputs produce new IDs; historical
+  programs/catalogs are not remapped and exact replay still rejects identity mismatches.
+- Python 3.13.13: new regressions 11/11, focused 160/160, full suite 1004/1004 in
+  29.105s, domain audit 84, import/topology 22/22, docs 2/2, pycompile and diff checks pass.
+- Two socket-blocked successor projection processes produced identical receipts
+  (`cbcb383a...3920`). All predecessor LG/NAV cell values/periods/units survive;
+  NAV gains 113 formerly collapsed cells. Reversing or swapping retrieved/seed inputs
+  preserves catalog contents/fingerprints, owner IDs and payloads, with no mixed-filing rows.
+- Provider/store writes 0; 11 watched result/store/dataset/predecessor hashes unchanged.
+  Ignored artifacts: `benchmarks/results/filing_table_identity_2026-09-07/`.
+  This verifies source projection, not new compiler choices or quality acceptance.
+  LG period/source interpretation versus evaluator governance remains separate pending work.
+
+## Request-first source-display instructions (2026-09-15)
+
+- Baseline `975f9e21`. The preceding compiler-only run retained correct forward
+  arithmetic but chose a reported display for an explicit calculation-only request.
+  Classified as compiler request/display semantics, not parser, candidate coverage
+  or execution. No frozen result or expected answer was altered.
+- Existing numeric instructions and nullable `source_display` field descriptions
+  now make explicit request intent precede source-first defaults. Calculation-only
+  chooses null even with an available/equal reported value; `source_display_reason`
+  connects the decision to the request, not just source existence. The same policy
+  appears in initial/retry calls. AGENTS and normative runtime contract agree.
+- No new field/enum, keyword/name/value branch, model call, candidate authority,
+  source validation, arithmetic, lowering or public shape change. Meaning remains
+  the Compiler's responsibility; a structurally valid wrong choice is not silently
+  repaired or certified correct. Source/calculation provenance remains separate.
+- Six provider-free contracts use actual prose normalization, nested authored
+  responses, protected execution and final-answer/ledger assembly. They cover
+  positive/negative/equal values, renamed subjects/years, reported precision,
+  nullable choice, same-cohort schema retry and query/program tampering. Two missing
+  instruction/schema-guidance assertions failed before implementation and pass now.
+- Python 3.13 full unittest 1,678/1,678 (44.240s, no skips), focused 90/90,
+  import/topology/docs 24/24, domain audit 83, pycompile and diff checks passed.
+  One authored fixture: prompt 16,474 → 17,062 UTF-8 bytes; schema 4,151 → 4,454.
+  Catalog fingerprint/permissions and one mock call remain identical. These are
+  local sizes/witnesses, not measured tokens, bills or actual model improvement.
+- Provider calls and source/store/dataset/predecessor mutations 0. The prior paid
+  2/3 semantic result remains unchanged. Model verification needs a new bounded
+  successor; no consumed manifest or automatic paid rerun.
+
+## Numeric comparison and reported-row reading instructions (2026-09-15)
+
+- Baseline `2d701d8c`. Replayed the immutable parent/child and reversed-period
+  controls before source changes, then repeated the same seven local paths after.
+  Original parent-row abstention stays unanswered with one mock invocation. A
+  separately authored parent-row selection executes, disproving a required engine
+  or source-authority change for that row, not proving sampled-model accuracy.
+- The original reversed-period drafts remain invalid under current transport.
+  Explicit offline deletion of retired fields, with every edit recorded, leaves
+  the original wrong formula and produces -10%. A separately authored reverse
+  formula yields +11.111…% with identical inputs. Historical records were not edited;
+  transport isolation is not production repair or a corrected paid-model result.
+- Classified as compiler request/evidence interpretation. Added two numeric policy
+  instructions: derive comparison reference/target from the request rather than
+  period labels/order, and distinguish reported-row lookup from unrequested
+  aggregation. Related/equal-valued rows alone do not imply ambiguity or inclusion.
+  True alternative readings and missing evidence remain reasons to abstain.
+- No runtime branch, alias, result correction, new field/classifier, extra call or
+  forced answer/retry. Unit/sign/physical/source/period/visibility/V2 gates remain.
+- Seven new contracts, with two absent-guidance assertions failing before the
+  change. Test harness key/import mistakes were corrected before the baseline;
+  these were not runtime failures. Controls vary names, years, signed values,
+  directions and candidate order; preserve distinct equal-value row axes, genuine
+  gaps, explicit over-abstention and wrong-direction semantic negatives.
+- Focused 104/104, import/topology/docs 24/24, domain audit 83, pycompile/diff passed.
+  Most recent full suite remains 1,678/1,678 on `a2d89d40`; not rerun for this seam.
+  Before/after seven replay paths preserve original sources, program/schema/authority
+  and 8 mock invocations / 1 mock retry. Local JSON prompt strings grow 1,012 UTF-8
+  bytes each, not SDK token/cost data. Provider/store/dataset mutations 0.
+- Actual model improvement remains unmeasured; a future bounded successor must
+  retain original paired criteria plus independent contrasts, never reuse a consumed
+  admission or inject expected answers. [Local evidence](../../benchmarks/results/numeric_reading_intent_2026-09-15/RESULTS.md).
+
+## Free numeric scope interpretation isolation (2026-09-15)
+
+- Baseline `0497d421`; classified as validator/operand boundary drift from the
+  existing runtime contract, not missing domain vocabulary or an arithmetic defect.
+  Saved first drafts wrote period labels into segment/basis. The validator merged
+  those free interpretations into source facts, then rejected their string inequality.
+- One runtime owner changed: `financial_calculation_execution.py`. Interpretations
+  stay on their fingerprint-bound proofs, without overwriting source/context fields
+  in validation or operand projection. Expression context comparison no longer treats
+  free segment/basis labels (including legacy catalog text) as equality gates.
+  Filing metadata takes precedence over legacy company text, consistent with owner
+  checks. Known filing/consolidation conflicts and explicit request-grounded shared-
+  basis declarations remain independently validated; no generic compatibility bypass
+  was introduced. Existing scope, period, units, physical-row and V2 gates remain.
+- Added nine independent contracts: signed numbers/years/order, differing source
+  labels, proof retention versus source/attached-context facts, filing precedence,
+  hard source conflicts, separate source display, wrong-direction semantic negative
+  and post-validation proof tampering. Fixtures use actual normalization. Test setup
+  corrections for display units, default schema fields and diagnostics were not
+  runtime defects; no existing tests or frozen fixtures were weakened or relabeled.
+- Replayed all eight immutable paid cases before/after with sockets blocked and
+  raw wire bytes unchanged. The forward first draft now executes -10%; the reverse
+  first draft still wrongly executes -10%. Two excess abstentions and one appropriate
+  gap abstention are unchanged. Local numeric outputs 4→5, mock calls 10→8 / retries
+  2→0; six other final programs and outputs remain byte-identical. Every initial
+  prompt/schema/visibility and source/response hash remains the same. Unused original
+  retry responses are preserved, not rewritten. This is not sampled-model improvement
+  or measured live retry reduction, and earlier paid results remain immutable.
+- Python 3.13 focused 141/141, import/topology/docs 24/24, domain audit 83 reviewed
+  literals, pycompile/diff checks. Full unittest 1,694/1,694, no skips (61.383s).
+  No prompt/schema/public API, source-store/dataset/identity algorithm or model-call
+  changes. Provider/embedding/ingest/real store writes 0; no paid successor prepared.
+- Remaining work is request lookup scope/abstention and comparison direction as
+  separate model interpretation problems, not another free-label gate or a forced
+  row/formula correction. [Exact replay](../../benchmarks/results/semantic_scope_isolation_2026-09-15/RESULTS.md).
+
+## Request-local comparison endpoints (2026-09-15)
+
+- Baseline `f37c828f`; Compiler request/input representation seam. The preserved
+  paid reverse-direction error was not an arithmetic defect: a free explanation
+  and arbitrary input names did not retain a checkable request-to-endpoint link.
+- Production calculations now require one nullable `comparison_request_unit_id`,
+  before inputs/formula. Comparisons select an owned unit and use existing variable
+  names `reference`/`target`; code copies its exact text/Python span and the bound
+  source/requirement IDs. Reusing request addresses avoids a second model-written
+  quote, additional role enum, candidate classification or endpoint ID list.
+- Validator recomputes `comparison_resolution`; existing formula-name/source/unit
+  checks and V2 program/validation/content fingerprints remain authoritative.
+  Bad links repair only the failed output with the same cohort, within the existing
+  one retry. Independent accepted comparisons and accepted dependency bindings keep
+  identical program bytes. No formula editing, intent inference or extra call.
+- Twelve new contracts fix same-source direction/paraphrase pairs, values/signs/year
+  and candidate-order variations, copied Unicode request spans, null/omission rules,
+  source/period violations, zero reference and proof tampering. Wrong endpoint
+  assignment or reversed formula remains a structurally valid semantic negative;
+  explicit null is not proof that the request needs no comparison. Previous tests
+  retain their choices/criteria through explicit null offline projections only.
+- Test setup corrections concerned diagnostics keys and missing raw-input requirements
+  in a percentage-output fixture, not changes to runtime admission or old criteria.
+  No historical artifact or actual store/dataset was changed. Authored replies do
+  not establish model improvement or current full-agent acceptance.
+- One synthetic fixture versus baseline: local prompt UTF-8 bytes 18,242→18,540,
+  compact schema 4,463→4,850 and authored response 558→601; one mock call, zero retry.
+  These are serialization sizes, not measured SDK tokens, latency, bills or accuracy.
+- Python 3.13: focused 190/190, import/topology/docs 24/24, domain audit 83 reviewed
+  literals, pycompile/diff checks. Full unittest **1,706/1,706**, no skips (71.314s).
+  Provider/embedding/ingest/real store writes 0; no paid manifest/run prepared.
+  Next: a bounded model probe of fixed direction-only pairs, then the separate
+  reported-row over-abstention issue. Do not relabel predecessor outcomes.
+
+
+## 2026-09-16 — Prepare OpenAI Compiler transport and bounded admission
+
+- Added opt-in OpenAI generation controls and strict JSON transport. Source enums, operation arity, original Pydantic validation and deterministic execution remain authoritative. Missing fields, refusals and incomplete responses stay invalid; no reply repair or default-provider promotion.
+- Kept structured invocation on the caller thread for phase usage. OpenAI inclusive output/reasoning accounting is normalized without double counting; Google/OpenRouter defaults remain unchanged.
+- Added separately enabled, ordered-body-hash Responses admission with conservative reservations, official endpoint restriction, zero retries and safe failure receipts. Legacy policies cannot authorize OpenAI generation.
+- Python 3.13 full unittest 1,799/1,799, no skips (62.526s); focused 52, import/topology/docs 24 and runtime-domain audit 83 passed. Real SDK/mocked HTTP checks retain six authored executions and ledgers. Three ignored packet lifecycle tests passed.
+- Prepared six unchanged anonymous cases with identical SDK rehearsals and 12 local output checks. GPT-6 Astra/medium, six first responses, 5,120 inclusive output tokens, USD 6 accounting cap; independent conservative reservations USD 4.73755. No paid call, store mutation, historical-response migration or measured provider/semantic improvement. Exact successor manifest/cost approval remains the next boundary.
+
+
+## 2026-09-16 — Prepare OpenAI Compiler full-agent integration
+
+- Added an opt-in runtime-generated Responses guard sharing Google/count/embedding accounting. Each request requires an approved current-question/Compiler context; explicit policy, strict schema, output/input bounds, endpoint and zero SDK retry controls remain. The existing exact-body guard is unchanged.
+- Context-local dispatch ownership allows only an already-admitted embedding through the shared OpenAI transport, resets on failure, and keeps unknown-usage reservations. Eight new mocked-HTTP contracts cover cross-kind budgets, scope denial, embedding bypass, call caps, endpoint/settings drift, failure stop and missing usage.
+- Python 3.13 full unittest **1,807/1,807**, no skips (51.415s), focused 46 and packet checks 7 passed. The first discovery command used an unsupported top-level layout and exited before tests; the normal discovery command above passed.
+- Prepared three original NAVER/Celltrion questions with unchanged question-derived review criteria. Fresh routing/planning/retrieval; only Compiler moves to GPT-6 Astra. Verified original store hashes and two disposable Chroma copies; new SDK/runner rehearsals match in separate processes. No prior answers/plans injected, no default-store adoption.
+- Proposed shared USD 6 accounting cap, Google generation/count limits 12 each, OpenAI Responses 12 and query/canonical embeddings 64. Existing once/island Compiler repair is included, SDK/run retries and paid judges are zero. No paid successor execution; exact new manifest/cost approval remains. Artifacts stay uncommitted.
+- [Prepared integration packet](../../benchmarks/results/openai_compiler_full_agent_admission_2026-09-16/). No full-agent model or release claim; the preceding six-case paid result remains unchanged.
+- Final import/topology/documentation checks 24/24 (16.060s), domain audit 83, pycompile and diff checks passed.
+
+## 2026-09-16 — Literal numeric subject hints for bounded exposure
+
+- Classified as a candidate-exposure bug. On clean baseline `abcccebd`, a
+  provider-free reconstruction matches all live catalog fingerprints, cohort
+  exposure lists and first-island visible IDs. Descriptive request subjects and
+  shorter source axes both remained unresolved; exact total-row metric wording
+  then displaced the relevant rows within the two-bundle quota.
+- Changed only `financial_candidate_matching.py`: a complete non-temporal own
+  row/column label literally present in the declared target supplies an ordinal
+  hint between exact subject correspondence and no hint. Subject/applicability
+  states, source conditions, target wording and Compiler interpretation do not
+  change. No suffix removal, alias inference, context/metadata borrowing,
+  cross-axis joining or repeated-word score; hint diagnostics stay outside prompts.
+- Eight anonymous contracts cover row/column layouts, total/segment distinctions,
+  complete period pairs, exact/hint ordering, qualifiers and word boundaries,
+  immutable inputs, repeated/foreign surface isolation, scope/unit/period/section
+  and retry exclusions, and owner-local diagnostics excluded from Compiler input.
+- Saved-input replay now exposes the Commerce segment-note pair. All three
+  catalogs/obligation lists and four narrative island payloads stay byte-identical.
+  Numeric island candidates 9 to 18; local candidate payload 51,302 to 88,405 UTF-8
+  bytes because whole physical rows remain atomic. This is not SDK-token/cost
+  evidence. Unknown numeric periods still need grounded Compiler interpretation;
+  no new answer, formula, successful calculation or 3/3 paid result is claimed.
+- Focused **101/101** (5.798s); Python 3.13 full unittest **1,815/1,815**, no skips
+  (47.747s), including import/topology/documentation gates; domain audit 83,
+  pycompile and diff checks pass. Provider/embedding/ingest/original-store writes 0.
+- All 239 protected predecessor/input/store file hashes preserved. The local
+  observer records an edited build without changing the paid-admission clean-build
+  gate. Original paid answers/manifests remain consumed and unchanged; Google
+  remains the default. No new paid manifest or run was prepared.
+- [Offline diagnosis, comparison and validation](../../benchmarks/results/candidate_exposure_offline_2026-09-16/RESULTS.md).
+
+## 2026-09-16 — Exposure successor preparation without provider calls
+
+- Prepared a new store-fixed full-agent admission with the same three questions,
+  source criteria, models and call caps; runtime source is unchanged from tested
+  `96dcf198`. The prepared artifact remains separate from consumed manifests.
+- Reconstructed original catalog/plan serialization to capture all five first
+  SDK request bodies without a response. Four narrative hashes match the prior
+  paid run; numeric body 77,809 to 114,063 bytes, reservation +USD 0.453175.
+- Proposed USD 7 shared cap after the saved-input first-request reservations,
+  historical other-provider usage and maximum count allowance total USD 6.18886254.
+  This is a sizing scenario, not measured future tokens/cost or guaranteed completion.
+  The superseded USD 6 draft is retained without a finalized manifest or paid call.
+- Ten packet checks pass; two separate-process no-call SDK/runner rehearsals are
+  byte-identical. Both original stores and 270 predecessor/input files are preserved.
+  Existing 1,815-test runtime evidence is reused with a matching source fingerprint;
+  no full-suite rerun or new model-quality claim. Live generation cannot read the
+  saved-input sizing, source review criteria, prior answers or authored witnesses.
+- [Prepared exact-manifest/cost approval packet](../../benchmarks/results/openai_compiler_exposure_admission_2026-09-16_v2/PREPARED.md).
+  Provider calls 0; separate approval is still required for its single execution.
+
+## 2026-09-19: Located table-title hints for Planner section selection
+
+- On baseline `223115af`, add bounded nearest ancestor TITLE hints from hydrated,
+  report-scoped table metadata to the existing section inventory. Check table
+  path/identity agreement, document/context hash, exact span and physical attachment;
+  retain one deterministic source example and rotate across visible parent sections.
+  Separate 64-entry/16,384-byte bounds and omission/fingerprint fields preserve
+  existing section IDs, membership fingerprint, request linkage and all rejection gates.
+- Fifteen anonymous controls and 98 focused tests pass; runtime domain audit remains
+  83 reviewed literals. Final blocked-network SDK replay passes 25 assertions:
+  both formerly absent cash-flow headings reach the actual request, within 24/85
+  visible titles and 16,070 hint bytes. Schema/settings/source axes are unchanged;
+  only hints and their instruction change the prompt, growing request bytes
+  54,189 to 72,967. No provider-token or model-success inference follows.
+- The untouched saved response still yields two unresolved restrictions, an empty
+  search filter and no Compiler call. Original paid 0/2 remains failed; authored
+  valid-parent controls establish linkage only, with same-parent siblings still
+  requiring semantic selection. No keyword fallback or section-authority promotion.
+- All 9862 predecessor artifacts, seven protected owners, 24 original store files
+  and settings are preserved. Three source files change, no source-store mutation
+  or Chroma opening. New calls/cost zero; retained 16.09071086/17.73 USD, remaining
+  1.63928914 and pending zero. Next fresh bounded admission/rehearsal, no automatic
+  paid retry or consumed-draft reuse. [Details](../evaluation/planner_table_heading_exposure.md).
+
+
+## 2026-09-19: Clarify Planner status facts versus scalar outputs
+
+- The saved dividend failure exposes ambiguous Planner wording: payment status was direct_value despite a relevant future-payment sentence, and an associated amount was selected. This is a generic output-kind contract seam, not a missing domain alias.
+- Policy now reserves direct_value for a requested source scalar and derived_value for a calculated scalar; facts/status/occurrence/conditions/relationships, including brief yes/no answers, use narrative. Numbers in context do not set the output kind; separately requested quantities stay independent. Three production kind descriptions carry the same boundary. No keyword classifier, output-count rule, state/ledger change, old-plan rewrite or source-validation weakening.
+- Six new authored controls were added; the initial SDK instruction assertion failed on the old prompt while five behavior/limit controls passed. All six now pass within 82 focused tests. Domain audit remains 83 reviewed literals; import/topology/documentation checks pass separately. Counterfactual source-linked claims and authored misclassification remain explicit semantic negatives, not accuracy evidence.
+- Blocked-network saved-question SDK replay passes 25 checks: 72,014 -> 73,374 bytes, only intended instructions and three schema descriptions changed. Structural local/strict schemas, original request/scope/inventories and model settings stay unchanged. A review-only dictionary-order mismatch was isolated and corrected using actual API serialization; no live request. The old sampled response remains misclassified and its three saved validation errors remain exact.
+- All 10208 predecessors, 24 original store files, seven protected owners and settings are preserved. Only two of 174 source files change; no Chroma open, provider calls, added cost, budget increase or consumed-draft reuse. Shared accounting stays 17.11707679/18.27, remaining 1.15292321, pending zero. Prior paid HTTP 500 and partial claims remain unchanged. Next characterize bundle/sentence quote ownership provider-free; no new classification or answer success is claimed. [Details](../evaluation/planner_output_kind_boundary.md).
+
+
+## 2026-09-19: Bind numeric interpretation quotes to exact located bundles
+
+- On baseline `3a8ae0e2`, the sampled dividend quote exactly matched the visible source bundle, but validation compared its leading space against a normalized sentence. Correct this one generic evidence-surface seam without trimming or changing the original candidate, source, model reply or scalar assertion.
+- Validate existing context/value coordinates and the selected prose bundle; retain exact quote, bundle/candidate identity, local quote offset and composed source-candidate offset. Respect independent partitions and choose the first valid exact occurrence. Malformed/partial coordinates, foreign/hidden/inexact text and physical table substitution fail. Historical unlocated rows retain their old exact contract; meaning and period validation remain separate.
+- Ten new controls and 124 related regression tests pass, with the 83-literal domain audit and separate import/topology/docs gate. The first eight controls exposed old false rejections, normalized-quote acceptance and wrong offsets; partition/window controls extend coverage. Actual lowering/execution and V2 content/proof tampering checks pass without providers.
+- A 23-check blocked-network review replays the unchanged sampled program. Its quote error alone disappears; period mismatch and unselected assertion remain invalid. The exact stored node interval [578,692) equals the quote and the 1,190억원 scalar assertion remains separate. Original HTTP 500, partial claims, plan kind, consumed draft and accounting are unchanged; no fresh classification or delivered answer is claimed.
+- All 10228 predecessor files, 24 original store files, seven protected owners and settings retain hashes. One of 174 source files changes, with no Chroma open, external request or additional cost. Shared 17.11707679/18.27 USD, remaining 1.15292321, pending zero. Next fresh provider-free application admission/rehearsal for both the Planner clarification and quote fix; no automatic paid successor, cap increase or consumed-draft reuse. [Details](../evaluation/numeric_quote_source_boundary.md).
+
+## 2026-09-21 — Bounded missing-evidence explanation at final assembly
+
+- On `dce065ef`, classify the observed explanation gap as final-answer contract
+  and presentation policy. Pass the existing selected report scope into final
+  assembly; render error-free missing labels/declared periods with generic
+  Korean/English templates. Report year is selection metadata, not measurement
+  coverage. Inventory/unscoped cases invent no singular source or period.
+- Keep ambiguous/invalid/execution-failed outcomes separate and rationale
+  diagnostic. Missing partial/incomplete answers cite accepted evidence only;
+  retrieved documents remain in review. Healthy outputs and citations unchanged.
+- 11 new contracts / 95 focused tests / domain audit 83 pass. The first ledger
+  test fixture lacked its required operation field; only that fixture changed.
+  Actual model schemas, selection, source validation, arithmetic and retries
+  are unchanged. Full unittest 2130/2130, no skips (87.262s); import/topology/docs
+  24/24 pass. The first full-discovery command failed before tests because of a
+  namespace-directory top-level argument; the corrected harness passes and both
+  records remain. [Contract and verification](../evaluation/missing_evidence_presentation.md).
+
+
+## 2026-09-21 — Preserve Planner measurement periods without filing-year defaults
+
+- On `15fee58b`, classify the blank numeric period substitution as a Planner
+  normalization contract bug. Keep every unspecified output period empty, while
+  retaining explicit parent inheritance and child overrides. Report selection and
+  year hints remain separate; prompt/schema descriptions reinforce this without
+  new fields, calls, keyword extraction or inferred year repair.
+- 14 new contracts / 94 focused tests / domain audit 83 pass. Full unittest
+  2144/2144, no skips (63.810s); import/topology/docs 24/24. Initial test-only
+  field/key/constructor errors were corrected without weakening product checks.
+- No-period lookups remain supported, explicit foreign periods remain incomplete,
+  and two-period arithmetic/ledger behavior passes. Authored wrong/omitted periods
+  remain semantic negatives even when source validation accepts them. This is no
+  general guarantee against Planner interpretation errors.
+  [Contract and evidence](../evaluation/planner_measurement_period.md).

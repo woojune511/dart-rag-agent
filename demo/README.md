@@ -87,5 +87,7 @@ The original public package came from revision `2f3aea223a70648a700092604990f7b0
 This UI changes the initial selection from F12 to F02 and adds case navigation;
 all saved questions, answers, source texts, reviews and evaluation metrics remain
 unchanged. The payload hash changes only because `initial_case` changes. Linked
-reports are pinned to that source revision, since the compiled runtime on `main`
-is a separate version. Publishing the viewer does not migrate the runtime.
+reports remain pinned to that source revision to preserve evaluation provenance.
+The current application is Simple RAG; the older compiled workflow is retained
+only for explicit comparisons. Publishing the viewer does not execute either
+runtime. See the [current project overview](../docs/overview/project_overview.md).

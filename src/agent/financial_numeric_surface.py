@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from src.agent.financial_runtime_normalization import _normalise_spaces, _parse_number_text
@@ -242,6 +243,7 @@ def _numeric_surface_candidate_from_match(
     percent_units: List[str],
     count_unit_scale: Dict[str, float],
     context_unit: str,
+    include_bare: bool = False,
 ) -> Dict[str, Any]:
     raw_value = match.group("value")
     unit = match.groupdict().get("unit") or ""
@@ -288,7 +290,7 @@ def _numeric_surface_candidate_from_match(
             "text": candidate_text,
             "span": match.span(),
         }
-    if digit_count >= 4:
+    if digit_count >= 4 or include_bare:
         return {
             "kind": "generic",
             "value": parsed,
@@ -392,6 +394,47 @@ def extract_numeric_surface_candidates(text: str) -> List[Dict[str, Any]]:
             percent_units=percent_units,
             count_unit_scale=count_unit_scale,
             context_unit=context_unit,
+        )
+        if candidate:
+            candidates.append(candidate)
+    return candidates
+
+
+def extract_source_numeric_surface_candidates(text: str) -> List[Dict[str, Any]]:
+    """Extend catalog exposure, not evaluation matching, with standalone scalars.
+
+    Keep the existing sequence first: its indices are candidate identity inputs.
+    Newly exposed values have no inferred currency/scale or semantic role. The
+    compiler must still select and ground them against the request and full text.
+    """
+    candidates = extract_numeric_surface_candidates(text)
+    occupied = [tuple(row["span"]) for row in candidates]
+    # Known inline units must not be reinterpreted as a bare COUNT if the older
+    # surface extractor does not support that spelling. Use shared unit policy.
+    occupied.extend(match.span() for match in re.finditer(
+        NUMERIC_UNIT_NORMALIZATION_POLICY["inline_value_unit_pattern"], text, re.I
+    ))
+    # These are lexical addresses/partitions, not evidence of a scalar's meaning.
+    for pattern in (
+        r"\d+(?:\s*[/:-]\s*\d+)+",  # date, time, range or numeric identifier
+        r"\d+(?:\.\d+){2,}",  # dotted multipart identifiers, not decimals
+        r"\[\s*\d+\s*\]",  # bracketed reference markers
+        r"(?:^|[;.!?\n])\s*\d+[.)](?=\s)",  # numbered-list marker
+    ):
+        occupied.extend(match.span() for match in re.finditer(pattern, text))
+    number = r"\d+(?:,\d{3})*(?:\.\d+)?"
+    pattern = re.compile(
+        rf"(?<![\w.,+\-])(?P<value>\([+-]?{number}\)|[+-]?{number})(?![\w%]|\.\d|,\d)"
+    )
+    unit_scale, percent_units, count_unit_scale, _ = _numeric_unit_terms()
+    for match in pattern.finditer(text):
+        if any(start < match.end() and match.start() < end for start, end in occupied):
+            continue
+        if match.start() and unicodedata.category(text[match.start() - 1]) == "Sc":
+            continue
+        candidate = _numeric_surface_candidate_from_match(
+            match, unit_scale=unit_scale, percent_units=percent_units,
+            count_unit_scale=count_unit_scale, context_unit="", include_bare=True,
         )
         if candidate:
             candidates.append(candidate)

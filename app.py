@@ -1,22 +1,19 @@
 """
-Streamlit UI — DART 공시 분석 AI Agent (experimental)
+Streamlit UI — DART 공시 검색·질의응답 (experimental)
 
 탭 구성:
   Tab 1: 기업 데이터 수집 — DART 수집 + 파싱 + 인덱싱
-  Tab 2: 질문 분석         — 자연어 질문 → Agent → 답변 + 출처
-  Tab 3: 평가 대시보드     — 지표 시각화 + MLflow 실험 결과
+  Tab 2: 질문 분석         — 자연어 질문 → 검색 → 답변 + 출처
 
 실행:
     streamlit run app.py
 """
 
-import json
 import logging
 import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List
 
 import streamlit as st
 
@@ -50,7 +47,7 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("📊 DART 공시 분석 AI Agent")
+st.title("📊 DART 공시 검색·질의응답")
 st.caption(
     "Experimental UI — DART(전자공시시스템) 기반 기업 공시 문서를 분석합니다."
 )
@@ -59,7 +56,7 @@ st.caption(
 # 탭 구성
 # --------------------------------------------------------------------------
 
-tab1, tab2, tab3 = st.tabs(["📥 데이터 수집", "💬 질문 분석", "📈 평가 대시보드"])
+tab1, tab2 = st.tabs(["📥 데이터 수집", "💬 질문 분석"])
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -173,7 +170,7 @@ with tab1:
 
 with tab2:
     st.subheader("자연어 질문 분석")
-    st.caption("질문을 입력하면 LangGraph 기반 AI Agent가 분석합니다.")
+    st.caption("공시 근거를 검색해 답변합니다. 계산 정확성과 근거의 의미를 자동 검증하지 않습니다.")
 
     # 예시 질문
     EXAMPLE_QUERIES = [
@@ -201,10 +198,27 @@ with tab2:
         question = selected_example
         st.text_area("질문", value=question, height=80, disabled=True, key="shown_question")
 
+    with st.expander("검색할 보고서 범위 (선택)"):
+        scope_company = st.text_input("기업명", key="query_scope_company")
+        scope_year = st.text_input("보고서 연도", key="query_scope_year", placeholder="예: 2023")
+        scope_receipt = st.text_input("공시 접수번호", key="query_scope_receipt")
+        st.caption("입력한 조건을 모두 만족하는 보고서에서 검색합니다. 비워두면 해당 조건을 적용하지 않습니다.")
+
     if st.button("🔍 분석 실행", type="primary", disabled=not question):
+        report_scope = {}
+        if scope_company.strip():
+            report_scope["company"] = scope_company.strip()
+        if scope_receipt.strip():
+            report_scope["rcept_no"] = scope_receipt.strip()
+        if scope_year.strip():
+            try:
+                report_scope["year"] = int(scope_year.strip())
+            except ValueError:
+                st.error("보고서 연도는 정수로 입력하세요.")
+                st.stop()
         services = load_components()
 
-        with st.spinner("Agent 분석 중..."):
+        with st.spinner("근거 검색 및 답변 생성 중..."):
             try:
                 with services.serialized_sync_operation():
                     agent = services.agent
@@ -212,32 +226,25 @@ with tab2:
                         raise RuntimeError(services.readiness.reason)
                     run_result = agent.run(
                         question,
+                        report_scope=report_scope or None,
                         include_review_trace=True,
                     )
                 answer_result = run_result.agent_answer
                 review_trace = run_result.review_trace or {}
 
-                # 쿼리 유형 배지
-                qtype_label = {
-                    "qa":         "📋 단순 QA",
-                    "comparison": "⚖️ 기업 비교",
-                    "trend":      "📈 트렌드 분석",
-                    "risk":       "⚠️ 리스크 분석",
-                }.get(answer_result.get("query_type", ""), "🔍 분석")
-
                 col_a, col_b, col_c = st.columns(3)
-                col_a.metric("쿼리 유형", qtype_label)
+                col_a.metric("답변 상태", "근거 부족" if answer_result.get("abstained") else "답변 생성")
                 extracted_companies = answer_result.get("companies", [])
                 extracted_years     = answer_result.get("years", [])
                 col_b.metric(
-                    "인식된 기업",
+                    "검색된 기업",
                     ", ".join(extracted_companies) if extracted_companies else "—",
-                    help="Agent가 질문에서 추출한 기업명. 비어있으면 필터 미적용.",
+                    help="검색 근거에 기록된 기업입니다.",
                 )
                 col_c.metric(
-                    "인식된 연도",
+                    "검색된 보고서 연도",
                     ", ".join(str(y) for y in extracted_years) if extracted_years else "—",
-                    help="Agent가 질문에서 추출한 연도. 비어있으면 필터 미적용.",
+                    help="검색 근거에 기록된 보고서 연도입니다. 질문의 측정 기간을 판정한 값이 아닙니다.",
                 )
 
                 st.divider()
@@ -247,220 +254,20 @@ with tab2:
                 citations = answer_result.get("citations", [])
                 if citations:
                     with st.expander(f"📚 출처 ({len(citations)}건)", expanded=False):
-                        for i, cite in enumerate(citations, 1):
-                            st.markdown(f"**{i}.** {cite}")
+                        for i, source in enumerate(answer_result.get("cited_sources", []), 1):
+                            st.markdown(f"**{i}.** {source['source_id']}")
+                            st.json(source["context"])
+                            st.text(source["text"])
 
-                retrieved_docs = review_trace.get("retrieved_docs", [])
-                if retrieved_docs:
-                    with st.expander(f"🔎 검색된 청크 ({len(retrieved_docs)}개) — 클릭하여 검색 결과 원문 확인", expanded=False):
-                        for i, item in enumerate(retrieved_docs, 1):
-                            doc, score = (item[0], item[1]) if isinstance(item, (tuple, list)) else (item, None)
-                            meta = getattr(doc, "metadata", {}) or {}
-                            section  = meta.get("section_path", meta.get("section", "—"))
-                            chunk_tp = meta.get("block_type", "—")
-                            company  = meta.get("company", "—")
-                            year     = meta.get("year", "—")
-                            score_str = f"{score:.4f}" if score is not None else "—"
-                            st.markdown(
-                                f"**#{i}** &nbsp; `{company} {year}` &nbsp; 섹션: `{section}` &nbsp; "
-                                f"유형: `{chunk_tp}` &nbsp; 점수: `{score_str}`"
-                            )
-                            if meta.get("table_context"):
-                                st.caption(f"Table context: {meta['table_context']}")
-                            st.text_area(
-                                label=f"청크 #{i} 내용",
-                                value=getattr(doc, "page_content", None) or getattr(doc, "content", ""),
-                                height=150,
-                                disabled=True,
-                                key=f"chunk_text_{i}",
-                                label_visibility="collapsed",
-                            )
-                            st.divider()
+                retrieved_sources = review_trace.get("retrieved_sources", [])
+                if retrieved_sources:
+                    with st.expander(f"🔎 검색 근거 ({len(retrieved_sources)}개)"):
+                        for source in retrieved_sources:
+                            st.markdown(f"**{source['source_id']}**")
+                            st.json(source["context"])
+                            st.text(source["text"])
 
             except Exception as e:
-                st.error(f"분석 실패: {e}")
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# Tab 3: 평가 대시보드
-# ══════════════════════════════════════════════════════════════════════════
-
-with tab3:
-    st.subheader("RAG 평가 대시보드")
-    st.caption("Faithfulness / Answer Relevancy / Context Recall 지표와 MLflow 실험 결과를 확인합니다.")
-
-    _PROJECT_ROOT = Path(__file__).resolve().parent
-
-    col_run, col_cfg = st.columns([2, 1])
-
-    with col_cfg:
-        st.markdown("**평가 설정**")
-        n_questions = st.slider("평가 문항 수", min_value=1, max_value=20, value=3, step=1)
-        run_name_input = st.text_input("MLflow Run 이름", value="streamlit_eval")
-
-    with col_run:
-        st.markdown("**평가 실행**")
-        if st.button("▶️ 평가 시작", type="primary"):
-            services = load_components()
-            with services.serialized_sync_operation():
-                if not services.readiness.ready or services.agent is None:
-                    st.error(services.readiness.reason)
-                    st.stop()
-                # Experimental evaluator dependencies are loaded only for an
-                # explicit evaluation action, not during application startup.
-                from src.ops.evaluator import RAGEvaluator
-
-                evaluator = RAGEvaluator(services.agent)
-                dataset = evaluator.load_dataset()
-                subset = evaluator.build_single_company_eval_slice(
-                    dataset,
-                    max_questions=n_questions,
-                )
-
-                with st.spinner(f"{len(subset)}개 질문 평가 중..."):
-                    results = evaluator.run(
-                        examples=subset,
-                        run_name=run_name_input,
-                        params={
-                            "n_questions": len(subset),
-                            "mode": "single_company_accuracy",
-                        },
-                    )
-
-            st.session_state["eval_results"] = results["per_question"]
-            st.session_state["eval_aggregate"] = results["aggregate"]
-            st.success("평가 완료! MLflow에 기록되었습니다.")
-
-    # 결과 표시
-    if "eval_aggregate" in st.session_state:
-        agg = st.session_state["eval_aggregate"]
-
-        st.divider()
-        st.subheader("집계 지표")
-
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Faithfulness", f"{agg['faithfulness']:.3f}", help="답변이 컨텍스트에 근거하는 정도 (LLM judge)")
-        c2.metric("Answer Relevancy", f"{agg['answer_relevancy']:.3f}", help="질문-답변 의미 유사도 (임베딩 코사인)")
-        c3.metric("Context Recall", f"{agg['context_recall']:.3f}", help="정답 키워드 검색 커버리지")
-
-        c4, c5, c6 = st.columns(3)
-        c4.metric("Retrieval Hit@k", f"{agg['retrieval_hit_at_k']:.3f}", help="기대 회사/연도/섹션이 검색 결과에 포함되는 비율")
-        c5.metric("Section Match", f"{agg['section_match_rate']:.3f}", help="검색 청크 중 기대 섹션 비율")
-        c6.metric("Citation Coverage", f"{agg['citation_coverage']:.3f}", help="최종 인용이 기대 회사/연도/섹션을 얼마나 덮는지")
-
-        st.metric("평균 점수", f"{agg['avg_score']:.3f}")
-
-        # 레이더 차트
-        try:
-            import pandas as pd
-            import altair as alt
-
-            chart_data = pd.DataFrame({
-                "지표": [
-                    "Faithfulness",
-                    "Answer Relevancy",
-                    "Context Recall",
-                    "Retrieval Hit@k",
-                    "Section Match",
-                    "Citation Coverage",
-                ],
-                "점수": [
-                    agg["faithfulness"],
-                    agg["answer_relevancy"],
-                    agg["context_recall"],
-                    agg["retrieval_hit_at_k"],
-                    agg["section_match_rate"],
-                    agg["citation_coverage"],
-                ],
-            })
-
-            bar = (
-                alt.Chart(chart_data)
-                .mark_bar()
-                .encode(
-                    x=alt.X("지표:N", sort=None),
-                    y=alt.Y("점수:Q", scale=alt.Scale(domain=[0, 1])),
-                    color=alt.Color(
-                        "지표:N",
-                        scale=alt.Scale(
-                            domain=[
-                                "Faithfulness",
-                                "Answer Relevancy",
-                                "Context Recall",
-                                "Retrieval Hit@k",
-                                "Section Match",
-                                "Citation Coverage",
-                            ],
-                            range=["#4C78A8", "#F58518", "#54A24B", "#E45756", "#72B7B2", "#B279A2"],
-                        ),
-                        legend=None,
-                    ),
-                    tooltip=["지표", alt.Tooltip("점수:Q", format=".3f")],
-                )
-                .properties(width=400, height=280, title="RAG 평가 지표")
-            )
-            st.altair_chart(bar, use_container_width=False)
-        except Exception:
-            pass
-
-        # 문항별 결과 테이블
-        st.divider()
-        st.subheader("문항별 결과")
-        per = st.session_state["eval_results"]
-        import pandas as pd
-        df = pd.DataFrame([
-            {
-                "ID": r.id,
-                "질문": r.question[:45] + "..." if len(r.question) > 45 else r.question,
-                "Faithfulness": f"{r.faithfulness:.2f}",
-                "Relevancy":    f"{r.answer_relevancy:.2f}",
-                "Recall":       f"{r.context_recall:.2f}",
-                "Hit@k":        f"{r.retrieval_hit_at_k:.2f}",
-                "Section":      f"{r.section_match_rate:.2f}",
-                "Citation":     f"{r.citation_coverage:.2f}",
-                "Latency(s)":   f"{r.latency_sec:.1f}",
-                "오류": r.error or "",
-            }
-            for r in per
-        ])
-        st.dataframe(df, use_container_width=True, hide_index=True)
-
-    # MLflow 실험 이력
-    st.divider()
-    st.subheader("MLflow 실험 이력")
-    mlruns_path = _PROJECT_ROOT / "mlruns"
-
-    if st.button("📂 실험 이력 불러오기"):
-        try:
-            import mlflow
-            client = mlflow.tracking.MlflowClient(tracking_uri=str(mlruns_path))
-            experiments = client.search_experiments()
-            all_runs = []
-            for exp in experiments:
-                runs = client.search_runs(
-                    experiment_ids=[exp.experiment_id],
-                    order_by=["start_time DESC"],
-                    max_results=20,
-                )
-                for run in runs:
-                    m = run.data.metrics
-                    all_runs.append({
-                        "실험":           exp.name,
-                        "Run":            run.info.run_name or run.info.run_id[:8],
-                        "Faithfulness":   f"{m.get('agg_faithfulness', m.get('faithfulness', 0)):.3f}",
-                        "Relevancy":      f"{m.get('agg_answer_relevancy', m.get('answer_relevancy', 0)):.3f}",
-                        "Recall":         f"{m.get('agg_context_recall', m.get('context_recall', 0)):.3f}",
-                        "Avg Score":      f"{m.get('agg_avg_score', 0):.3f}",
-                        "시작 시각":       run.info.start_time,
-                    })
-
-            if all_runs:
-                import pandas as pd
-                df_runs = pd.DataFrame(all_runs)
-                st.dataframe(df_runs, use_container_width=True, hide_index=True)
-            else:
-                st.info("실험 이력이 없습니다. 평가를 먼저 실행하세요.")
-        except Exception as e:
-            st.error(f"MLflow 조회 실패: {e}")
-
-    st.caption("💡 상세 실험 비교: `mlflow ui --backend-store-uri mlruns/` 실행 후 http://localhost:5000 접속")
+                from src.utils.provider_errors import provider_error_projection
+                logging.getLogger(__name__).error("Query failed: %s", provider_error_projection(e))
+                st.error("답변 생성에 실패했습니다. 설정과 진단 기록을 확인하세요.")

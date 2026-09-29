@@ -1,0 +1,28 @@
+<DOCUMENT>
+  <SECTION-1><TITLE ATOC="Y">III. 재무에 관한 사항</TITLE>
+    <SECTION-2><TITLE ATOC="Y">3. 연결재무제표 주석</TITLE>
+      <SECTION-3><TITLE ATOC="Y">21. 영업이익 (연결)</TITLE>
+        <TABLE><TR><TD>당기 (단위: 백만원)</TD></TR></TABLE>
+        <TABLE>
+          <THEAD><TR><TH>항목</TH><TH>공시금액</TH></TR></THEAD>
+          <TBODY>
+            <TR><TD>사업 설명</TD><TD>제품을 생산하고 판매합니다.</TD></TR>
+            <TR><TD>영업이익</TD><TD>100</TD></TR>
+            <TR><TD>설명</TD><TD>법은 2020년부터 시행되며 당기 생산분에 적용됩니다.</TD></TR>
+          </TBODY>
+        </TABLE>
+        <TABLE><TR><TD>전기 (단위: 백만원)</TD></TR></TABLE>
+        <TABLE>
+          <THEAD><TR><TH>항목</TH><TH>공시금액</TH></TR></THEAD>
+          <TBODY><TR><TD>영업이익</TD><TD>90</TD></TR></TBODY>
+        </TABLE>
+      </SECTION-3>
+    </SECTION-2>
+    <SECTION-2><TITLE ATOC="Y">5. 재무제표 주석</TITLE>
+      <TABLE><TR><TD>당기 (단위: 백만원)</TD></TR></TABLE>
+      <TABLE><THEAD><TR><TH>항목</TH><TH>공시금액</TH></TR></THEAD>
+        <TBODY><TR><TD>영업이익</TD><TD>100</TD></TR></TBODY>
+      </TABLE>
+    </SECTION-2>
+  </SECTION-1>
+</DOCUMENT>

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 
 from tests.semantic_program_test_support import *
 
@@ -124,9 +125,11 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
 
     @staticmethod
     def _compile(obligations, catalog, *responses):
+        from tests.source_interpretation_fixture_support import authored_source_program
         llm = _StructuredQueueLLM(
             *(
-                SemanticCalculationProgram.model_validate(response)
+                SemanticCalculationProgram.model_validate(authored_source_program(
+                    response, obligations, catalog, "Return both Target Entity metrics."))
                 for response in responses
             )
         )
@@ -402,7 +405,10 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                 },
             ],
         }
-        validation = validate_semantic_calculation_program(
+        from tests.source_interpretation_fixture_support import authored_source_program
+        mixed_program = authored_source_program(mixed_program, obligations, catalog,
+                                               "Return both Target Entity metrics.")
+        validation = validate_authored_fixture(
             program=mixed_program,
             obligations=obligations,
             candidate_catalog=catalog,
@@ -440,7 +446,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             obligations=obligations,
             query="Return both Target Entity metrics.",
         )
-        executed = execute_semantic_calculation_program(
+        executed = execute_authored_fixture(
             program=mixed_program,
             obligations=obligations,
             candidate_catalog=catalog,
@@ -504,7 +510,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
                 "evidence_bundle_constraints"
             ],
         )
-        validation = validate_semantic_calculation_program(
+        validation = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -550,7 +556,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             validation["errors"],
         )
 
-        accepted = validate_semantic_calculation_program(
+        accepted = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": [
@@ -670,7 +676,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             {"obligation_id": "ob_alpha", "candidate_id": "cand-alpha-a"},
             {"obligation_id": "ob_beta", "candidate_id": "cand-beta-a"},
         ]
-        partial = validate_semantic_calculation_program(
+        partial = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": direct_bindings,
@@ -699,7 +705,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             {error["code"] for error in partial["errors"]},
         )
 
-        omitted_value = validate_semantic_calculation_program(
+        omitted_value = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": direct_bindings,
@@ -734,7 +740,7 @@ class SemanticEvidenceBundleTests(unittest.TestCase):
             {error["code"] for error in omitted_value["errors"]},
         )
 
-        accepted = validate_semantic_calculation_program(
+        accepted = validate_authored_fixture(
             program={
                 "status": "ready",
                 "direct_bindings": direct_bindings,

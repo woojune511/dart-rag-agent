@@ -1,5 +1,9 @@
 # Technical Q&A
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](project_overview.md)
+> and [offline demo](simple_rag_demo.md).
+
 이 문서는 DART financial RAG의 설계 선택과 동작을 설명하는
 기술 질문/답변 노트다. 짧은 소개는
 [design_rationale.md](design_rationale.md)를 먼저

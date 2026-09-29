@@ -1,0 +1,866 @@
+# OpenAI application migration
+
+Current execution evidence and next work: [native full-app result](native_application_result.md)
+(2026-09-19), two source-reviewed outputs, no error or retry. The experiments
+below retain their original scope and accounting.
+
+`DART_LLM_PROFILE=openai` selects OpenAI for shared API/Streamlit LLM calls:
+Terra/low/8192 for default routing/planning, the unchanged reviewed
+Astra/medium/5120 Compiler, and Luna/none/512 for ingest context sentences.
+All use Responses, standard tier, `store=false`, timeout 90 seconds and zero
+SDK retries. Explicit `google` and `openai_compiler` modes remain available;
+unset selection keeps the existing default. This is application wiring, not
+retirement of historical benchmark/MAS/legacy provider implementations.
+
+The context generator now reads plain strings and completed text blocks, omits
+reasoning/refused/incomplete text, and reports metadata fallbacks and actual
+usage. It preserves source text and metadata. Existing stores, context caches,
+canonical parser/embedding identities and query contracts are unchanged.
+
+## Model basis
+
+The current official [Terra model card](https://developers.openai.com/api/docs/models/gpt-5.6-terra)
+describes the balanced mini tier, while [Luna](https://developers.openai.com/api/docs/models/gpt-5.6-luna)
+targets low-cost high-volume work. Both support Responses/structured outputs
+and the selected reasoning controls. Compiler settings retain their prior
+[Astra compatibility](https://developers.openai.com/api/docs/guides/latest-model/gpt-6-astra.md#migration-quickstart).
+Model fit for this application still requires application evidence; product
+positioning alone does not prove answer quality.
+
+## Validation boundary
+
+Focused provider-free tests: 46 passed. Real installed SDK serialization covers
+router/planner schemas, nested required fields, plain context responses, usage,
+empty/refused/incomplete text, startup without Google credentials, strict source
+readiness, failure/no-retry behavior and prior Compiler transport contracts.
+Full provider-free regression: **1,855/1,855**, no failures/errors/skips (49.777s),
+external network blocked and attempted connections/provider calls 0. Domain
+audit: 83 reviewed literals, no additions.
+
+## Actual query: transport passes, numeric output remains incomplete
+
+The [normal-app result](../../benchmarks/results/app_openai_migration_2026-09-16/RESULTS.md)
+used clean source `068ade52` and real API lifespan/shared services through ASGI.
+Health/companies/query returned HTTP 200. The known-source mixed question
+produced **1/2 outputs**, with ledger integrity ok: four supported narrative
+claims, but no numeric growth result. Overall query status is **partial**.
+
+Both original numeric cells reached the Compiler; their value, unit, period,
+source-context and provenance fields match the previous complete run. The
+Compiler explicitly abstained because it did not resolve attached relative
+period labels to the requested calendar years. This is a semantic period-grounding
+gap, not an observed API/schema error or proof of a planner/filter failure.
+Fresh plans differ, so the result cannot isolate a model or prompt effect.
+
+Fresh admission `d787579d...0f390` was consumed once after two identical mocked-HTTP
+rehearsals and terminal-stop checks, under USD 7. All 23 attempts completed:
+Terra 2, Astra 2, embeddings 19; Google clients/calls 0, SDK/whole-query/Compiler
+feedback retries 0. Conservative usage estimate **USD 0.78708574**, peak reservation
+1.69237324, pending 0; no invoice claim. The packet stopped on partial output and
+did not run its context sample. Its immutable response is not counted as complete.
+
+Separate offline review verified nine narrative subject/fact support occurrences,
+including direct acquisition-impact evidence with group/subsidiary qualifications.
+All 453 protected files are unchanged. Read-only SQLite comparison confirms the
+working copy retains the original 1,872 source rows and 59,477 metadata rows;
+normal working-copy database bookkeeping may differ.
+
+## Independent first context preview and local activation
+
+The separate [context preview](../../benchmarks/results/app_openai_context_2026-09-16/RESULTS.md)
+did not rerun the question or resume its consumed packet. New admission
+`283485c1...93b3`, USD 0.10, binds one exact plain-text Luna request rehearsed twice.
+One actual response returned a 39-character Korean context sentence consistent
+with the source topic, without fallback; usage estimate **USD 0.0001225**.
+All 478 protected files passed. No app startup, embeddings, fetch, indexing or
+store writes occurred in this preview; full fresh ingest remains untested.
+
+Local `.env` now selects `DART_LLM_PROFILE=openai`; only that setting's bytes
+changed, preserving credentials and storage settings. The API and Streamlit
+share this selection. A running process must be restarted to reload it; no
+external listening server was started. Total observed usage estimate across
+the two independent checks is **USD 0.78720824**, not billed cost.
+
+The provider migration is implemented and selected. It is not a complete answer
+quality or release gate: calendar-period grounding and independent-question
+coverage remain next. Keep source/request/execution validation strict; do not
+fill the missing calculation from the known answer or rerun consumed admissions.
+
+## Provider-free period-contract correction (2026-09-17)
+
+The [stored-source reconstruction](../../benchmarks/results/relative_period_contract_2026-09-17/RESULTS.md)
+found a contract mismatch: ingestion `year` is the business year, but the Compiler
+prompt described it as the filing year. The unchanged current/prior exact attached
+quotes already resolve to 2023/2022 through existing validation. Instructions now
+explain the business-year anchor and the existing `context_evidence.resolves` path
+for a selected cell whose catalog period is still unknown. No new candidate field,
+automatic context selection, parser change or provider call was introduced.
+
+Anonymous controls also reproduced a validator gap: an explicit model-written year
+could replace absent, ambiguous or unanchored quote evidence. Period bindings now
+require the exact attached quote to resolve one matching year. Explicit source
+years still work without a report-year anchor; physical attachment, source conflicts,
+raw values and V2 execution proofs remain enforced.
+
+Focused tests **146/146** pass, including six new contracts with authored transport,
+initial/retry prompts and execution; blocked external connection attempts 0.
+All 494 protected files, catalog/payload/cohort hashes and historical source proofs
+remain unchanged. The actual sampled missing response remains missing. This proves
+the local contract correction, not a live completion improvement or isolated cause
+of the historical abstention. The separate live successor below tests the corrected
+contract with fresh plans; consumed admissions remain unusable.
+
+## Fresh three-question application verification (2026-09-17)
+
+The [normal-app successor](../../benchmarks/results/period_quality_v2_2026-09-17/RESULTS.md)
+used clean `10ee083d` and three fixed questions through real ASGI/shared services.
+All returned HTTP 200, but only **1/3 questions and 2/4 requested outputs** completed.
+
+- The known Commerce question now calculates **41.4%** using the unchanged exact
+  current/prior context proofs for 2023/2022. Its acquisition explanation is missing.
+- A new consolidated cash-flow question returns **1,361,609,576,268 KRW** after
+  subtracting the PPE acquisition outflow magnitude; source signs/period/units pass review.
+- A new cloud AI strategy question returns no explanation. Both narrative outputs
+  were blocked before Compiler dispatch by `invalid_obligation_unit`: Planner wrote
+  `text` and `서술` into `display_unit`. Related sources were retrieved; narrative
+  faithfulness/completeness remain untested, not failed model-writing samples.
+
+The subsequent provider-free correction below separates narrative display format
+from numeric units in the generation schema; these sampled answers stay unchanged.
+Fresh plans/retrieval prevent isolated prompt/model attribution; these are two new
+source-reviewed questions, not unseen holdout or a release gate.
+
+New `a1b7ef41...300a0` consumed once after identical SDK rehearsals and full caller
+success/failure controls. All 56 provider requests completed: Terra 6, Astra 2,
+embeddings 48; Google/context calls and SDK/whole-query/Compiler retries 0.
+Usage estimate USD 0.82543298; with the predecessor's local reservation,
+USD 0.82566256 accounted within the shared USD 7 limit, not billed cost.
+The predecessor failed in caller logging before any HTTP transmission or question;
+its consumed manifest/result remain preserved. All 528 protected files and logical
+source tables pass; no production source changes, fresh ingestion or original-store writes.
+
+## Narrative unit generation contract (2026-09-17)
+
+The [offline correction](../../benchmarks/results/narrative_unit_contract_2026-09-17/RESULTS.md)
+reproduces both narrative blocks from clean `243bddf2`. The old Planner schema
+accepted format labels as units. Production generation now uses separate numeric
+and narrative obligation branches: narratives require `display_unit=""`, while
+requested presentation stays in `display_format`. Numeric units remain declared
+and pass through the unchanged deterministic checks. There is no unit alias,
+format-label whitelist, automatic relabeling or historical-response repair.
+
+Six authored contracts cover schema rejection, null compatibility, both narrative
+evidence modes, free presentation labels, a blocked numeric sibling, and unsupported
+numeric claims. The real OpenAI SDK mock sends the nested strict schema and parses
+all three output kinds. The shape follows the [official supported schema subset](https://developers.openai.com/api/docs/guides/structured-outputs#supported-schemas);
+SDK serialization is not live provider admission or model-quality evidence.
+
+Full unittest **1,867/1,867**, no skips (52.611s); focused **158/158**, domain audit
+83, import/topology/documentation and pycompile/diff checks pass. External network
+was blocked with 0 attempted connections/provider calls; all 564 protected files
+are unchanged. Original sampled narrative units remain invalid under preflight;
+explicitly authored blank-unit copies pass that gate without fabricating answers.
+That paid result remains **1/3 questions, 2/4 outputs**; the separate live successor
+below checks fresh generation and source quality without rewriting those answers.
+
+## Live narrative-unit successor (2026-09-17)
+
+The [two-question successor](../../benchmarks/results/narrative_quality_2026-09-17/RESULTS.md)
+on clean `136a1a06` completed **2/2 questions and 3/3 outputs**, HTTP 200 and ledger
+ok throughout. Both narrative display units are empty, with presentation intent
+retained separately. Commerce growth remains 41.3957043439745% → 41.4%; its direct
+acquisition-impact explanation retains other contributors and the acquired-group
+scope of post-acquisition revenue/loss. Cloud strategy covers organizational and
+technical integration, HyperCLOVA X, CLOVA Studio and the security-oriented hybrid
+offering, preserving completed-versus-intended distinctions. Six claims and 20
+subject/fact support occurrences pass source linkage plus separate assistant
+semantic review. Some cloud wording is repetitive, a remaining readability issue.
+
+Cloud used one allowed same-candidate feedback repair after an unauthorized context
+reference; both attempts are preserved. All 45 requests completed: Terra 4, Astra 4,
+embeddings 37; no API/parsing/runtime error, Google/context call, SDK/whole-query retry
+or fresh ingest. New admission `0a08e0eb...aa189e` consumed once after identical SDK
+and full-wrapper rehearsals. Estimated USD 1.46798135; including prior accounting,
+USD 2.29364391 under the shared USD 7 ceiling, not invoice. All 582 protected files
+and original source bytes remain unchanged; logical working-source tables match.
+
+This is fresh application evidence for two known-source questions, not unseen
+accuracy, human gold, or an isolated schema/model causal comparison. Source and
+model settings remain unchanged during the run. The separate broader-question
+successor below does not reuse this consumed admission.
+
+## Broader normal-application verification (2026-09-17)
+
+The [three-question successor](../../benchmarks/results/broader_app_2026-09-17/RESULTS.md)
+on clean `173d5d02` uses the same runtime and default OpenAI application routes.
+All three questions return HTTP 200 and ledger ok, producing **4/4 outputs**.
+Runtime completeness is **2/3**, with one partial; all frozen criteria pass for
+**1/3**, with two partial. No production source code changed during the run.
+
+- Consolidated cash and cash equivalents are correctly retrieved as
+  **3,576,456,533,329원** at 2023-12-31 / 제25기, preserving source unit and scope.
+  Planner also supplies unsupported direct-value evidence requirements, leaving
+  `evidence_requirement_on_unsupported_obligation` beside the accepted binding.
+- Operating margin uses exact consolidated source inputs and calculates
+  15.395255319023432%, explicitly rounded to **15.4%**. Arithmetic and calculation-only
+  intent pass; fixed presentation **15.40%** is lost when the renderer strips zeros.
+  Exact inputs and formula remain in trace; no separate unrounded scalar is stored.
+- Naver Pay payment expansion and financial-service activities pass separate
+  assistant review. Ten claims/28 source-support occurrences cover both themes
+  and preserve explicit timing, report-as-of reach and aspirational platform wording.
+
+Anonymous offline controls reproduce the two contract/presentation gaps without
+external connections or source edits. The direct-value correction below aligns
+Planner/preflight with the existing strict requirement contract; requested decimal
+precision remains separate. Do not weaken validation, add question-specific rules,
+rewrite old answers or treat this as an automatic paid-rerun authorization.
+
+New `5a7767e2...b376d` consumed once after identical SDK and full-wrapper rehearsals.
+All **43 requests** completed: Terra 6, Astra 4, embeddings 33; no Compiler feedback,
+SDK/whole-question retry, API/parsing/unhandled runtime error, Google/context call
+or fresh ingest. One program-validation error remains as reported above.
+Estimate USD **1.05468823**; prior accounting plus this run **3.34833214**, peak with
+reservations **4.03783214** under shared USD 7; pending 0, not observed billing.
+All 618 protected predecessor files and original source bytes remain unchanged;
+read-only logical source tables match the working copy. These newly authored but
+source-reviewed questions are not unseen holdout or a general release gate.
+
+## Direct lookup contract correction (2026-09-17)
+
+The [provider-free correction](../../benchmarks/results/direct_lookup_contract_2026-09-17/RESULTS.md)
+separates direct/derived/narrative Planner branches. A direct lookup owns its source
+selection on the output and requires an empty child-input list. Subject, scope,
+request and retrieval hints remain intact; derived/narrative inputs remain allowed.
+Preflight preserves malformed old plans and blocks their dependent component
+before Compiler calls, without retrying or excluding source candidates. Independent
+valid outputs continue. The existing final source/program validator is unchanged.
+
+Six new contracts, real SDK strict-schema serialization and anonymous execution
+pass; array length constraints follow [official Structured Outputs support](https://developers.openai.com/api/docs/guides/structured-outputs#supported-properties).
+Full unittest **1,873/1,873**, no skips (52.591s), focused 164, scope regression 44,
+audit 83 and import/topology/docs 24 pass with external networking blocked and
+attempted connections/provider calls 0. Two historical authored scope fixtures
+were made structurally valid while retaining their original assertions and direct
+scope coverage. Frozen catalog/program hashes, source proofs and 659 protected
+predecessor files remain unchanged. No original store writes or consumed admission reuse.
+
+This does not alter the preceding paid partial cash answer or prove live provider
+acceptance/answer quality for the new schema. The fixed-decimal correction below
+is separate local evidence; fresh provider verification remains a bounded run.
+
+## Final-round presentation correction (2026-09-17)
+
+The [provider-free replay and contracts](../../benchmarks/results/fixed_decimal_display_2026-09-17/RESULTS.md)
+on baseline `5ede1b83` preserve the exact saved program, request, source catalog,
+visibility and validation. Its final `round(..., 2)` now renders **15.40%** throughout
+the calculated slot, trace, final answer and ledger. The numeric value stays 15.4;
+source rows and source/calculated provenance remain unchanged. Original paid
+answers/results and all 684 protected predecessor files are preserved.
+
+Only outermost rounding supplies precision; intermediate operations and dependency
+values do not propagate it. Source displays keep their original precision. Unit
+conversion shifts base-unit precision, with fixed formatting bounded to 324 places;
+larger requests retain the existing formatter. No query keyword parsing, new model
+schema/prompt, source mutation or arithmetic change was introduced.
+
+Nine new tests, focused **156/156**, full unittest **1,882/1,882** without skips
+(53.272s), and domain audit 83 pass with external connections blocked; attempts
+and provider calls are 0. This is an exact-program execution comparison, not fresh
+model generation, current provider acceptance, or general answer-quality evidence.
+The separate successor below tests direct-lookup Planner generation and attempts
+fixed-decimal verification using the ready store and a fresh admission. No consumed
+admission is reusable, and the historical answers remain unchanged.
+
+## Live verification after numeric contract corrections (2026-09-17)
+
+The [two-question successor](../../benchmarks/results/corrected_numeric_app_2026-09-17/RESULTS.md)
+on clean `7326ae58` uses the real ASGI/shared services and unchanged OpenAI routes.
+Both return HTTP 200 and ledger ok, but runtime is **1/2 complete**, with **1/2
+outputs** and **0/2** passing every frozen acceptance criterion. This verifies API
+execution and direct-lookup generation; it does not establish full answer quality.
+
+- Cash has empty direct child requirements and no old contract error. Its selected
+  summary-financial row really reports **3,576,456백만원**, but the requested full
+  consolidated statement reports **3,576,456,533,329원**. The exact full-statement
+  source was absent from retrieved/seed windows and the catalog. Selected-source
+  fidelity passes; requested statement and precision fail. No rounding explanation
+  is inferred for the difference.
+- Margin's exact revenue/profit cells are retrieved and cataloged but both absent
+  from Compiler exposure. The parsed response declines unrelated available amounts
+  and returns missing. No expression executes, so fixed-decimal live behavior is
+  **unexercised**, not a passed or failed presentation check. The earlier exact
+  saved-program `15.40%` replay remains separate local evidence.
+
+Provider-free reconstruction reproduces catalog fingerprints and candidate cohorts.
+Statement-type wording in scope/search hints becomes an implicit local subject,
+weakening the correct input cells' rank. An authored control removes only the exact
+declared basis from copied search hints: profit becomes visible, revenue still does
+not. This is partial diagnostic evidence, not a complete fix or a new model answer.
+Next is numeric requirement exposure characterization/correction, including source
+bundle ranking, with permissions/IDs/accepted evidence preserved. Requested-statement
+cash retrieval remains a separate seam; add no company/metric-specific runtime rule.
+
+Fresh `72b5dced...4b3ca` consumed once after identical SDK and full-wrapper rehearsals.
+All **23 requests** completed: Terra 4, Astra 2, embeddings 17; no API/parsing/unhandled
+runtime error, Compiler feedback/SDK/whole-question retry, Google/context call or
+fresh ingest. Estimate **USD 0.68876178**; shared accounting **4.03709392 / 7**,
+remaining **2.96290608**, peak with reservations **5.44039392**, pending 0; not invoice.
+All **717** protected predecessor files, 19 frozen admission files and original
+source bytes remain unchanged; working source tables match at 1,872/59,477 rows.
+No production source code changed during verification. These known-source cases
+and fresh plans/retrieval are neither unseen holdout nor isolated patch/model proof.
+
+## Numeric input exposure correction without API calls (2026-09-17)
+
+The [frozen replay and anonymous contracts](../../benchmarks/results/numeric_requirement_exposure_2026-09-17/RESULTS.md)
+on baseline `0d4f619d` reproduce both missing exact margin inputs. Numeric matching
+now keeps declared basis fragments out of inferred subjects. Within the existing
+scope/subject/kind/unit/metric tiers, basis terms in one attached source-context
+partition rank before the arbitrary source-identity tie-break. Repeated words,
+metadata, row bodies and separate cells/contexts add no hint. Explicit subjects,
+source conditions, bundle atomicity/capacities and Compiler interpretation remain.
+
+Both exact inputs now appear in their requirement permissions, candidate payload
+and generated Compiler schema choices. All seven cases retain saved program
+source IDs; six payloads are byte-identical. The changed margin payload is
+94,416 → 48,421 UTF-8 bytes in the same local serialization, not SDK tokens or
+measured cost. Queries/plans, catalogs/source windows and historical replies are
+unchanged. The saved response still reports missing; no new answer is synthesized.
+
+Eight new contracts, focused **164/164**, full **1,890/1,890**, no skips (53.692s),
+and domain audit 83 pass with provider/external connection attempts 0. All 765
+protected predecessor files remain unchanged. Next is the separate cash query's
+requested-statement retrieval gap, followed by a bounded fresh normal-app check
+of source choice, calculation and fixed decimals. The shared budget remains
+unchanged; no consumed admission is reusable.
+
+## Cash source supplementation without API calls (2026-09-17)
+
+The [read-only source replay](../../benchmarks/results/cash_source_retrieval_2026-09-17/RESULTS.md)
+on baseline `4688a070` identifies a retrieval mechanism bug: numbered column names
+in a notes header received atomic-value priority, overriding the existing statement
+preference and displacing the requested full statement from the numeric supplement.
+The latest saved Planner had no explicit section binding; this correction does not
+invent one or change the Planner's semantic responsibilities.
+
+The retrieval owner now requires a complete finite numeric value cell on the same
+physical line, using shared number/unit parsing. Existing scores, source scope,
+statement ordering, supplement quotas and Compiler/source contracts remain.
+Replaying all 1,872 source chunks changes only the latest cash supplement to the
+full consolidated statement. The saved 32-source seed pool plus this supplement
+exposes **3,576,456,533,329원** in its output permissions, payload and schema choices.
+The old summary candidate remains in the catalog but is displaced from exposure;
+the original paid answer remains unchanged. Six other catalog/payloads are identical,
+including the now-exposed margin inputs. Cash payload is 22,810 → 24,137 UTF-8 bytes
+in local serialization, not SDK tokens or measured cost.
+
+Eight new contracts, focused **98/98**, full **1,898/1,898**, no skips (55.322s),
+and domain audit 83 pass. Provider/external connection attempts 0; all 790 protected
+predecessor files remain unchanged. Primary searches and model responses were not
+rerun, so this is retrieval/exposure evidence, not a new answer or semantic accuracy.
+Next is bounded fresh normal-app verification of requested source choice, margin
+calculation and fixed decimals. Accounting remains **USD 4.03709392 / 7**, remaining
+**2.96290608**, not invoice; use a new immutable admission, never a consumed packet.
+
+## Fresh numeric source and display verification (2026-09-17)
+
+The [fresh normal-application run](../../benchmarks/results/numeric_final_app_2026-09-17/RESULTS.md)
+on clean `e0a7f40e` returns HTTP 200 and ledger ok for both unchanged known-source
+questions: **1/2 runtime complete**, **1/2 outputs**, **1/2 full frozen acceptance**.
+Margin now uses exact consolidated 2023 revenue and operating profit, computes
+15.395255319023432% before request-grounded rounding and displays **15.40%** in the
+answer, slot and trace. No source-stated ratio display or feedback repair is used.
+This is live fixed-decimal evidence for the sampled question.
+
+Cash now retrieves the exact full statement, with **3,576,456,533,329원** cataloged
+and owner-visible. It remains incomplete because Planner puts `원문 단위` in the
+numeric `display_unit` field. The existing `invalid_obligation_unit` preflight
+blocks before any Compiler call; direct child inputs remain empty. Final cash
+source selection is unverified. This is a requirement-contract error, not an API
+failure or Compiler refusal. A provider-free diagnostic copy with empty unit clears
+preflight only; original plan/response bytes are unchanged and no answer is implied.
+
+Fresh `3b03b442...de07c7` consumed once after identical SDK rehearsals and full-wrapper
+controls. **22/22** requests complete: Terra 4, Astra 1, embeddings 17; API/parsing/
+unhandled runtime errors and all retries 0, requirement preflight error 1. Estimate
+**USD 0.36485839**; shared **4.40195231 / 7**, remaining **2.59804769**, pending 0;
+not invoice. All 820 predecessor and 16 admission files/original source bytes remain
+intact; the ready working store's 1,872 source/59,477 metadata rows match the original.
+Runtime did not change; its existing full 1,898/audit 83 gate was not rerun here.
+
+This paid result remains unchanged after the provider-free clarification below.
+These fresh plans and known sources do not establish unseen accuracy or isolate
+individual patch effects; older results remain unchanged.
+
+## Numeric Planner unit/presentation clarification (2026-09-17)
+
+The [provider-free correction](../../benchmarks/results/planner_numeric_presentation_2026-09-17/RESULTS.md)
+updates Planner policy and field descriptions only. Concrete named units and
+their scale remain in display_unit, even when unsupported. Source-unit/notation
+preservation and precision requests go in display_format and exact owned requests;
+no unit is guessed before retrieval. Both fields may coexist. Numeric strings
+remain open so explicit unsupported requests reach the unchanged preflight;
+there is no phrase alias, silent clearing, new field/call or runtime classifier.
+
+Four new authored tests cover numeric presentation/source precision, explicit
+scaled units, misplaced/unsupported-unit blocking and actual SDK serialization.
+Focused **155/155**, import/topology and domain audit pass; provider calls and
+attempted external test connections **0**. Prior full 1,898 gate was not rerun
+for this instruction-only change. Strict schema constraints are identical after
+removing descriptions; local schema/template sizes grow 15,612→16,719 and
+10,553→11,323 UTF-8 bytes, not SDK token measurements.
+
+Exact two-case replay preserves catalog/cohorts and original cash rejection;
+the saved margin program and answer remain **15.40%**. The authored empty-unit
+cash copy clears preflight with exact source visible and unchanged permissions,
+without a Compiler call or answer. All **863** predecessor files are preserved.
+One initial SDK test fixture lacked its required callback; fixing the fixture
+resolved that local error without any provider request or runtime change.
+
+This local turn made no paid calls: shared estimate at that point was
+**4.40195231 / 7**, remaining **2.59804769**. Authored plans are not new model
+responses. Fresh Planner behavior and cash selection are separately verified below.
+
+## Fresh verification after numeric Planner clarification (2026-09-17)
+
+The [normal-app run](../../benchmarks/results/planner_numeric_app_2026-09-17/RESULTS.md)
+on clean `930325f0` completes both unchanged known-source questions through real
+shared services and ASGI /api/query: HTTP 200/ledger ok **2/2**, runtime/output
+completion **2/2**, full frozen source/arithmetic/display acceptance **2/2**.
+
+Cash Planner emits empty display_unit and keeps 원문 단위로 in display_format
+and both owned request units. The final direct answer selects the full
+consolidated balance-sheet cell for 2023-12-31: **3,576,456,533,329원**, with
+original precision/unit and selected-source citation. Direct child inputs stay
+empty. Its first Compiler response already selects this cell, but adds a
+liquidity discussion from a different source context as compatibility support.
+The existing direct_compatibility_context_mismatch validator rejects it. One
+allowed feedback response removes only that witness; selected cell, interpretation,
+attached basis/date context and visible candidates remain identical.
+
+Margin uses the exact 2023 consolidated revenue/profit cells and computes
+profit/revenue × 100 with an owned final-round quantity 2. Answer, slot and
+trace display **15.40%**; no source-ratio substitution or feedback repair.
+This verifies the sampled Planner/source-choice/fixed-decimal path, not unseen
+accuracy or an isolated prompt effect; plans/retrieval differ from earlier runs.
+
+Fresh manifest `6857684d...e100df` consumed once. **22/22** requests complete:
+Terra 4, Astra 3, embeddings 15; API/parsing/unhandled runtime/requirement errors 0.
+One initial Compiler validation error/feedback repair; SDK and whole-query retries 0.
+Estimate **USD 0.70462915**; shared **5.10658146 / 7**, remaining **1.89341854**;
+peak including reservations **5.89606896**, pending 0, not invoice. All **891**
+predecessor/16 admission files and original bytes remain intact. Working source/metadata
+tables are identical at 1,872/59,477 rows and the source remains ready. No runtime,
+configuration or ingest change; same-runtime local 179 checks reused, not rerun.
+
+The provider-free follow-up below preserves this paid result and its retry. The
+preceding 1/2 result and all earlier responses keep their original status.
+
+## Direct compatibility-witness clarification (2026-09-17)
+
+The [provider-free characterization](../../benchmarks/results/direct_compatibility_guidance_2026-09-17/RESULTS.md)
+reproduces the exact first cash rejection: the selected balance-sheet cell is
+already correct, while a separately located same-topic narrative is insufficient
+as direct compatibility support. The actual repair retains the cell, interpretation,
+attached basis/date and visibility; only its declared witness list becomes empty.
+
+Numeric Compiler instructions and the direct field description now distinguish
+needed scope support from general corroboration and attached context_ref IDs.
+Use [] when the selection's own axes/metadata/context already support scope.
+Existing validation still requires at least one same-context witness for a nonempty
+list and checks each witness's source/owner/company/period independently. Legitimate
+located scope support and derived cross-context compatibility remain available;
+invalid model refs are not cleared or repaired by code. No schema constraint,
+retrieval, store, model-setting or provider-call change is included.
+
+Six new anonymous/authored SDK contracts; focused **217/217**, import/topology
+**22/22**, docs **2/2**, domain audit **83** pass. All external test connections and
+provider calls are **0**. Exact replay preserves both catalogs/cohorts and all three
+original wire lowerings, first cash rejection and both final answers
+**3,576,456,533,329원 / 15.40%**. All **936** protected files remain intact.
+Direct strict schema grows 3,188→3,639 UTF-8 bytes with identical constraints after
+removing descriptions; derived schema remains 9,670 bytes. Numeric template grows
+13,240→13,824 bytes. These are local serializations, not SDK token or cost measures.
+
+No new sampled response or measured retry reduction. The then-latest full 1,898 gate predates
+this and the Planner instruction change; focused gates cover this bounded seam.
+Shared estimate remains **USD 5.10658146 / 7**, remaining **1.89341854**, not invoice.
+
+The frozen [three-question review set](independent_question_review.md) and its separate
+normal-app execution are recorded below; the earlier paid results retain their status.
+
+## Independent-question review preparation (2026-09-17)
+
+[Frozen review set](independent_question_review.md), manifest `89fe64e1...21fd2`:
+three newly authored known-report questions cover standalone prior-year dividends,
+standalone two-period revenue growth and Chuncheon/Sejong environmental attribution.
+References are **468,978,562,474원 / 1.76%**, three required narrative themes and one
+optional PUE criterion; Sejong LEED Platinum stays pending in the reported context.
+No app query or model response was generated. Reference selectors remain review-only.
+
+Three physical cells/four exact quotes, independent arithmetic and ordinary request
+schemas pass; 11 altered pack copies are rejected. All five primary/contrast chunks
+exist in the working store with exact text/filing scope; original/working logical
+tables remain 1,872/59,477 rows. All 969 predecessor and 170 runtime files are
+unchanged. These are reference/pack checks, not normal retrieval, Compiler visibility
+or semantic accuracy measurements. Existing 241 runtime checks were not rerun.
+
+That preparation retained the shared **USD 1.89341854** remainder; the separately
+admitted normal-app pass below supplies the new execution evidence.
+
+## Independent-question application pass (2026-09-17)
+
+[One normal-app pass](../../benchmarks/results/independent_question_app_2026-09-17/RESULTS.md),
+clean `107a00de`, runtime `83dfc4c9`: **2/3 questions complete and fully accepted**.
+Standalone 2022 dividends received **468,978,562,474원** and standalone 2022→2023
+revenue growth **1.76%** preserve correct original cells, years, scope, citations,
+arithmetic and display. Each has one parsed/ready Compiler response, ledger ok and
+no feedback repair. The third narrative is **budget-interrupted**, not graded wrong
+or accepted: no final answer, API HTTP 500 from a local admission stop.
+
+Fresh manifest `0ec3c9dc...6c92db` consumed once after identical no-call rehearsals
+and mocked full-wrapper/terminal checks. All **46** transmitted requests complete:
+Terra 6, Astra 4, embeddings 36. Upstream provider errors 0; numeric parsing and
+validation errors 0. One further Astra request is denied before transmission:
+reserve **1.0099** exceeds the shared remainder **0.95556423** by **0.05433577**.
+Usage estimate **USD 0.93785431**, shared **6.04443577 / 7**, pending 0, not invoice;
+peak admitted with reservations **6.76731077**. No cap change or SDK/whole-query retry.
+
+The narrative's intermediate parsed attempts and phase identities were not saved.
+The caller writes agent/debug artifacts only after successful return and omitted
+existing capture_request_diagnostics() exception delivery. Usage records establish
+two completed Astra requests, not island/feedback identity or narrative quality.
+No reconstructed response or 3/3 accuracy claim. This is known-source assistant
+review, not a blind holdout or isolated model/prompt improvement.
+
+All **997** predecessor/22 admission files and original source bytes remain intact;
+logical original/working source tables are identical at 1,872/59,477 rows. Startup
+was ready; terminal failure skipped the ordinary final readiness step, while
+post-run read-only integrity checks passed. Runtime/model/config/ingest unchanged;
+current 241 checks retained for that paid run, not rerun. The separate caller-only
+correction below leaves that result and its missing historical observations intact.
+
+## Caller persistence after interruption (2026-09-17)
+
+[Provider-free correction](../../benchmarks/results/application_diagnostics_capture_2026-09-17/RESULTS.md)
+adds an ops-owned persist_request_diagnostics(path) scope using the existing capture
+delivery API. A new non-executable caller template wraps the original agent call
+and result write; finally saves a JSON array of delivered request_diagnostics_v1
+snapshots. Debug-off produces no file. Exclusive writes preserve existing files;
+safe error-class logging keeps persistence failures from replacing run outcomes.
+No default API import, graph/Compiler change, retry, source write or provider call.
+
+Six new tests; focused **18/18**, imports/topology **22/22**, docs **2/2** pass.
+Five mocked full-wrapper controls compare capture on/off and inject a third-island
+budget stop or HTTP 503 after two valid narrative replies. Both earlier parsed
+programs, validation/phase IDs and the pending request survive; no interrupted
+answer/ledger is invented. Success result/request/call identity and original failure
+HTTP behavior are retained. All **1047** predecessor and **170** existing source
+files are intact. The new module is an explicit operational helper; no live
+admission/CLI is created and historical lost traces cannot be recovered.
+
+Shared estimate stays **6.04443577 / 7**, remainder **0.95556423**, new paid cost 0.
+The [provider-free narrative budget review](independent_question_review.md#narrative-budget-feasibility-provider-free-2026-09-17)
+reconciles all 46 old requests with current official rates. With the same observed
+bounds/usage, cold-start first Compiler admission needs **0.97860777**, short
+**0.02304354**; admitting the last known request needs **1.45023277**, short
+**0.49466854**. This is not a completion budget, and fresh plans remain unknown.
+Four real-budget metadata controls and six threshold checks pass; provider calls
+and new admissions **0**, all **1081** predecessor and **171** source files preserved.
+The separate presentation audit below preserves this sizing evidence and the
+original interrupted result. Scope wording stays separate.
+
+## Lossless narrative request presentation (provider-free, 2026-09-17)
+
+[Request-composition audit](../../benchmarks/results/narrative_request_composition_2026-09-17/RESULTS.md)
+on base `0b5aa608` keeps all source text, piece IDs, partitions, ordering, context
+attachments, visible candidates and permissions. Only the model-facing addressed
+piece representation changes: wire v10 declares `piece_columns` once and carries
+`[piece_id, partition, text]` rows. Internal objects and `CompilerResponseV2` remain
+unchanged; numeric-only wire v9 is byte-identical. Unknown piece fields fail instead
+of losing metadata. No candidate pruning or source rewording is involved.
+
+| Complete saved SDK request | Before bytes | After bytes | Reduction |
+| --- | ---: | ---: | ---: |
+| Cloud strategy initial | 60,856 | 56,593 | 7.0051% |
+| Cloud strategy feedback | 66,987 | 62,724 | 6.3639% |
+| Commerce narrative | 96,230 | 91,319 | 5.1034% |
+| Commerce numeric control | 110,757 | 110,757 | 0% |
+
+All four saved full-request hashes match before projection, and decoding the rows
+restores every complete SDK body exactly. All four response schemas are identical;
+saved responses still satisfy those schemas, with their historical invalid/ready
+statuses retained rather than regraded. Four paired real-SDK/mock-HTTP controls
+cover initial, feedback-retry, numeric and mixed execution with identical programs,
+V2 proofs, retry counts and final execution. Seven new tests, focused **70/70**,
+full **1,921/1,921** without skips (57.882s), and domain audit **83** pass.
+
+All **1094** predecessor files, **169** unchanged source files, local settings and
+original/working stores retain their bytes; two source files implement presentation
+and integration. Actual provider/count calls and new admissions **0**. Shared
+estimate remains **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice.
+The full test process exited successfully after reporting an ignored Windows
+`ProactorEventLoop.__del__` cleanup warning; this was not a test or provider failure.
+
+These are wire-byte reductions, not measured model-token or billed savings. The
+unchanged byte-bound policy reserves 0.0532875 / 0.0613875 USD less on the three
+complete narrative samples while retaining the 5120-token output bound. The lost
+datacenter request cannot be reconstructed or assigned these savings. Its paid
+result stays interrupted, and fresh narrative completion/quality remain unproven.
+
+The subsequent counted-admission extension is recorded below. The preceding
+wire-byte evidence does not establish live token costs or narrative completion.
+
+## OpenAI counted-admission implementation (provider-free, 2026-09-17)
+
+The [separate ops extension](provider_admission.md#openai-input-token-count-extension)
+is implemented and verified locally. Exact frozen SDK text/schema input is counted
+before its unchanged generation; the original full output bound, shared cap and
+separate count-call/allowance limits remain enforced. Old byte-bound policies and
+application defaults are unchanged. This does not activate or resume a paid packet.
+
+New contracts **19/19**, focused **99/99**, full **1,940/1,940** without skips, audit
+**83** pass. Real-SDK/mock-HTTP controls cover input/schema drift, caller mutation,
+cached clients, concurrent identities, counts/errors/redirects/usage overruns,
+exact budget thresholds, Terra/Astra plus embeddings and independent Google count
+limits. An authored Compiler invalid-then-ready pair retains complete generation
+bodies, V2 program/proof and execution. Four saved legacy descriptors, eight budget
+success/denial receipts and three Google count controls match exact baseline source.
+
+All **1118** protected files, **169** unchanged source files, settings and stores
+retain their bytes. Two ops files change and one is added, total **172** sources.
+Actual provider/count calls and new execution admissions **0**; shared estimate
+**6.04443577 / 7**, remaining **0.95556423**, pending 0, not invoice. Authored counts
+are test fixtures, not measured model tokens, endpoint access or a complete-run
+budget. The interrupted datacenter result and missing historical traces remain intact.
+
+## Counted application caller preparation (2026-09-17)
+
+The [counted application-caller preparation](../../benchmarks/results/counted_application_caller_2026-09-17/RESULTS.md) binds the exact question/scope/debug envelope and real graph phase to each counted generation, without using diagnostics as authority. It installs before graph construction and permits mock transport only. Shared count/generation/embedding accounting retains the **USD 0.95556423** cap, **12** count and **12** generation limits, **48** embedding limit, **USD 0.01** allowance per count, **300,000-byte / 200,000-token** limits and full **Astra 5120 / Terra 8192** output reserves. **20/20** caller contracts and **66/66** focused runtime contracts pass; **six pairs (12 executions)** of SDK/ASGI scenarios cover success, measured-budget denial, count failure, generation failure and separate count/generation limits. Success answers, complete results, ledger, request bodies and receipts equal capture-disabled controls. Each later stop retains two parsed/ready Compiler programs and the third pending island, preserves HTTP 500 and skips the next question; no interrupted answer is manufactured. Readiness/planning/retrieval/catalogs/provider outputs and counts are authored fixtures; no real store is opened. All **1145** predecessor files, all **172** source files, local settings and original/working stores remain byte-identical. Actual provider/count calls and new execution admissions **0**; shared **6.04443577 / 7**, remaining **0.95556423**, pending 0, not invoice.
+
+The new local template requires an explicit `httpx.MockTransport`, a fresh output path and installation before graph construction. Copied question/scope/flags, graph owner identity and phase-specific model/schema pairs are checked before any count. Question repetition, out-of-order selection, changed phase state, configuration drift, unscoped embeddings and direct transport are denied. Canonical bootstrap and active routing/retrieval embeddings share the existing provider budget. Counts and generations are linked to the same full input/schema and question/phase receipts.
+
+Six paired scenarios execute real graph/Compiler validation/SDK/ASGI and caller persistence with authored planning, retrieval, source catalogs and readiness. Success includes two anonymous questions, ten counted generations and three embeddings. All five later stops preserve the two earlier parsed/validated programs, island/attempt identities and unchanged original terminal response, with no further question or automatic retry. No live startup/store readiness or model quality is asserted. An additional CLI-entry check passes; the initial failure was a missing collection name in the authored readiness fixture, fixed without source/contract changes. **24/24** import/topology/docs checks pass. The unchanged runtime retains its prior **1,940/1,940** full-suite and audit **83** evidence without rerunning them.
+
+The [read-only counted narrative readiness review](counted_narrative_readiness.md) is complete: current official generation rates match the existing cache-write/full-output reservations, and key/project permission requirements are documented. Count-specific tariff and current endpoint/account access remain unverified; USD 0.01 is contingency, not a tariff. Under historical prefix costs and that allowance, the first/second/third Compiler inputs must be at most **48,650 / 33,082 / 16,738** tokens. Nine Decimal/Fraction/real-preflight boundary checks and docs **2/2** pass; fresh token counts and complete-run feasibility remain unknown. All **1209** predecessor files and **172** source files, settings and stores are preserved. Provider/count/authenticated API calls **0**; shared **6.04443577 / 7**, remaining **0.95556423**. This review seam is closed; the mock-only caller supplies no live admission. A live successor needs authoritative count terms/access evidence and a separately bounded execution decision. Repeating the same public search or another mock preparation cannot resolve the missing facts; independent provider-free product work remains available.
+
+## Counted narrative live experiment (2026-09-17)
+
+The [counted narrative experiment](counted_narrative_experiment.md) consumed fresh manifest `41749c34...1c6d61f` once under the unchanged **USD 0.95556423** remainder. All **24** HTTP attempts succeeded: **15** embeddings, **5** counts, **2** Terra and **2** Astra generations. All four measured input totals match generation usage. One activities island required its allowed repair: differing shared-basis declarations failed `relationship_interpretation_missing_or_inconsistent`, then matching declarations validated `ob_001`/`ob_002`. The certification island input measured **11,664** tokens, but its **0.40180000** full-output reservation exceeded the remaining **0.38441766** by **0.01738234**. Generation was not sent; HTTP 500 and no final answer/ledger. Both parsed responses, lowered programs, hashes and the pending island are saved; historical missing traces stay missing. Experiment accounting **0.57114657** includes **0.05** count contingency; shared **6.61558234 / 7**, remaining **0.38441766**, pending 0, not invoice. Count access is now observed for both models; count billing remains unknown. **20+3** offline controls pass. All **1224** predecessor files, **172** source files, settings and original/selected store bytes remain unchanged; only a disposable store copy was opened. No SDK/whole-query retry, fallback, Google, ingest, default change or cap increase. Prior independent numeric results remain accepted; this narrative remains incomplete. Next: provider-free characterization of Planner relationship selection/shared-basis declaration ownership using the captured traces. Preserve validation strength; do not resume the consumed packet or treat the one-request shortfall as a guaranteed completion price.
+
+## Counted narrative budget successor (2026-09-17)
+
+The user-authorized [budget successor](counted_narrative_budget_successor.md) raised the shared cap **USD 7 → 8**, providing **1.38441766** for one fresh unchanged-question run. Manifest `bfe437b6...e846810b` is consumed once. **HTTP 200 / structured ok / 3 of 3 required outputs / ledger ok**; frozen known-source semantic review passes all **3** required criteria and optional PUE attribution. Chuncheon/Sejong activities stay separate and Sejong LEED Platinum stays pending as reported. All **26** HTTP calls succeeded: **18** embeddings, **4** counts and **2 Terra + 2 Astra** generations. All four input counts match usage; both Compiler islands pass first try. No model/output-bound/runtime/default change, validation-feedback repair, SDK/whole-query retry, Google, fallback or ingest. This run accounts **0.46786026** including **0.04** count contingency; shared **7.08344260 / 8**, remaining **0.91655740**, pending 0, not invoice. Count billing stays unverified. **23** local controls pass; **1327** predecessors, **172** sources, settings and original/selected store bytes are unchanged. Only a disposable store copy was opened. The previous 2/3 packet and budget-interrupted run stay unchanged; this closes the narrative sample, not a fresh three-question batch. Fresh planning/responses prevent a causal budget or repair-quality claim. Next: provider-free shared-basis declaration consistency characterization using the preserved failure and success; no more paid execution is scheduled.
+
+## New search/display question: application failure (2026-09-17)
+
+The [first frozen new-question run](search_display_app_probe.md) on `73a5b68c`
+returns 25/25 HTTP 200 responses and parses the current relationship schema, but
+the public answer is empty and ledger integrity fails. Optional child requirements
+have no candidate cohorts despite schema support keys; both outputs fail ownership
+checks, receive no repair, and empty final validation incorrectly becomes `ok`.
+Public acceptance is 0/4. Exact payload/lowering/error replay uses no network.
+Accounted USD 0.30257845; shared total 7.38602105 / 8, remaining 0.61397895.
+No paid retry or source change. The next correction is provider-free; provider
+migration alone does not establish application quality.
+
+## Optional-output contract correction (2026-09-17)
+
+The [provider-free correction](optional_output_contract.md) aligns optional child visibility with owner restrictions, keeps invalid optional outputs eligible for bounded repair, preserves failed-output IDs through final pruning and rejects empty success. Full **1983/1983**, **15** new anonymous controls and domain audit **83** pass. The exact saved search/display response now delivers two outputs and four original claims in offline replay, with shared-basis validation and ledger `ok`; same-source criteria **4/4 offline**. The paid run remains failed **0/4**. No provider call, additional cost or fresh live acceptance claim. Shared accounting remains **7.38602105 / 8**, remainder **0.61397895**. Next is provider-free research count/source-scope readiness.
+
+## Research count/source-scope readiness (2026-09-17)
+
+The [provider-free source review](research_count_readiness.md) confirms the 2023/21 same-column witness and both organization-scope passages, but authored direct-numeric selections expose an UNKNOWN-unit/rendering boundary. An explicit count unit also changes which bundles fit the owner quota; a table-only diagnostic still fails unit validation. An exact short year-context quote is not proof of the correct count column. **17** characterization and **37** existing focused controls pass with source/settings/store bytes unchanged and no provider request. The question stays unexecuted; source-grounded count-dimension work precedes paid evaluation. Shared accounting remains **7.38602105 / 8**, remainder **0.61397895**.
+
+## Source-grounded count units (2026-09-17)
+
+The [provider-free unit correction](source_count_unit_contract.md) lets the Compiler select a finite count reading from the selected cell's own axes; execution validates its request/source ownership and preserves original scalar/unit provenance. Full **2001/2001**, **18** new controls and audit **83** pass. Twenty-four authored frozen-source selections isolate the remaining same-column year problem: a clipped year quote still validates both equal-valued year columns. This question has no live result. No provider call or added cost; shared accounting remains **7.38602105 / 8**, remainder **0.61397895**. Next is provider-free year-column provenance.
+
+## Same-column annual period contract (2026-09-17)
+
+The [provider-free period correction](same_column_period_contract.md) supplies a finite Compiler choice tied to the selected value's actual column. Old clipped-year responses now fail; authored correct-column selections render 21건 while the equal-valued prior-year cell, borrowed columns and total/ongoing substitutions are rejected. Full **2020/2020**, **19** new controls and audit **83** pass. Source settings/stores and original candidate fields are preserved; attached evidence changes complete V2 catalog content. This is physical-link validation, not live schema acceptance or semantic accuracy. No provider call or added cost; remainder **0.61397895**. Next: provider-free mixed-question answer/ledger and budget-fit rehearsal.
+
+## Complete authored research mixed-question rehearsal (2026-09-17)
+
+The [provider-free rehearsal](research_mixed_rehearsal.md), base `ed3d9362`, completes both final outputs and ledger through current Planner/Compiler schemas and actual SDK serialization with authored responses. Correct count/year/unit and both scope facts survive; wrong-year/missing-output controls remain partial, while a contradicted scope demonstrates that source linkage is not entailment. Focused **70/70**, docs **4/4** pass; all **173** source files remain unchanged. SDK bodies are **68,082 / 74,586 / 39,825** bytes. No actual token count or cost is measured. Frozen-rate full-output and count-contingency scenario including routing is **0.748608** before input/embedding costs, versus **0.61397895** remaining; sequential settlement can cost less, so counted live completion is unproven. No provider call, admission, added cost or settings/store change. These authored results do not alter paid question scores or establish complete provider migration. Next is provider-free `missing_project_costs` evidence/abstention and final answer/ledger review.
+
+## Missing-project-cost abstention and narrative periods (2026-09-18)
+
+The [provider-free review and correction](missing_project_costs_readiness.md), base `cde5d824`, preserves blank narrative measurement periods instead of filling them from filing year. Explicit periods, numeric defaults and report/section constraints remain unchanged. The actual Planner path now supports **2/2 authored abstention criteria** with one ready explanation, requested costs missing, final status **partial** and ledger `ok`; no internal scope override. New **9** contracts, focused **99/99**, full **2029/2029**, audit **83** and docs **4/4** pass. Invented numbers fail, while source-valid misattribution and global absence still require semantic review. One source file changes; stores/settings and historical paid outcomes remain intact. No provider call, admission or added cost; remainder **0.61397895**, live question and full-run budget fit still unverified. Next: provider-free integration regression of the three frozen questions, with saved/model-authored provenance kept separate.
+
+## Three frozen questions: current-runtime integration (2026-09-18)
+
+The [provider-free integration regression](frozen_question_integration.md), base
+`a57c5dfa`, runs current Planner/Compiler/final/ledger phases with two unchanged
+saved provider responses and six unchanged authored responses. All eight current
+strict-schema/SDK roundtrips pass. Search/display retains four original claims
+(**4/4 offline**), research retains **21건** and organization scope (**2/2 authored**),
+and missing costs retain a bounded explanation (**2/2 authored criteria**) while
+the requested costs stay missing. Runtime states **ok / ok / partial**, ledger
+integrity **3/3 ok**, 23 exact narrative support occurrences. Focused **70/70** and
+docs **4/4** pass; prior full **2029/2029** and audit **83** are unchanged-source
+evidence. No runtime change, provider call or added cost; all 173 source files,
+1993 predecessor artifacts, 24 store files and settings retain hashes. Paid
+search/display remains **0/4** and the other two questions remain live-unexecuted.
+Remainder **0.61397895**; no new admission or paid dispatch. Next: provider-free
+API response projection of these frozen results, with mocked services explicitly
+separate from live routing/retrieval and application acceptance.
+
+## Frozen results through the public API (2026-09-18)
+
+The [provider-free API rehearsal](frozen_api_boundary.md), base `b7d9c874`, uses
+the actual app/lifespan, ASGI endpoint and `FinancialAgent.run()` packaging with
+mocked services and frozen graph results. All **12** question/flag combinations
+preserve text, citations, full structured result and calculation/source trace.
+Review and debug remain independently opt-in; missing project costs stay missing
+with public/aggregate `partial` despite HTTP 200. Four injected failures return
+**503 / 422 / 503 / 500** with no fabricated answer or private exception text.
+Focused **35/35** and docs **4/4** pass; no runtime change, provider request, extra
+cost, store/settings change or new model-quality evidence. All **173** source
+files and **2029** predecessor artifacts retain hashes. Paid search/display
+remains **0/4**, its offline replay **4/4**; other questions remain live-unexecuted.
+Next is no-call admission preparation for one fresh search/display application
+run under the unchanged **0.61397895** remainder. No paid dispatch or cap increase
+is scheduled; complete live-run budget fit remains unknown.
+
+## Current-source search/display application run (2026-09-18)
+
+The [fresh single-question run](search_display_current_app.md), clean `370b3f0b`,
+consumes prepared `d8eb12ca...c5d5e68` once: 26/26 HTTP requests succeed, two runtime
+outputs complete and ledger integrity is `ok`, with no repair or whole-query retry.
+All four required contents are present, but one explanatory paraphrase broadens
+product improvement toward product expansion; full semantic acceptance is withheld.
+Four claims retain 13 exact supports. Fresh required Planner owners/grouping prevent
+an isolated causal claim about the old optional-owner failure, which stays 0/4.
+No runtime/model/store/settings change. Accounted **0.30675649**, shared
+**7.69277754 / 8**, remainder **0.30722246**, pending 0; estimate/contingency, not invoice.
+Next is provider-free diagnosis of this wording-fidelity concern, with no new paid admission.
+
+## Current-instruction real-DART pipeline check (2026-09-18)
+
+The [fresh application check](dart_narrative_pipeline_check.md), clean `74fb36d2`,
+uses the same known-source search/display question and four frozen criteria after
+the narrative instruction work. Fresh `331b8c2c...971d73` is consumed once under
+cap **1.50**, with no budget increase. All six HTTP calls return 200, but the
+result is **incomplete / 0 of 2 outputs / ledger ok**: the Planner adds an opening
+quote to a section-restriction request excerpt, triggering two
+`invalid_source_section_request` errors. Retrieval scope is empty and no Compiler
+call occurs. This does not evaluate the current narrative instruction or replace
+the prior paid wording-fidelity finding. Local authored quote contrasts establish
+the section-link boundary without repairing the sampled plan or producing an answer.
+Added accounting **0.08581751** includes two count contingencies; shared
+**10.91938255 / 14**, remainder **3.08061745**, pending **0**, not invoice.
+All source/store/settings and older results remain unchanged. Next is a bounded
+provider-free review of Planner section-reference representation; no paid retry follows.
+
+## Planner request-range real application check (2026-09-18)
+
+The [fresh application check](planner_section_range_app_check.md), clean
+`5f68bff4`, completes **4/4 outputs**, ledger `ok`; separate assistant review
+passes all four frozen final-answer contents with 12 exact source supports.
+All four generated owned ranges resolve the requested section and expose the
+same known-source paragraph. Product improvement and category expansion remain
+distinct. Fresh grouping and one known-source sample preclude a general or
+isolated causal quality claim; earlier failures retain their original results.
+
+All 36 HTTP requests return 200, including four input counts. The first Compiler
+draft is incomplete at its unchanged 5120-token output ceiling (162 reasoning).
+It is rejected; the existing one feedback repair completes at 2176 tokens with
+the same schema/candidates/ceiling. No HTTP error or SDK/whole-query retry; this
+is not error-free first-attempt evidence. Final validation has no errors.
+
+Fresh `280f7bd6...38c957` is consumed under 1.50 without a cap increase.
+Added accounting **0.77268904** includes 0.04 count contingency; shared
+**11.69207159 / 14**, remainder **2.30792841**, pending zero, not invoice.
+Runtime/settings/original stores and 6684 predecessor artifacts remain unchanged.
+Next inspect the frozen first response and output sizing provider-free; no
+automatic paid retry or output-limit change follows from this single sample.
+
+## Offline explanation of the saved output-limit event (2026-09-18)
+
+The [provider-free diagnosis](compiler_output_limit_diagnosis.md) finds a
+32,342-character whitespace suffix in the unfinished first response: 96.04%
+of its output text, not a measured token share. Only 162 of the 5120 output
+tokens are reasoning. The completed four-output answer fits the same schema
+and ceiling at 2176 tokens. Exact SDK replay preserves the raw text and rejects
+incomplete status; removing whitespace does not restore the missing JSON.
+Generation/decoder causes remain unestablished. No runtime/prompt/limit change,
+provider calls or added cost; remaining shared accounting stays **2.30792841**.
+Next is a controlled serialization-instruction candidate, without changing
+required content or grounding fields; no measured efficacy is claimed yet.
+
+## Compact-JSON first-response comparison (2026-09-18)
+
+The [fresh comparison](compiler_compact_json_comparison.md), clean `76b89b5c`,
+uses one frozen first Compiler request and a serialization-only prefix, with
+unchanged schema/model/5120 ceiling. Both conditions complete 2/2 first responses
+and pass separate content and execution checks. Candidate structural whitespace
+is 0/0 versus 3501/3298; mean output tokens 2135 -> 1858. This small known-input
+sample does not establish failure prevention or default suitability.
+
+Fresh `f3baae2c...e2f0f200` consumed once under 1.70: four exact counts before
+four generations, all full ceilings funded at 1.6318250; eight HTTP 200, no
+errors/repairs/retries. Added 1.0071250 includes 0.04 count contingency; shared
+12.69919659/14, remaining 1.30080341, pending zero, not invoice. Prior failed
+reserves/evidence, source/store/settings and production defaults are preserved.
+Next is provider-free numeric/mixed/multiline-quotation compatibility; this
+consumed manifest cannot authorize another paid attempt.
+
+## Provider-free compact-JSON compatibility (2026-09-18)
+
+The [output-kind compatibility check](compiler_compact_json_compatibility.md),
+clean `292d3d0a`, covers eight numeric/narrative/mixed authored cases. All 32
+positive combinations preserve source, calculation, display and dependency
+results; all 28 invalid combinations remain rejected. Four deliberately wrong
+meanings remain structurally accepted. Exact model/source strings preserve
+multiline whitespace; existing final narrative display normalization is unchanged.
+
+The completed matrix uses 64 mocked SDK requests; 55 existing contracts and four
+docs checks pass with blocked external networking. No provider calls, new paid
+admission, runtime/default change or added cost. Remaining shared allowance is
+1.30080341, pending zero. This establishes local compatibility only. Next prepare
+a different-source numeric/mixed comparison and full budget feasibility before
+any broader model evidence or default-adoption decision.
+
+## Different-source comparison preparation (2026-09-18)
+
+The [prepared comparison](compiler_compact_json_transfer_preparation.md), clean
+`6ddd37d5`, freezes two CJ CheilJedang 2025 questions: a numeric cash-flow change
+and a liquidity calculation with cause/restatement explanation. These known-source
+excerpts and manually authored plans are outside the earlier NAVER advertising
+input; they are not unseen or full-application evidence. Four SDK request bodies
+retain the exact serialization-only treatment, source objects and production
+settings. Two fresh-process rehearsals produce 15 identical files, with eight
+mocked abstentions and no paid counts/generations. Transport/count 29 and docs four
+pass; originals and settings retain hashes.
+
+The four full output reserves plus count contingencies require 1.064 before input.
+At the previous 12,000-input-token ceiling, full reservation is 1.664, above the
+1.30080341 remainder. The actual four inputs would need to total at most 18,944
+tokens to fit; none has been counted. Next is a count-only packet, at most 0.04
+contingency with zero generation, before reassessing full funding. No paid manifest,
+live dispatcher, cost increase or default change was created. Added cost remains 0.
+
+## Different-source compact-JSON comparison (2026-09-18)
+
+The [completed comparison](compiler_compact_json_transfer_comparison.md), clean
+`d55874fa`, consumes fresh `2d77084c...383e1af3` after the user's explicit $1 increase
+to shared cap 15. Four fresh counts precede all generation and reserve 2.1481 for
+the complete schedule. Eight HTTP 200s produce 4/4 first responses, 6/6 runtime
+outputs and 4/4 frozen assistant content passes, without retry or repair.
+
+Numeric output tokens are 1092/948 baseline/candidate; mixed 1594/1224, reductions
+13.19%/23.21%. Structural whitespace falls from 1499/2142 to zero with +83 input
+tokens per case. Correct 226354918 thousand-KRW and -3789 hundred-million-KRW
+differences, periods/scales and separate cause/restatement claims remain. Four
+public narrative claims/eight support occurrences match source evidence. One
+mixed candidate internal display_format is Japanese; executed value/claims remain
+Korean, with end-to-end display untested. Two known excerpts and one sample per
+condition do not establish reliability, holdout quality or default adoption.
+
+Generation estimate 1.327 plus count contingency 0.04 settles 1.367. Shared
+14.10619659/15, remaining 0.89380341, pending zero, not invoice. All 8012 protected
+predecessors, sources, stores and settings retain hashes. Caller/transport 43 and
+docs four pass; two rehearsals give 36 identical files. No runtime/default change.
+Next provider-free work traces the display-format language through public output
+boundaries before a separate adoption decision; this manifest permits no more calls.

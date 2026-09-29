@@ -48,8 +48,8 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
     def test_unsupported_planner_unit_is_retained_and_only_affected_island_is_blocked(self):
         llm, planned, compiled = self._plan_and_compile(
             [
-                {"obligation_id": "bad", "kind": "direct_value", "label": "quantity", "display_unit": "unsupported-unit"},
-                {"obligation_id": "good", "kind": "direct_value", "label": "quantity", "display_unit": "COUNT"},
+                {"request_unit_ids": ["request_001"], "obligation_id": "bad", "kind": "direct_value", "label": "quantity", "display_unit": "unsupported-unit"},
+                {"request_unit_ids": ["request_001"], "obligation_id": "good", "kind": "direct_value", "label": "quantity", "display_unit": "COUNT"},
             ],
             self._direct_response("ob_002"),
         )
@@ -69,7 +69,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual([item["retry_count"] for item in islands], [0, 0])
         self.assertEqual(islands[0]["preflight_errors"], planned["semantic_plan"]["requirement_errors"])
         self.assertEqual(islands[1]["preflight_errors"], [])
-        self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["RequirementPlannerOutput", "CompilerResponseV2"])
         self.assertEqual(compiled["semantic_program"]["missing_obligation_ids"], ["ob_001"])
         self.assertEqual([row["obligation_id"] for row in compiled["semantic_program"]["direct_bindings"]], ["ob_002"])
 
@@ -77,19 +77,17 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         planner = RequirementPlannerOutput.model_validate({
             "topic": "requested result and context",
             "obligations": [
-                {
+                {"request_unit_ids": ["request_001"],
                     "kind": "derived_value",
                     "label": "requested rate",
                     "display_unit": "%",
                     "display_format": "null",
-                    "coupling_key": "rate-basis",
                 },
-                {
+                {"request_unit_ids": ["request_001"],
                     "kind": "narrative",
                     "label": "requested context",
                     "display_unit": "null",
                     "display_format": "None",
-                    "coupling_key": "null",
                     "evidence_mode": "source_defined_group",
                 },
             ],
@@ -110,7 +108,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual(obligations[0]["display_format"], "")
         self.assertEqual(obligations[1]["display_unit"], "")
         self.assertEqual(obligations[1]["display_format"], "")
-        self.assertEqual(obligations[1]["coupling_key"], "")
+        self.assertNotIn("coupling_key", obligations[1])
         self.assertEqual(planned["semantic_plan"]["requirement_errors"], [])
         islands = build_semantic_compilation_islands(obligations)
         self.assertEqual(
@@ -123,11 +121,11 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         )
 
     def test_compiler_unit_format_error_retries_same_visible_candidates_once(self):
-        def response(result_unit):
+        def response(display_unit):
             return SemanticCalculationProgram.model_validate({
                 "expressions": [{
                     "obligation_id": "ob_001", "formula": "VALUE + VALUE",
-                    "result_unit": result_unit, "display_unit": "COUNT",
+                    "display_unit": display_unit,
                     "variable_bindings": [{
                         "variable": "VALUE", "source_id": "cand_quantity",
                         "source_requirement_id": "ob_001:req_001",
@@ -138,7 +136,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
             })
 
         llm, planned, compiled = self._plan_and_compile(
-            [{
+            [{"request_unit_ids": ["request_001"],
                 "obligation_id": "double", "kind": "derived_value", "label": "double quantity",
                 "display_unit": "COUNT", "evidence_requirements": [{
                     "requirement_id": "input", "label": "quantity", "required": True,
@@ -153,7 +151,7 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertTrue(history[0]["errors"])
         self.assertEqual(
             {(error["code"], error["location"]) for error in history[0]["errors"]},
-            {("result_unit_mismatch", "expression.result_unit")},
+            {("result_unit_mismatch", "expression.display_unit")},
         )
         for error in history[0]["errors"]:
             self.assertEqual(error["repair_action"], "repair_program")
@@ -169,15 +167,15 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         self.assertEqual(compiled["semantic_program_retry_count"], 1)
         self.assertEqual(compiled["planner_debug_trace"]["program_compiler_call_count"], 2)
         self.assertEqual(compiled["semantic_program_validation"]["status"], "ready")
-        self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["RequirementPlannerOutput", "CompilerResponseV2", "CompilerResponseV2"])
         self.assertEqual(len(llm.prompts), 3)
 
     def test_planner_preserves_unknown_and_self_dependencies_for_preflight(self):
         llm, planned, compiled = self._plan_and_compile(
             [
-                {"obligation_id": "unknown_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["absent-owner"]},
-                {"obligation_id": "self_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["self_owner"]},
-                {"obligation_id": "good", "kind": "direct_value", "label": "quantity"},
+                {"request_unit_ids": ["request_001"], "obligation_id": "unknown_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["absent-owner"]},
+                {"request_unit_ids": ["request_001"], "obligation_id": "self_owner", "kind": "direct_value", "label": "quantity", "depends_on": ["self_owner"]},
+                {"request_unit_ids": ["request_001"], "obligation_id": "good", "kind": "direct_value", "label": "quantity"},
             ],
             self._direct_response("ob_003"),
         )
@@ -193,18 +191,18 @@ class PlannerUnitBoundaryTests(unittest.TestCase):
         }])
         self.assertEqual(compiled["semantic_program"]["missing_obligation_ids"], ["ob_001", "ob_002"])
         self.assertEqual([row["obligation_id"] for row in compiled["semantic_program"]["direct_bindings"]], ["ob_003"])
-        self.assertEqual(llm.models, ["RequirementPlannerOutput", "SemanticCalculationProgram"])
+        self.assertEqual(llm.models, ["RequirementPlannerOutput", "CompilerResponseV2"])
 
     def test_planner_drops_own_evidence_requirements_from_obligation_dependencies(self):
         planner = RequirementPlannerOutput.model_validate({
             "topic": "requested outputs",
             "obligations": [
-                {
+                {"request_unit_ids": ["request_001"],
                     "obligation_id": "reported_output",
                     "kind": "direct_value",
                     "label": "reported output",
                 },
-                {
+                {"request_unit_ids": ["request_001"],
                     "obligation_id": "derived_output",
                     "kind": "derived_value",
                     "label": "derived output",

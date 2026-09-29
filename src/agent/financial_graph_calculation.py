@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import re
 from typing import Any, Dict, List, Mapping, Optional, Sequence
@@ -10,6 +11,7 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence
 from src.agent.financial_candidate_matching import (
     build_physical_evidence_bundle_constraints,
     build_candidate_matches,
+    narrative_candidate_source_path,
     project_candidate_match,
     project_candidate_fact,
     rank_candidate_matches,
@@ -20,14 +22,31 @@ from src.agent.financial_calculation_execution import (
     execute_semantic_calculation_program,
     project_semantic_program_operand,
     semantic_candidate_applicability,
+    source_candidate_applicability,
     validate_semantic_calculation_program,
 )
-from src.agent.financial_graph_model_loaders import semantic_calculation_program_model
+from src.agent.financial_compiler_wire import CompilerReferencesV1, compiler_response_model, lower_compiler_response
+from src.agent.financial_program_projection import narrative_candidate_ids, narrative_description_only_ids
 from src.agent.financial_graph_state import (
-    FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase,
+    FinancialAgentState, CandidateInput, CompilationInput, CompilationPhase, CompilerAttemptDebugV1,
     NumericExecutionInput, NumericResultPhase,
 )
 from src.agent.financial_langchain_loaders import chat_prompt_template_from_template
+from src.agent.financial_narrative_claims import project_narrative_retry_drafts
+from src.agent.financial_compiler_debug import project_compiler_attempt
+from src.utils.request_diagnostics import diagnostic_location, diagnostics_enabled, record_diagnostic
+from src.agent.financial_request_units import build_request_units, project_request_units, request_unit_errors
+from src.agent.financial_measurement_periods import measurement_period_requirement_errors
+from src.agent.financial_source_interpretation import interpretation_axis_sources, source_unit_options
+from src.agent.financial_column_periods import source_period_options
+from src.agent.financial_output_relationships import (
+    output_relationships, relationship_proof_projection, validated_relationship_proofs,
+)
+from src.agent.financial_compiler_presentation import (
+    project_output_responsibility_context,
+    project_prompt_cohort, project_prompt_retry_feedback, project_reading_payload,
+    project_wire_reading_payload, project_wire_axis_provenance,
+)
 from src.agent.financial_reconciliation_candidates import (
     build_semantic_candidate_catalog,
     build_semantic_source_candidates,
@@ -47,12 +66,23 @@ from src.agent.financial_source_bundles import (
     source_bundle_id_by_candidate_id,
 )
 from src.agent.financial_runtime_trace import resolve_runtime_calculation_trace, runtime_trace_state_update
+from src.agent.financial_source_scope import (
+    candidate_section_path, has_source_section_constraint,
+    source_section_applicability, source_section_requirement_errors,
+)
 from src.config.retrieval_policy import CALCULATION_PROMPT_POLICY
+from src.utils.provider_errors import ProviderAdmissionError
 
 
 logger = logging.getLogger(__name__)
 
 MAX_SEMANTIC_COMPILATION_ISLANDS = 8
+
+
+def _compiler_json(value: Any) -> str:
+    """Compact framing only: source strings and every provenance field survive."""
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
 
 def _semantic_candidate_capacity(
     catalog: Sequence[Mapping[str, Any]], selectable_ids: Sequence[str],
@@ -75,6 +105,7 @@ def build_semantic_compilation_islands(
     obligations: Sequence[Mapping[str, Any]],
     *,
     evidence_bundle_constraints: Sequence[Mapping[str, Any]] = (),
+    query: str = "",
 ) -> Dict[str, Any]:
     """Build deterministic dependency/coupling/bundle components."""
 
@@ -96,8 +127,18 @@ def build_semantic_compilation_islands(
     errors_by_id: Dict[str, List[Dict[str, str]]] = {
         obligation_id: [] for obligation_id in order
     }
+    for section_error in [*source_section_requirement_errors(rows, query),
+                          *measurement_period_requirement_errors(rows, query)]:
+        errors_by_id[section_error["obligation_id"]].append(section_error)
     dependency_edges: List[tuple[str, str]] = []
     for obligation_id, obligation in obligation_by_id.items():
+        if obligation.get("kind") == "direct_value" and obligation.get("evidence_requirements"):
+            errors_by_id[obligation_id].append({
+                "code": "evidence_requirement_on_unsupported_obligation", "obligation_id": obligation_id,
+                "owner_id": obligation_id, "candidate_id": "",
+                "location": "obligation.evidence_requirements", "repair_action": "repair_requirements",
+                "detail": "",
+            })
         declared_unit = _normalise_spaces(str(obligation.get("display_unit") or ""))
         if declared_unit and declared_unit.upper() != "UNKNOWN" and resolve_unit_spec(declared_unit) is None:
             errors_by_id[obligation_id].append({
@@ -132,14 +173,11 @@ def build_semantic_compilation_islands(
             adjacency[obligation_id].add(dependency_id)
             adjacency[dependency_id].add(obligation_id)
 
-    coupling_groups: Dict[str, List[str]] = {}
-    for obligation_id, obligation in obligation_by_id.items():
-        coupling_key = _normalise_spaces(
-            str(obligation.get("coupling_key") or "")
-        )
-        if coupling_key:
-            coupling_groups.setdefault(coupling_key, []).append(obligation_id)
-    for obligation_ids in coupling_groups.values():
+    relationships, relationship_errors = output_relationships(rows, query)
+    for issue in relationship_errors:
+        errors_by_id[issue["obligation_id"]].append(issue)
+    relationship_groups = {key: row["output_ids"] for key, row in relationships.items()}
+    for obligation_ids in relationship_groups.values():
         for left, right in zip(obligation_ids, obligation_ids[1:]):
             adjacency[left].add(right)
             adjacency[right].add(left)
@@ -220,9 +258,9 @@ def build_semantic_compilation_islands(
                     "detail": ",".join(component),
                 }
             )
-        island_coupling_keys = [
-            coupling_key
-            for coupling_key, obligation_ids in coupling_groups.items()
+        island_relationship_ids = [
+            relationship_id
+            for relationship_id, obligation_ids in relationship_groups.items()
             if len(set(obligation_ids) & component_set) >= 2
         ]
         island_bundle_ids = [
@@ -235,7 +273,7 @@ def build_semantic_compilation_islands(
                 "island_id": f"island_{island_index:03d}",
                 "obligation_ids": component,
                 "dependency_edges": [list(edge) for edge in local_edges],
-                "coupling_keys": island_coupling_keys,
+                "output_relationships": {key: relationships[key] for key in island_relationship_ids},
                 "evidence_bundle_constraint_ids": island_bundle_ids,
                 "evidence_bundle_edges": [
                     list(edge)
@@ -517,14 +555,7 @@ def _semantic_program_prompt_cohort(
 ) -> Dict[str, Any]:
     """Keep observability-only ranking fields out of compiler input."""
 
-    cohort = dict(raw_cohort)
-    cohort.pop("ranking_diagnostics", None)
-    source_group = cohort.get("source_defined_group_selection")
-    if isinstance(source_group, Mapping):
-        prompt_source_group = dict(source_group)
-        prompt_source_group.pop("complete_option_count", None)
-        cohort["source_defined_group_selection"] = prompt_source_group
-    return cohort
+    return project_prompt_cohort(raw_cohort)
 
 
 def _rank_applicable_owner_candidates(
@@ -546,15 +577,26 @@ def _rank_applicable_owner_candidates(
         if candidate_kind == "evidence"
         else {candidate_kind}
     )
+    full_catalog = catalog
+    source_section_counts: Dict[str, int] = {}
+    if has_source_section_constraint(owner, parent_owner):
+        eligible = []
+        for candidate in catalog:
+            section_state = source_section_applicability(candidate, owner, parent_owner)["state"]
+            source_section_counts[section_state] = source_section_counts.get(section_state, 0) + 1
+            if section_state == "match":
+                eligible.append(candidate)
+        catalog = eligible
     base_applicability_by_id: Dict[str, Dict[str, Any]] = {}
     for raw_candidate in catalog:
         candidate = dict(raw_candidate or {})
         candidate_id = str(candidate.get("candidate_id") or "").strip()
         if not candidate_id:
             continue
-        base_applicability_by_id[candidate_id] = semantic_candidate_applicability(
+        base_applicability_by_id[candidate_id] = source_candidate_applicability(
             candidate,
             owner,
+            parent_owner,
         )
     matches_by_id = build_candidate_matches(
         catalog,
@@ -574,7 +616,7 @@ def _rank_applicable_owner_candidates(
     }
     selected_bundle_ids: List[str] = []
     if candidate_kind == "numeric":
-        bundles = build_semantic_source_bundles(catalog)
+        bundles = build_semantic_source_bundles(full_catalog)
         bundle_id_by_candidate = source_bundle_id_by_candidate_id(bundles)
         order_by_bundle = {
             bundle.source_bundle_id: {
@@ -683,11 +725,20 @@ def _rank_applicable_owner_candidates(
             "population": "eligible_catalog",
             "source": "runtime_candidate_matching",
             "selection_unit": (
-                "source_bundle" if candidate_kind == "numeric" else "candidate"
+                "source_bundle" if candidate_kind == "numeric" else
+                "narrative_source_hierarchy" if str(owner.get("kind") or (parent_owner or {}).get("kind")) == "narrative"
+                else "candidate"
             ),
             "selected_source_bundle_ids": selected_bundle_ids,
         }
     )
+    if source_section_counts:
+        ranking_diagnostics["source_section_filter"] = source_section_counts
+    if ranking_diagnostics["selection_unit"] == "narrative_source_hierarchy":
+        ranking_diagnostics["selected_source_paths_by_id"] = {
+            str(row["candidate_id"]): [list(part) for part in narrative_candidate_source_path(row)]
+            for row in selected
+        }
     return (
         selected,
         counts,
@@ -754,14 +805,9 @@ def _semantic_candidate_cohorts(
     for obligation in obligation_rows:
         obligation_id = str(obligation.get("obligation_id") or "").strip()
         is_narrative = str(obligation.get("kind") or "") == "narrative"
-        is_source_defined_group = (
-            is_narrative
-            and str(obligation.get("evidence_mode") or "declared_inputs")
-            == "source_defined_group"
-        )
-        narrative_candidate_kind = (
-            "evidence" if is_source_defined_group else "narrative"
-        )
+        # A narrative may read prose or table cells in either evidence mode.
+        # Source-defined grouping is a separate contract, not table access authority.
+        narrative_candidate_kind = "evidence"
         specifications.append(
             {
                 "cohort_id": f"{obligation_id}:output",
@@ -790,9 +836,7 @@ def _semantic_candidate_cohorts(
                 }
             )
         for requirement in obligation.get("evidence_requirements") or []:
-            if not isinstance(requirement, Mapping) or not bool(
-                requirement.get("required", True)
-            ):
+            if not isinstance(requirement, Mapping):
                 continue
             requirement_id = str(requirement.get("requirement_id") or "").strip()
             if not requirement_id:
@@ -920,7 +964,9 @@ def _semantic_candidate_cohorts(
             for obligation in obligation_rows
         }
         selection = select_source_defined_physical_row_group(
-            catalog,
+            [candidate for candidate in catalog if source_section_applicability(
+                candidate, obligation_by_id[parent_id]
+            )["state"] in {"unrestricted", "match"}],
             explicitly_compatible_ids,
             owner=obligation_by_id.get(parent_id),
             limit=int(cohort.get("limit") or 0),
@@ -961,6 +1007,7 @@ def _semantic_candidate_cohorts(
             "evidence_bundle_option_selections": [],
         }
 
+    specification_by_cohort = {item["cohort_id"]: item for item in specifications}
     for cohort in cohorts:
         parent_id = str(cohort.get("parent_obligation_id") or "")
         selection = source_group_selection_by_parent.get(parent_id)
@@ -969,10 +1016,13 @@ def _semantic_candidate_cohorts(
         owner_excluded_ids = set(
             excluded_by_owner.get(str(cohort.get("owner_id") or ""), [])
         )
+        specification = specification_by_cohort[cohort["cohort_id"]]
         candidate_ids = [
             candidate_id
             for candidate_id in (selection.get("candidate_ids") or [])
             if candidate_id not in owner_excluded_ids
+            and source_section_applicability(candidate_by_id[candidate_id],
+                specification["owner"], specification["parent_owner"])["state"] in {"unrestricted", "match"}
         ]
         cohort["candidate_ids"] = candidate_ids
         cohort["candidate_id_fingerprint"] = (
@@ -1019,6 +1069,51 @@ def _semantic_candidate_cohorts(
     )
 
     projected_visible_ids = list(atomic_projection["visible_candidate_ids"])
+    # Ranking decides what to expose, not where an exposed source may be used.
+    # Physical row selection and explicit retry exclusions remain independent
+    # authority boundaries, including sources visible through another owner.
+    bundles_by_candidate = source_bundle_id_by_candidate_id(build_semantic_source_bundles(catalog))
+    physical_allowed: Dict[str, set[str]] = {}
+    for constraint in atomic_projection["evidence_bundle_constraints"]:
+        for option in constraint["options"]:
+            for owner_id, identifiers in option["candidate_ids_by_owner"].items():
+                allowed = set(identifiers)
+                physical_allowed[owner_id] = physical_allowed.get(owner_id, allowed) & allowed
+    authorized_cohorts = []
+    for raw_cohort in atomic_projection["cohorts"]:
+        cohort = dict(raw_cohort)
+        specification = specification_by_cohort[cohort["cohort_id"]]
+        owner_id, parent_id = cohort["owner_id"], cohort["parent_obligation_id"]
+        kind = cohort["candidate_kind"]
+        allowed_kinds = {"numeric", "narrative"} if kind == "evidence" else {kind}
+        excluded = set(excluded_by_owner.get(owner_id, []))
+        excluded_bundles = {bundles_by_candidate[item] for item in excluded if item in bundles_by_candidate}
+        exposure_ids = list(cohort["candidate_ids"])
+        candidate_ids = []
+        for candidate_id in dict.fromkeys([*exposure_ids, *sorted(projected_visible_ids)]):
+            candidate = candidate_by_id[candidate_id]
+            if candidate["kind"] not in allowed_kinds or candidate_id in excluded:
+                continue
+            if kind == "numeric" and bundles_by_candidate.get(candidate_id) in excluded_bundles:
+                continue
+            if cohort["owner_type"] != "compatibility" and parent_id in physical_allowed:
+                if candidate_id not in physical_allowed[parent_id]:
+                    continue
+            group = cohort.get("source_defined_group_selection") or {}
+            if group.get("selection_mode") == "complete_physical_row" and candidate_id not in exposure_ids:
+                continue
+            applicability = source_candidate_applicability(candidate, specification["owner"], specification["parent_owner"])
+            match = match_by_id.get(candidate_id, {}).get(owner_id, {})
+            if applicability["state"] == "explicit_conflict" or match.get("unit_state") == "conflict":
+                continue
+            candidate_ids.append(candidate_id)
+        cohort.update(exposure_candidate_ids=exposure_ids, candidate_ids=candidate_ids,
+                      candidate_id_fingerprint=semantic_candidate_id_fingerprint(candidate_ids))
+        authorized_cohorts.append(cohort)
+    # Reuse the canonical parent/input visibility projection without reselecting
+    # physical rows. The already frozen constraints remain on the envelope.
+    authority = _project_atomic_evidence_bundle_options(
+        cohorts=authorized_cohorts, visible_candidate_ids=projected_visible_ids, constraints=())
     numeric_count = sum(
         str(candidate_by_id.get(candidate_id, {}).get("kind") or "")
         == "numeric"
@@ -1051,8 +1146,8 @@ def _semantic_candidate_cohorts(
         "schema": "semantic_candidate_cohorts_v2",
         "status": "ok",
         "reservation": reservation,
-        "cohorts": atomic_projection["cohorts"],
-        "candidate_ids_by_owner": atomic_projection[
+        "cohorts": authority["cohorts"],
+        "candidate_ids_by_owner": authority[
             "candidate_ids_by_owner"
         ],
         "visible_candidate_ids": projected_visible_ids,
@@ -1112,11 +1207,98 @@ def _bounded_relevance_excerpt(
     return text[start : start + bounded]
 
 
+def _retry_dependency_outputs(
+    *,
+    program: Mapping[str, Any],
+    validation: Mapping[str, Any],
+    visibility: CandidateVisibilityV1,
+    obligations: Sequence[Mapping[str, Any]],
+    catalog: Sequence[Mapping[str, Any]],
+    query: str,
+    target_obligation_ids: Sequence[str],
+) -> Dict[str, Dict[str, Any]]:
+    """Project executable dependencies as inputs, never as new selectable candidates."""
+    targets = set(target_obligation_ids)
+    dependency_ids = {
+        str(dependency)
+        for obligation in obligations
+        if str(obligation.get("obligation_id") or "") in targets
+        for dependency in obligation.get("depends_on") or []
+    } - targets
+    if not dependency_ids:
+        return {}
+    envelope = CompilationEnvelopeV2.create(
+        visibility=visibility, program=program, validation=validation,
+        candidate_catalog=catalog, obligations=obligations, query=query,
+    )
+    execution = execute_semantic_calculation_program(
+        program=program, obligations=obligations, candidate_catalog=catalog, query=query,
+        compilation_envelope=envelope, require_compilation_envelope=True,
+    )
+    outputs = execution["outputs_by_obligation"]
+    inputs: Dict[str, Dict[str, Any]] = {}
+    for obligation in obligations:
+        obligation_id = str(obligation.get("obligation_id") or "")
+        output = outputs.get(obligation_id)
+        if (obligation_id not in dependency_ids or not output
+                or output.get("status") != "ok" or output.get("normalized_value") is None):
+            continue
+        inputs[obligation_id] = {
+            "kind": output["kind"],
+            "label": output["label"],
+            "scope": dict(obligation.get("scope") or {}),
+            # For a derived output this is the calculated value, not its source display.
+            "normalized_value": output["normalized_value"],
+            "normalized_unit": output["normalized_unit"],
+            "candidate_ids": list(output["candidate_ids"]),
+            "source_row_ids": list(output["source_row_ids"]),
+            "source_anchors": list(output["source_anchors"]),
+        }
+    return inputs
+
+
+def _semantic_retry_target_ids(
+    *, program: Mapping[str, Any], validation: Mapping[str, Any],
+    obligations: Sequence[Mapping[str, Any]], invocation_failed: bool,
+    bundle_constraints: Sequence[EvidenceBundleConstraintV1],
+) -> List[str]:
+    """Repair invalid/missing outputs without reopening explicit valid abstentions."""
+    owner_ids = [str(item.get("obligation_id") or "") for item in obligations]
+    unresolved = set(validation.get("missing_obligation_ids") or []) | set(
+        validation.get("ambiguous_obligation_ids") or [])
+    errors = list(validation.get("errors") or [])
+    error_owners = {str(item.get("obligation_id") or "") for item in errors}
+    planning_errors = {str(item.get("obligation_id") or "") for item in errors
+                       if item.get("repair_action") == "repair_requirements"}
+    abstentions = set()
+    if (not invocation_failed and program.get("status") in {"incomplete", "ambiguous"}
+            and error_owners.issubset(owner_ids)):
+        declared = set(program.get("missing_obligation_ids") or []) | set(
+            program.get("ambiguous_obligation_ids") or [])
+        abstentions = (declared & unresolved & set(owner_ids)) - error_owners
+
+    def bundled_owners(ids: set[str]) -> set[str]:
+        expanded = set(ids)
+        while True:
+            previous = set(expanded)
+            for constraint in bundle_constraints:
+                if expanded.intersection(constraint.owner_ids):
+                    expanded.update(constraint.owner_ids)
+            if expanded == previous:
+                return expanded
+
+    # Row-atomic peers cannot be repaired by reopening a withheld member.
+    targets = bundled_owners((unresolved | (error_owners & set(owner_ids)))
+                             - bundled_owners(abstentions | planning_errors))
+    return [owner_id for owner_id in owner_ids if owner_id in targets]
+
+
 def _merge_targeted_program_retry(
     *,
     previous_validation: Dict[str, Any],
     retry_program: Dict[str, Any],
     target_obligation_ids: List[str],
+    previous_program: Optional[Mapping[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Preserve valid prior outputs and accept retry edits only for targets."""
 
@@ -1125,11 +1307,16 @@ def _merge_targeted_program_retry(
     }
 
     def merged_rows(validation_key: str, program_key: str) -> List[Dict[str, Any]]:
+        accepted_ids = {str(item.get("obligation_id") or "") for item in previous_validation.get(validation_key) or []}
         preserved = [
             dict(item)
-            for item in previous_validation.get(validation_key) or []
-            if str((item or {}).get("obligation_id") or "").strip() not in targets
+            for item in ((previous_program.get(program_key) or []) if previous_program is not None
+                         else (previous_validation.get(validation_key) or []))
+            if str((item or {}).get("obligation_id") or "").strip() in accepted_ids - targets
         ]
+        for row in preserved:
+            # Validation-owned quote locations are trace, not model program JSON.
+            row.pop("claim_readings", None)
         replacements = [
             dict(item)
             for item in retry_program.get(program_key) or []
@@ -1137,6 +1324,23 @@ def _merge_targeted_program_retry(
         ]
         return [*preserved, *replacements]
 
+    preserved_program = {
+        key: [dict(item) for item in previous_validation.get(validation_key) or []
+              if str(item.get("obligation_id") or "").strip() not in targets]
+        for validation_key, key in (
+            ("valid_direct_bindings", "direct_bindings"),
+            ("valid_expressions", "expressions"),
+            ("valid_narrative_bindings", "narrative_bindings"),
+        )
+    }
+    preserved_candidate_ids = set(_semantic_program_candidate_ids(preserved_program))
+    for rows in preserved_program.values():
+        for row in rows:
+            preserved_candidate_ids.update(
+                (previous_validation.get("source_candidate_ids_by_obligation") or {}).get(
+                    str(row.get("obligation_id") or ""), []
+                )
+            )
     source_assertions: List[Dict[str, Any]] = []
     for raw_assertion in previous_validation.get("valid_source_assertions") or []:
         assertion = dict(raw_assertion or {})
@@ -1148,12 +1352,42 @@ def _merge_targeted_program_retry(
         assertion.pop("assertion_fingerprint", None)
         if covered_ids and covered_ids.issubset(targets):
             continue
+        if covered_ids.intersection(targets):
+            # A shared assertion may contain a replaced target-only value. Keep
+            # its exact quote, but retain authority only for untouched inputs.
+            assertion["candidate_ids"] = [
+                item for item in assertion.get("candidate_ids") or []
+                if str(item).strip() in preserved_candidate_ids
+            ]
+            if not assertion["candidate_ids"]:
+                continue
         source_assertions.append(assertion)
-    source_assertions.extend(
-        dict(item)
-        for item in retry_program.get("source_assertions") or []
-        if isinstance(item, Mapping)
-    )
+    # Assertions have no owner field, so derive their editable scope from the
+    # target bindings. An extra retry assertion must not revoke a preserved
+    # owner's evidence or turn an unrelated invented ID into a global error.
+    target_candidate_ids = set(_semantic_program_candidate_ids({
+        key: [dict(item) for item in retry_program.get(key) or []
+              if isinstance(item, Mapping)
+              and str(item.get("obligation_id") or "").strip() in targets]
+        for key in ("direct_bindings", "expressions", "narrative_bindings")
+    }))
+    preserved_assertion_ids = {
+        str(candidate_id).strip()
+        for assertion in source_assertions
+        for candidate_id in assertion.get("candidate_ids") or []
+    }
+    for raw_assertion in retry_program.get("source_assertions") or []:
+        if not isinstance(raw_assertion, Mapping):
+            continue
+        candidate_ids = list(dict.fromkeys(
+            str(item).strip() for item in raw_assertion.get("candidate_ids") or []
+            if str(item).strip()
+        ))
+        if not candidate_ids or not set(candidate_ids).issubset(target_candidate_ids):
+            continue
+        editable_ids = [item for item in candidate_ids if item not in preserved_assertion_ids]
+        if editable_ids:
+            source_assertions.append({**dict(raw_assertion), "candidate_ids": editable_ids})
     deduplicated_assertions: List[Dict[str, Any]] = []
     seen_assertions: set[str] = set()
     for assertion in source_assertions:
@@ -1168,6 +1402,14 @@ def _merge_targeted_program_retry(
         seen_assertions.add(serialized)
         deduplicated_assertions.append(assertion)
 
+    preserved_ids = {row["obligation_id"] for rows in preserved_program.values() for row in rows}
+    preserved_proofs = validated_relationship_proofs(previous_validation, preserved_ids)
+    replacement_proofs = relationship_proof_projection(retry_program, targets)
+    # A declaration used by any accepted, untouched output is read-only.
+    declarations = {**replacement_proofs.get("relationship_declarations", {}),
+                    **preserved_proofs.get("relationship_declarations", {})}
+    bindings = {**preserved_proofs.get("relationship_bindings", {}),
+                **replacement_proofs.get("relationship_bindings", {})}
     return {
         "status": str(retry_program.get("status") or "incomplete"),
         "direct_bindings": merged_rows(
@@ -1178,12 +1420,24 @@ def _merge_targeted_program_retry(
             "valid_narrative_bindings", "narrative_bindings"
         ),
         "source_assertions": deduplicated_assertions,
+        "relationship_declarations": declarations,
+        "relationship_bindings": bindings,
+        **({"failed_obligation_ids": [
+            owner for owner in (previous_program or {}).get("failed_obligation_ids", []) if owner not in targets
+        ] + [owner for owner in retry_program.get("failed_obligation_ids", []) if owner in targets]}
+           if "failed_obligation_ids" in (previous_program or {}) or "failed_obligation_ids" in retry_program else {}),
         "missing_obligation_ids": [
+            str(item) for item in previous_validation.get("missing_obligation_ids") or []
+            if str(item).strip() not in targets
+        ] + [
             str(item)
             for item in retry_program.get("missing_obligation_ids") or []
             if str(item).strip() in targets
         ],
         "ambiguous_obligation_ids": [
+            str(item) for item in previous_validation.get("ambiguous_obligation_ids") or []
+            if str(item).strip() not in targets
+        ] + [
             str(item)
             for item in retry_program.get("ambiguous_obligation_ids") or []
             if str(item).strip() in targets
@@ -1217,7 +1471,7 @@ def _semantic_program_candidate_ids(program: Dict[str, Any]) -> List[str]:
         )
     for binding in program.get("narrative_bindings") or []:
         if isinstance(binding, dict):
-            values.extend(str(item or "") for item in (binding.get("candidate_ids") or []))
+            values.extend(narrative_candidate_ids(binding))
     return list(dict.fromkeys(item for item in values if item))
 
 
@@ -1295,7 +1549,7 @@ def _semantic_program_candidate_roles(
             ).strip()
             if candidate_id and requirement_id:
                 requirement_owner_by_candidate[candidate_id] = requirement_id
-        for candidate_id in binding.get("candidate_ids") or []:
+        for candidate_id in narrative_candidate_ids(binding):
             normalized_id = str(candidate_id or "").strip()
             add(
                 obligation_id,
@@ -1367,9 +1621,6 @@ class FinancialAgentCalculationMixin:
     @staticmethod
     def _semantic_program_prompt_rows(
         catalog: List[Dict[str, Any]],
-        candidate_match_by_id: Optional[
-            Mapping[str, Mapping[str, Mapping[str, Any]]]
-        ] = None,
         source_bundle_id_by_candidate: Optional[Mapping[str, str]] = None,
         source_value_span_by_candidate: Optional[
             Mapping[str, Sequence[int]]
@@ -1385,15 +1636,27 @@ class FinancialAgentCalculationMixin:
                     item.get("local_entity_surfaces") or []
                 ),
                 "column_headers": list(item.get("column_headers") or []),
+                **({"interpretation_axis_sources": interpretation_axis_sources(item)}
+                   if item.get("kind") == "numeric" and item.get("candidate_kind") != "sentence_value" else {}),
+                **({"unit_options": unit_options} if (unit_options := source_unit_options(item)) else {}),
+                **({"period_options": source_period_options(item),
+                    "source_column_period_evidence": item["source_column_period_evidence"]}
+                   if item.get("source_column_period_evidence") else {}),
                 "raw_value": str(item.get("raw_value") or ""),
                 "raw_unit": str(item.get("raw_unit") or ""),
+                **({"source_unit_hint": item.get("source_unit_hint", ""),
+                    "raw_unit_source": item.get("raw_unit_source", ""),
+                    "source_unit_provenance": item["source_unit_provenance"]}
+                   if item.get("source_unit_provenance") else {}),
                 "normalized_unit": str(item.get("normalized_unit") or ""),
                 "period": str(item.get("period") or ""),
+                "source_period_surface": str(item.get("source_period_surface") or ""),
                 "period_role": str(item.get("period_role") or ""),
                 "period_label_surfaces": list(
                     item.get("period_label_surfaces") or []
                 ),
                 "period_source": str(item.get("period_source") or ""),
+                "period_label_scope": str(item.get("period_label_scope") or ""),
                 "year": item.get("year"),
                 "value_year": item.get("value_year"),
                 "company": str(item.get("company") or ""),
@@ -1408,6 +1671,8 @@ class FinancialAgentCalculationMixin:
                 "statement_type": str(item.get("statement_type") or ""),
                 "table_context": str(item.get("table_context") or "")[:160],
                 "table_source_id": str(item.get("table_source_id") or ""),
+                **({"source_document_id": item["source_document_id"]}
+                   if item.get("source_document_id") else {}),
                 "physical_table_id": str(item.get("physical_table_id") or ""),
                 "physical_row_id": str(item.get("physical_row_id") or ""),
                 "physical_cell_id": str(item.get("physical_cell_id") or ""),
@@ -1415,6 +1680,10 @@ class FinancialAgentCalculationMixin:
                 "source_row_id": str(item.get("source_row_id") or ""),
                 "context_fingerprint": str(item.get("context_fingerprint") or ""),
                 "source_anchor": str(item.get("source_anchor") or ""),
+                "source_section_path": list(candidate_section_path(item)),
+                **({"local_heading": str(item["local_heading"])} if item.get("local_heading") else {}),
+                **({"source_context_provenance": dict(item["source_context_provenance"])}
+                   if item.get("source_context_provenance") else {}),
                 "candidate_kind": str(item.get("candidate_kind") or ""),
                 "source_bundle_id": str(
                     (source_bundle_id_by_candidate or {}).get(
@@ -1428,17 +1697,10 @@ class FinancialAgentCalculationMixin:
                         [],
                     )
                 ),
+                **({"source_body_coverage": dict(item["source_body_coverage"])}
+                   if item.get("source_body_coverage") else {}),
                 "aggregation_stage": str(item.get("aggregation_stage") or ""),
                 "aggregate_label": str(item.get("aggregate_label") or ""),
-                "match_by_owner": {
-                    str(owner_id): dict(match)
-                    for owner_id, match in dict(
-                        (candidate_match_by_id or {}).get(
-                            str(item.get("candidate_id") or ""),
-                            {},
-                        )
-                    ).items()
-                },
             }
             for item in catalog
         ]
@@ -1480,9 +1742,6 @@ class FinancialAgentCalculationMixin:
         }
         prompt_rows = FinancialAgentCalculationMixin._semantic_program_prompt_rows(
             visible_catalog,
-            candidate_match_by_id=dict(
-                cohort_plan.get("candidate_match_by_id") or {}
-            ),
             source_bundle_id_by_candidate=bundle_id_by_candidate,
             source_value_span_by_candidate=value_span_by_candidate,
         )
@@ -1491,8 +1750,21 @@ class FinancialAgentCalculationMixin:
             for item in prompt_rows
             if str(item.get("candidate_id") or "")
         }
-        return {
-            "schema": "semantic_program_candidate_payload_v5",
+        source_contexts = {}
+        for candidate in visible_catalog:
+            for context in candidate.get("source_contexts") or []:
+                context_id = str(context.get("context_id") or "")
+                if not context_id:
+                    continue
+                projection = {key: value for key, value in context.items() if key != "relation"}
+                if context_id in source_contexts and source_contexts[context_id] != projection:
+                    raise ValueError(f"conflicting source context: {context_id}")
+                source_contexts[context_id] = projection
+        source_contexts = dict(sorted(source_contexts.items()))
+        return project_reading_payload({
+            "source_contexts_by_id": source_contexts,
+            "source_context_fingerprint": hashlib.sha256(json.dumps(
+                source_contexts, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest(),
             "reservation": dict(cohort_plan.get("reservation") or {}),
             "source_bundle_fingerprint": semantic_source_bundle_fingerprint(
                 source_bundles
@@ -1532,12 +1804,13 @@ class FinancialAgentCalculationMixin:
                 for candidate_id in visible_ids
                 if candidate_id in row_by_id
             },
-        }
+        }, visible_catalog)
 
     @staticmethod
     def _semantic_program_evidence_items(
         catalog: List[Dict[str, Any]],
         selected_candidate_ids: List[str],
+        *, validation: Optional[Mapping[str, Any]] = None,
     ) -> List[Dict[str, Any]]:
         candidate_by_id = {
             str(item.get("candidate_id") or ""): dict(item)
@@ -1545,11 +1818,19 @@ class FinancialAgentCalculationMixin:
             if str(item.get("candidate_id") or "")
         }
         rows: List[Dict[str, Any]] = []
+        description_only_ids = narrative_description_only_ids(validation or {})
+        readings_by_candidate: Dict[str, List[Dict[str, Any]]] = {}
+        for binding in (validation or {}).get("valid_narrative_bindings") or []:
+            for reading in binding.get("description_readings") or []:
+                readings_by_candidate.setdefault(reading["candidate_id"], []).append(dict(reading))
         for candidate_id in dict.fromkeys(selected_candidate_ids):
             candidate = candidate_by_id.get(str(candidate_id or ""))
             if not candidate:
                 continue
             source_text = _normalise_spaces(str(candidate.get("source_text") or ""))
+            description_only = candidate_id in description_only_ids
+            if description_only:
+                source_text = " ".join(dict.fromkeys(reading["quote"] for reading in readings_by_candidate[candidate_id]))
             numeric_surface = _normalise_spaces(
                 " ".join(
                     str(value or "")
@@ -1571,19 +1852,21 @@ class FinancialAgentCalculationMixin:
                     "quote_span": source_text or numeric_surface,
                     "support_level": "direct",
                     "question_relevance": "high",
-                    "raw_value": str(candidate.get("raw_value") or ""),
-                    "raw_unit": str(candidate.get("raw_unit") or ""),
+                    "raw_value": "" if description_only else str(candidate.get("raw_value") or ""),
+                    "raw_unit": "" if description_only else str(candidate.get("raw_unit") or ""),
                     "source_row_id": str(candidate.get("source_row_id") or ""),
                     "source_candidate_id": str(candidate.get("source_candidate_id") or ""),
-                    "metadata": {
+                    "metadata": {**{
                         key: candidate.get(key)
                         for key in (
                             "company", "year", "value_year", "period",
                             "consolidation_scope", "consolidation_scope_source", "segment",
                             "basis", "table_source_id", "statement_type", "context_fingerprint",
+                            "source_document_id", "physical_table_id", "physical_row_id",
+                            "physical_cell_id", "physical_value_id", "physical_cell_key",
                         )
                         if candidate.get(key) not in (None, "")
-                    },
+                    }, **({"description_readings": readings_by_candidate[candidate_id]} if description_only else {})},
                 }
             )
         return rows
@@ -1593,6 +1876,7 @@ class FinancialAgentCalculationMixin:
         state: CompilationInput,
         *,
         other_selectable_ids: Sequence[str] = (),
+        output_responsibility_context_json: str = "",
     ) -> Dict[str, Any]:
         """Compile one preflighted dependency/coupling island."""
 
@@ -1635,11 +1919,7 @@ class FinancialAgentCalculationMixin:
             obligations,
         )
         prompt_payload = self._semantic_program_prompt_payload(catalog, cohort_plan)
-        prompt_catalog_json = json.dumps(
-            prompt_payload,
-            ensure_ascii=False,
-            indent=2,
-        )
+        prompt_catalog_json = _compiler_json(prompt_payload)
         prompt_candidate_ids = [
             str(item)
             for item in (cohort_plan.get("visible_candidate_ids") or [])
@@ -1700,6 +1980,7 @@ class FinancialAgentCalculationMixin:
         }
         validation = validate_semantic_calculation_program(
             program=program_data,
+            require_narrative_claims=True,
             obligations=obligations,
             candidate_catalog=catalog,
             query=query,
@@ -1709,6 +1990,8 @@ class FinancialAgentCalculationMixin:
         invocation_errors: List[str] = []
         validation_history: List[Dict[str, Any]] = []
         attempt_candidate_diagnostics: List[Dict[str, Any]] = []
+        capture_attempts = bool(state.get("include_debug_bundle"))
+        compiler_attempts: List[CompilerAttemptDebugV1] = []
         catalog_candidate_ids = set(candidate_by_id)
         if cohort_plan.get("status") == "capacity_exceeded":
             invocation_errors.append("semantic candidate cohort capacity exceeded")
@@ -1717,14 +2000,9 @@ class FinancialAgentCalculationMixin:
             and cohort_plan.get("status") == "ok"
             and prompt_candidate_ids
         ):
-            structured_llm = self._llm_for_phase("program_compilation").with_structured_output(
-                semantic_calculation_program_model()
-            )
-            prompt = chat_prompt_template_from_template(
-                str(CALCULATION_PROMPT_POLICY.get("semantic_program_prompt_template") or "")
-            )
             retry_feedback = "-"
             retry_target_ids: List[str] = []
+            read_only_dependency_outputs: Dict[str, Dict[str, Any]] = {}
             previous_validation: Dict[str, Any] = {}
             active_cohort_plan = dict(cohort_plan)
             active_prompt_payload = dict(prompt_payload)
@@ -1732,6 +2010,13 @@ class FinancialAgentCalculationMixin:
                 initial_selectable_ids_by_owner
             )
             for attempt in range(2):
+                invocation_failed = False
+                model_program_json = None
+                validation_input_program_json = None
+                response_error_type = ""
+                transport_errors = []
+                response_wire = None
+                prompt_retry_feedback = "-"
                 active_prompt_candidate_ids = [
                     str(item)
                     for item in (
@@ -1739,47 +2024,129 @@ class FinancialAgentCalculationMixin:
                     )
                     if str(item or "").strip()
                 ]
-                active_prompt_catalog_json = json.dumps(
-                    active_prompt_payload,
-                    ensure_ascii=False,
-                    indent=2,
+                active_prompt_catalog_json = _compiler_json(active_prompt_payload)
+                active_responsibility_context_json = ""
+                responsibility_prompt = ""
+                references = None
+                serialized_schema_bytes = None
+                prompt_obligations = (
+                    [item for item in obligations if str(item.get("obligation_id") or "") in set(retry_target_ids)]
+                    if attempt and retry_target_ids else obligations
                 )
+                compilation_scope = {
+                    "schema": "semantic_compilation_scope_v1",
+                    "active_obligation_ids": [str(item["obligation_id"]) for item in prompt_obligations],
+                    "question_role": "context_only",
+                    "request_units_by_id": project_request_units(build_request_units(query), prompt_obligations),
+                    "evidence_coverage": "bounded_excerpts",
+                    "document_absence_established": False,
+                }
                 try:
-                    prompt_obligations = (
-                        [
-                            item
-                            for item in obligations
-                            if str(item.get("obligation_id") or "")
-                            in set(retry_target_ids)
-                        ]
-                        if attempt and retry_target_ids
-                        else obligations
+                    references = CompilerReferencesV1.build(catalog, obligations, query, active_prompt_payload)
+                    active_ids = {row["obligation_id"] for row in prompt_obligations}
+                    relationships = references.relationships_for(active_ids)
+                    frozen_declarations = validated_relationship_proofs(previous_validation,
+                        {row["obligation_id"] for row in obligations} - active_ids).get(
+                            "relationship_declarations", {}) if attempt else {}
+                    if relationships:
+                        compilation_scope["output_relationships"] = relationships
+                        compilation_scope["read_only_relationship_declarations"] = {
+                            key: value for key, value in frozen_declarations.items() if key in relationships}
+                    attempt_visibility = _semantic_candidate_visibility(catalog,
+                        visible_candidate_ids=active_prompt_candidate_ids,
+                        candidate_ids_by_owner=active_cohort_plan["candidate_ids_by_owner"],
+                        evidence_bundle_constraints=active_cohort_plan.get("evidence_bundle_constraints") or [])
+                    response_model = compiler_response_model(prompt_obligations, references, attempt_visibility,
+                        read_only_relationship_declarations=frozen_declarations)
+                    serialized_schema_bytes = len(_compiler_json(response_model.model_json_schema()).encode("utf-8"))
+                    structured_llm = self._llm_for_phase("program_compilation").with_structured_output(response_model)
+                    wire_payload = references.project(active_prompt_payload)
+                    wire_payload["schema"] = "semantic_program_candidate_payload_v9"
+                    wire_payload = project_wire_reading_payload(wire_payload)
+                    wire_payload = project_wire_axis_provenance(wire_payload)
+                    active_prompt_catalog_json = _compiler_json(wire_payload)
+                    if any(item.get("kind") == "narrative" for item in prompt_obligations):
+                        active_responsibility_context_json = output_responsibility_context_json
+                    if active_responsibility_context_json:
+                        active_responsibility_context_json = _compiler_json(references.project(json.loads(active_responsibility_context_json)))
+                        responsibility_prompt = CALCULATION_PROMPT_POLICY[
+                            "semantic_program_output_responsibility_context_template"
+                        ].format(context=active_responsibility_context_json)
+                    template_key = (
+                        "semantic_program_narrative_prompt_template"
+                        if active_prompt_payload["reading_mode"] == "narrative_only"
+                        else "semantic_program_prompt_template"
                     )
+                    prompt = chat_prompt_template_from_template(CALCULATION_PROMPT_POLICY[template_key])
+                    row_description_instructions = (
+                        CALCULATION_PROMPT_POLICY["semantic_program_row_description_instructions"]
+                        if any(row.get("row_description_quote_options") for row in
+                               active_prompt_payload["candidates_by_id"].values()) else ""
+                    )
+                    prompt_retry_feedback = project_prompt_retry_feedback(retry_feedback,
+                        narrative_only=active_prompt_payload["reading_mode"] == "narrative_only")
+                    if prompt_retry_feedback != "-":
+                        prompt_retry_feedback = _compiler_json(references.project(json.loads(prompt_retry_feedback)))
                     prompt_value = prompt.invoke(
                         {
                             "query": query,
-                            "obligations": json.dumps(
-                                prompt_obligations,
-                                ensure_ascii=False,
-                                indent=2,
-                            ),
+                            "compilation_scope": _compiler_json(references.project(compilation_scope)),
+                            "obligations": _compiler_json(references.project(prompt_obligations)),
+                            "output_responsibility_context": responsibility_prompt,
                             "candidate_catalog": active_prompt_catalog_json,
-                            "retry_feedback": retry_feedback,
+                            "axis_source_instructions": (
+                                CALCULATION_PROMPT_POLICY["semantic_program_axis_source_instructions"]
+                                if wire_payload["schema"] == "semantic_program_candidate_payload_v11" else ""
+                            ),
+                            "retry_feedback": prompt_retry_feedback,
+                            "row_description_instructions": row_description_instructions,
                         }
                     )
-                    compiled: Any = structured_llm.invoke(prompt_value)
-                    compiled_program = compiled.model_dump()
+                    # The provider sees only the new per-output transport schema.
+                    with diagnostic_location(attempt=attempt + 1):
+                        if diagnostics_enabled():
+                            messages = [{"type": message.type, "content": message.content}
+                                        for message in prompt_value.to_messages()]
+                            prompt_json = _compiler_json(messages)
+                            record_diagnostic("compiler_request", {
+                                "active_obligation_ids": compilation_scope["active_obligation_ids"],
+                                "visible_candidate_ids": active_prompt_candidate_ids,
+                                "prompt_messages_json": prompt_json,
+                                "prompt_messages_bytes": len(prompt_json.encode("utf-8")),
+                                "candidate_payload_bytes": len(active_prompt_catalog_json.encode("utf-8")),
+                            })
+                        compiled: Any = structured_llm.invoke(prompt_value)
+                    response_wire = compiled.model_dump()
+                    if capture_attempts:
+                        model_program_json = _compiler_json(compiled.model_dump())
+                    compiled_program = lower_compiler_response(
+                        compiled, model=response_model, refs=references, obligations=prompt_obligations,
+                        errors=transport_errors,
+                        catalog=catalog, visibility=attempt_visibility)
                     program_data = (
                         _merge_targeted_program_retry(
                             previous_validation=previous_validation,
+                            previous_program=program_data,
                             retry_program=compiled_program,
                             target_obligation_ids=retry_target_ids,
                         )
                         if attempt and retry_target_ids
                         else compiled_program
                     )
+                except ProviderAdmissionError:
+                    # A spending/authorization stop is not an evidence or
+                    # schema failure. Preserve its cause for the caller.
+                    raise
                 except Exception as exc:
-                    invocation_errors.append(str(exc))
+                    invocation_failed = True
+                    response_error_type = type(exc).__name__
+                    safe_error = f"{response_error_type}: compiler response unavailable or invalid"
+                    invocation_errors.append(safe_error)
+                    failed_ids = [str(item["obligation_id"]) for item in prompt_obligations]
+                    for owner_id in failed_ids:
+                        transport_errors.append({"code": "compiler_response_schema_error" if isinstance(exc, ValueError) else "compiler_invocation_error",
+                            "obligation_id": owner_id, "owner_id": owner_id, "candidate_id": "",
+                            "location": "compiler_response", "repair_action": "repair_program", "detail": safe_error})
                     failed_program = {
                         "status": "incomplete",
                         "direct_bindings": [],
@@ -1787,22 +2154,26 @@ class FinancialAgentCalculationMixin:
                         "narrative_bindings": [],
                         "source_assertions": [],
                         "missing_obligation_ids": (
-                            retry_target_ids if attempt else required_ids
+                            failed_ids
                         ),
                         "ambiguous_obligation_ids": [],
-                        "rationale": str(exc),
+                        "rationale": safe_error,
                     }
                     program_data = (
                         _merge_targeted_program_retry(
                             previous_validation=previous_validation,
+                            previous_program=program_data,
                             retry_program=failed_program,
                             target_obligation_ids=retry_target_ids,
                         )
                         if attempt and retry_target_ids
                         else failed_program
                     )
+                if capture_attempts and not invocation_failed:
+                    validation_input_program_json = _compiler_json(program_data)
                 validation = validate_semantic_calculation_program(
                     program=program_data,
+                    require_narrative_claims=True,
                     obligations=obligations,
                     candidate_catalog=catalog,
                     query=query,
@@ -1825,6 +2196,23 @@ class FinancialAgentCalculationMixin:
                         )
                     ),
                 )
+                execution_validation = validation
+                if transport_errors:
+                    validation = {**validation, "errors": [*validation["errors"], *transport_errors],
+                        "status": "invalid" if not any(validation.get(key) for key in (
+                            "valid_direct_bindings", "valid_expressions", "valid_narrative_bindings")) else "partial"}
+                if capture_attempts:
+                    compiler_attempts.append(project_compiler_attempt(
+                        attempt=attempt + 1,
+                        active_obligation_ids=compilation_scope["active_obligation_ids"],
+                        island_obligation_ids=[str(item["obligation_id"]) for item in obligations],
+                        visible_candidate_ids=active_prompt_candidate_ids,
+                        model_program_json=model_program_json,
+                        validation_input_program_json=validation_input_program_json,
+                        validation=validation,
+                        retry_feedback_text=prompt_retry_feedback,
+                        response_error_type=response_error_type,
+                    ))
                 proposed_ids = [
                     item
                     for item in _semantic_program_candidate_ids(program_data)
@@ -1857,6 +2245,18 @@ class FinancialAgentCalculationMixin:
                     {
                         "attempt": attempt + 1,
                         "target_obligation_ids": list(retry_target_ids),
+                        "compilation_scope": compilation_scope,
+                        "output_responsibility_context_fingerprint": hashlib.sha256(
+                            active_responsibility_context_json.encode("utf-8")
+                        ).hexdigest() if active_responsibility_context_json else "",
+                        "serialized_output_responsibility_context_bytes": len(
+                            active_responsibility_context_json.encode("utf-8")
+                        ),
+                        "output_responsibility_prompt_bytes": len(responsibility_prompt.encode("utf-8")),
+                        "read_only_dependency_ids": list(read_only_dependency_outputs),
+                        "serialized_dependency_bytes": len(json.dumps(
+                            read_only_dependency_outputs, ensure_ascii=False, indent=2,
+                        ).encode("utf-8")) if read_only_dependency_outputs else 0,
                         "visible_candidate_ids": active_prompt_candidate_ids,
                         "visible_candidate_id_fingerprint": (
                             semantic_candidate_id_fingerprint(
@@ -1879,26 +2279,21 @@ class FinancialAgentCalculationMixin:
                             active_prompt_payload.get("source_bundle_fingerprint")
                             or ""
                         ),
+                        "compiler_schema": "compiler_response_v2",
+                        "serialized_schema_bytes": serialized_schema_bytes,
+                        "reference_fingerprint": hashlib.sha256(_compiler_json(references.entries).encode()).hexdigest() if references else "",
+                        "source_context_fingerprint": active_prompt_payload.get("source_context_fingerprint", ""),
+                        "source_context_count": len(active_prompt_payload.get("source_contexts_by_id") or {}),
+                        "serialized_context_bytes": len(json.dumps(
+                            active_prompt_payload.get("source_contexts_by_id") or {},
+                            ensure_ascii=False, sort_keys=True).encode("utf-8")),
                     }
                 )
-                retry_target_ids = list(
-                    dict.fromkeys(
-                        [
-                            *list(validation.get("missing_obligation_ids") or []),
-                            *list(validation.get("ambiguous_obligation_ids") or []),
-                        ]
-                    )
+                retry_target_ids = _semantic_retry_target_ids(
+                    program=program_data, validation=validation, obligations=obligations,
+                    invocation_failed=invocation_failed,
+                    bundle_constraints=validation_visibility.evidence_bundle_constraints,
                 )
-                retry_target_set = set(retry_target_ids)
-                for constraint in validation_visibility.evidence_bundle_constraints:
-                    if retry_target_set.intersection(constraint.owner_ids):
-                        retry_target_set.update(constraint.owner_ids)
-                retry_target_ids = [
-                    str(obligation.get("obligation_id") or "")
-                    for obligation in obligations
-                    if str(obligation.get("obligation_id") or "")
-                    in retry_target_set
-                ]
                 needs_retry = (
                     str(validation.get("status") or "") != "ready"
                     and bool(retry_target_ids)
@@ -1940,6 +2335,11 @@ class FinancialAgentCalculationMixin:
                 active_prompt_payload = self._semantic_program_prompt_payload(
                     catalog,
                     active_cohort_plan,
+                )
+                read_only_dependency_outputs = _retry_dependency_outputs(
+                    program=program_data, validation=execution_validation, visibility=validation_visibility,
+                    obligations=obligations, catalog=catalog, query=query,
+                    target_obligation_ids=retry_target_ids,
                 )
                 target_owner_ids = set(retry_target_ids)
                 for obligation in obligations:
@@ -1999,6 +2399,13 @@ class FinancialAgentCalculationMixin:
                     ]
                     for obligation_id in retry_target_ids
                 }
+                narrative_retry_drafts = project_narrative_retry_drafts(
+                    program_data, obligations=obligations, target_obligation_ids=retry_target_ids,
+                    candidate_ids_by_owner=retry_selectable_ids_by_owner,
+                    visible_catalog=[candidate_by_id[key]
+                        for key in active_cohort_plan.get("visible_candidate_ids") or []],
+                    validation_errors=validation.get("errors") or [],
+                )
                 retry_feedback = json.dumps(
                     {
                         "missing_obligation_ids": list(validation.get("missing_obligation_ids") or []),
@@ -2012,11 +2419,17 @@ class FinancialAgentCalculationMixin:
                         "allowed_candidate_ids_by_owner": (
                             retry_selectable_ids_by_owner
                         ),
+                        "read_only_dependency_outputs": read_only_dependency_outputs,
+                        **({"unvalidated_compiler_response": {"outputs": {
+                            key: value for key, value in response_wire.get("outputs", {}).items() if key in target_id_set}}}
+                           if transport_errors and response_wire is not None else {}),
+                        **({"unvalidated_narrative_drafts": narrative_retry_drafts} if narrative_retry_drafts else {}),
                         "declared_obligation_ids": [
                             str(item.get("obligation_id") or "")
                             for item in obligations
                             if str(item.get("obligation_id") or "")
-                            in target_id_set
+                            in target_id_set or str(item.get("obligation_id") or "")
+                            in read_only_dependency_outputs
                         ],
                         "declared_evidence_requirement_ids": [
                             str(requirement.get("requirement_id") or "")
@@ -2027,7 +2440,27 @@ class FinancialAgentCalculationMixin:
                             if str(requirement.get("requirement_id") or "")
                         ],
                         "repair_contract": {
+                            **({"subject_selection_invariant": CALCULATION_PROMPT_POLICY[
+                                "semantic_program_subject_selection_repair_invariant"]}
+                               if any("source_selection_check" in subject for draft in narrative_retry_drafts
+                                   for subject in draft.get("subject_bindings") or []) else {}),
                             "target_obligation_ids": retry_target_ids,
+                            "dependency_ids_by_obligation": {
+                                str(item.get("obligation_id") or ""): [
+                                    str(dependency) for dependency in item.get("depends_on") or []
+                                    if str(dependency) in target_id_set
+                                    or str(dependency) in read_only_dependency_outputs
+                                ]
+                                for item in obligations
+                                if str(item.get("obligation_id") or "") in target_id_set
+                            },
+                            "dependency_input_invariant": (
+                                "Use a declared dependency output as source_ref in inputs.dependencies "
+                                "when requirements exist, otherwise in inputs.own. "
+                                "Read-only dependency values are execution values, not source displays. "
+                                "Their candidate IDs are provenance only, not additional candidate permissions. "
+                                "Do not re-emit or modify accepted dependency outputs."
+                            ),
                             "evidence_requirement_ids_by_obligation": (
                                 evidence_requirement_ids_by_obligation
                             ),
@@ -2036,22 +2469,36 @@ class FinancialAgentCalculationMixin:
                             ),
                             "formula_variable_binding_invariant": (
                                 "The set of formula AST variable names must be "
-                                "exactly equal to the set of variable_bindings.variable values."
+                                "exactly equal to source/dependency input variables plus code-lowered inline request operands "
+                                "and binding_count. Emit formula as operation/arguments steps, referencing only earlier "
+                                "one-based steps; every step contributes to the final step. Each request quantity carries "
+                                "value, owned request_unit_id and interpretation at its argument position. No separate request_inputs "
+                                "or binding_count_variable field. Never copy source/dependency values into request operands."
                             ),
                             "candidate_requirement_binding_invariant": (
-                                "Every candidate source must bind one requirement ID "
-                                "declared for the same target obligation."
+                                "Place each candidate selection in its declared input requirement key. "
+                                "Do not repeat requirement IDs inside selections."
                             ),
                             "required_evidence_binding_invariant": (
                                 "Bind every required evidence requirement exactly once; "
                                 "do not invent candidate, obligation, or requirement IDs."
                             ),
                             "source_assertion_invariant": (
-                                "For every selected prose numeric source, bind the visible "
-                                "candidate ID to its source bundle and copy one byte-exact "
-                                "continuous evidence substring covering every referenced "
-                                "value span."
+                                "For each prose numeric selection, use its visible source_ref and "
+                                "code preserves that candidate's complete exact value span. "
+                                "Do not emit selection.evidence_text; interpretation support remains separate."
                             ),
+                            "numeric_context_invariant": (
+                                "Code attaches the selected cell's complete axes. Do not emit axis_refs or context_bindings. "
+                                "For attached outside context use selection.context_evidence once per exact quote, "
+                                "choosing only context_ref values offered in this input's schema. "
+                                "supports_interpretation links that quote to interpretation; resolves carries only "
+                                "explicit field/value scope interpretations. If context_evidence is absent from the schema, omit it. "
+                                "Internal context_bindings/source_interpretation error locations refer to these assembled proofs."
+                            ),
+                            "narrative_claim_invariant": CALCULATION_PROMPT_POLICY[
+                                "semantic_program_narrative_repair_invariant"
+                            ],
                         },
                         "instruction": "Only emit repairs for the listed obligations.",
                     },
@@ -2072,6 +2519,17 @@ class FinancialAgentCalculationMixin:
                 attempts=attempt_candidate_diagnostics,
             )
         )
+        # Keep detailed errors in attempt diagnostics, and bind unresolved output
+        # identities into the program so pruning cannot turn failures into success.
+        valid_ids = {row["obligation_id"] for key in (
+            "valid_direct_bindings", "valid_expressions", "valid_narrative_bindings")
+            for row in validation.get(key) or []}
+        failed_ids = {str(row.get("obligation_id") or "") for row in validation.get("errors") or []} - valid_ids
+        if failed_ids:
+            program_data["failed_obligation_ids"] = [row["obligation_id"] for row in obligations
+                if row["obligation_id"] in failed_ids]
+        validation = validate_semantic_calculation_program(program=program_data, obligations=obligations,
+            candidate_catalog=catalog, query=query, candidate_visibility=validation_visibility, require_narrative_claims=True)
         compilation_envelope = CompilationEnvelopeV2.create(
             visibility=validation_visibility,
             program=program_data,
@@ -2087,12 +2545,14 @@ class FinancialAgentCalculationMixin:
                 cohorts=list(cohort_plan.get("cohorts") or []),
                 attempts=attempt_candidate_diagnostics,
             ),
-            "schema": "semantic_candidate_stage_diagnostics_v9",
+            "schema": "semantic_candidate_stage_diagnostics_v10",
             "evidence_bundle_constraints": active_bundle_constraints,
             "evidence_bundle_option_selections": active_bundle_selections,
             "source_bundle_count": len(
                 dict(prompt_payload.get("source_bundles_by_id") or {})
             ),
+            "source_context_count": len(prompt_payload.get("source_contexts_by_id") or {}),
+            "source_context_fingerprint": prompt_payload.get("source_context_fingerprint", ""),
             "source_bundle_member_count": sum(
                 len(dict(bundle).get("candidate_ids") or [])
                 for bundle in dict(
@@ -2137,8 +2597,9 @@ class FinancialAgentCalculationMixin:
             if candidate_id and candidate_id not in direct_binding_by_candidate_id:
                 direct_binding_by_candidate_id[candidate_id] = dict(binding)
         operand_rows: List[Dict[str, Any]] = []
+        description_only_ids = narrative_description_only_ids(validation)
         for item in selected_candidates:
-            if str(item.get("kind") or "") != "numeric":
+            if str(item.get("kind") or "") != "numeric" or item.get("candidate_id") in description_only_ids:
                 continue
             candidate_id = str(item.get("candidate_id") or "")
             binding = direct_binding_by_candidate_id.get(candidate_id)
@@ -2203,6 +2664,7 @@ class FinancialAgentCalculationMixin:
         return {
             "resolved_calculation_trace": trace_update["resolved_calculation_trace"],
             "semantic_program": program_data,
+            **({"compiler_attempts": compiler_attempts} if capture_attempts else {}),
             "semantic_program_validation": validation,
             "semantic_compilation_envelope": compilation_envelope,
             "semantic_program_retry_count": retry_count,
@@ -2283,21 +2745,34 @@ class FinancialAgentCalculationMixin:
         )
         island_plan = build_semantic_compilation_islands(
             obligations,
+            query=str(state.get("query") or ""),
             evidence_bundle_constraints=list(
                 global_cohort_plan.get("evidence_bundle_constraints") or []
             ),
         )
         islands = [dict(item) for item in island_plan.get("islands") or []]
+        request_errors = request_unit_errors(build_request_units(query), obligations)
         global_block_reason = ""
-        if len(islands) > MAX_SEMANTIC_COMPILATION_ISLANDS:
+        if request_errors:
+            global_block_reason = "invalid request unit ownership"
+        elif len(islands) > MAX_SEMANTIC_COMPILATION_ISLANDS:
             global_block_reason = "semantic compilation island limit exceeded"
         elif global_cohort_plan.get("status") == "capacity_exceeded":
             global_block_reason = "semantic candidate cohort capacity exceeded"
+        # An immutable presentation of the full plan, shared by narrative calls
+        # and retries. It is neither island input state nor execution authority.
+        output_responsibility_context_json = (
+            _compiler_json(project_output_responsibility_context(query, obligations))
+            if not global_block_reason and len(obligations) > 1
+            and any(item.get("kind") == "narrative" for item in obligations)
+            else ""
+        )
         obligation_by_id = {
             str(item.get("obligation_id") or ""): item
             for item in obligations
         }
         island_results: List[Dict[str, Any]] = []
+        compiler_attempts: List[CompilerAttemptDebugV1] = []
         total_retry_count = 0
         total_call_count = 0
         invocation_errors: List[str] = []
@@ -2348,6 +2823,7 @@ class FinancialAgentCalculationMixin:
                 }
                 validation = validate_semantic_calculation_program(
                     program=program,
+                    require_narrative_claims=True,
                     obligations=island_obligations,
                     candidate_catalog=catalog,
                     query=query,
@@ -2381,18 +2857,31 @@ class FinancialAgentCalculationMixin:
                 for obligation in island_obligations
                 for requirement in obligation.get("evidence_requirements") or []
             )
-            compiled = self._compile_semantic_calculation_island(
-                {
-                    **dict(state),
-                    "answer_obligations": island_obligations,
-                    "semantic_candidate_catalog": catalog,
-                    "semantic_source_candidates": source_candidates,
-                    "semantic_candidate_catalog_prebuilt": True,
-                },
-                other_selectable_ids=[
-                    candidate_id for owner_id, ids in query_selectable_by_owner.items()
-                    if owner_id not in island_owner_ids for candidate_id in ids
-                ],
+            with diagnostic_location(island_id=str(island["island_id"])):
+                compiled = self._compile_semantic_calculation_island(
+                    {
+                        **dict(state),
+                        "answer_obligations": island_obligations,
+                        "semantic_candidate_catalog": catalog,
+                        "semantic_source_candidates": source_candidates,
+                        "semantic_candidate_catalog_prebuilt": True,
+                    },
+                    other_selectable_ids=[
+                        candidate_id for owner_id, ids in query_selectable_by_owner.items()
+                        if owner_id not in island_owner_ids for candidate_id in ids
+                    ],
+                    output_responsibility_context_json=output_responsibility_context_json,
+                )
+                if diagnostics_enabled():
+                    attempts = compiled.get("compiler_attempts", [])
+                    record_diagnostic("compiler_island_completed", {
+                        "program_json": (_compiler_json(compiled["semantic_program"])
+                            if attempts and attempts[-1]["response_status"] == "parsed" else None),
+                        "validation": compiled["semantic_program_validation"],
+                    })
+            compiler_attempts.extend(
+                {**row, "island_id": str(island["island_id"])}
+                for row in compiled.get("compiler_attempts", [])
             )
             island_envelope = compiled.get("semantic_compilation_envelope")
             if isinstance(island_envelope, CompilationEnvelopeV2):
@@ -2467,6 +2956,10 @@ class FinancialAgentCalculationMixin:
                 "ambiguous_obligation_ids": list(
                     island_validation.get("ambiguous_obligation_ids") or []
                 ),
+                "relationship_declarations": {},
+                "relationship_bindings": {},
+                **validated_relationship_proofs(island_validation,
+                    {owner_id for ids in valid_ids_by_program_key.values() for owner_id in ids}),
             }
             call_count = int(
                 dict(compiled.get("planner_debug_trace") or {}).get(
@@ -2597,14 +3090,17 @@ class FinancialAgentCalculationMixin:
                 "narrative_bindings"
             ),
             "source_assertions": merged_source_assertions,
+            **({"failed_obligation_ids": [owner_id for owner_id in order
+                if any(owner_id in result["program"].get("failed_obligation_ids", []) for result in island_results)]}
+               if any(result["program"].get("failed_obligation_ids") for result in island_results) else {}),
+            **{key: {proof_id: value for result in island_results
+                     for proof_id, value in (result.get("program", {}).get(key) or {}).items()}
+               for key in ("relationship_declarations", "relationship_bindings")},
             "missing_obligation_ids": missing_ids,
             "ambiguous_obligation_ids": ambiguous_ids,
-            "rationale": " | ".join(
-                str(dict(result.get("program") or {}).get("rationale") or "")
-                for result in island_results
-                if str(
-                    dict(result.get("program") or {}).get("rationale") or ""
-                )
+            "rationale": (
+                str(dict(island_results[0].get("program") or {}).get("rationale") or "")
+                if len(island_results) == 1 else ""
             ),
         }
 
@@ -2641,11 +3137,27 @@ class FinancialAgentCalculationMixin:
         )
         validation = validate_semantic_calculation_program(
             program=merged_program,
+            require_narrative_claims=True,
             obligations=obligations,
             candidate_catalog=catalog,
             query=query,
             candidate_visibility=merged_visibility,
         )
+        if len(island_results) > 1:
+            # Model explanations are island-local, not a query-wide resolution verdict.
+            # Bind the deterministic summary before freezing execution authority.
+            valid_ids = {
+                str(row.get("obligation_id") or "")
+                for key in ("valid_direct_bindings", "valid_expressions", "valid_narrative_bindings")
+                for row in validation.get(key) or []
+            }
+            merged_program["rationale"] = _compiler_json({
+                "validation_status": validation.get("status"),
+                "valid_obligation_ids": [owner_id for owner_id in order if owner_id in valid_ids],
+                "missing_obligation_ids": list(validation.get("missing_obligation_ids") or []),
+                "ambiguous_obligation_ids": list(validation.get("ambiguous_obligation_ids") or []),
+                "error_codes": list(dict.fromkeys(error["code"] for error in validation.get("errors") or [])),
+            })
         compilation_envelope = CompilationEnvelopeV2.create(
             visibility=merged_visibility,
             program=merged_program,
@@ -2689,8 +3201,9 @@ class FinancialAgentCalculationMixin:
             if str(binding.get("candidate_id") or "")
         }
         operand_rows: List[Dict[str, Any]] = []
+        description_only_ids = narrative_description_only_ids(validation)
         for candidate in selected_candidates:
-            if str(candidate.get("kind") or "") != "numeric":
+            if str(candidate.get("kind") or "") != "numeric" or candidate.get("candidate_id") in description_only_ids:
                 continue
             candidate_id = str(candidate.get("candidate_id") or "")
             binding = direct_binding_by_candidate_id.get(candidate_id)
@@ -2741,7 +3254,7 @@ class FinancialAgentCalculationMixin:
                     "dependency_edges": list(
                         island.get("dependency_edges") or []
                     ),
-                    "coupling_keys": list(island.get("coupling_keys") or []),
+                    "output_relationships": dict(island.get("output_relationships") or {}),
                     "evidence_bundle_constraint_ids": list(
                         island.get("evidence_bundle_constraint_ids") or []
                     ),
@@ -2759,6 +3272,7 @@ class FinancialAgentCalculationMixin:
                     ),
                     "prompt_bytes": int(result.get("prompt_bytes") or 0),
                     "accepted_program_bytes": len(program_bytes),
+                    "program_rationale": str(dict(result.get("program") or {}).get("rationale") or ""),
                     "accepted_program_fingerprint": (
                         envelope.program_fingerprint
                         if isinstance(envelope, CompilationEnvelopeV2)
@@ -2768,10 +3282,11 @@ class FinancialAgentCalculationMixin:
             )
         candidate_stage_diagnostics = {
             **base_candidate_diagnostics,
-            "schema": "semantic_candidate_stage_diagnostics_v9",
+            "schema": "semantic_candidate_stage_diagnostics_v10",
             "island_count": len(islands),
             "compiler_call_count": total_call_count,
             "compiler_retry_count": total_retry_count,
+            "request_unit_errors": request_errors,
             "source_bundle_count": len(prompt_source_bundles),
             "source_bundle_member_count": sum(
                 len(bundle.candidate_ids) for bundle in prompt_source_bundles
@@ -2883,6 +3398,7 @@ class FinancialAgentCalculationMixin:
         return {
             "resolved_calculation_trace": trace_update["resolved_calculation_trace"],
             "semantic_program": merged_program,
+            **({"compiler_attempts": compiler_attempts} if state.get("include_debug_bundle") else {}),
             "semantic_program_validation": validation,
             "semantic_compilation_envelope": compilation_envelope,
             "semantic_program_retry_count": total_retry_count,
@@ -2894,6 +3410,7 @@ class FinancialAgentCalculationMixin:
                 "program_compiler_invoked": bool(total_call_count),
                 "program_compiler_call_count": total_call_count,
                 "program_compiler_retry_count": total_retry_count,
+                "request_unit_errors": request_errors,
                 "candidate_count": len(catalog),
                 "prompt_candidate_count": len(prompt_visible_ids),
                 "candidate_cohort_status": str(
@@ -2912,6 +3429,7 @@ class FinancialAgentCalculationMixin:
                 "program_validation_errors": list(
                     validation.get("errors") or []
                 ),
+                "program_validation_history": calculation_plan["program_validation_history"],
                 "program_invocation_errors": invocation_errors,
                 "compilation_islands": island_diagnostics,
             },
@@ -2941,7 +3459,7 @@ class FinancialAgentCalculationMixin:
         return {
             "execution": execution,
             "calculation_plan": dict(current_trace.get("calculation_plan") or {}),
-            "evidence_items": self._semantic_program_evidence_items(catalog, selected_ids),
+            "evidence_items": self._semantic_program_evidence_items(catalog, selected_ids, validation=execution["validation"]),
         }
 
     def _format_citations(self, state: FinancialAgentState) -> Dict[str, Any]:
@@ -2966,6 +3484,10 @@ class FinancialAgentCalculationMixin:
             if anchor and anchor not in seen:
                 seen.add(anchor)
                 citations.append(anchor)
+        structured = dict(state.get("structured_result") or {})
+        if structured.get("status") in {"partial", "incomplete"} and structured.get("missing_obligation_ids"):
+            # Retrieved material is not evidence for an unresolved output.
+            return {"citations": citations}
         for doc, score in state.get("retrieved_docs", []):
             metadata = dict(getattr(doc, "metadata", {}) or {})
             key = (

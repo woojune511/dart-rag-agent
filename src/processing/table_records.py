@@ -353,7 +353,9 @@ def build_table_row_records(table_object: Dict[str, Any], unit_hint: str) -> Lis
     if not grid:
         return []
 
-    header_row_count = infer_table_header_row_count(grid)
+    header_row_count = table_object.get("header_row_count")
+    if header_row_count is None:
+        header_row_count = infer_table_header_row_count(grid)
     header_rows = grid[:header_row_count]
     body_rows = grid[header_row_count:]
     if not body_rows:

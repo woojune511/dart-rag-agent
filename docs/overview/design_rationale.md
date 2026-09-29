@@ -1,5 +1,9 @@
 # Design Rationale
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](project_overview.md)
+> and [offline demo](simple_rag_demo.md).
+
 This document explains the problem, design decisions, and evaluation evidence.
 It assumes the reader already understands RAG,
 LLM agents, retrieval traces, and grounding/evaluation terminology.

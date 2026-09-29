@@ -31,12 +31,6 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertTrue(
             result["checks"]["portfolio_demo_fixture_contract_ready"]
         )
-        self.assertTrue(result["checks"]["cache_reviewer_ok"])
-        self.assertTrue(result["checks"]["cache_handoff_ready"])
-        self.assertTrue(result["checks"]["cache_promotion_evidence_ready"])
-        self.assertTrue(result["checks"]["reflection_promotion_ready"])
-        self.assertTrue(result["checks"]["reference_note_capability_ready"])
-        self.assertTrue(result["checks"]["promotion_trace_materiality_ready"])
         self.assertEqual(
             result["portfolio_demo"]["readiness"],
             "fixture_contract_ready",
@@ -47,49 +41,6 @@ class PortfolioReviewGateTests(unittest.TestCase):
             result["portfolio_demo"]["contract_checks_passed"],
             result["portfolio_demo"]["contract_check_count"],
         )
-        self.assertEqual(result["cache_reviewer"]["status"], "ok")
-        self.assertEqual(result["cache_reviewer"]["reviewer_handoff_status"], "ready")
-        self.assertEqual(result["cache_reviewer"]["producer_policy_ready_count"], 1)
-        self.assertEqual(result["cache_reviewer"]["producer_policy_fallback_count"], 1)
-        self.assertFalse(result["cache_reviewer"]["serving_enabled"])
-        self.assertFalse(result["cache_reviewer"]["ledger_insertion_enabled"])
-        self.assertEqual(result["cache_promotion_evidence"]["status"], "ready")
-        self.assertEqual(result["cache_promotion_evidence"]["ready_count"], 3)
-        self.assertEqual(result["cache_promotion_evidence"]["fallback_count"], 5)
-        self.assertEqual(result["cache_promotion_evidence"]["trace_summary_count"], 2)
-        self.assertTrue(result["cache_promotion_evidence"]["disabled_flags_ok"])
-        self.assertTrue(result["cache_promotion_evidence"]["producer_contract_ok"])
-        self.assertTrue(result["cache_promotion_evidence"]["fallback_safety_ok"])
-        self.assertEqual(result["reflection_promotion"]["status"], "ready")
-        self.assertEqual(result["reflection_promotion"]["case_count"], 12)
-        self.assertEqual(result["reflection_promotion"]["trace_summary_count"], 2)
-        self.assertTrue(result["reflection_promotion"]["source_coverage_ok"])
-        self.assertTrue(result["reflection_promotion"]["report_contract_ok"])
-        self.assertEqual(
-            result["reflection_promotion"]["promotion_signals"]["false_recovery_rate"],
-            0.0,
-        )
-        self.assertEqual(
-            result["reflection_promotion"]["promotion_signals"]["integrity_preservation_rate"],
-            1.0,
-        )
-        self.assertEqual(result["reference_note_capability"]["status"], "ready")
-        self.assertEqual(
-            result["reference_note_capability"]["owner"],
-            "researcher_graph_expansion",
-        )
-        self.assertEqual(
-            result["reference_note_capability"]["graph_relation"],
-            "reference_note",
-        )
-        self.assertTrue(result["reference_note_capability"]["disabled_flags_ok"])
-        self.assertEqual(result["promotion_trace_materiality"]["status"], "ready")
-        self.assertEqual(result["promotion_trace_materiality"]["summary_count"], 2)
-        self.assertIn(
-            "live_default_mas_trace_summary",
-            result["promotion_trace_materiality"]["source_types"],
-        )
-        self.assertTrue(result["promotion_trace_materiality"]["materiality_ok"])
 
     def test_render_text_includes_subgate_sections(self) -> None:
         text = render_text(run_review_gates())
@@ -103,20 +54,6 @@ class PortfolioReviewGateTests(unittest.TestCase):
         self.assertIn("Portfolio Demo:", text)
         self.assertIn("readiness: fixture_contract_ready", text)
         self.assertIn("fixture_evidence: verified", text)
-        self.assertIn("Cache Reviewer:", text)
-        self.assertIn("Cache Promotion Evidence:", text)
-        self.assertIn("Reflection Promotion:", text)
-        self.assertIn("REFERENCE_NOTE Capability:", text)
-        self.assertIn("Promotion Trace Materiality:", text)
-        self.assertIn("trace_summary_count:", text)
-        self.assertIn("source_coverage_ok:", text)
-        self.assertIn("report_contract_ok:", text)
-        self.assertIn("producer_contract_ok:", text)
-        self.assertIn("fallback_safety_ok:", text)
-        self.assertIn("producer_policy_ready_count:", text)
-        self.assertIn("false_recovery_rate:", text)
-        self.assertIn("graph_relation:", text)
-        self.assertIn("materiality_ok:", text)
 
     def test_cli_writes_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -144,10 +81,6 @@ class PortfolioReviewGateTests(unittest.TestCase):
             self.assertEqual(payload["status"], "review_surface_ready")
             self.assertEqual(payload["scope"], "review_surface_only")
             self.assertEqual(payload["publication_validation"]["status"], "not_run")
-            self.assertEqual(payload["cache_reviewer"]["status"], "ok")
-            self.assertEqual(payload["reflection_promotion"]["status"], "ready")
-            self.assertEqual(payload["reference_note_capability"]["status"], "ready")
-            self.assertEqual(payload["promotion_trace_materiality"]["status"], "ready")
 
 
 if __name__ == "__main__":

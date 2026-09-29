@@ -4,6 +4,9 @@
 
 구현 단위의 세부 계약은 `docs/architecture/agent_runtime_contract.md`를 따른다. 이 문서와 충돌하면 더 구체적인 runtime contract를 우선하고, 원칙 변경이 필요하면 두 문서를 함께 갱신한다.
 
+기본 제품은 `SimpleRagAgent`의 검색 → 답변 생성 1회 → 출처 ID 검사 경로다. Planner·Compiler는 명시적 비교·replay 전용이며 아래의 해당 단계 계약은 `docs/architecture/compiled_workflow_contract.md`와 함께 그 경로에만 적용한다. 단순 RAG의 산술·의미·요청 누락 검증 미수행을 응답에 표시하고, 기존 계산 검증을 수행했다고 주장하지 않는다.
+캡션 첨부는 실험 호출자가 `VectorStoreManager(experimental_caption_links_path=...)`로 검증된 파일 경로를 명시할 때만 활성화한다. 기본 API·Streamlit은 저장소에 캡션 파일이 있어도 읽지 않는다. 실험 경로는 원문 연결·검색 근거·청크 수·바이트 한도를 검증하며, 일반 인접 문맥 확장이나 의미 검증으로 해석하지 않는다.
+
 구조 리팩터링, 파일 이동, public API surface 축소, MAS/eval/ops 분리 작업을 시작하기 전에는 `docs/architecture/agent_runtime_contract.md`와 `docs/overview/codebase_map.md`를 먼저 확인한다. 과거 단계별 근거가 필요할 때만 historical `docs/architecture/core_runtime_surface_refactoring_plan.md`를 참고한다.
 
 ## Core Principles
@@ -18,7 +21,7 @@
 - LLMs may propose candidate concepts, sections, and slots, but final runtime behavior must be grounded against retrieved evidence or structured store artifacts. The fallback for LLM uncertainty is not hard-coded vocabulary in code; it is better policy/schema plus traceable validation.
 - If a concept lookup value is recovered from prose, the runtime must preserve it as a structured answer slot and attach the retrieved source text that contains the value. Do not let aggregate synthesis reformat evidence-visible values into a different display unit when the source display is available.
 - If graph expansion or reranking pushes a relevant raw chunk out of the visible `retrieved_docs` window, the runtime may still use `seed_retrieved_docs` as candidate evidence when the chunk satisfies the active task's generic required-operand contract. This is evidence preservation, not a license to add topic-specific fallback rules.
-- If a source sentence already states a derived numeric display such as a year-over-year percentage, preserve that source-stated display alongside the deterministic formula trace. Keep the calculated value in trace metadata when it differs because of rounding or source display precision.
+- Explicit request intent takes precedence over source-first display defaults. A calculation-only request uses the calculated result even when a source-stated derived value exists. Otherwise preserve a selected, request-compatible source display alongside the separate deterministic formula trace; do not invent a rounding explanation for a difference. Compiler interprets this intent, not keyword control flow.
 - Any PR/change that adds domain terms to runtime code must explain why the same behavior cannot be represented in ontology/policy/config. If that explanation is weak, stop and refactor the design.
 - Before committing changes under `src/agent` or `src/routing`, run `python -m src.ops.audit_runtime_domain_terms`. Unexpected literals must be moved to ontology/policy/config or deliberately added to the reviewed baseline with rationale.
 
@@ -29,15 +32,22 @@
 
 2. **LLM은 semantics, code는 execution.**
    - LLM은 intent, concept, evidence interpretation처럼 의미 판단에 쓴다.
-   - 산술, 단위 변환, dependency binding, dedupe, ordering, validation은 deterministic code로 처리한다.
+   - Planner가 선언한 연결·별도 범위는 요청 의미 해석이다. 코드는 질문의 부분 문자열이나 문서 metadata로 그 선택을 만들거나 덮어쓰지 않는다. 공통 검색 선호는 실제 근거 소유자들의 일치하는 선언에서만 얻으며, 원문 범위 충돌 검증과 모델 해석의 의미 평가는 별도로 유지한다.
+   - Planner의 절 제한은 소유한 연속 요청 구간의 시작·끝 ID와 관측된 절 ID로 연결한다. 코드는 전체 원문과 한정 조건을 그대로 복사하며, 범위 안 모든 구간의 소유권을 검증한다. 기존 인용형 기록의 잘못된 문장 부호를 보정하거나 새 참조로 자동 변환하지 않는다. 요청 연결은 올바른 절 해석의 증명이 아니다.
+   - 기본 RAG에서 code는 명시적 검색 범위·출처 ID·응답 형식·dedupe·ordering을 검사한다. 계산은 모델 답변에 포함될 수 있으나 코드 실행·검증이 아니며 이를 표시한다. 명시적 Compiler 비교에서는 산술, 단위 변환, dependency binding과 실행 검증을 deterministic code로 처리한다.
+   - Compiler는 연산·인수·요청 수량의 근거를 선택하고, 코드는 명시된 단계 연결을 기존 계산식으로 옮긴다. 괄호 생성은 의미 보정이 아니며, 빠진 연산·인수·근거를 추정해서 채우지 않는다.
    - deterministic fallback은 없는 근거를 만들어내는 답변 생성이 아니라, 이미 구조화된 row/evidence를 조립하는 경우에만 허용한다.
+   - Planner의 주체·항목 표현은 요청 보존과 독해 목표이지 원문 표현의 허용 목록이 아니다. Compiler는 요청 구간과 선택한 셀의 전체 축·연결 문맥의 대응을 기록한다. 코드는 물리적 연결을 검증하며, 문자 동일성으로 의미 동등성을 판정하지 않는다.
+   - 원문 연결 검증 통과와 의미 정확도를 별도로 보고한다. 잘못된 대상 해석은 익명 의미 대조 평가에 남기고, 다른 셀·미연결 문맥 인용은 provider-free 계약에서 거절한다.
+   - 숫자는 source_ref가 가리키는 기존 값 구간을 코드가 그대로 보존한다. 모델용 formula는 operation/arguments 단계 배열이며 요청 수량은 인수 위치에 값·소유한 request_unit_id·해석을 함께 둔다. 별도 수량 선언 목록은 쓰지 않는다. 앞 단계만 참조하며 모든 단계는 마지막 결과에 기여해야 한다. 코드는 명시된 연산 순서를 기존 내부 수식과 요청 근거로 변환하고 binding_count를 계산한다. 요청 수량은 원문·선행 계산값을 대체하지 못하며 위치·소유권·유한값·사용 검증은 의미 정확성 증명이 아니다.
 
 3. **Evidence-first.**
    - 답변 품질 개선은 먼저 retrieval/evidence coverage를 확인한 뒤 진행한다.
    - answer composer는 evidence에 없는 claim을 추가하지 않는다.
+   - Narrative 주체의 표시 공백 차이는 선택된 원문의 유일한 위치와 별도 witness로 연결한다. 모델 진술·원문을 수정하거나 단어/셀을 합치지 않으며, 문자열 대응을 의미·대상 범위 검증으로 주장하지 않는다.
    - numeric answer는 `structured_result`, `resolved_calculation_trace`, `evidence_items`의 계약을 우선한다.
    - seed retrieval에 있던 근거가 expansion/rerank 과정에서 최종 window 밖으로 밀린 경우, required operand와 provenance 계약을 만족하는지 먼저 확인하고 evidence로 승격한다.
-   - 원문에 보이는 값/단위/파생 비율 표기는 answer slot의 display로 보존하고, 필요하면 deterministic formula 결과는 trace에 별도로 남긴다.
+   - 선택한 원문 값/단위/파생 비율은 원래 표기로 보존한다. 명시적 계산-only 요청에는 계산값을 표시하고, 원문 우선 기본값으로 요청을 덮지 않는다. 원문과 계산값의 provenance는 분리한다.
 
 4. **작게 검증하고 크게 돌린다.**
    - 먼저 unit/contract test로 실패 층을 좁힌다.
@@ -55,10 +65,10 @@
    - retrieval/routing/answer 경로의 keyword rule은 policy/config로 분리하거나 semantic planner로 대체한다.
    - parser 구조 규칙을 benchmark answer 보정 용도로 사용하지 않는다.
 
-7. **Routing guardrail은 intent를 덮어쓰는 최후 수단이다.**
-   - 단일 keyword만으로 semantic fast-path를 차단하지 않는다.
-   - guardrail은 operation signal이 함께 있을 때만 적용한다.
-   - routing 변경은 confusion benchmark나 전용 unit test로 확인한다.
+7. **질문 의미 해석을 중복 실행하지 않는다.**
+   - 기본 질문은 별도 질문 분류·Planner 없이 검색과 답변 생성으로 처리한다. Compiler로 자동 전환하지 않는다.
+   - 질문에 등장한 연도를 정규식으로 보고서 검색 범위에 넣지 않는다. 기본 검색 범위는 명시적 caller scope만 사용한다.
+   - 별도 classifier/embedding/fallback이나 폐기한 MAS·결과 캐시를 새 이득 검증 없이 재도입하지 않는다.
 
 ## Fast Development Loop
 
@@ -124,6 +134,8 @@
 
 ## Design Rules For This Project
 
+- 포트폴리오 완료 범위와 종료 기준은 `docs/overview/portfolio_scope.md`를 따른다. 완료된 단순 RAG 비교와 기능 삭제 결정을 기준으로, 개별 실패마다 prompt/schema/policy 규칙을 추가하는 작업을 자동으로 재개하지 않는다.
+- 호출되지 않는 답변 경로와 전용 설정·테스트는 함께 제거한다. 명시적 비교에서 쓰는 Compiler 계약은 보존하되 기본 앱으로 우회 연결하지 않는다. 단순 RAG의 출처 ID 검사와 Compiler의 출처·산술·요청 누락 검증을 구분한다. 개별 예외를 config로 옮기는 것만으로 일반화했다고 보지 않는다.
 - Runtime default는 일반 사용자 질문에 맞춘다. benchmark profile은 별도 profile/config로 둔다.
 - Canonical ingest는 `src/config/runtime_contract.py`의 `CANONICAL_INGEST_PROFILE_ID`를 기준으로 한다. 다른 ingest는 명시적 experimental profile로만 쓴다.
 - Retrieval 변경은 `retrieval_debug_trace`로 query bundle, filter, selected chunk, policy trace를 남겨야 한다.

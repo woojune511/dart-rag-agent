@@ -1,100 +1,56 @@
 # Documentation Claim Boundaries
 
-This note defines the reader profile and terminology boundary for overview and
-architecture documents in this repo.
+Current product: scoped document QA through `SimpleRagAgent`. Explain structure
+preservation, hybrid retrieval, visible sources, evaluation and measured design
+tradeoffs. The [runtime contract](../architecture/agent_runtime_contract.md) owns
+application guarantees; [project status](project_status.md) owns current validation.
 
-## Target Reader
+## Application and historical guarantees
 
-Assume the reader is comfortable with LLM application engineering and has
-working familiarity with:
+- The default performs one search and at most one answer call. It validates
+  response shape, source IDs and explicit caller scope.
+- Arithmetic, semantic support and requested-output completeness are not checked
+  by the default app. A correct-looking calculation is not code execution.
+- Planner/Compiler source binding, deterministic calculations and typed task
+  artifacts belong to explicit comparison/replay. Do not transfer those guarantees
+  to the default path or call an ID check semantic validation.
+- Removed MAS, reflection and result-cache features are historical work. Do not
+  advertise them as current or optional product functionality.
+- Financial vocabulary is reviewed data, not per-company/question runtime rules.
+  The contribution is applied systems engineering, not a new model or SOTA TableQA.
 
-- RAG, embeddings, hybrid retrieval, reranking, and chunking tradeoffs
-- LLM agents or graph/workflow runtimes
-- grounding, citation support, faithfulness, and evaluation-driven development
-- basic financial statement concepts and table QA failure modes
+## Evidence classes
 
-The documents therefore do not need to explain what RAG or an LLM agent is from
-scratch. They should instead explain which failure mode is being addressed,
-which runtime surface carries the state, and which gate verifies the claim.
-
-## Claim Level
-
-Use a systems/research-engineering claim:
-
-- This project designs a contract-driven financial RAG runtime.
-- The contribution is in representation, runtime boundaries, traceability,
-  evaluation, and cost-control instrumentation.
-- Novelty, when mentioned, means domain-specific systems novelty rather than a
-  new foundation model, new embedding model, or general TableQA algorithm.
-
-Avoid unsupported claims:
-
-- Do not claim SOTA or paper-grade algorithmic novelty.
-- Do not say arithmetic hallucination is completely eliminated; say arithmetic
-  and unit execution are moved out of free-form generation and into deterministic
-  calculation paths.
-- Do not call value-cell records "cell-level embeddings" unless an embedding
-  method is actually defined at that level. The current term is
-  `value-cell-first structured metadata` or `table_value_records_json`.
-- Do not describe retry behavior as generic Reflexion/ReAct unless the text
-  explicitly means the bounded `ReflectionRequest -> ReflectionPlan ->
-  ReflectionAction -> ReflectionReport` contract implemented in this repo.
-- Do not use multi-agent orchestration as the product headline. The product
-  surface is the single-agent `FinancialAgent`; MAS orchestration is an
-  optional experimental surface.
-
-## Evidence Classes
-
-Do not collapse these surfaces into a generic `ready` or `reproducible` claim.
-
-| Evidence class | What it establishes | Required limitation |
+| Evidence | What it establishes | Required limitation |
 | --- | --- | --- |
-| Curated demo fixture | Fixture-byte integrity and internal cross-surface invariants | State `curated_contract_fixture`, upstream lineage `not_provided`, and no live DART/LLM replay |
-| Recorded benchmark result | A scoped result from a named run, profile, and date | Say `recorded`; report whether raw artifacts are published, local-only, deleted, or otherwise unavailable for that run |
-| `review_surface_ready` | The fixture and optional reviewer handoff checks passed | Unit tests and the domain audit are `not_run` by this command; it is not publication readiness |
-| Publication validation | Focused reviewer tests, domain audit, and full unit discovery at a named revision | It does not reproduce benchmark runs; distinguish workflow definition, local PASS, and observed remote PASS |
+| Selected saved application outputs | Inspectable recorded questions, answers and cited sources | Name the source run, after-run selection, distributed fields and omitted raw artifacts; viewing is not a live replay |
+| Recorded evaluation | Results for a named revision, corpus, questions and date | Separate assistant review from independent gold; state raw-artifact availability, denominators and failures |
+| Historical curated contract fixture | Fixture integrity and internal cross-surface checks | Preserve its `curated_contract_fixture` and unavailable upstream-lineage labels; not current application quality |
+| `review_surface_ready` | The historical fixture's reviewer checks pass | Does not run the unit suite/domain audit or establish current app readiness |
+| Local validation | Specific commands and checks on an identified checkout or exported tree | Separate data integrity, browser behavior, runtime tests and paid model results |
+| Remote CI or deployment | Only the observed run/deployment | A workflow file, local PASS or prepared static demo is not remote CI/deployment success |
 
-SHA-256 binding proves that fixture bytes match the manifest. It does not prove
-runtime provenance, authenticity, or an upstream execution unless that lineage
-is separately supplied and verified.
+The [public demo](../../demo/README.md) contains five after-run selections from the
+12-question evaluation. Its displayed 9/9 positive and 2/3 abstention results
+belong to the complete panel, not the selected five. Neither panel is an unseen
+holdout. Successful abstention and ancillary claim faithfulness are separate.
 
-## Preferred Terms
+SHA-256 binds content to a manifest. It does not authenticate the manifest, prove
+semantic correctness or attest to provider execution. Where original result hashes
+are published without their raw files, independent upstream comparison is unavailable.
+The public checker proves only the packaged data/manifest match.
 
-| Use | Meaning in this repo |
-| --- | --- |
-| `contract-driven runtime` | acceptance is tied to typed artifacts, traces, critic reports, and integrity gates |
-| `artifact ledger` | shared `tasks`, `artifacts`, `evidence_pool`, `critic_reports`, and `task_artifact_trace` state |
-| `value-cell-first structured metadata` | table values preserve row headers, column headers, period, aggregate role, and unit hints |
-| `required-operand contract` | numeric tasks must recover the operands required by the operation before rendering |
-| `deterministic execution path` | arithmetic, unit handling, dependency binding, and validation are handled by code |
-| `bounded reflection` | retry preparation is budgeted and recorded as a reviewable artifact, not a final-answer authority |
-| `trace-based numeric grounding` | evaluation inspects operands, formula, source references, and rendered displays |
+## Review before committing
 
-## Terms To Use Carefully
-
-| Term | Safer usage |
-| --- | --- |
-| `neuro-symbolic` | acceptable as shorthand for LLM semantic planning plus deterministic execution, but define it once |
-| `ontology` | keep it tied to concept aliases, binding policy, retrieval hints, and surface contracts; do not imply a complete financial knowledge graph |
-| `agentic` | tie it to the typed planning, evidence, calculation, and review workflow inside the single-agent `FinancialAgent` graph |
-| `multi-agent` | reserve it for the optional `src.experimental.mas` surface; do not use it as the product headline |
-| `grounding` | specify whether it means source text, row/cell provenance, numeric operand support, or citation coverage |
-| `faithfulness` | distinguish offline judge metrics from runtime acceptance gates |
-
-## Review Checklist
-
-Before publishing or committing documentation:
-
-- every technical term should point to a concrete file, state field, command, or
-  evaluation gate
-- benchmark numbers should identify the recorded run/profile/date and whether
-  they are store-fixed eval-only or historical screening evidence;
-  raw-artifact availability must be stated per run
-- current local validation claims should name the revision or working-tree
-  snapshot they cover
-- disabled capabilities such as cache serving and LLM critic authority should
-  remain explicit
-- workflow definition, local validation, and observed remote CI status should
-  never be presented as interchangeable
-- wording should prefer "reduced", "moved into deterministic execution", or
-  "verified by gate" over "solved", "guaranteed", or "fundamentally eliminated"
+- Link each behavior to its current owner or contract; mark older walkthroughs
+  historical where they describe compiled or removed capabilities.
+- Attach metrics to source revision, corpus, date, method and artifact availability.
+- Keep success, failure, abstention, ERROR and NOT_RUN denominators visible.
+- Preserve original model/source bytes when presenting saved answers; label edits,
+  excerpts, selections and reviewer prose separately.
+- Describe timings as the measured path: local service calls are not production
+  HTTP latency. Token-based cost estimates are not invoices.
+- Do not merge the earlier fixed-evidence comparison with the later unpaired
+  application run into a new superiority or causal claim.
+- A packaged offline demo can be reproducibly viewed without claiming that a fresh
+  model call will reproduce its outputs.

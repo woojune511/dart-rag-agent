@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import json
 import unittest
 from pathlib import Path
@@ -52,6 +53,18 @@ from src.config.retrieval_policy import (
 )
 
 
+def _with_narrative_claims(program, *, subject, quotes, catalog):
+    """Explicit authored witnesses, not inference or a production fallback."""
+    from copy import deepcopy
+    result = deepcopy(program)
+    for binding in result.get("narrative_bindings", []):
+        binding["claims"] = [{"subject": subject, "text": binding["text"],
+            "evidence_bindings": [{**row, "evidence_text": quotes[row["candidate_id"]]}
+                for row in binding["evidence_bindings"]]}]
+    from tests.narrative_address_test_support import address_program
+    return address_program(result, catalog)
+
+
 def execute_semantic_calculation_program(**inputs):
     """Test harness for the explicit numeric-execution -> final-assembly seam."""
     execution = execute_numeric_program(**inputs)
@@ -65,11 +78,10 @@ def execute_semantic_calculation_program(**inputs):
 
 def execute_compiled_fixture(agent, state, catalog):
     """Migrate historical test inputs through the actual phase-owned graph nodes."""
-    from src.agent.financial_graph_state import RoutingPhase, RequirementsPhase, RetrievalPhase, CompilationPhase
+    from src.agent.financial_graph_state import RequirementsPhase, RetrievalPhase, CompilationPhase
 
     phases = {
         "request": {"query": state["query"], "report_scope": dict(state.get("report_scope") or {})},
-        "routing": {key: state[key] for key in RoutingPhase.__annotations__ if key in state},
         "requirements": {key: state[key] for key in RequirementsPhase.__annotations__ if key in state},
         "retrieval": {key: state[key] for key in RetrievalPhase.__annotations__ if key in state},
         "candidates": {"semantic_candidate_catalog": catalog, "semantic_source_candidates": []},
@@ -98,6 +110,7 @@ def _obligation(obligation_id, kind, label, **overrides):
         "obligation_id": obligation_id,
         "kind": kind,
         "label": label,
+        "request_unit_ids": ["request_001"],  # Authored single-request fixtures.
         "required": True,
         "display_unit": "",
         "display_format": "",
@@ -106,7 +119,7 @@ def _obligation(obligation_id, kind, label, **overrides):
         "concept_hints": [],
         "evidence_requirements": [],
         "depends_on": [],
-        "coupling_key": "",
+
         **overrides,
     }
 
@@ -269,17 +282,26 @@ class _StructuredQueueLLM:
     def __init__(self, *responses):
         self.responses = list(responses)
         self.models = []
+        self.model_instances = []
         self.prompts = []
 
     def with_structured_output(self, model):
         self.models.append(model.__name__)
+        self.model_instances.append(model)
+        self.response_model = model
         return self
 
     def invoke(self, prompt):
+        if self.response_model.__name__ == "CompilerResponseV2":
+            object.__setattr__(prompt, "fixture_references", self.response_model.__compiler_references__)
         self.prompts.append(prompt)
         if not self.responses:
             raise AssertionError("unexpected structured invocation")
-        return self.responses.pop(0)
+        response = self.responses.pop(0)
+        if self.response_model.__name__ == "CompilerResponseV2" and isinstance(response, SemanticCalculationProgram):
+            from tests.compiler_wire_test_support import wire_fixture
+            return self.response_model.model_validate(wire_fixture(response, self.response_model))
+        return response
 
 
 class _StaticFinancialRunAgent:

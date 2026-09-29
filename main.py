@@ -28,15 +28,15 @@ def _configure_logging() -> None:
 
 
 def create_app(*, project_root: Path | None = None) -> FastAPI:
-    root = project_root or Path(__file__).resolve().parent
-    settings = resolve_app_settings(root)
+    app_root = project_root or Path(__file__).resolve().parent
+    settings = resolve_app_settings(app_root)
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
         """애플리케이션 시작/종료 수명 주기."""
         _configure_logging()
         logger.info("서버 시작 — 컴포넌트 초기화 중...")
-        application.state.services = build_app_services(project_root=root)
+        application.state.services = build_app_services(project_root=app_root)
         yield
         logger.info("서버 종료")
 

@@ -3,7 +3,7 @@ FastAPI 라우터 — DART 공시 분석 AI Agent REST API.
 
 엔드포인트:
   POST /api/ingest     기업 공시 문서 수집 → 파싱 → 벡터 DB 인덱싱
-  POST /api/query      자연어 질문 → FinancialAgent 실행 → 답변 반환
+  POST /api/query      자연어 질문 → 검색 → 단순 RAG 답변 반환
   GET  /api/companies  현재 인덱싱된 기업·연도 목록 조회
   GET  /api/health     서버 상태 확인
 """
@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+from src.utils.provider_errors import provider_error_projection
 
 if TYPE_CHECKING:
     from src.agent.financial_run_result import FinancialRunResultV1
@@ -46,7 +48,7 @@ def _schema_models() -> Dict[str, type]:
     if _SCHEMA_MODELS is not None:
         return _SCHEMA_MODELS
 
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field, model_validator
 
     class _APIBaseModel(BaseModel):
         pass
@@ -63,6 +65,7 @@ def _schema_models() -> Dict[str, type]:
         message: str
 
     class ReportScope(_APIBaseModel):
+        model_config = {"extra": "forbid"}
         company: Optional[str] = None
         corp_name: Optional[str] = None
         year: Optional[int] = None
@@ -72,6 +75,13 @@ def _schema_models() -> Dict[str, type]:
         source_companies: List[str] = Field(default_factory=list)
         source_receipts: List[str] = Field(default_factory=list)
         source_reports: List[Dict[str, Any]] = Field(default_factory=list)
+
+        @model_validator(mode="after")
+        def validate_scope(self):
+            from src.storage.report_scope_filter import report_scope_filter
+
+            report_scope_filter(self.model_dump(exclude_none=True))
+            return self
 
     class QueryRequest(_APIBaseModel):
         question: str = Field(..., examples=["삼성전자 2023년 주요 리스크는 무엇인가요?"])
@@ -86,6 +96,10 @@ def _schema_models() -> Dict[str, type]:
         companies: List[str]
         years: List[int]
         citations: List[str]
+        workflow: Optional[str] = None
+        abstained: Optional[bool] = None
+        cited_sources: Optional[List[Dict[str, Any]]] = None
+        validation: Optional[Dict[str, str]] = None
         structured_result: Dict[str, Any] = Field(default_factory=dict)
         resolved_calculation_trace: Dict[str, Any] = Field(default_factory=dict)
         review_trace: Optional[Dict[str, Any]] = None
@@ -155,6 +169,10 @@ def _query_response_from_agent_result(
         companies=list(answer_payload.get("companies") or []),
         years=list(answer_payload.get("years") or []),
         citations=list(answer_payload.get("citations") or []),
+        workflow=answer_payload.get("workflow"),
+        abstained=answer_payload.get("abstained"),
+        cited_sources=answer_payload.get("cited_sources"),
+        validation=answer_payload.get("validation"),
         structured_result=dict(answer_payload.get("structured_result") or {}),
         resolved_calculation_trace=dict(
             answer_payload.get("resolved_calculation_trace") or {}
@@ -267,7 +285,8 @@ def get_router():
             async with services.operation_lock:
                 return await run_in_threadpool(load_companies)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"DB 조회 실패: {e}")
+            logger.error("Company query failed: %s", provider_error_projection(e))
+            raise HTTPException(status_code=500, detail="DB 조회에 실패했습니다.") from e
 
     @router.post("/ingest", response_model=IngestResponse)
     async def ingest(req: IngestRequest, request: Request):
@@ -296,7 +315,8 @@ def get_router():
             async with services.operation_lock:
                 result = await run_in_threadpool(ingest_and_refresh)
         except Exception as e:
-            raise HTTPException(status_code=502, detail=f"수집·인덱싱 실패: {e}")
+            logger.error("Ingest failed: %s", provider_error_projection(e))
+            raise HTTPException(status_code=502, detail="수집·인덱싱에 실패했습니다.") from e
 
         if not int(result.get("files_fetched") or 0):
             raise HTTPException(
@@ -325,10 +345,8 @@ def get_router():
     @router.post("/query", response_model=QueryResponse, response_model_exclude_none=True)
     async def query(req: QueryRequest, request: Request):
         """
-        자연어 질문을 FinancialAgent로 처리하여 분석 답변 반환.
-
-        LangGraph 5-노드 파이프라인:
-        classify → extract → retrieve → analyze → cite
+        명시적 보고서 범위에서 검색한 근거로 답변과 출처를 반환한다.
+        기본 경로는 단순 RAG이며 산술·의미·요청 누락을 자동 검증하지 않는다.
         """
         services = _services(request)
         if not req.question.strip():
@@ -348,7 +366,7 @@ def get_router():
                     raise HTTPException(status_code=503, detail=services.readiness.reason)
                 agent = services.agent
                 if agent is None:
-                    raise HTTPException(status_code=503, detail="FinancialAgent is unavailable")
+                    raise HTTPException(status_code=503, detail="Query service is unavailable")
                 result = await run_in_threadpool(
                     agent.run,
                     req.question,
@@ -360,8 +378,8 @@ def get_router():
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"agent.run 실패: {e}")
-            raise HTTPException(status_code=500, detail=f"분석 실패: {e}")
+            logger.error("Query failed: %s", provider_error_projection(e))
+            raise HTTPException(status_code=500, detail="분석에 실패했습니다.") from e
 
         return _query_response_from_agent_result(
             req.question,

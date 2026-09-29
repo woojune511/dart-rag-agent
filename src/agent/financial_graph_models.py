@@ -1,12 +1,15 @@
-"""Structured-output models for narrative evidence and semantic calculation programs."""
+"""Structured-output models for shared request planning and evidence compilation."""
 
-import hashlib
-from typing import Annotated, Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, ClassVar, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator, model_validator, create_model
+from pydantic.json_schema import SkipJsonSchema
+from typing_extensions import TypeAliasType
 
-
-_SEMANTIC_COUPLING_KEY_MAX_CHARS = 128
+from src.agent.financial_program_projection import narrative_candidate_ids, project_narrative_claims
+from src.agent.financial_formula_wire import FORMULA_LITERALS, FORMULA_OPERATION_GROUPS, MAX_FORMULA_STEPS
+from src.agent.financial_measurement_periods import period_contract_error
+from src.agent.financial_planner_period_wire import PlannerMeasurementPeriod
 
 
 def _normalise_optional_planner_text(value: Any) -> str:
@@ -18,63 +21,75 @@ def _normalise_optional_planner_text(value: Any) -> str:
     return text
 
 
-def _bounded_semantic_coupling_key(value: Any) -> str:
-    text = _normalise_optional_planner_text(value)
-    if len(text) <= _SEMANTIC_COUPLING_KEY_MAX_CHARS:
-        return text
-    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
-    prefix_length = _SEMANTIC_COUPLING_KEY_MAX_CHARS - len(digest) - 1
-    return f"{text[:prefix_length]}:{digest}"
-
-
 class _DeferredBaseModel(BaseModel):
     model_config = ConfigDict(defer_build=True)
 
 
-class EvidenceItem(_DeferredBaseModel):
-    source_anchor: str = Field(description="근거 출처 앵커. 예: [삼성전자 | 2023 | 사업의 개요]")
-    parent_category: Optional[str] = Field(
-        default=None,
-        description=(
-            "해당 근거가 속한 상위 범주 레이블. "
-            "예: '시장위험', 'DS부문'. 문서에 명시된 상위 범주가 없으면 None."
+class MeasurementPeriodBase(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if error := period_contract_error(self.model_dump()):
+            raise ValueError(error)
+        return self
+
+
+class UnspecifiedMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["unspecified"]
+
+
+class UnresolvedMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["unresolved"]
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
+class YearCoverageMeasurementPeriod(MeasurementPeriodBase):
+    coverage: Union[Literal["whole_year", "within_year"], SkipJsonSchema[None]] = Field(
+        default=None, exclude_if=lambda value: value is None, description=(
+            "Always interpret and declare coverage from the owned request. whole_year requires the "
+            "complete named year, not a point or shorter measurement. within_year permits a point, "
+            "shorter period or whole-year measurement inside the target year; it does not require "
+            "an exact full-year interval. A known target year and coverage need no fiscal start/end "
+            "dates: keep year/relative_year even when those dates are absent. Do not invent "
+            "January-December endpoints. Link the coverage instruction in request_unit_ids. "
+            "Use unresolved if the requested coverage itself cannot be interpreted."
         ),
     )
-    claim: str = Field(description="질문에 직접적으로 도움이 되는 근거 진술")
-    support_level: Literal["direct", "partial", "context"] = Field(
-        description="direct=직접 근거, partial=부분 근거, context=배경 설명"
-    )
-    quote_span: str = Field(
-        default="",
-        description="원문에서 발췌한 짧은 근거 구간",
-    )
-    question_relevance: Literal["high", "medium", "low"] = Field(
-        default="medium",
-        description="질문과의 직접 관련도",
-    )
-    allowed_terms: List[str] = Field(
-        default_factory=list,
-        description="최종 답변에서 사용해도 되는 핵심 용어 목록",
-    )
+
+    @field_validator("coverage")
+    @classmethod
+    def reject_explicit_null_coverage(cls, value):
+        # Only omission is historical compatibility; a supplied null is invalid.
+        if value is None:
+            raise ValueError("invalid_measurement_period")
+        return value
 
 
-class EvidenceExtraction(_DeferredBaseModel):
-    coverage: Literal["sufficient", "sparse", "conflicting", "missing"]
-    evidence: List[EvidenceItem] = Field(default_factory=list)
+class YearMeasurementPeriod(YearCoverageMeasurementPeriod):
+    kind: Literal["year"]
+    year: StrictInt = Field(ge=1, le=9999)
+    request_unit_ids: List[str] = Field(min_length=1)
 
 
-class CompressionOutput(_DeferredBaseModel):
-    selected_claim_ids: List[str] = Field(
-        default_factory=list,
-        description="답변 초안에 실제로 사용한 evidence_id 목록",
-    )
-    draft_points: List[str] = Field(
-        default_factory=list,
-        description="최종 초안으로 압축하기 전 핵심 포인트 목록",
-    )
-    draft_answer: str = Field(
-        description="structured evidence만으로 압축한 답변 초안",
-    )
+class RelativeYearMeasurementPeriod(YearCoverageMeasurementPeriod):
+    kind: Literal["relative_year"]
+    anchor_year: StrictInt = Field(ge=1, le=9999)
+    year_offset: StrictInt
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
+class DateMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["date"]
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    request_unit_ids: List[str] = Field(min_length=1)
+
+
+class IntervalMeasurementPeriod(MeasurementPeriodBase):
+    kind: Literal["date_interval"]
+    start_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    end_date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    request_unit_ids: List[str] = Field(min_length=1)
 
 
 class AnswerObligationScope(_DeferredBaseModel):
@@ -83,22 +98,52 @@ class AnswerObligationScope(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     company: str = ""
-    period: str = ""
+    period: str = Field(default="", description=(
+        "Requested measurement period, distinct from the selected document's report_scope.year. "
+        "Preserve explicit dates, ranges and relative periods; do not substitute the filing year. "
+        "Leave blank when no measurement period is requested. A blank child inherits its "
+        "declared parent period only; comparisons must specify each input's own period. "
+        "Use the report year only when the request actually asks for that measurement period."
+    ))
+    measurement_period: Union[
+        UnspecifiedMeasurementPeriod, YearMeasurementPeriod, RelativeYearMeasurementPeriod,
+        DateMeasurementPeriod, IntervalMeasurementPeriod, UnresolvedMeasurementPeriod,
+        SkipJsonSchema[None],
+    ] = Field(default=None, exclude_if=lambda value: value is None, description=(
+        "Execution constraint interpreted from the owned original request. Choose kind by the "
+        "precision requested, not by source availability. No measurement constraint: unspecified. "
+        "A named target year: year plus coverage. A year relative to an explicit anchor: "
+        "relative_year with anchor_year, signed year_offset and coverage (code adds the offset). "
+        "These year constraints need no fiscal endpoints; missing dates do not make them unresolved. "
+        "Use date/date_interval only when the request specifies an exact full date/inclusive "
+        "interval; preserve those ISO endpoints. Do not convert year coverage into assumed "
+        "January-December dates. Use unresolved only when the requested constraint cannot be interpreted. "
+        "A report year alone does not create a measurement constraint. Link every constrained period "
+        "to this output's request_unit_ids, including anchor/relative/coverage instructions. Keep period text "
+        "unchanged. Each comparison input declares its own constraint; do not use its output's two "
+        "years as interchangeable source permissions. For year/relative_year declare coverage: "
+        "whole_year or within_year, grounded in the owned request. Source years do not prove "
+        "date endpoints or that a finer period covers a whole fiscal year."
+    ))
     consolidation_scope: Literal["consolidated", "separate", "unknown"] = "unknown"
     segment: str = ""
     basis: str = ""
 
 
 class SemanticTargetV1(_DeferredBaseModel):
-    """Typed semantic identity used to admit evidence for one owner."""
+    """Request-preserving reading targets, not a source-name allowlist."""
 
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     local_subjects: List[str] = Field(
         default_factory=list,
         description=(
-            "Entities whose local row or sentence is requested. These are distinct "
-            "from the filing company in scope.company."
+            "Query-written subject targets, preserving modifiers and group membership. "
+            "These guide retrieval and reading, not an allowlist of source expressions. "
+            "Keep the request intact; the compiler explains its correspondence to observed axes/context. "
+            "Do not invent translations or source-name equivalents in the plan. "
+            "Each required input identifies its own subject. The filing company in scope.company "
+            "does not establish a value's local subject."
         ),
     )
     concept_keys: List[str] = Field(
@@ -111,6 +156,38 @@ class SemanticTargetV1(_DeferredBaseModel):
     )
 
 
+class SourceSectionBindingV1(_DeferredBaseModel):
+    """Requested wording and observed location are distinct planner decisions."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    request_unit_id: str
+    requested_text: str = Field(min_length=1, description=(
+        "One unique verbatim excerpt in an owned request unit that restricts the source section. "
+        "Preserve its qualifiers; do not replace the request with a formal document title."
+    ))
+    section_ids: List[str] = Field(description=(
+        "Alternative observed section IDs selected from source_section_inventory for this restriction. "
+        "Include every requested alternative; empty means unresolved, never unrestricted. "
+        "Do not invent IDs or infer document-wide absence from a bounded inventory."
+    ))
+
+
+class SourceSectionReferenceV2(_DeferredBaseModel):
+    """Select existing request addresses; exact wording is copied by code."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    first_request_unit_id: str = Field(description=(
+        "First provided request unit containing this source restriction. Select a whole contiguous "
+        "range, including the full section path and its qualifiers; every included unit must be "
+        "owned by the output. Code copies the exact original text, without a model-written quote."
+    ))
+    last_request_unit_id: str = Field(description=(
+        "Last provided request unit of the same restriction, inclusive. Use the first ID again "
+        "for a single unit. Numbered or quoted headings may span several mechanical units."
+    ))
+    section_ids: List[str] = SourceSectionBindingV1.model_fields["section_ids"]
+
+
 class EvidenceRequirement(_DeferredBaseModel):
     """One non-rendered evidence input required to produce an answer obligation."""
 
@@ -118,8 +195,20 @@ class EvidenceRequirement(_DeferredBaseModel):
 
     requirement_id: str = ""
     label: str
-    required: bool = True
+    required: bool = Field(default=True, description=(
+        "True when this input is necessary for the requested output. False permits its omission, "
+        "not ungrounded selections; any selected input must obey its own source restrictions."
+    ))
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
+    source_sections: List[str] = Field(default_factory=list, description=(
+        "Explicit query-requested section titles or paths, copied from the query. "
+        "Alternatives within this list; intersects the parent output's restriction. "
+        "Use > between path components. Empty means no additional restriction."
+    ))
+    source_section_bindings: List[Union[SourceSectionBindingV1, SourceSectionReferenceV2]] = Field(default_factory=list, description=(
+        "Source restrictions linked to observed inventory IDs. Each binding intersects the parent "
+        "and the other bindings; leave empty when there is no additional source restriction."
+    ))
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
     semantic_target: SemanticTargetV1 = Field(default_factory=SemanticTargetV1)
@@ -129,14 +218,48 @@ class AnswerObligation(_DeferredBaseModel):
     """One user-visible output requirement, independent of an operation taxonomy."""
 
     model_config = ConfigDict(defer_build=True, extra="forbid")
+    _source_group_requirement_type: ClassVar[type[EvidenceRequirement]] = EvidenceRequirement
 
     obligation_id: str = ""
     kind: Literal["direct_value", "derived_value", "narrative"]
     label: str
-    required: bool = True
-    display_unit: str = ""
-    display_format: str = ""
+    request_unit_ids: List[str] = Field(description=(
+        "IDs of original request units this output addresses. Use provided IDs "
+        "only; every output needs a reference and every unit needs an output. "
+        "Units may be shared. The label is a short name, not a replacement for "
+        "the referenced request text. These are instructions, not source evidence."
+    ))
+    required: bool = Field(default=True, description=(
+        "True for an output requested by the user. False only for an optional supplement, "
+        "not because evidence availability or confidence is unknown before retrieval."
+    ))
+    display_unit: str = Field(default="", description=(
+        "Concrete measurement unit explicitly requested for a numeric output, "
+        "including its scale. If the request leaves the unit to the source or "
+        "names no unit, leave blank; put source-preservation, precision and "
+        "notation instructions in display_format. Do not infer a unit before "
+        "retrieval. Preserve an explicitly named unit even if unsupported: "
+        "never replace it with blank, UNKNOWN or a supported substitute. "
+        "Narrative outputs have no scalar unit."
+    ))
+    display_format: str = Field(default="", description=(
+        "Presentation instructions for numeric or narrative outputs, including "
+        "source-unit/notation preservation and requested precision. These are "
+        "not measurement-unit names. Keep them here alongside any explicitly "
+        "named display_unit and retain the linked original request; leave blank "
+        "when unspecified."
+    ))
     scope: AnswerObligationScope = Field(default_factory=AnswerObligationScope)
+    source_sections: List[str] = Field(default_factory=list, description=(
+        "Explicit query-requested section titles or paths, not inferred search hints. "
+        "Copy title components from the query, using > for hierarchy. Entries are "
+        "alternatives; empty means unrestricted. Applies to all supporting inputs."
+    ))
+    source_section_bindings: List[Union[SourceSectionBindingV1, SourceSectionReferenceV2]] = Field(default_factory=list, description=(
+        "Link explicit requested source restrictions to observed section IDs. "
+        "Use these bindings rather than source_sections for informal or differently worded titles. "
+        "An empty list means no such restriction; a binding with no selected IDs remains unresolved."
+    ))
     retrieval_hints: List[str] = Field(default_factory=list)
     concept_hints: List[str] = Field(default_factory=list)
     semantic_target: SemanticTargetV1 = Field(default_factory=SemanticTargetV1)
@@ -160,25 +283,11 @@ class AnswerObligation(_DeferredBaseModel):
             "evidence requirement IDs; raw inputs belong in evidence_requirements."
         ),
     )
-    coupling_key: str = Field(
-        default="",
-        max_length=_SEMANTIC_COUPLING_KEY_MAX_CHARS,
-        description=(
-            "Share a key only when outputs require a common semantic basis. "
-            "Leave empty for independently requested outputs; sharing a query, "
-            "company, or report does not establish coupling."
-        ),
-    )
 
     @field_validator("display_unit", "display_format", mode="before")
     @classmethod
     def _normalise_optional_display_fields(cls, value: Any) -> str:
         return _normalise_optional_planner_text(value)
-
-    @field_validator("coupling_key", mode="before")
-    @classmethod
-    def _bound_coupling_key(cls, value: Any) -> str:
-        return _bounded_semantic_coupling_key(value)
 
     @model_validator(mode="after")
     def _materialize_source_defined_group(self) -> "AnswerObligation":
@@ -186,9 +295,11 @@ class AnswerObligation(_DeferredBaseModel):
             return self
         if self.kind != "narrative":
             raise ValueError("A source-defined group must be a narrative obligation")
-        requirement = EvidenceRequirement(
+        requirement = self._source_group_requirement_type(
             label=self.label,
             scope=self.scope.model_copy(deep=True),
+            source_sections=list(self.source_sections),
+            source_section_bindings=[binding.model_copy(deep=True) for binding in self.source_section_bindings],
             retrieval_hints=list(self.retrieval_hints),
             concept_hints=list(self.concept_hints),
             semantic_target=self.semantic_target.model_copy(deep=True),
@@ -207,6 +318,101 @@ class AnswerObligation(_DeferredBaseModel):
         return self
 
 
+class OutputRelationshipV1(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    kind: Literal["shared_basis"]
+    output_ids: List[str] = Field(min_length=2)
+    request_unit_id: str
+    request_text: str = Field(min_length=1, description="Exact request substring requiring these outputs to share a basis, not merely a company or topic.")
+
+
+class PlannerAnswerObligationScope(AnswerObligationScope):
+    """Generation uses one explicit shape; internal and historical scopes stay typed."""
+
+    measurement_period: Union[
+        UnspecifiedMeasurementPeriod, YearMeasurementPeriod, RelativeYearMeasurementPeriod,
+        DateMeasurementPeriod, IntervalMeasurementPeriod, UnresolvedMeasurementPeriod,
+        SkipJsonSchema[None],
+    ] = Field(default=None, exclude_if=lambda value: value is None, description=(
+        "One explicit period declaration per output/input. Separate requested precision, "
+        "reference year plus offset and coverage from exact dates. Fill every field; unused "
+        "values are null. Original owned request units support the choice. The report year "
+        "supplies no default, and source availability is checked only after planning."
+    ))
+
+    @field_validator("measurement_period", mode="before", json_schema_input_type=PlannerMeasurementPeriod)
+    @classmethod
+    def lower_generated_period(cls, value):
+        if isinstance(value, PlannerMeasurementPeriod):
+            return value.to_internal()
+        if isinstance(value, dict) and "precision" in value:
+            return PlannerMeasurementPeriod.model_validate(value).to_internal()
+        # Saved internal plans retain their original period object, including
+        # omitted historical coverage. Strict generation rejects that old wire.
+        return value
+
+
+class PlannerEvidenceRequirement(EvidenceRequirement):
+    """Generation selects request ranges; legacy quotations remain internal only."""
+
+    source_section_bindings: List[SourceSectionReferenceV2] = EvidenceRequirement.model_fields["source_section_bindings"]
+    scope: PlannerAnswerObligationScope = Field(default_factory=PlannerAnswerObligationScope)
+
+
+class PlannerAnswerObligation(AnswerObligation):
+    _source_group_requirement_type: ClassVar[type[EvidenceRequirement]] = PlannerEvidenceRequirement
+    source_section_bindings: List[SourceSectionReferenceV2] = AnswerObligation.model_fields["source_section_bindings"]
+    scope: PlannerAnswerObligationScope = Field(default_factory=PlannerAnswerObligationScope)
+    evidence_requirements: List[PlannerEvidenceRequirement] = Field(default_factory=list)
+
+
+class NumericAnswerObligation(PlannerAnswerObligation):
+    """Numeric generation keeps its declared unit for deterministic validation."""
+
+    kind: Literal["direct_value", "derived_value"]
+
+
+class DirectValueAnswerObligation(NumericAnswerObligation):
+    """A source lookup is its own evidence owner, without calculation inputs."""
+
+    kind: Literal["direct_value"] = Field(description=(
+        "Return a requested scalar numeric value as reported in the source. "
+        "An explicit or brief fact is not necessarily numeric: use narrative for "
+        "status or occurrence, and do not substitute an associated amount for a requested state."
+    ))
+    evidence_mode: Literal["declared_inputs"] = "declared_inputs"
+    evidence_requirements: List[PlannerEvidenceRequirement] = Field(
+        default_factory=list, max_length=0, description=(
+            "Always empty for direct_value. The output itself owns the source lookup; "
+            "preserve its requested subject, scope and retrieval hints on this obligation."
+        ),
+    )
+
+
+class DerivedValueAnswerObligation(NumericAnswerObligation):
+    """A calculation may declare the evidence inputs its formula requires."""
+
+    kind: Literal["derived_value"] = Field(description=(
+        "Return a requested calculated scalar from source or declared dependency values. "
+        "Explanations and status facts remain narrative; preserve any separately requested numeric result."
+    ))
+
+
+class NarrativeAnswerObligation(PlannerAnswerObligation):
+    """A narrative's presentation is not a scalar measurement unit."""
+
+    kind: Literal["narrative"] = Field(description=(
+        "Report a fact, status, occurrence, condition, relationship, or explanation with "
+        "source-grounded claims, including a brief yes/no answer. Numbers in the question "
+        "or supporting evidence do not make the requested output a scalar; preserve "
+        "independently requested numeric outputs separately."
+    ))
+    display_unit: Literal[""] = Field(default="", description=(
+        "Always empty for narrative outputs. Use display_format for presentation "
+        "instructions and retain requested facts in the narrative requirements."
+    ))
+
+
 class RequirementPlannerOutput(_DeferredBaseModel):
     """Pre-retrieval semantic requirements without a fixed calculation type."""
 
@@ -214,11 +420,48 @@ class RequirementPlannerOutput(_DeferredBaseModel):
 
     companies: List[str] = Field(default_factory=list)
     years: List[int] = Field(default_factory=list)
+    output_relationships: List[OutputRelationshipV1] = Field(default_factory=list)
     topic: str = ""
     section_filter: Optional[str] = None
-    obligations: List[AnswerObligation] = Field(default_factory=list)
+    obligations: List[Union[DirectValueAnswerObligation, DerivedValueAnswerObligation, NarrativeAnswerObligation]] = Field(default_factory=list)
     retrieval_queries: List[str] = Field(default_factory=list)
     rationale: str = ""
+
+
+class SemanticProgramContextBinding(_DeferredBaseModel):
+    """Compiler interpretation of an exposed, source-located context excerpt."""
+
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    context_id: str
+    evidence_text: str = Field(min_length=1)
+    field: Literal["period", "consolidation_scope", "segment", "basis"]
+    value: str = Field(min_length=1)
+
+
+class SourceInterpretationContext(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    context_id: str
+    evidence_text: str = Field(min_length=1)
+
+
+class InterpretedScopeV1(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    segment: str = ""
+    basis: str = ""
+
+
+class SourceInterpretationV1(_DeferredBaseModel):
+    """Model interpretation linked to the unchanged request and own sources."""
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+    request_unit_ids: List[str] = Field(min_length=1)
+    subject: str = Field(min_length=1)
+    metric: str = Field(min_length=1)
+    scope: InterpretedScopeV1 = Field(default_factory=InterpretedScopeV1)
+    axis_refs: List[str] = Field(default_factory=list)
+    context_evidence: List[SourceInterpretationContext] = Field(default_factory=list)
+    source_evidence_text: Optional[str] = None
+    unit_option_id: Optional[str] = Field(default=None, exclude_if=lambda value: value is None)
+    period_option_id: Optional[str] = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class SemanticProgramDirectBinding(_DeferredBaseModel):
@@ -226,6 +469,8 @@ class SemanticProgramDirectBinding(_DeferredBaseModel):
 
     obligation_id: str
     candidate_id: str
+    source_interpretation: Optional[SourceInterpretationV1] = None
+    context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
         description=(
@@ -240,6 +485,8 @@ class SemanticProgramVariableBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     variable: str
+    source_interpretation: Optional[SourceInterpretationV1] = None
+    context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
     source_id: str = Field(description="A candidate_id or a previously produced obligation_id")
     source_requirement_id: str = Field(
         default="",
@@ -262,19 +509,42 @@ class SemanticProgramVariableBinding(_DeferredBaseModel):
 class SemanticProgramConstant(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
-    value: float
+    value: float = Field(strict=True, allow_inf_nan=False)
     origin: Literal["query", "deterministic_cardinality"]
     source_text: str = ""
+    # Historical internal programs can still be parsed, but missing request
+    # evidence is rejected by validation; production requires it in its schema.
+    request_unit_id: Optional[str] = None
+    interpretation: str = ""
+
+
+class SemanticRequestInput(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    variable: str
+    value: float = Field(strict=True, allow_inf_nan=False)
+    request_unit_id: str
+    source_text: str
+    interpretation: str = Field(min_length=1)
 
 
 class SemanticProgramExpression(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     obligation_id: str
+    # Historical/internal formulas may have no explicit comparison declaration.
+    # The production wire independently requires the nullable choice.
+    comparison_request_unit_id: Optional[str] = None
     variable_bindings: List[SemanticProgramVariableBinding] = Field(default_factory=list)
     formula: str
-    result_unit: str = ""
-    display_unit: str = ""
+    display_unit: str = Field(
+        default="",
+        description=(
+            "Requested display unit, including percent versus percentage-point intent. "
+            "Leave blank to use the obligation display unit or the inferred base unit. "
+            "Calculation dimensions and scale conversion are inferred by runtime code."
+        ),
+    )
     display_format: str = ""
     source_display_candidate_id: Optional[str] = Field(
         description=(
@@ -286,6 +556,8 @@ class SemanticProgramExpression(_DeferredBaseModel):
         min_length=1,
         description="Explain why the source-stated result was selected or not selected.",
     )
+    source_display_context_bindings: List[SemanticProgramContextBinding] = Field(default_factory=list)
+    source_display_interpretation: Optional[SourceInterpretationV1] = None
     compatibility_candidate_ids: List[str] = Field(
         default_factory=list,
         description=(
@@ -293,7 +565,18 @@ class SemanticProgramExpression(_DeferredBaseModel):
             "the selected numeric sources use different semantic contexts"
         ),
     )
+    request_inputs: List[SemanticRequestInput] = Field(default_factory=list)
+    binding_count_variable: Optional[str] = None
+    # Explicit offline historical programs only; absent from the production wire.
     constants: List[SemanticProgramConstant] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _discard_legacy_result_unit(cls, value: Any) -> Any:
+        """Read historical programs without giving their old unit declaration authority."""
+        if isinstance(value, dict) and "result_unit" in value:
+            return {key: item for key, item in value.items() if key != "result_unit"}
+        return value
 
     @field_validator("source_display_reason")
     @classmethod
@@ -307,17 +590,60 @@ class SemanticProgramNarrativeEvidenceBinding(_DeferredBaseModel):
     model_config = ConfigDict(defer_build=True, extra="forbid")
 
     candidate_id: str
-    source_requirement_id: str
+    source_requirement_id: str = Field(
+        default="",
+        description="Declared requirement this evidence satisfies; blank for owner-only supporting evidence.",
+    )
+    row_description_quote: str = Field(
+        default="",
+        description=(
+            "For reading a physical row's description without using its scalar value, "
+            "copy an exact excerpt from one row_label/row_headers surface also present in "
+            "the source text. Requires document/year and physical table/row provenance. "
+            "Only this quote grounds the reading, not the cell value or surrounding numbers. "
+            "Leave empty for ordinary evidence, including numeric use."
+        ),
+    )
+
+
+class SemanticProgramNarrativeClaimEvidence(SemanticProgramNarrativeEvidenceBinding):
+    surface_id: str = Field(description="Visible source-reading surface attached to this candidate; never filing metadata.")
+    first_piece_id: str = Field(description="First selected piece in this surface.")
+    last_piece_id: str = Field(description="Last selected piece, inclusive; same partition and not before first_piece_id.")
+
+
+class SemanticProgramNarrativeSubjectBinding(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    subject_binding_id: str = Field(min_length=1, description="Unique local reference within this narrative obligation.")
+    subject: str = Field(min_length=1, description="Source-local subject from selected support, not filing metadata. Only whitespace layout may differ, with one unambiguous source occurrence; preserve spelling, punctuation, word boundaries and scope.")
+    evidence_selections: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
+
+
+class SemanticProgramNarrativeClaim(_DeferredBaseModel):
+    model_config = ConfigDict(defer_build=True, extra="forbid")
+
+    subject_binding_id: str = Field(description="Explicit reference to this obligation's subject_bindings; no implicit inheritance.")
+    text: str = Field(description="One source-supported statement about the declared subject; do not broaden its scope. Repeating subject is optional: code adds a subject label when absent. Do not replace it with another entity.")
+    fact_evidence_selections: List[SemanticProgramNarrativeClaimEvidence] = Field(min_length=1)
 
 
 class SemanticProgramNarrativeBinding(_DeferredBaseModel):
-    model_config = ConfigDict(defer_build=True, extra="forbid")
+    basis_interpretation: str = ""
+    # The provider schema is current-only; parsing can still inspect frozen flat programs.
+    model_config = ConfigDict(defer_build=True, extra="forbid",
+        json_schema_extra={"required": ["obligation_id", "subject_bindings", "claims"]})
 
     obligation_id: str
-    candidate_ids: List[str] = Field(default_factory=list)
-    evidence_bindings: List[SemanticProgramNarrativeEvidenceBinding] = Field(
+    subject_bindings: List[SemanticProgramNarrativeSubjectBinding] = Field(default_factory=list,
+        json_schema_extra={"minItems": 1}, description="Explicit shared subject support for the claims in this output only.")
+    # Internal projection / historical input, never a second model-written list.
+    candidate_ids: SkipJsonSchema[List[str]] = Field(default_factory=list)
+    evidence_bindings: SkipJsonSchema[List[SemanticProgramNarrativeEvidenceBinding]] = Field(
         default_factory=list
     )
+    claims: List[SemanticProgramNarrativeClaim] = Field(default_factory=list, json_schema_extra={"minItems": 1},
+        description="Required for every current narrative output. Statements are composed in order; omit the output if evidence is insufficient.")
     scope_applicability_fields: List[
         Literal["consolidation_scope", "segment", "basis"]
     ] = Field(
@@ -328,7 +654,26 @@ class SemanticProgramNarrativeBinding(_DeferredBaseModel):
             "Explicit conflicts, company, and period cannot be bridged."
         ),
     )
-    text: str
+    text: SkipJsonSchema[str] = ""
+
+    @model_validator(mode="after")
+    def _project_evidence_members(self) -> "SemanticProgramNarrativeBinding":
+        if self.claims:
+            projection = project_narrative_claims({
+                "subject_bindings": [subject.model_dump() for subject in self.subject_bindings],
+                "claims": [claim.model_dump() for claim in self.claims],
+                **({"text": self.text} if "text" in self.model_fields_set else {}),
+                **({"evidence_bindings": [item.model_dump() for item in self.evidence_bindings]}
+                   if "evidence_bindings" in self.model_fields_set else {}),
+            })
+            self.text = projection["text"]
+            self.evidence_bindings = [SemanticProgramNarrativeEvidenceBinding.model_validate(row)
+                for row in projection["evidence_bindings"]]
+        if "candidate_ids" not in self.model_fields_set:
+            self.candidate_ids = narrative_candidate_ids({
+                "evidence_bindings": [binding.model_dump() for binding in self.evidence_bindings],
+            })
+        return self
 
 
 class SemanticProgramSourceAssertion(_DeferredBaseModel):
@@ -356,6 +701,12 @@ class SemanticCalculationProgram(_DeferredBaseModel):
     missing_obligation_ids: List[str] = Field(default_factory=list)
     ambiguous_obligation_ids: List[str] = Field(default_factory=list)
     rationale: str = ""
+    relationship_declarations: Dict[str, Optional[str]] = Field(default_factory=dict)
+    relationship_bindings: Dict[str, List[str]] = Field(default_factory=dict)
+    # Code-owned terminal failure disposition, never a provider response field.
+    # Omit the empty default to preserve healthy historical program projections.
+    failed_obligation_ids: SkipJsonSchema[List[str]] = Field(
+        default_factory=list, exclude_if=lambda value: not value)
 
 
 NormalizedUnit = Literal["KRW", "PERCENT", "COUNT", "USD", "UNKNOWN"]
@@ -489,23 +840,230 @@ def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     return validated.model_dump()
 
 
-class ValidationOutput(_DeferredBaseModel):
-    kept_claim_ids: List[str] = Field(
-        default_factory=list,
-        description="검증 후 최종 답변에 남긴 evidence_id 목록",
-    )
-    dropped_claim_ids: List[str] = Field(
-        default_factory=list,
-        description="검증 과정에서 제거한 evidence_id 목록",
-    )
-    unsupported_sentences: List[str] = Field(
-        default_factory=list,
-        description="근거 부족 또는 과잉 설명으로 제거한 문장 목록",
-    )
-    sentence_checks: List[Dict[str, Any]] = Field(
-        default_factory=list,
-        description="문장별 검증 결과. sentence, verdict, reason, supporting_claim_ids를 포함",
-    )
-    final_answer: str = Field(
-        description="검증을 거친 최종 답변",
-    )
+class WireModel(_DeferredBaseModel):
+    model_config = ConfigDict(extra="forbid", defer_build=True)
+
+
+class NumericInterpretation(WireModel):
+    """Meaning supplied by the model; selected-cell axes are assembled by code."""
+
+    request_unit_ids: list[str] = Field(min_length=1)
+    subject: str = Field(min_length=1)
+    metric: str = Field(min_length=1)
+    scope: InterpretedScopeV1 = Field(default_factory=InterpretedScopeV1)
+
+
+class ContextualProseInterpretation(NumericInterpretation):
+    source_evidence_text: Optional[str] = Field(min_length=1, description=(
+        "Exact own-body quote supporting the interpretation, or explicit null only when "
+        "selection.context_evidence supplies attached interpretation support."))
+
+
+class ProseInterpretation(NumericInterpretation):
+    source_evidence_text: str = Field(min_length=1, description=(
+        "Exact own-body quote supporting subject and metric interpretation; "
+        "code separately preserves the value span addressed by source_ref."))
+
+
+class ContextScopeValue(WireModel):
+    field: Literal["period", "consolidation_scope", "segment", "basis"]
+    value: str = Field(min_length=1)
+
+
+class NumericSelection(WireModel):
+    source_ref: str
+    interpretation: Optional[NumericInterpretation] = None
+
+
+class NumericInput(NumericSelection):
+    variable: str
+    scope_applicability_fields: list[Literal["segment", "basis"]] = Field(default_factory=list)
+
+
+class ReadingSelection(WireModel):
+    source_ref: str
+    row_description_quote: Optional[str] = None
+    surface_ref: Optional[str] = None
+    first_piece_ref: Optional[str] = None
+    last_piece_ref: Optional[str] = None
+
+
+def _selection_list(item_type):
+    # No fabricated reference or invalid empty enum when an owner has no sources.
+    return (list[item_type], ...) if item_type is not None else (list[None], Field(max_length=0))
+
+
+def _input_groups(owner, refs, item_type, name, *, selection_model=None):
+    requirements = owner.get("evidence_requirements") or []
+    fields = {refs.ref(row["requirement_id"]): _selection_list(
+        selection_model(row["requirement_id"], input=True) if selection_model else item_type)
+        for row in requirements}
+    if not requirements or item_type is ReadingSelection:
+        own_type = selection_model(owner["obligation_id"], input=True,
+            dependencies=owner.get("depends_on") or ()) if selection_model else item_type
+        fields["own"] = _selection_list(own_type)
+    elif item_type is NumericInput and owner.get("depends_on"):
+        fields["dependencies"] = _selection_list(selection_model(owner["obligation_id"], input=True,
+            dependencies=owner["depends_on"], only_dependencies=True))
+    return create_model(name, __base__=WireModel, **fields)
+
+
+def compiler_response_model(obligations, refs, visibility, *, read_only_relationship_declarations=None):
+    """Only the active outputs and their own kinds exist in the provider schema."""
+    numeric_types = {}
+    allowed = visibility.candidate_ids_by_owner()
+    source_kinds = dict(refs.numeric_source_kinds)
+    source_kinds_by_ref = {refs.ref(key): kind for key, kind in source_kinds.items()}
+    relationships = refs.relationships_for([row["obligation_id"] for row in obligations])
+    frozen = {key: value for key, value in (read_only_relationship_declarations or {}).items()
+              if key in relationships}
+
+    def source_variant(expected_kind):
+        def check(value):
+            source_ref = value.get("source_ref") if isinstance(value, dict) else None
+            actual = source_kinds_by_ref.get(source_ref) if isinstance(source_ref, str) else None
+            if expected_kind != "dependency" and actual is not None and actual != expected_kind:
+                raise ValueError("numeric_source_variant_mismatch")
+            return value
+        return model_validator(mode="before")(check)
+
+    def numeric_model(owner_id, *, input=False, dependencies=(), only_dependencies=False):
+        alternatives = []
+        for kind in ("cell", "prose", "dependency"):
+            choices = tuple(sorted(refs.ref(key) for key in (
+                dependencies if kind == "dependency" else () if only_dependencies else allowed.get(owner_id, ()))
+                if kind == "dependency" or source_kinds.get(key) == kind))
+            if not choices:
+                continue
+            contexts = () if kind == "dependency" else refs.context_refs_for_owner(owner_id)
+            units = tuple(sorted({unit_ref for candidate_id in allowed.get(owner_id, ())
+                if refs.ref(candidate_id) in choices for unit_ref in refs.unit_refs_for_candidate(candidate_id)})) if kind == "cell" else ()
+            periods = tuple(sorted({period_ref for candidate_id in allowed.get(owner_id, ())
+                if refs.ref(candidate_id) in choices for period_ref in refs.period_refs_for_candidate(candidate_id)})) if kind == "cell" else ()
+            key = (kind, choices, contexts, units, periods, input)
+            if key not in numeric_types:
+                name = kind.title() + ("Input_" if input else "Selection_") + refs.ref(owner_id)
+                # The generation schema mirrors existing authority. Keep strings
+                # for lossless parsing: lowering reports forbidden references per
+                # output, so a bad address cannot discard valid sibling outputs.
+                fields = {"source_ref": (str, Field(json_schema_extra={"enum": list(choices)}))}
+                base = NumericInput if input else NumericSelection
+                if kind == "dependency":
+                    base = WireModel
+                    fields.update(variable=(str, ...), scope_applicability_fields=(
+                        list[Literal["segment", "basis"]], Field(default_factory=list)))
+                if kind == "prose":
+                    interpretation_type = ContextualProseInterpretation if contexts else ProseInterpretation
+                    fields["interpretation"] = (Optional[interpretation_type], None)
+                if units or periods:
+                    reading_fields = {}
+                    if units:
+                        reading_fields["unit_ref"] = (Optional[str], Field(default=None, json_schema_extra={"enum": [*units, None]}, description=(
+                            "Select a unit option belonging to this source only when its observed axis label means a count. "
+                            "Use null if that reading is unsupported or inapplicable. This does not interpret a year, "
+                            "change the source number, or override an explicit source unit.")))
+                    if periods:
+                        reading_fields["period_ref"] = (Optional[str], Field(default=None, json_schema_extra={"enum": [*periods, None]}, description=(
+                            "Select this value's own same-column period option when that observed cell supplies its year. "
+                            "Use null if unsupported; general table context cannot replace an unresolved column-period axis. "
+                            "This proves physical linkage, not semantic applicability.")))
+                    interpretation_type = create_model("CellInterpretation_" + name, __base__=NumericInterpretation, **reading_fields)
+                    fields["interpretation"] = (Optional[interpretation_type], None)
+                if contexts:
+                    context_type = create_model("ContextEvidence_" + name, __base__=WireModel,
+                        context_ref=(Literal[contexts], ...), evidence_text=(str, Field(min_length=1)),
+                        supports_interpretation=(bool, False),
+                        resolves=(list[ContextScopeValue], Field(default_factory=list)))
+                    fields["context_evidence"] = (list[context_type], Field(default_factory=list))
+                numeric_types[key] = create_model(name, __base__=base,
+                    __validators__={"source_variant": source_variant(kind)}, **fields)
+            alternatives.append(numeric_types[key])
+        return Union[tuple(alternatives)] if alternatives else None
+
+    output_fields = {}
+    for owner in obligations:
+        key = refs.ref(owner["obligation_id"])
+        kind = owner["kind"]
+        if kind == "direct_value":
+            selection = numeric_model(owner["obligation_id"])
+            result = (create_model("Direct_" + key, __base__=WireModel,
+                selection=(selection, ...), compatibility_refs=(list[str], Field(default_factory=list, description=(
+                    "Exposed narrative candidate refs supplying needed scope compatibility for this selected value. "
+                    "Use [] when selection axes, metadata or attached context_evidence already support its scope. "
+                    "A witness must share the selected value's source context; same filing, topic or similar value "
+                    "elsewhere alone is insufficient. These are not context_ref IDs or general corroborating citations "
+                    "and cannot override source, owner or period conflicts."))))
+                if selection is not None else type(None))
+        elif kind == "derived_value":
+            inputs = _input_groups(owner, refs, NumericInput, "Inputs_" + key, selection_model=numeric_model)
+            request_input = create_model("RequestOperand_" + key, __base__=WireModel,
+                value=(float, Field(strict=True, allow_inf_nan=False)),
+                request_unit_id=(str, Field(json_schema_extra={"enum": list(dict.fromkeys(
+                    refs.ref(unit_id) for unit_id in owner.get("request_unit_ids") or []))}, description=(
+                    "Select the owned instruction interpreting this scalar. Code preserves its complete exact text; "
+                    "this is not a claim that it identifies a unique quantity occurrence."))),
+                interpretation=(str, Field(min_length=1,
+                    description="Explain how that request specifies this scalar at this formula position; not a source value or answer.")))
+            variable = create_model("FormulaVariable_" + key, __base__=WireModel,
+                variable=(str, Field(min_length=1, description="An existing source/dependency input variable.")))
+            prior_step = create_model("FormulaStepReference_" + key, __base__=WireModel,
+                step=(int, Field(strict=True, ge=1,
+                    description="One-based index of an earlier formula step; never this step or a later step.")))
+            argument = TypeAliasType("FormulaArgument_" + key,
+                Union[variable, prior_step, request_input, Literal[FORMULA_LITERALS]])
+            steps = [create_model(f"FormulaStep_{key}_{index}", __base__=WireModel,
+                operation=(Literal[names], ...),
+                arguments=(list[argument], Field(min_length=low, max_length=high)))
+                for index, (names, low, high) in enumerate(FORMULA_OPERATION_GROUPS)]
+            result = create_model("Calculation_" + key, __base__=WireModel,
+                comparison_request_unit_id=(Optional[str], Field(description=(
+                    "For a directed comparison, select an owned request unit ID and name its endpoint inputs "
+                    "reference and target in both inputs and formula. Null for other calculations. "
+                    "The request, not source period labels, defines these endpoints."))),
+                inputs=(inputs, ...), formula=(list[Union[tuple(steps)]], Field(
+                    min_length=1, max_length=MAX_FORMULA_STEPS, description=(
+                    "Ordered operation steps; the last step is the result and every step must contribute to it. "
+                    "Arguments are {variable: input name}, {step: earlier one-based index}, neutral 0/1/100 strings, "
+                    "binding_count, or inline {value, request_unit_id, interpretation}. "
+                    "Write no parentheses or punctuation tokens. Keep argument order, including subtract/divide/power. "
+                    "identity returns its sole argument. binding_count counts source/dependency inputs only."))),
+                display_unit=(str, ""), display_format=(str, ""),
+                source_display=(Optional[numeric_model(owner["obligation_id"]) or type(None)], Field(description=(
+                    "Primary source-stated display only when consistent with the linked request. "
+                    "Use null for calculation-only requests; explicit intent overrides source-first defaults."))),
+                source_display_reason=(str, Field(min_length=1, description=(
+                    "Explain selection or null from the request's display intent, not merely the presence of a reported value."))),
+                compatibility_refs=(list[str], Field(default_factory=list)))
+        elif kind == "narrative":
+            evidence = _input_groups(owner, refs, ReadingSelection, "Evidence_" + key,
+                selection_model=lambda owner_id, **_: ReadingSelection if allowed.get(owner_id) else None)
+            claim = create_model("Claim_" + key, __base__=WireModel, text=(str, Field(min_length=1)), evidence=(evidence, ...))
+            subject = create_model("Subject_" + key, __base__=WireModel,
+                subject=(str, Field(min_length=1)), support=(evidence, ...), claims=(list[claim], Field(min_length=1)))
+            result = create_model("Narrative_" + key, __base__=WireModel,
+                subjects=(list[subject], Field(min_length=1)),
+                basis_interpretation=(str, ""),
+                scope_applicability_fields=(list[Literal["segment", "basis", "consolidation_scope"]], Field(default_factory=list)))
+        else:
+            raise ValueError("unknown_output_kind")
+        related = [relation_id for relation_id, relation in relationships.items()
+                   if owner["obligation_id"] in relation["output_ids"]]
+        if related and result is not type(None):
+            result = create_model("Related_" + key, __base__=result,
+                relationship_refs=(list[str], Field(json_schema_extra={"items": {"type": "string", "enum": related}},
+                    description="Explicitly reference every shared-basis relationship owned by this ready output. Local source interpretations stay independent.")))
+        reply = create_model("Reply_" + key, __base__=WireModel,
+            status=(Literal["ready", "missing", "ambiguous"], ...), result=(Optional[result], ...))
+        output_fields[key] = (reply, ...)
+    outputs = create_model("CompilerOutputs", __base__=WireModel, **output_fields)
+    declaration_fields = {key: (Optional[str], Field(min_length=1, description=(
+        "Declare the common basis once for this relationship. Null only when all members abstain; "
+        "ready members explicitly reference this declaration. Agreement is not semantic proof.")))
+        for key in relationships if key not in frozen}
+    extra = {"relationship_declarations": (create_model("RelationshipDeclarations", __base__=WireModel,
+        **declaration_fields), ...)} if declaration_fields else {}
+    model = create_model("CompilerResponseV2", __base__=WireModel, outputs=(outputs, ...), rationale=(str, ""), **extra)
+    model.__compiler_references__ = refs
+    model.__compiler_visibility__ = visibility
+    model.__read_only_relationship_declarations__ = frozen
+    return model

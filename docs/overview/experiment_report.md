@@ -1,5 +1,9 @@
 # Recorded Experiment Report
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](project_overview.md)
+> and [offline demo](simple_rag_demo.md).
+
 This report summarizes the recorded experiments and their limits. It does not introduce a
 new benchmark run; it packages the current repo evidence into a reviewer-facing
 case study. Historical `benchmarks/results/**` artifacts are treated as

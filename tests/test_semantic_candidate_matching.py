@@ -1,12 +1,22 @@
 from __future__ import annotations
 
 import unittest
+from copy import deepcopy
 
 from src.agent.financial_calculation_execution import (
     validate_semantic_calculation_program,
 )
 from src.agent.financial_graph import FinancialAgent
 from src.agent.financial_graph_calculation import _semantic_candidate_cohorts
+from src.agent.financial_reconciliation_candidates import (
+    build_semantic_candidate_catalog,
+    semantic_candidate_catalog_fingerprint,
+)
+from src.agent.financial_candidate_matching import (
+    _best_metric_state,
+    project_candidate_fact,
+    resolve_owner_target,
+)
 from src.config import get_financial_ontology
 
 
@@ -80,7 +90,7 @@ def _obligation() -> dict:
         },
         "evidence_requirements": [],
         "depends_on": [],
-        "coupling_key": "",
+
     }
 
 
@@ -128,15 +138,99 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
             row for row in plan["cohorts"] if row["cohort_id"] == "ob_amount:output"
         )
 
-        self.assertEqual(output["candidate_ids"], ["amount-target"])
+        self.assertEqual(output["candidate_ids"], ["amount-target", "amount-other"])
         self.assertEqual(
             output["match_counts"],
-            {"compatible": 1, "unknown_only": 0, "explicit_conflict": 2},
+            {"compatible": 1, "unknown_only": 1, "explicit_conflict": 1},
         )
         amount_match = plan["candidate_match_by_id"]["amount-target"]["ob_amount"]
         self.assertEqual(amount_match["subject_state"], "match")
         self.assertEqual(amount_match["metric_state"], "concept_cell")
         self.assertEqual(amount_match["unit_state"], "match")
+
+    def test_filing_company_row_cannot_mask_source_matched_metric_bundles(self) -> None:
+        owner = _obligation()
+        owner.update(label="Support credit", concept_hints=[], retrieval_hints=[])
+        owner["display_unit"] = "USD"
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": [], "metric_surfaces": ["support credit"],
+        }
+        catalog = []
+        for candidate_id, entity, column, context in (
+            ("balance-a", "filing company", "assets", ""),
+            ("balance-b", "filing company", "liabilities", ""),
+            ("credit-a", "adjustments", "disclosed amount", "Support credit for production."),
+            ("credit-b", "adjustments", "disclosed amount", "Support credit recognized this period."),
+        ):
+            candidate = _candidate(candidate_id, entity=entity, row_id=candidate_id,
+                cell_id=candidate_id, column=column, value="125", unit="USD",
+                normalized_unit="USD", table_id=candidate_id)
+            candidate.update(period="", source_text=context or entity, row_context_text=context)
+            catalog.append(candidate)
+        before = deepcopy(catalog)
+        for rows in (catalog, list(reversed(catalog))):
+            plan = _semantic_candidate_cohorts(rows, [owner])
+            self.assertEqual(set(plan["candidate_ids_by_owner"]["ob_amount"]), {"credit-a", "credit-b"})
+            for candidate_id in ("credit-a", "credit-b"):
+                match = plan["candidate_match_by_id"][candidate_id]["ob_amount"]
+                self.assertEqual(match["state"], "unknown_only")
+                self.assertEqual(match["metric_state"], "surface_text")
+        self.assertEqual(catalog, before)
+
+    def test_filing_company_still_enforces_scope_without_ranking_bonus(self) -> None:
+        candidate = {**self.target_amount, "company": "unrelated filing", "document_company": "unrelated filing"}
+        plan = _semantic_candidate_cohorts([candidate], [_obligation()])
+        self.assertNotIn(candidate["candidate_id"], plan["visible_candidate_ids"])
+        self.assertEqual(plan["candidate_match_by_id"][candidate["candidate_id"]]["ob_amount"]["state"], "explicit_conflict")
+
+    def test_metric_fragment_is_not_inferred_as_a_local_subject(self) -> None:
+        owner = _obligation()
+        owner.update(label="전체 연구개발비용", retrieval_hints=[], concept_hints=[], display_unit="KRW")
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": ["research_and_development_expense"],
+            "metric_surfaces": ["전체 연구개발비용"],
+        }
+        total = _candidate("total", entity="연구개발비용 계", row_id="total", cell_id="total:1",
+            column="2024", value="120", unit="원", normalized_unit="KRW")
+        unrelated = _candidate("balance", entity="개발비", row_id="balance", cell_id="balance:1",
+            column="carrying amount", value="600", unit="원", normalized_unit="KRW", table_id="other")
+        unrelated.update(period="", value_year=None)
+        plan = _semantic_candidate_cohorts([unrelated, total], [owner])
+        match = plan["candidate_match_by_id"]["total"]["ob_amount"]
+        self.assertEqual(match["target_local_subjects"], [])
+        self.assertEqual(match["state"], "compatible")
+        self.assertEqual(plan["candidate_ids_by_owner"]["ob_amount"][0], "total")
+
+    def test_explicit_metric_surface_fragment_is_not_a_subject_without_ontology(self) -> None:
+        owner = _obligation()
+        owner.update(label="combined service fee", retrieval_hints=[], concept_hints=[], display_unit="USD")
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": [], "metric_surfaces": ["combined service fee"],
+        }
+        total = _candidate("total", entity="combined service fee", row_id="total", cell_id="total:1",
+            column="2024", value="120", unit="USD", normalized_unit="USD")
+        unrelated = _candidate("balance", entity="service fee", row_id="balance", cell_id="balance:1",
+            column="amount", value="600", unit="USD", normalized_unit="USD", table_id="other")
+        plan = _semantic_candidate_cohorts([unrelated, total], [owner])
+        self.assertEqual(plan["candidate_match_by_id"]["total"]["ob_amount"]["target_local_subjects"], [])
+
+    def test_exact_metric_axes_precede_substring_matches_without_trimming_bundles(self) -> None:
+        owner = _obligation()
+        owner.update(label="무형자산(개발비)으로 자본화된 금액", retrieval_hints=[], concept_hints=[], display_unit="KRW")
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": ["capitalized_development_cost"],
+            "metric_surfaces": ["무형자산(개발비)으로 자본화된 금액"],
+        }
+        catalog = []
+        for candidate_id, label in (("a", "연구개발비용 계"), ("b", "정부보조금 차감후 연구개발비용 계"),
+                                    ("z1", "개발비(무형자산)"), ("z2", "개발비(무형자산)")):
+            catalog.append(_candidate(candidate_id, entity=label, row_id=candidate_id, cell_id=candidate_id + ":1",
+                column="2024", value="120", unit="원", normalized_unit="KRW", table_id=candidate_id))
+        before = deepcopy(catalog)
+        for rows in (catalog, list(reversed(catalog))):
+            plan = _semantic_candidate_cohorts(rows, [owner])
+            self.assertEqual(set(plan["candidate_ids_by_owner"]["ob_amount"]), {"z1", "z2"})
+        self.assertEqual(catalog, before)
 
     def test_catalog_order_does_not_change_cohort_or_payload(self) -> None:
         catalog = [
@@ -153,6 +247,62 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
                 list(reversed(catalog)), reverse
             ),
         )
+
+    def test_footnoted_metric_rows_reach_the_owner_without_changing_source_identity(self) -> None:
+        for label, metric, other_labels in (
+            ("영업수익 (주35)", "영업수익", ("기타수익 (주26)", "이자수익")),
+            ("매출액 (주28,36,37)", "매출액", ("매출원가 (주28,32,37)", "매출총이익")),
+        ):
+            with self.subTest(label=label):
+                owner = _obligation()
+                owner.update(label=metric, display_unit="KRW", retrieval_hints=[], concept_hints=[])
+                owner["semantic_target"] = {
+                    "local_subjects": [], "concept_keys": ["revenue"], "metric_surfaces": [metric],
+                }
+                sources = [{
+                    "candidate_id": f"source-{index}",
+                    "candidate_kind": "structured_value",
+                    "source_anchor": "[sample]",
+                    "text": f"{row_label} | 2024 | 125",
+                    "metadata": {
+                        "row_label": row_label, "row_headers": [row_label],
+                        "company": "filing company", "year": 2024,
+                        "table_source_id": "sample-table", "physical_table_id": "sample-table",
+                        "physical_row_id": f"row-{index}",
+                        "structured_cells": [{
+                            "cell_id": f"row-{index}:1", "column_headers": ["2024"],
+                            "value_text": "125", "unit_hint": "원",
+                        }],
+                    },
+                } for index, row_label in enumerate((*other_labels, label))]
+                catalog = build_semantic_candidate_catalog(sources)
+                before = deepcopy(catalog)
+                fingerprint = semantic_candidate_catalog_fingerprint(catalog)
+                target = next(row for row in catalog if row["row_label"] == label)
+                for rows in (catalog, list(reversed(catalog))):
+                    plan = _semantic_candidate_cohorts(rows, [owner])
+                    self.assertIn(target["candidate_id"], plan["candidate_ids_by_owner"]["ob_amount"])
+                    state, rank = _best_metric_state(project_candidate_fact(target), resolve_owner_target(owner))
+                    self.assertEqual((state, rank), ("concept_row", 1000))
+                self.assertEqual(target["normalized_value"], 125)
+                self.assertIn(label, target["source_text"])
+                self.assertEqual(catalog, before)
+                self.assertEqual(semantic_candidate_catalog_fingerprint(catalog), fingerprint)
+
+    def test_metric_annotation_normalization_keeps_semantic_qualifiers_and_empty_keys(self) -> None:
+        owner = _obligation()
+        owner["semantic_target"] = {
+            "local_subjects": [], "concept_keys": [], "metric_surfaces": ["service fee (*1,5)"],
+        }
+        target = resolve_owner_target(owner)
+        for label, expected_rank in (("service fee", 900), ("service fee (net)", 0), ("(*)", 0)):
+            with self.subTest(label=label):
+                fact = project_candidate_fact({"row_label": label})
+                self.assertEqual(_best_metric_state(fact, target)[1], expected_rank)
+        empty_target = resolve_owner_target({
+            "semantic_target": {"local_subjects": [], "concept_keys": [], "metric_surfaces": ["(*)"]},
+        })
+        self.assertEqual(_best_metric_state(project_candidate_fact({"row_label": "(*)"}), empty_target)[1], 0)
 
     def test_compatible_candidate_precedes_stronger_unknown_metric_match(self) -> None:
         compatible = {
@@ -250,7 +400,7 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         output = next(
             row for row in plan["cohorts"] if row["cohort_id"] == "ob_amount:output"
         )
-        self.assertEqual(output["candidate_ids"], ["amount-target"])
+        self.assertEqual(output["candidate_ids"], ["amount-target", "amount-other"])
         match = plan["candidate_match_by_id"]["amount-target"]["ob_amount"]
         self.assertEqual(match["target_local_subjects"], ["Motional"])
         self.assertEqual(
@@ -265,13 +415,14 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         row = payload["candidates_by_id"]["amount-target"]
         self.assertNotIn("source_text", row)
         bundle = payload["source_bundles_by_id"][row["source_bundle_id"]]
-        self.assertIn("700,691", bundle["source_text"])
-        self.assertIn("investment carrying amount", bundle["source_text"])
+        from tests.compiler_presentation_test_support import bundle_text
+        self.assertIn("700,691", bundle_text(payload, bundle["source_bundle_id"]))
+        self.assertIn("investment carrying amount", bundle_text(payload, bundle["source_bundle_id"]))
         self.assertNotIn("ranking_diagnostics", payload["cohorts"][0])
-        self.assertIn("26%", bundle["source_text"])
-        self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v5")
+        self.assertIn("26%", bundle_text(payload, bundle["source_bundle_id"]))
+        self.assertEqual(payload["schema"], "semantic_program_candidate_payload_v7")
 
-    def test_validator_rejects_visible_but_conflicting_row(self) -> None:
+    def test_numeric_subject_selection_requires_explicit_source_interpretation(self) -> None:
         obligation = _obligation()
         result = validate_semantic_calculation_program(
             program={
@@ -292,7 +443,7 @@ class SemanticCandidateMatchingTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "invalid")
         self.assertIn(
-            "candidate_semantic_target_mismatch",
+            "missing_source_interpretation",
             {error["code"] for error in result["errors"]},
         )
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from src.processing.table_records import cell_looks_numeric, is_generic_value_label, normalize_table_text
+from src.processing.source_context import collect_table_source_contexts
 
 
 TABLE_CELL_TAGS = ("TD", "TH", "TU", "TE")
@@ -19,7 +20,7 @@ def cell_span_int(cell: Any, attr_name: str) -> int:
     return max(1, value)
 
 
-def normalize_table_grid(table_elem: Any) -> List[List[str]]:
+def normalize_table_grid(table_elem: Any, *, row_elements: list[Any] | None = None) -> List[List[str]]:
     grid: List[List[str]] = []
     carry: Dict[int, Dict[str, Any]] = {}
 
@@ -59,6 +60,8 @@ def normalize_table_grid(table_elem: Any) -> List[List[str]]:
         col_idx = advance_carry_into_row(row, col_idx)
         if any(cell.strip() for cell in row):
             grid.append(row)
+            if row_elements is not None:
+                row_elements.append(tr)
 
     if not grid:
         return []
@@ -117,9 +120,23 @@ def extract_table_row_labels_from_grid(grid: List[List[str]], max_labels: int = 
 
 
 def build_table_object(table_elem: Any) -> Dict[str, Any]:
-    grid = normalize_table_grid(table_elem)
+    row_elements: list[Any] = []
+    grid = normalize_table_grid(table_elem, row_elements=row_elements)
     table_text = format_table_grid(grid)
     row_labels = extract_table_row_labels_from_grid(grid)
+    explicit_header: dict[str, Any] = {}
+    thead = table_elem.find("THEAD")
+    header_count = 0
+    for row in row_elements:
+        cells = [cell for cell in row if cell.tag in TABLE_CELL_TAGS]
+        is_header = thead in row.iterancestors() if thead is not None else (
+            bool(cells) and all(cell.tag == "TH" for cell in cells))
+        if not is_header:
+            break
+        header_count += 1
+    if header_count or (thead is not None and not thead.findall(".//TR")):
+        explicit_header = {"header_row_count": header_count,
+                           "header_scope_source": "thead" if thead is not None else "column_header_cells"}
     return {
         "grid": grid,
         "table_text": table_text,
@@ -127,6 +144,9 @@ def build_table_object(table_elem: Any) -> Dict[str, Any]:
         "column_count": max((len(row) for row in grid), default=0),
         "row_labels": row_labels,
         "has_spans": table_has_spans(table_elem),
+        "source_table_locator": table_elem.getroottree().getpath(table_elem),
+        "source_contexts": collect_table_source_contexts(table_elem),
+        **explicit_header,
     }
 
 

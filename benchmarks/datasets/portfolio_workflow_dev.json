@@ -1,0 +1,54 @@
+{
+  "split": "development",
+  "purpose": "Known-source workflow comparison; exposed examples are not final holdout.",
+  "cases": [
+    {
+      "id": "lookup_cash",
+      "task_type": "lookup",
+      "query": "2023년 말 연결 재무상태표 기준 NAVER의 현금및현금성자산은 얼마야? 원문 단위로 알려 줘.",
+      "report_scope": {"company": "NAVER", "rcept_no": "20240318000844", "report_type": "사업보고서"},
+      "review_criteria": {
+        "provenance": "docs/evaluation/planner_real_questions_result.md; previously exposed development query",
+        "expected_abstention_if_supported_evidence_visible": false,
+        "required_facts": ["2023년 말 연결 기준 현금및현금성자산", "선택 원문의 금액과 단위: 3,576,456,533,329원"],
+        "failure_checks": ["중간 시점이나 별도 금액을 사용하면 오답", "올바른 셀을 우연히 골랐더라도 요청한 기말 조건을 잃은 해석은 별도 기록"]
+      }
+    },
+    {
+      "id": "calculate_commerce_growth",
+      "task_type": "calculation",
+      "query": "NAVER 커머스 부문의 2023년 매출 성장률을 2022년 대비로 계산해 줘. 소수점 첫째 자리까지 표시해 줘.",
+      "report_scope": {"company": "NAVER", "rcept_no": "20240318000844", "report_type": "사업보고서"},
+      "review_criteria": {
+        "provenance": "Numeric part adapted from NAV_T2_006 in single_doc_eval_full.curated.json; repeatedly exposed development topic",
+        "expected_abstention_if_supported_evidence_visible": false,
+        "required_facts": ["동일 커머스 부문의 2023년과 2022년 매출에 근거", "(2023년 매출 - 2022년 매출) / 2022년 매출 × 100", "성장률 41.4%"],
+        "failure_checks": ["기간·부문·단위 불일치", "원문의 증가율만 인용하고 계산 요청을 누락"]
+      }
+    },
+    {
+      "id": "explain_acquisition_impact",
+      "task_type": "explanation",
+      "query": "NAVER의 2023년 사업보고서는 포시마크 인수가 커머스 실적에 미친 영향을 어떻게 설명하는지 요약해 줘.",
+      "report_scope": {"company": "NAVER", "rcept_no": "20240318000844", "report_type": "사업보고서"},
+      "review_criteria": {
+        "provenance": "Narrative part adapted from NAV_T2_006 and prior application smoke; exposed development topic",
+        "expected_abstention_if_supported_evidence_visible": false,
+        "required_facts": ["인수 대상과 커머스 실적에 대한 원문 설명의 연결", "인수·연결 편입 효과에 대한 근거 있는 설명"],
+        "failure_checks": ["인수 사실만으로 실적 영향이나 인과관계를 추정", "다른 성장 요인을 포시마크 단독 효과로 귀속", "원문에 없는 효과 규모 생성"]
+      }
+    },
+    {
+      "id": "abstain_missing_segment",
+      "task_type": "insufficient_evidence",
+      "query": "네이버의 2023년 '선박 건조' 부문 수주 잔고를 알려줘.",
+      "report_scope": {"company": "NAVER", "rcept_no": "20240318000844", "report_type": "사업보고서"},
+      "review_criteria": {
+        "provenance": "NAV_T4_008 in single_doc_eval_full.curated.json; development rejection example",
+        "expected_abstention_if_supported_evidence_visible": true,
+        "required_facts": ["제공된 근거에서 요청 금액을 확인할 수 없다고 명시"],
+        "failure_checks": ["근거가 없다는 이유로 0이라고 단정", "다른 사업이나 회사의 수치를 대신 제시"]
+      }
+    }
+  ]
+}

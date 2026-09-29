@@ -1,3 +1,4 @@
+from tests.source_interpretation_fixture_support import execute_authored_fixture, validate_authored_fixture
 from tests.semantic_program_test_support import *
 
 
@@ -14,7 +15,7 @@ class SemanticDisplayExecutionTests(unittest.TestCase):
             "source_display_candidate_id": None,
             "source_display_reason": "This subsequent calculation has no source display.",
         })
-        execution = execute_semantic_calculation_program(**fixture)
+        execution = execute_authored_fixture(**fixture)
         self.assertEqual(execution["validation"]["errors"], [])
         first = execution["outputs_by_obligation"]["ob_change"]
         self.assertEqual(first["normalized_value"], 10)
@@ -31,6 +32,6 @@ class SemanticDisplayExecutionTests(unittest.TestCase):
             with self.subTest(field=field):
                 fixture = _source_display_program_fixture()
                 del fixture["program"]["expressions"][0][field]
-                execution = execute_semantic_calculation_program(**fixture)
+                execution = execute_authored_fixture(**fixture)
                 self.assertEqual(execution["outputs"], [])
                 self.assertIn("invalid_source_display_decision", {e["code"] for e in execution["validation"]["errors"]})

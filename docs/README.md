@@ -11,6 +11,7 @@ work queue나 release evidence로 사용하지 않는다.
 | [../AGENTS.md](../AGENTS.md) | 작업 방식, 빠른 개발 루프, 중단 조건 |
 | [../CONTEXT.md](../CONTEXT.md) | 현재 checkout과 handoff snapshot |
 | [overview/project_status.md](overview/project_status.md) | 현재 제품 경계, 검증 상태, blocker, 다음 작업 |
+| [overview/portfolio_scope.md](overview/portfolio_scope.md) | 포트폴리오 범위, 삭제 근거, 기준선 비교와 완료 기준 |
 | [architecture/agent_runtime_contract.md](architecture/agent_runtime_contract.md) | normative runtime contract와 release gate |
 | [overview/runtime_flow_roles.md](overview/runtime_flow_roles.md) | source에서 생성·검사되는 graph topology |
 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 code ownership과 실행 경로 |
@@ -37,10 +38,20 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | 순서 | 문서 | 역할 |
 | --- | --- | --- |
 | 1 | [../README.md](../README.md) | 프로젝트 요약, 실행 명령, claim boundary |
-| 2 | [프로젝트 개요](overview/project_overview.md) | 프로젝트 개요와 설계 근거 |
-| 3 | [overview/experiment_report.md](overview/experiment_report.md) | 기록된 실험 방법과 한계 |
-| 4 | [overview/technical_highlights.md](overview/technical_highlights.md) | 주요 구현 surface |
-| 5 | [overview/demo_walkthrough.md](overview/demo_walkthrough.md) | fixture-backed demo 검토 순서 |
+| 2 | [overview/project_overview.md](overview/project_overview.md) | 현재 단순 RAG 구조와 비교 실험에 따른 설계 판단 |
+| 3 | [overview/project_summary.md](overview/project_summary.md) | 현재 구현·설계 판단·비교 결과와 한계 |
+| 4 | [overview/simple_rag_demo.md](overview/simple_rag_demo.md) | Git에 포함된 5개 실제 답변·원문의 오프라인 데모 |
+| 5 | [evaluation/simple_rag_final_result.md](evaluation/simple_rag_final_result.md) | 전체 12문항 평가, 실패·비용·시간과 근거 한계 |
+| 6 | [evaluation/vanilla_dense_comparison.md](evaluation/vanilla_dense_comparison.md) | 동일 답변 경로에서 hybrid와 dense-only 근거 선택 비교 |
+| 7 | [evaluation/structure_retrieval_factorial.md](evaluation/structure_retrieval_factorial.md) | flat/structured × dense/RRF 표 중심 검색 비교 |
+| 8 | [evaluation/structure_answer_result.md](evaluation/structure_answer_result.md) | 같은 네 조건의 실제 정답·인용 지지 비교와 실패 분석 |
+| 9 | [overview/portfolio_scope.md](overview/portfolio_scope.md) | 완료된 범위와 남은 제품 한계 |
+| 10 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 구현 ownership과 비교 경로의 구분 |
+
+이전 [experiment report](overview/experiment_report.md),
+[technical highlights](overview/technical_highlights.md),
+[compiled fixture walkthrough](overview/demo_walkthrough.md)는 과거
+Planner/Compiler checkpoint 자료다. 현재 앱 데모나 품질 결과로 읽지 않는다.
 
 소개 문서의 수치와 상태는 checkpoint-specific이다. 현재 release 상태는 항상
 `project_status.md`에서 확인한다. 용어와 claim 수준은
@@ -48,6 +59,10 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 따른다.
 
 ## Contract And Operations Reference
+
+The current application uses [simple RAG](architecture/agent_runtime_contract.md).
+The former Planner/Compiler has a separate [comparison contract](architecture/compiled_workflow_contract.md);
+its fixtures and older walkthroughs do not establish the default application's guarantees.
 
 | 문서 | 역할 |
 | --- | --- |
@@ -57,7 +72,10 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 | [evaluation/evaluation_metrics_v1.md](evaluation/evaluation_metrics_v1.md) | evaluator metric 정의 |
 | [evaluation/benchmark_dataset_design.md](evaluation/benchmark_dataset_design.md) | curated dataset 설계 원칙 |
 | [evaluation/numeric_regression_methodology.md](evaluation/numeric_regression_methodology.md) | numeric regression 분류 방법 |
+| [evaluation/reviewed_case_evidence_status.md](evaluation/reviewed_case_evidence_status.md) | 기존 5문항의 live·fixture·exact replay 구분과 남은 근거 결함 |
+| [evaluation/lge_t1_051_calculation_source_review_v2.md](evaluation/lge_t1_051_calculation_source_review_v2.md) | LG 원문 기간·행·출처 검토와 명시적 평가 successor |
 | [evaluation/retrieval_trace_debugging.md](evaluation/retrieval_trace_debugging.md) | retrieval trace 진단 절차 |
+| [operations/parser_store_successor.md](operations/parser_store_successor.md) | 원본 보존·동일 입력 벡터 재사용·새 parser 저장소 생성 절차 |
 
 `requirements-review.txt`는 fixture와 reviewer gate용 lightweight profile이고,
 `requirements.txt`는 ingest, API, benchmark, full development profile이다.

@@ -1,0 +1,1 @@
+from src.ops.compiler_fixture_transport import project_offline_program_to_wire as wire_fixture, short_ref

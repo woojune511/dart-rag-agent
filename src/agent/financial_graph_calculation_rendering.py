@@ -6,6 +6,7 @@ rendering; graph modules retain state preparation, orchestration, and adoption.
 
 import math
 import re
+from decimal import Decimal
 from typing import Any, Callable, Dict, List, Optional
 
 from src.agent.financial_scope_policies import desired_consolidation_scope
@@ -18,6 +19,9 @@ from src.agent.financial_runtime_normalization import (
     resolve_unit_spec,
 )
 from src.config.retrieval_policy import CALCULATION_RENDER_POLICY, CONCEPT_RATIO_RESULT_UNIT_POLICY
+
+# Bound presentation allocation across binary64's decimal exponent range.
+MAX_FIXED_DECIMAL_PLACES = 324
 
 
 def direction_hint_for_result(
@@ -202,9 +206,25 @@ def adjusted_difference_source_display_unit(
     return ""
 
 
-def render_value_with_unit(value: float, display_unit: str, normalized_unit: str) -> str:
+def render_value_with_unit(
+    value: float, display_unit: str, normalized_unit: str, *, decimal_places: Optional[int] = None,
+) -> str:
+    """Render a value, optionally preserving final-round precision in base units."""
     spec = resolve_unit_spec(display_unit)
     normalized_spec = resolve_unit_spec(normalized_unit)
+    if type(decimal_places) is int and math.isfinite(value) and (
+        not display_unit or (spec is not None and normalized_spec is not None
+            and spec.normalized_dimension == normalized_spec.normalized_dimension)
+    ):
+        target = spec or normalized_spec
+        scale = target.scale if target is not None else 1.0
+        shift = math.log10(scale)
+        places = max(0, decimal_places + int(shift))
+        if shift.is_integer() and places <= MAX_FIXED_DECIMAL_PLACES:
+            grouping = "" if normalized_unit == "PERCENT" else ","
+            suffix = target.display_unit if target is not None else ""
+            scaled = Decimal(str(value)).scaleb(-int(shift))
+            return f"{scaled:{grouping}.{places}f}{suffix}"
     if (
         spec is not None
         and normalized_spec is not None

@@ -36,6 +36,8 @@ from src.storage.metadata_payloads import (
 )
 from src.storage import parent_store
 from src.storage import search_merge
+from src.storage.table_caption_links import get_caption_doc, load_caption_links
+from src.storage.search_scope import filter_selects_nothing
 from src.storage.structure_graph import (
     empty_structure_graph,
     get_described_by_doc as structure_graph_described_by_doc,
@@ -50,10 +52,10 @@ from src.storage.structure_graph import (
     update_structure_graph,
 )
 from src.utils.embedding_usage import (
-    add_embedding_usage_counts,
     subtract_embedding_usage_counts,
     zero_embedding_usage_counts,
 )
+from src.utils.provider_errors import ProviderAdmissionError
 
 if TYPE_CHECKING:
     from langchain_core.documents import Document
@@ -145,7 +147,20 @@ class VectorStoreManager:
         allow_query_embedding_fallback: bool = True,
         force_bm25_only: bool = False,
         skip_vector_add: bool = False,
+        *,
+        experimental_caption_links_path: str | Path | None = None,
     ):
+        # An experiment artifact's presence must not activate an unadopted
+        # retrieval feature in the default API/Streamlit construction path.
+        caption_links = {}
+        if experimental_caption_links_path is not None:
+            if (not isinstance(experimental_caption_links_path, (str, Path))
+                    or not str(experimental_caption_links_path).strip()):
+                raise ValueError("Experimental caption links require an explicit file path")
+            caption_path = Path(experimental_caption_links_path)
+            if not caption_path.is_file():
+                raise ValueError("Experimental caption links file does not exist")
+            caption_links = load_caption_links(caption_path)
         self.persist_directory = persist_directory
         os.makedirs(self.persist_directory, exist_ok=True)
         self.collection_name = collection_name
@@ -205,6 +220,7 @@ class VectorStoreManager:
         self._table_payloads_path = Path(self.persist_directory) / "table_payloads.json"
         self._structure_graph: Dict[str, Any] = self._load_structure_graph()
         self._table_payloads: Dict[str, Dict[str, str]] = self._load_table_payloads()
+        self._caption_links = caption_links
 
         self.bm25 = None
         self.bm25_docs: List[str] = []
@@ -259,7 +275,7 @@ class VectorStoreManager:
         if cached is None:
             return None
         cache.move_to_end(key)
-        return list(cached)
+        return deepcopy(cached)
 
     def _store_cached_search(
         self,
@@ -278,7 +294,9 @@ class VectorStoreManager:
         if telemetry_cache is None:
             self._search_cache_telemetry = {}
             telemetry_cache = self._search_cache_telemetry
-        cache[key] = list(results)
+        # Result documents carry mutable nested provenance. Neither a first
+        # result nor a later cache hit may mutate the cached source snapshot.
+        cache[key] = deepcopy(results)
         telemetry_row = dict(telemetry or {})
         telemetry_cache[key] = {
             "retrieval_mode": str(
@@ -297,10 +315,7 @@ class VectorStoreManager:
         persist = getattr(self.vector_store, "persist", None)
         if not callable(persist):
             return
-        try:
-            persist()
-        except Exception as exc:
-            logger.warning("Failed to explicitly persist vector store: %s", exc)
+        persist()
 
     def _init_bm25(self):
         docs: List[str] = []
@@ -412,6 +427,12 @@ class VectorStoreManager:
         )
         self._structure_graph = prospective
         self._table_payloads = payloads
+        # Publish cache invalidation only with the new committed source graph.
+        # A failed write leaves the prior graph and its search results valid.
+        for name in ("_search_cache", "_search_cache_telemetry"):
+            cache = getattr(self, name, None)
+            if cache is not None:
+                cache.clear()
 
     def _rebuild_structure_relationships(self) -> None:
         self._structure_graph = rebuild_structure_relationships(self._structure_graph)
@@ -680,6 +701,8 @@ class VectorStoreManager:
                 self.vector_store.add_texts(texts=batch_texts, metadatas=chroma_metadatas)
                 vector_add_sec += time.perf_counter() - vector_started
                 break
+            except ProviderAdmissionError:
+                raise
             except Exception as exc:
                 vector_add_sec += time.perf_counter() - vector_started
                 if attempt >= max_attempts or not _is_transient_vector_add_error(exc):
@@ -865,6 +888,12 @@ class VectorStoreManager:
             self._metadata_with_table_payload,
         )
 
+    def get_table_caption_doc(self, table_doc: Document) -> Optional[Document]:
+        return get_caption_doc(
+            self._structure_graph, getattr(self, "_caption_links", {}), table_doc,
+            self._metadata_with_table_payload,
+        )
+
     def get_section_lead_doc(self, parent_id: str, exclude_chunk_uid: Optional[str] = None) -> Optional[Document]:
         return structure_graph_section_lead_doc(
             self._structure_graph,
@@ -944,6 +973,14 @@ class VectorStoreManager:
             self.last_search_telemetry = telemetry
             return cached
 
+        if filter_selects_nothing(where_filter):
+            telemetry.update(retrieval_mode="empty_scope", vector_skipped_reason="empty_source_scope",
+                             total_sec=_elapsed_sec(started_at))
+            self.last_embedding_usage = dict(telemetry["embedding_usage"])
+            self.last_search_telemetry = telemetry
+            self._store_cached_search(cache_key, [], telemetry=telemetry)
+            return []
+
         vector_results = []
         if self.force_bm25_only:
             logger.info("Skipping vector search for %r because force_bm25_only is enabled.", query)
@@ -977,6 +1014,8 @@ class VectorStoreManager:
                     for doc, score in vector_results
                 ]
                 telemetry["vector_result_count"] = len(vector_results)
+            except ProviderAdmissionError:
+                raise
             except Exception as exc:
                 telemetry["vector_search_sec"] = _elapsed_sec(vector_started)
                 telemetry["embedding_usage"] = subtract_embedding_usage_counts(
@@ -998,23 +1037,10 @@ class VectorStoreManager:
                         telemetry["vector_skipped_reason"] = "vector_store_read_error"
                     telemetry["retrieval_mode"] = "bm25_fallback"
                     vector_results = []
-                elif where_filter and not _is_vector_store_read_error(exc) and not _is_embedding_capacity_error(exc):
-                    embedding_before = self.get_embedding_usage_snapshot()
-                    vector_started = time.perf_counter()
-                    vector_results = self.vector_store.similarity_search_with_score(query, k=k * 2)
-                    telemetry["vector_search_sec"] += _elapsed_sec(vector_started)
-                    retry_embedding_usage = subtract_embedding_usage_counts(
-                        self.get_embedding_usage_snapshot(),
-                        embedding_before,
-                    )
-                    add_embedding_usage_counts(telemetry["embedding_usage"], retry_embedding_usage)
-                    vector_results = [
-                        (self._hydrate_document_from_structure_graph(doc), score)
-                        for doc, score in vector_results
-                    ]
-                    telemetry["vector_result_count"] = len(vector_results)
-                    telemetry["vector_skipped_reason"] = "filtered_search_failed_unfiltered_retry"
                 else:
+                    # A failed scoped search does not authorize another source
+                    # scope. Only the explicit, still-filtered BM25 fallback
+                    # above may recover a supported backend failure.
                     raise
 
         bm25_results = []

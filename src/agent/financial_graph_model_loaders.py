@@ -21,16 +21,8 @@ def semantic_calculation_program_model() -> Any:
     return _graph_model("SemanticCalculationProgram")
 
 
-def compression_output_model() -> Any:
-    return _graph_model("CompressionOutput")
-
-
-def evidence_extraction_model() -> Any:
-    return _graph_model("EvidenceExtraction")
-
-
-def validation_output_model() -> Any:
-    return _graph_model("ValidationOutput")
+def compiler_response_model(obligations, references, visibility, **kwargs):
+    return _graph_model("compiler_response_model")(obligations, references, visibility, **kwargs)
 
 
 def validate_answer_slots_payload(payload: Dict[str, Any]) -> Dict[str, Any]:

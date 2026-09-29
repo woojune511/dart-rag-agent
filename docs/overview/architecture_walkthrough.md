@@ -1,5 +1,9 @@
 # Architecture Walkthrough
 
+> Historical compiled-workflow material. The current simple-RAG product and its
+> guarantees are described in the [one-page introduction](project_overview.md)
+> and [offline demo](simple_rag_demo.md).
+
 This outline is for a technical walkthrough of the project.
 It assumes the audience already knows LLM/RAG basics, so the
 talk should focus on the engineering story: making financial RAG answers

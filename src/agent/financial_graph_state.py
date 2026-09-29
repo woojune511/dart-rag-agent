@@ -3,6 +3,7 @@
 from typing import Any, Dict, List, Literal, NotRequired, Optional, TypedDict
 
 from src.agent.financial_runtime_contracts import CompilationEnvelopeV2
+from src.utils.request_diagnostics import RequestDiagnosticSnapshot
 
 
 class RuntimeProjectionMetadata(TypedDict, total=False):
@@ -15,7 +16,6 @@ class RuntimeCalculationTrace(TypedDict, total=False):
     calculation_operands: List[Dict[str, Any]]
     calculation_plan: Dict[str, Any]
     calculation_result: Dict[str, Any]
-    report_cache_candidate: Dict[str, Any]
     runtime_projection: RuntimeProjectionMetadata
 
 
@@ -24,6 +24,10 @@ class DebugTraceBundle(TypedDict, total=False):
 
 
 class AgentAnswer(TypedDict, total=False):
+    workflow: str
+    abstained: bool
+    cited_sources: List[Dict[str, Any]]
+    validation: Dict[str, str]
     query: str
     report_scope: Dict[str, Any]
     query_type: str
@@ -48,8 +52,31 @@ class AgentAnswer(TypedDict, total=False):
     resolved_calculation_trace: RuntimeCalculationTrace
 
 
+class CompilerAttemptDebugV1(TypedDict):
+    schema_version: Literal["compiler_attempt_debug_v1"]
+    island_id: str
+    attempt: int
+    active_obligation_ids: List[str]
+    visible_candidate_ids: List[str]
+    response_status: Literal["parsed", "unavailable"]
+    response_error_type: str
+    model_program_json: Optional[str]
+    model_program_sha256: Optional[str]
+    validation_input_program_json: Optional[str]
+    validation_input_program_sha256: Optional[str]
+    validation_status: str
+    validation_errors: List[Dict[str, Any]]
+    compile_valid_obligation_ids: List[str]
+    missing_obligation_ids: List[str]
+    ambiguous_obligation_ids: List[str]
+    retry_feedback_text: str
+
+
 class DebugBundle(TypedDict, total=False):
+    timings_seconds: Dict[str, float]
     debug_traces: DebugTraceBundle
+    request_diagnostics: RequestDiagnosticSnapshot
+    compiler_attempts: List[CompilerAttemptDebugV1]
     llm_usage: Dict[str, Any]
     llm_usage_by_phase: Dict[str, Any]
     embedding_usage: Dict[str, Any]
@@ -113,6 +140,7 @@ class ReflectionReport(TypedDict, total=False):
 
 
 class ReviewTrace(TypedDict, total=False):
+    retrieved_sources: List[Dict[str, Any]]
     seed_retrieved_docs: List[Any]
     retrieved_docs: List[Any]
     retrieval_debug_trace: Dict[str, Any]
@@ -248,28 +276,13 @@ class LedgerState(TypedDict):
 class RequestPhase(TypedDict):
     query: str
     report_scope: Dict[str, Any]
+    include_debug_bundle: NotRequired[bool]
 
 
 class LedgerSnapshot(TypedDict, total=False):
     tasks: List[Dict[str, Any]]
     artifacts: List[Dict[str, Any]]
     task_artifact_trace: Dict[str, Any]
-
-
-class RoutingPhase(TypedDict, total=False):
-    query_type: str
-    intent: str
-    format_preference: str
-    routing_source: str
-    routing_confidence: float
-    routing_scores: Dict[str, float]
-    routing_degraded_reason: str
-    companies: List[str]
-    years: List[int]
-    topic: str
-    section_filter: Optional[str]
-    target_metric_family: str
-    target_metric_family_hint: str
 
 
 class RequirementsPhase(TypedDict, total=False):
@@ -307,6 +320,7 @@ class CandidatesPhase(TypedDict):
 
 
 class CompilationPhase(TypedDict, total=False):
+    compiler_attempts: List[CompilerAttemptDebugV1]
     semantic_program: Dict[str, Any]
     semantic_program_validation: Dict[str, Any]
     semantic_compilation_envelope: CompilationEnvelopeV2
@@ -335,29 +349,12 @@ class NumericResultPhase(TypedDict):
     evidence_items: List[Dict[str, Any]]
 
 
-class NarrativeResultPhase(TypedDict, total=False):
-    evidence_items: List[Dict[str, Any]]
-    evidence_status: str
-    selected_claim_ids: List[str]
-    draft_points: List[str]
-    validated_sentences: List[str]
-    sentence_checks: List[Dict[str, Any]]
-    kept_claim_ids: List[str]
-    dropped_claim_ids: List[str]
-    unsupported_sentences: List[str]
-    calculation_projection: RuntimeCalculationTrace
-
-
 class FinalResultPhase(TypedDict):
     agent_answer: AgentAnswer
     review_trace: ReviewTrace
     debug_traces: DebugTraceBundle
     selected_claim_ids: List[str]
     kept_claim_ids: List[str]
-
-
-class RoutingInput(RequestPhase):
-    pass
 
 
 class PlanningInput(RequestPhase, total=False):
@@ -405,40 +402,17 @@ class NumericExecutionInput(RequestPhase, total=False):
     resolved_calculation_trace: RuntimeCalculationTrace
 
 
-class NarrativeInput(TypedDict, total=False):
-    query: str
-    query_type: str
-    intent: str
-    format_preference: str
-    topic: str
-    semantic_plan: Dict[str, Any]
-    active_subtask: Dict[str, Any]
-    retrieved_docs: List[Any]
-    evidence_items: List[Dict[str, Any]]
-    evidence_bullets: List[str]
-    evidence_status: str
-    selected_claim_ids: List[str]
-    draft_points: List[str]
-    compressed_answer: str
-
-
 class FinancialAgentStateV2(TypedDict, total=False):
     """Graph state with one top-level writer for every runtime phase."""
 
     request: RequestPhase
-    routing: RoutingPhase
     requirements: RequirementsPhase
     retrieval: RetrievalPhase
     candidates: CandidatesPhase
     compilation: CompilationPhase
     numeric_result: NumericResultPhase
-    narrative_result: NarrativeResultPhase
     final_result: FinalResultPhase
     ledger: LedgerSnapshot
-
-
-class RoutingUpdate(TypedDict):
-    routing: RoutingPhase
 
 
 class RequirementsUpdate(TypedDict):
@@ -459,10 +433,6 @@ class CompilationUpdate(TypedDict):
 
 class NumericResultUpdate(TypedDict):
     numeric_result: NumericResultPhase
-
-
-class NarrativeResultUpdate(TypedDict):
-    narrative_result: NarrativeResultPhase
 
 
 class FinalResultUpdate(TypedDict):

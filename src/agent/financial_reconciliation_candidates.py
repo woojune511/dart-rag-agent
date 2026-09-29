@@ -5,19 +5,25 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections import Counter
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
-from src.agent.financial_numeric_surface import extract_numeric_surface_candidates
+from src.agent.financial_numeric_surface import extract_source_numeric_surface_candidates
+from src.agent.financial_column_periods import project_column_period_evidence
 from src.agent.financial_row_surfaces import parse_unstructured_table_row_cells
+from src.agent.financial_scope_policies import (
+    annual_period_evidence, explicit_period_years, relative_period_offsets,
+)
 from src.agent.financial_runtime_normalization import (
     _normalise_operand_value,
     _normalise_spaces,
-    resolve_source_numeric_unit,
+    resolve_structured_source_unit,
 )
 from src.config.retrieval_policy import (
     CALCULATION_PROMPT_POLICY,
     CONSOLIDATION_SCOPE_POLICY,
     FINANCIAL_DOCUMENT_STATEMENT_HINT_POLICIES,
+    INDEX_PREFIX_METADATA_POLICY,
     SEMANTIC_CANDIDATE_POLICY,
     STRUCTURED_CELL_AFFINITY_POLICY,
 )
@@ -311,9 +317,12 @@ def semantic_candidate_stage_diagnostics(
             source_unit_hint = _normalise_spaces(
                 str(cell.get("unit_hint") or metadata.get("unit_hint") or "")
             )
-            raw_unit, _raw_unit_source = resolve_source_numeric_unit(
+            raw_unit, _raw_unit_source, _unit_provenance = resolve_structured_source_unit(
                 raw_value,
                 source_unit_hint,
+                column_headers=cell.get("column_headers") or [],
+                row_headers=metadata.get("row_headers") or [],
+                source_contexts=metadata.get("source_contexts") or [],
             )
             normalized_value, _normalized_unit = _normalise_operand_value(
                 raw_value,
@@ -496,65 +505,34 @@ def _candidate_consolidation_scope(
     return "unknown", "unknown"
 
 
-def _cell_explicit_year(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> Optional[int]:
+def _cell_explicit_year(cell: Mapping[str, Any]) -> Optional[int]:
+    years = explicit_period_years(
+        cell.get("period_text") or cell.get("period"), *(cell.get("column_headers") or []),
+    )
+    return next(iter(years)) if len(years) == 1 else None
+
+
+def _fiscal_period_surface(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> str:
+    """Located fiscal columns precede a parser label also collected from the row."""
+    pattern = str(SEMANTIC_CANDIDATE_POLICY.get("fiscal_period_ordinal_pattern") or r"$^")
+    headers = [str(item) for item in (cell.get("column_headers") or []) if re.search(pattern, str(item))]
+    if headers:
+        return " / ".join(headers)
     surface = _candidate_period_surface(cell, metadata)
-    years = list(dict.fromkeys(re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", surface)))
-    return int(years[0]) if len(years) == 1 else None
+    return surface if re.search(pattern, surface) else ""
 
 
 def _fiscal_ordinal(cell: Mapping[str, Any], metadata: Mapping[str, Any]) -> Optional[int]:
-    surface = _candidate_period_surface(cell, metadata)
-    match = re.search(
+    ordinals = {int(match.group(1)) for match in re.finditer(
         str(SEMANTIC_CANDIDATE_POLICY.get("fiscal_period_ordinal_pattern") or r"$^"),
-        surface,
-    )
-    return int(match.group(1)) if match else None
+        _fiscal_period_surface(cell, metadata),
+    )}
+    return next(iter(ordinals)) if len(ordinals) == 1 else None
 
 
-def _candidate_period_role(
+def _candidate_period_labels(
     cell: Mapping[str, Any], metadata: Mapping[str, Any]
-) -> str:
-    explicit_role = _normalise_spaces(
-        str(cell.get("value_role") or metadata.get("value_role") or "")
-    ).lower()
-    if explicit_role:
-        return explicit_role
-    return _normalise_spaces(
-        " ".join(str(item or "") for item in (cell.get("column_headers") or []))
-    ).lower()
-
-
-def _candidate_period_role_kind(role: str) -> str:
-    if any(marker in role for marker in ("current", "closing", "ending")):
-        return "current"
-    if any(
-        marker in role
-        for marker in ("prior", "previous", "opening", "begin")
-    ):
-        return "prior"
-    return ""
-
-
-def _candidate_period_focus(
-    cell: Mapping[str, Any], metadata: Mapping[str, Any]
-) -> str:
-    """Return the parser-projected current/prior role when it is explicit."""
-
-    for raw_value in (
-        cell.get("period_role"),
-        metadata.get("period_role"),
-        cell.get("period_focus"),
-        metadata.get("period_focus"),
-    ):
-        value = _normalise_spaces(str(raw_value or "")).lower()
-        if value in {"current", "prior"}:
-            return value
-    return _candidate_period_role_kind(_candidate_period_role(cell, metadata))
-
-
-def _candidate_period_label_surfaces(
-    cell: Mapping[str, Any], metadata: Mapping[str, Any]
-) -> List[str]:
+) -> tuple[List[str], str]:
     """Preserve parser-owned period labels without making them identity material."""
 
     def surfaces(*raw_items: Any) -> List[str]:
@@ -566,16 +544,18 @@ def _candidate_period_label_surfaces(
                 values.extend(raw_values)
         return _normalized_string_list(values)
 
-    source_surface = _candidate_period_surface(cell, metadata)
-    if (
-        _cell_explicit_year(cell, metadata) is not None
-        or _fiscal_ordinal(cell, metadata) is not None
-    ):
-        return _normalized_string_list([source_surface])
+    cell_surfaces = surfaces(cell.get("period_text") or cell.get("period"), cell.get("column_headers"))
+    located_labels = [surface for surface in cell_surfaces
+                      if annual_period_evidence(surface)[0]
+                      or _fiscal_period_surface({"period_text": surface}, {})]
+    if located_labels:
+        return located_labels, "cell"
     cell_values = surfaces(cell.get("period_labels"), cell.get("period_text"))
     if cell_values:
-        return cell_values
-    return surfaces(metadata.get("period_labels"), metadata.get("period_text"))
+        return cell_values, "cell"
+    if metadata.get("period_text"):
+        return surfaces(metadata["period_text"]), "source_period"
+    return surfaces(metadata.get("period_labels")), "unbound_table"
 
 
 def _candidate_projected_period_role(
@@ -584,12 +564,6 @@ def _candidate_projected_period_role(
     *,
     value_year: Optional[int],
 ) -> str:
-    for raw_value in (cell.get("period_role"), metadata.get("period_role")):
-        role = _candidate_period_role_kind(
-            _normalise_spaces(str(raw_value or "")).lower()
-        )
-        if role:
-            return role
     try:
         report_year = int(metadata.get("year"))
     except (TypeError, ValueError):
@@ -599,41 +573,14 @@ def _candidate_projected_period_role(
             return "current"
         if value_year < report_year:
             return "prior"
-    return _candidate_period_focus(cell, metadata)
+    return ""
 
 
-def _candidate_has_competing_periods(
-    cells: Sequence[Mapping[str, Any]], metadata: Mapping[str, Any]
-) -> bool:
-    temporal_keys: set[str] = set()
-    period_surfaces = [
-        _candidate_period_surface(cell, metadata) for cell in cells
-    ]
-    period_surfaces.extend(
-        _normalise_spaces(str(item or ""))
-        for item in (metadata.get("period_labels") or [])
+def _cell_relative_period_offsets(cell: Mapping[str, Any]) -> set[int]:
+    return relative_period_offsets(
+        cell.get("period_text") or cell.get("period"),
+        *(cell.get("column_headers") or []),
     )
-    for surface in period_surfaces:
-        temporal_keys.update(
-            f"year:{year}"
-            for year in re.findall(r"(?<!\d)((?:19|20)\d{2})(?!\d)", surface)
-        )
-        ordinal_match = re.search(
-            str(
-                SEMANTIC_CANDIDATE_POLICY.get("fiscal_period_ordinal_pattern")
-                or r"$^"
-            ),
-            surface,
-        )
-        if ordinal_match:
-            temporal_keys.add(f"ordinal:{ordinal_match.group(1)}")
-    for cell in cells:
-        role_kind = _candidate_period_role_kind(
-            _candidate_period_role(cell, metadata)
-        )
-        if role_kind:
-            temporal_keys.add(f"role:{role_kind}")
-    return len(temporal_keys) > 1
 
 
 def _candidate_value_year(
@@ -642,45 +589,47 @@ def _candidate_value_year(
     metadata: Mapping[str, Any],
 ) -> Optional[int]:
     cell = cells[cell_index]
-    explicit_year = _cell_explicit_year(cell, metadata)
-    if explicit_year is not None:
-        return explicit_year
+    years = explicit_period_years(
+        cell.get("period_text") or cell.get("period"),
+        *(cell.get("column_headers") or []),
+    )
+    if years:
+        return next(iter(years)) if len(years) == 1 else None
 
     try:
         report_year = int(metadata.get("year"))
     except (TypeError, ValueError):
+        report_year = None
+
+    if _fiscal_period_surface(cell, metadata):
+        ordinals = [ordinal for item in cells if (ordinal := _fiscal_ordinal(item, metadata)) is not None]
+        value_ordinal = _fiscal_ordinal(cell, metadata)
+        if ordinals and value_ordinal is not None and report_year is not None:
+            offset = max(ordinals) - value_ordinal
+            if 0 <= offset <= 20:
+                return report_year - offset
+        # Missing anchors or ambiguous fiscal columns cannot borrow a row label.
         return None
 
-    period_focus = _candidate_period_focus(cell, metadata)
-    if not _candidate_has_competing_periods(cells, metadata):
-        if period_focus == "current":
-            return report_year
-        if period_focus == "prior":
-            return report_year - 1
+    has_period, value_year = annual_period_evidence(
+        cell.get("period_text") or cell.get("period"),
+        *(cell.get("column_headers") or []), report_year=report_year,
+    )
+    if has_period:
+        return value_year
 
-    explicit_role = _candidate_period_role(cell, metadata)
-    role_kind = _candidate_period_role_kind(explicit_role)
-    if role_kind == "current":
-        return report_year
-    if role_kind == "prior":
-        return report_year - 1
+    has_role, role_year = annual_period_evidence(
+        cell.get("period_role") or cell.get("value_role") or metadata.get("value_role"),
+        report_year=report_year,
+    )
+    if has_role:
+        return role_year
 
-    ordinals = [
-        ordinal
-        for ordinal in (_fiscal_ordinal(item, metadata) for item in cells)
-        if ordinal is not None
-    ]
-    value_ordinal = _fiscal_ordinal(cell, metadata)
-    if ordinals and value_ordinal is not None:
-        current_ordinal = max(ordinals)
-        offset = current_ordinal - value_ordinal
-        if 0 <= offset <= 20:
-            return report_year - offset
-    if _normalise_spaces(str(metadata.get("period_focus") or "")).lower() != "current":
-        return None
-    if _candidate_has_competing_periods(cells, metadata):
-        return None
-    return report_year
+    # A scoped source-period field is distinct from the parser's unlocated
+    # period_labels/focus, which also include dates collected from table bodies.
+    return annual_period_evidence(
+        metadata.get("period_text"), report_year=report_year,
+    )[1]
 
 
 def _candidate_period_projection(
@@ -690,22 +639,21 @@ def _candidate_period_projection(
     value_year: Optional[int],
 ) -> tuple[str, str, str]:
     source_surface = _candidate_period_surface(cell, metadata)
-    if _cell_explicit_year(cell, metadata) is not None:
-        return source_surface, source_surface, "explicit_period"
-    if _fiscal_ordinal(cell, metadata) is not None:
-        return source_surface, source_surface, "fiscal_period"
-    role_kind = _candidate_period_role_kind(_candidate_period_role(cell, metadata))
-    period_focus = _candidate_period_focus(cell, metadata)
+    if value_year is not None and _cell_explicit_year(cell) == value_year:
+        return str(value_year), source_surface, "explicit_period"
+    fiscal_surface = _fiscal_period_surface(cell, metadata)
+    if fiscal_surface:
+        return fiscal_surface if value_year is not None else "", source_surface, "fiscal_period"
     if value_year is not None:
         period_source = (
-            "value_role"
-            if role_kind
-            else "table_period_focus"
-            if period_focus == "prior"
-            else "report_current"
+            "relative_period_label"
+            if _cell_relative_period_offsets(cell)
+            else "value_role"
+            if relative_period_offsets(cell.get("period_role") or cell.get("value_role") or metadata.get("value_role"))
+            else "source_period_text"
         )
         return str(value_year), source_surface, period_source
-    return source_surface, source_surface, (
+    return "", source_surface, (
         "source_surface_unresolved" if source_surface else "unknown"
     )
 
@@ -806,7 +754,8 @@ def _semantic_catalog_context_fingerprint(
     )[0]
     parts = [
         str(
-            metadata.get("table_source_id")
+            metadata.get("physical_table_id")
+            or metadata.get("table_source_id")
             or metadata.get("source_table_id")
             or metadata.get("table_id")
             or source_root
@@ -840,7 +789,7 @@ def _semantic_source_candidate(
         # text above. Keep the exact input separately so prompt projections can
         # preserve source punctuation and spacing without changing candidate IDs.
         "source_text_exact": str(text or ""),
-        "metadata": dict(metadata or {}),
+        "metadata": _source_context_metadata(metadata),
         "candidate_kind": str(candidate_kind or "chunk"),
     }
     if str(evidence_id or "").strip():
@@ -874,6 +823,13 @@ def _json_mapping(raw_value: Any) -> Dict[str, Any]:
     except (TypeError, json.JSONDecodeError):
         return {}
     return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _source_context_metadata(metadata: Mapping[str, Any]) -> Dict[str, Any]:
+    projected = dict(metadata or {})
+    if not projected.get("source_contexts") and projected.get("source_contexts_json"):
+        projected["source_contexts"] = _json_list(projected["source_contexts_json"])
+    return projected
 
 
 def _normalized_string_list(raw_values: Any) -> List[str]:
@@ -969,12 +925,30 @@ def _legacy_table_material(
     return material
 
 
-def _physical_table_id(
+def _source_document_id(metadata: Mapping[str, Any]) -> str:
+    """Use explicit document provenance, never a company/year as a receipt."""
+
+    for key in ("rcept_no", "document_id"):
+        value = str(metadata.get(key) or "").strip()
+        if value and value != "unknown":
+            return f"{key}:{value}"
+    return str(metadata.get("source_document_id") or "").strip()
+
+
+def _table_identity_metadata(
     metadata: Mapping[str, Any],
     table_object: Mapping[str, Any],
     rows: Sequence[Mapping[str, Any]],
     values: Sequence[Mapping[str, Any]],
-) -> str:
+    text: str,
+) -> Dict[str, str]:
+    """Qualify report-local parser IDs before any row/cell deduplication.
+
+    Legacy sources without document identity use available report scope and
+    table content. Indistinguishable anonymous copies remain indistinguishable;
+    chunk IDs and retrieval population never pretend to establish filing identity.
+    """
+
     explicit = _normalise_spaces(
         str(
             metadata.get("table_source_id")
@@ -984,9 +958,29 @@ def _physical_table_id(
             or ""
         )
     )
-    if explicit:
-        return explicit
-    return f"legacy_table_{_stable_material_digest(_legacy_table_material(rows, values))}"
+    document_id = _source_document_id(metadata)
+    material = []
+    if not explicit or not document_id:
+        material = _legacy_table_material(rows, values) if rows or values else [
+            _normalise_spaces(line) for line in str(text or "").splitlines()
+            if _normalise_spaces(line) and "|" in line
+        ]
+        material = sorted(material, key=lambda item: json.dumps(item, sort_keys=True, ensure_ascii=False))
+    local_table_id = explicit or f"legacy_table_{_stable_material_digest(material)}"
+    identity: Dict[str, Any] = {
+        "source_document_id": document_id, "table_source_id": local_table_id,
+    }
+    if not document_id:
+        identity["legacy_report_scope"] = {
+            key: _normalise_spaces(str(metadata.get(key) or ""))
+            for key in ("company", "corp_code", "year", "report_type")
+        }
+        identity["legacy_table_content"] = material
+    return {
+        "table_source_id": local_table_id,
+        "physical_table_id": f"physical_table_v1_{_stable_material_digest(identity)}",
+        "source_document_id": document_id,
+    }
 
 
 def _physical_row_identity(
@@ -1061,6 +1055,214 @@ def _table_context_text(
         if value and value not in parts:
             parts.append(value)
     return _normalise_spaces(" ".join(parts))
+
+
+def _source_prefix_line_labels(line: str) -> set[str]:
+    """Recognize complete metadata tokens, including brackets inside values.
+
+    Mixed prose and malformed tokens are source text, not removable metadata.
+    The caller decides which labels are known; values never infer identity.
+    """
+    labels: set[str] = set()
+    index = 0
+    while index < len(line):
+        if line[index].isspace():
+            index += 1
+            continue
+        if line[index] != "[":
+            return set()
+        label_end = index + 1
+        while label_end < len(line) and line[label_end] not in ":[]":
+            label_end += 1
+        if label_end == len(line) or line[label_end] != ":":
+            return set()
+        label = line[index + 1:label_end].strip().casefold()
+        if not label:
+            return set()
+        depth = 1
+        index = label_end + 1
+        while index < len(line) and depth:
+            if line[index] == "[":
+                depth += 1
+            elif line[index] == "]":
+                depth -= 1
+            index += 1
+        if depth:
+            return set()
+        labels.add(label)
+    return labels
+
+
+def _source_body_lines(
+    text: str, *, prefix_labels: Optional[set[str]] = None,
+) -> List[tuple[int, int, List[str]]]:
+    """Retain exact offsets, excluding parser/context metadata prefix lines."""
+
+    lines: List[tuple[int, int, List[str]]] = []
+    in_prefix = True
+    for match in re.finditer(r"[^\r\n]+", text):
+        if not match.group().strip():
+            continue
+        if in_prefix:
+            labels = _source_prefix_line_labels(match.group())
+            if labels and (prefix_labels is None or labels <= prefix_labels):
+                continue
+        in_prefix = False
+        lines.append((match.start(), match.end(), [
+            _normalise_spaces(part) for part in match.group().split("|")
+        ]))
+    return lines
+
+
+def _narrative_source_projection(text: str, base_record: Mapping[str, Any]) -> Dict[str, Any]:
+    """Expose exact body windows, without charging metadata prefixes to the body.
+
+    Continuations belong to the same existing candidate, not additional selectable
+    evidence. Their offsets refer to source-candidate text, never XML/file bytes.
+    """
+
+    limits = CALCULATION_PROMPT_POLICY["semantic_program_prompt_limits"]
+    window_limit = int(limits["narrative_source_window_chars"])
+    total_limit = int(limits["narrative_source_total_chars"])
+    prefix_labels = {
+        str(label).casefold() for field in ("line_labels", "structural_line_labels")
+        for label in INDEX_PREFIX_METADATA_POLICY.get(field, ())
+    }
+    lines = _source_body_lines(text, prefix_labels=prefix_labels)
+    # Already located paragraph slices contain only original body, even when
+    # the original starts with a bracketed note or a metadata-looking label.
+    located_paragraph = (base_record.get("source_context_provenance") or {}).get("relation") == "source_paragraph"
+    body_start = 0 if located_paragraph else lines[0][0] if lines else len(text)
+    body_end = len(text)
+    visible_end = min(body_end, body_start + total_limit)
+    windows: List[tuple[int, int]] = []
+    start = body_start
+    while start < visible_end:
+        end = min(start + window_limit, visible_end)
+        if end < body_end:
+            boundaries = [start + match.end() for match in re.finditer(
+                r"(?:[.!?。](?=\s)|\r?\n)", text[start:end],
+            )]
+            if boundaries and boundaries[-1] >= start + window_limit // 2:
+                end = boundaries[-1]
+        windows.append((start, end))
+        start = end
+    first_start, first_end = windows[0] if windows else (body_start, body_start)
+    contexts = list(base_record.get("source_contexts") or [])
+    for start, end in windows[1:]:
+        material = {
+            "source_candidate_id": base_record["source_candidate_id"],
+            "source_anchor": base_record["source_anchor"],
+            "context_fingerprint": base_record["context_fingerprint"],
+            "span_space": "source_candidate_text",
+            "source_span": [start, end], "source_text": text[start:end],
+        }
+        encoded = json.dumps(material, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        contexts.append({
+            **material, "context_id": "ctx_" + hashlib.sha256(encoded).hexdigest()[:24],
+            "relation": "source_continuation",
+        })
+    return {
+        "source_text": text[body_start:visible_end],
+        "source_bundle_text": text[first_start:first_end],
+        "source_bundle_context_span": [first_start, first_end],
+        "source_body_coverage": {
+            "source_span": [body_start, body_end],
+            "visible_span": [body_start, visible_end],
+            "truncated": visible_end < body_end,
+        },
+        **({"source_contexts": contexts} if contexts else {}),
+    }
+
+
+def _preserve_row_context(
+    projected: Sequence[Dict[str, Any]], *, text: str, source_id: str,
+) -> None:
+    """Attach adjacent textual rows as context, never as new cell identities."""
+
+    lines = _source_body_lines(text)
+    row_matches: List[List[int]] = []
+    for candidate in projected:
+        metadata = candidate["metadata"]
+        label = _normalise_spaces(str(metadata.get("row_label") or ""))
+        values = Counter(
+            _normalise_spaces(str(cell.get("value_text") or ""))
+            for cell in metadata.get("structured_cells") or []
+            if str(cell.get("value_text") or "")
+        )
+        row_matches.append([
+            index for index, (_start, _end, parts) in enumerate(lines)
+            if len(parts) > 1 and label in parts[:-1] and values and Counter(parts) >= values
+        ])
+    numeric_lines = {index for matches in row_matches for index in matches}
+    limit = int(CALCULATION_PROMPT_POLICY["semantic_program_prompt_limits"]["numeric_source_chars"])
+    for candidate, matches in zip(projected, row_matches):
+        if len(matches) != 1:
+            continue
+        index = matches[0]
+        start, end, _parts = lines[index]
+        row_end = end
+        for following in range(index + 1, len(lines)):
+            next_start, next_end, parts = lines[following]
+            if (
+                following in numeric_lines or len(parts) < 2
+                or not any(char.isalpha() for char in parts[-1])
+                or _normalise_operand_value(parts[-1], "")[0] is not None
+                or text[end:next_start].strip()
+                or next_end - start > limit
+            ):
+                break
+            end = next_end
+        if end == row_end:
+            continue
+        candidate["metadata"].update({
+            "row_context_text": text[start:end],
+            "source_context_provenance": {
+                "source_id": source_id, "source_span": [start, end],
+                "relation": "adjacent_table_text",
+            },
+        })
+
+
+def _preserved_prose_sources(
+    *, text: str, source_id: str, source_anchor: str, metadata: Mapping[str, Any],
+) -> List[Dict[str, Any]]:
+    """Preserve non-table paragraphs independently of attached numeric records."""
+
+    if not (
+        metadata.get("is_table") is False
+        or str(metadata.get("block_type") or "").lower() not in {"", "table", "table_row"}
+    ):
+        return []
+    spans: List[tuple[int, int]] = []
+    for start, end, parts in _source_body_lines(text):
+        if len(parts) != 1:
+            continue
+        if spans and re.fullmatch(r"[^\S\r\n]*\r?\n[^\S\r\n]*", text[spans[-1][1]:start]):
+            spans[-1] = (spans[-1][0], end)
+        else:
+            spans.append((start, end))
+    prose_metadata = {
+        key: value for key, value in metadata.items()
+        if not key.startswith(("table_", "physical_", "structured_"))
+        and key not in {
+            "source_table_id", "row_id", "source_row_id", "row_label", "row_headers",
+            "row_text", "semantic_label", "local_entity_surfaces", "unit_hint",
+        }
+    }
+    return [
+        _semantic_source_candidate(
+            candidate_id=f"{source_id}::prose:{start}:{end}", source_anchor=source_anchor,
+            text=text[start:end], evidence_id=source_id, origin_source_id=source_id,
+            candidate_kind="chunk", metadata={
+                **prose_metadata, "source_row_id": source_id,
+                "source_context_provenance": {
+                    "source_id": source_id, "source_span": [start, end], "relation": "source_paragraph",
+                },
+            },
+        )
+        for start, end in spans
+    ]
 
 
 def _local_entity_surfaces(
@@ -1293,7 +1495,7 @@ def _narrative_numeric_rows(
 
     rows: List[Dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
-    for index, surface in enumerate(extract_numeric_surface_candidates(source_text)):
+    for index, surface in enumerate(extract_source_numeric_surface_candidates(source_text)):
         try:
             normalized_value = float(surface.get("value"))
         except (TypeError, ValueError):
@@ -1411,7 +1613,8 @@ def _structured_source_candidates(
 
     base_metadata = dict(metadata or {})
     table_object, rows, value_records = _table_record_bundle(base_metadata)
-    table_id = _physical_table_id(base_metadata, table_object, rows, value_records)
+    table_identity = _table_identity_metadata(base_metadata, table_object, rows, value_records, text)
+    table_id = table_identity["physical_table_id"]
     origin_source_id = str(candidate_id_prefix or "").split("::", 1)[0].strip()
     projection_metadata = {
         key: value
@@ -1425,11 +1628,14 @@ def _structured_source_candidates(
     }
     projection_metadata.update(
         {
-            "table_source_id": table_id,
-            "physical_table_id": table_id,
+            **table_identity,
             "origin_source_id": origin_source_id,
         }
     )
+
+    for key in ("source_contexts", "source_table_locator", "source_document_sha256"):
+        if table_object.get(key):
+            projection_metadata[key] = table_object[key]
 
     def axis_key(row_index: Any, column_index: Any) -> tuple[str, str]:
         return str(row_index if row_index is not None else ""), str(
@@ -1450,6 +1656,33 @@ def _structured_source_candidates(
 
     projected: List[Dict[str, Any]] = []
     seen_source_ids: set[str] = set()
+
+    def preserve_unrepresented_rows() -> None:
+        # The parser already locates non-scalar rows as exact XML contexts.
+        # Promote those reading sources without reconstructing cells or numbers.
+        represented_text = {
+            "".join(str(item["metadata"].get("row_text") or "").replace(" | ", "").split())
+            for item in projected if item["candidate_kind"] == "table_row"
+        }
+        for context in projection_metadata.get("source_contexts") or []:
+            row_text = str(context.get("source_text") or "")
+            locator = str(context.get("source_locator") or "")
+            if (context.get("relation") != "table_text_row" or not locator or not row_text.strip()
+                    or "".join(row_text.split()) in represented_text):
+                continue
+            physical_row_id = f"xml_row_{_stable_material_digest(locator)}"
+            physical_row_key = f"{table_id}::row:{physical_row_id}"
+            source_id = f"table_{_stable_material_digest(table_id)}::row_{_stable_material_digest(physical_row_key)}"
+            projected.append(_semantic_source_candidate(
+                candidate_id=source_id, source_anchor=source_anchor, text=row_text,
+                metadata={**projection_metadata, "row_id": physical_row_id,
+                    "source_row_id": physical_row_key, "physical_row_id": physical_row_id,
+                    "physical_row_key": physical_row_key, "row_label": "", "row_headers": [],
+                    "row_text": row_text, "structured_cells": [],
+                    "source_context_provenance": dict(context)},
+                candidate_kind="structured_row", evidence_id=table_id, origin_source_id=origin_source_id,
+            ))
+
     for row_index, row in enumerate(rows):
         row_headers = _normalized_string_list(row.get("row_headers"))
         row_label = _normalise_spaces(str(row.get("row_label") or ""))
@@ -1713,6 +1946,7 @@ def _structured_source_candidates(
             )
 
     if rows or value_records:
+        preserve_unrepresented_rows()
         return projected
 
     pipe_rows = [
@@ -1720,14 +1954,6 @@ def _structured_source_candidates(
         for line in str(text or "").splitlines()
         if _normalise_spaces(line) and "|" in line
     ]
-    if not (
-        base_metadata.get("table_source_id")
-        or base_metadata.get("source_table_id")
-        or base_metadata.get("table_id")
-    ) and pipe_rows:
-        table_id = f"legacy_table_{_stable_material_digest(pipe_rows)}"
-        projection_metadata["table_source_id"] = table_id
-        projection_metadata["physical_table_id"] = table_id
     for index, row_text in enumerate(pipe_rows):
         row_label = _normalise_spaces(row_text.split("|", 1)[0])
         cells = parse_unstructured_table_row_cells(row_text, base_metadata)
@@ -1783,6 +2009,7 @@ def _structured_source_candidates(
                 origin_source_id=origin_source_id,
             )
         )
+    preserve_unrepresented_rows()
     return projected
 
 
@@ -1854,6 +2081,7 @@ def build_semantic_source_candidates(
                 ]
             )
 
+    source_by_id = {str(item["candidate_id"]): item for item in candidates}
     doc_stream = [
         *list(state.get("retrieved_docs") or []),
         *list(state.get("seed_retrieved_docs") or []),
@@ -1876,14 +2104,23 @@ def build_semantic_source_candidates(
             text=text,
             metadata=metadata,
         )
-        if projected_candidates:
-            table_object, rows, value_records = _table_record_bundle(metadata)
-            table_id = _physical_table_id(
-                metadata,
-                table_object,
-                rows,
-                value_records,
-            )
+        # Supplemental reading rows must not switch an existing chunk's scalar
+        # extraction path or its absolute source spans/IDs.
+        has_row_projection = any(
+            item["metadata"].get("source_context_provenance", {}).get("relation") != "table_text_row"
+            for item in projected_candidates
+        )
+        if has_row_projection:
+            _preserve_row_context(projected_candidates, text=text, source_id=candidate_id)
+            candidates.extend(_preserved_prose_sources(
+                text=text, source_id=candidate_id, source_anchor=anchor, metadata=metadata,
+            ))
+            table_object, _rows, _value_records = _table_record_bundle(metadata)
+            table_identity = {
+                key: projected_candidates[0]["metadata"][key]
+                for key in ("table_source_id", "physical_table_id", "source_document_id")
+            }
+            table_id = table_identity["physical_table_id"]
             context_text = _table_context_text(metadata, table_object)
             context_id = (
                 f"table_{_stable_material_digest(table_id)}::context"
@@ -1902,8 +2139,7 @@ def build_semantic_source_candidates(
                 }
                 context_metadata.update(
                     {
-                        "table_source_id": table_id,
-                        "physical_table_id": table_id,
+                        **table_identity,
                         "origin_source_id": candidate_id,
                     }
                 )
@@ -1930,9 +2166,44 @@ def build_semantic_source_candidates(
             )
         for projected in projected_candidates:
             projected_id = str(projected.get("candidate_id") or "")
+            existing = source_by_id.get(projected_id)
+            if existing is not None:
+                # Repeated attachments may expose different adjacent text. Choose
+                # one exact context deterministically without rewriting cell metadata.
+                def context_order(item: Mapping[str, Any]) -> tuple[int, str]:
+                    details = dict(item.get("metadata") or {})
+                    context = str(details.get("row_context_text") or "")
+                    return -len(context), json.dumps(details.get("source_context_provenance") or {}, sort_keys=True)
+
+                context_owner_fields = (
+                    "rcept_no", "company", "year", "consolidation_scope",
+                    "basis", "segment_label", "structured_cells",
+                )
+                same_context_owner = all(
+                    existing["metadata"].get(key) == projected["metadata"].get(key)
+                    for key in context_owner_fields
+                )
+                if (
+                    same_context_owner and projected["metadata"].get("row_context_text")
+                    and context_order(projected) < context_order(existing)
+                ):
+                    for key in ("row_context_text", "source_context_provenance"):
+                        existing["metadata"][key] = projected["metadata"][key]
+                if same_context_owner:
+                    def document_context_order(details):
+                        contexts = details.get("source_contexts") or []
+                        return (-sum(len(c.get("source_text") or "") for c in contexts),
+                                json.dumps(contexts, ensure_ascii=False, sort_keys=True))
+
+                    if document_context_order(projected["metadata"]) < document_context_order(existing["metadata"]):
+                        for key in ("source_contexts", "source_table_locator", "source_document_sha256"):
+                            if key in projected["metadata"]:
+                                existing["metadata"][key] = projected["metadata"][key]
+                continue
             if not projected_id or projected_id in seen:
                 continue
             seen.add(projected_id)
+            source_by_id[projected_id] = projected
             candidates.append(projected)
     return candidates
 
@@ -1960,7 +2231,7 @@ def build_semantic_candidate_catalog(
     for candidate in candidates:
         current = dict(candidate or {})
         source_numeric_start = len(numeric_rows)
-        metadata = dict(current.get("metadata") or {})
+        metadata = _source_context_metadata(current.get("metadata") or {})
         source_candidate_id = str(current.get("candidate_id") or "").strip()
         if not source_candidate_id:
             continue
@@ -2051,8 +2322,7 @@ def build_semantic_candidate_catalog(
             "source_row_id": source_row_id,
             "table_source_id": _normalise_spaces(
                 str(
-                    metadata.get("physical_table_id")
-                    or metadata.get("table_source_id")
+                    metadata.get("table_source_id")
                     or metadata.get("source_table_id")
                     or metadata.get("table_id")
                     or ""
@@ -2088,6 +2358,27 @@ def build_semantic_candidate_catalog(
             "source_bundle_context_span": [0, len(source_bundle_text)],
             "candidate_kind": candidate_kind,
         }
+        if metadata.get("source_context_provenance"):
+            base_record["source_context_provenance"] = dict(metadata["source_context_provenance"])
+        if metadata.get("local_heading"):
+            # Parser context remains a separate, non-authoritative observation;
+            # never promote it or the filing company into a local subject.
+            base_record["local_heading"] = str(metadata["local_heading"])
+        for key in ("source_contexts", "source_table_locator", "source_document_sha256"):
+            if metadata.get(key):
+                # Context is execution content, never candidate identity material.
+                base_record[key] = json.loads(json.dumps(metadata[key], ensure_ascii=False))
+        document_id = _source_document_id(metadata)
+        if document_id:
+            base_record["source_document_id"] = document_id
+        if metadata.get("row_context_text"):
+            row_context = str(metadata["row_context_text"])
+            base_record.update({
+                "row_context_text": row_context,
+                "source_text": row_context,
+                "source_bundle_text": row_context,
+                "source_bundle_context_span": [0, len(row_context)],
+            })
 
         cells = [dict(cell) for cell in (metadata.get("structured_cells") or []) if isinstance(cell, dict)]
         if not cells and str(current.get("candidate_kind") or "") in {"table_row", "evidence_row"}:
@@ -2103,6 +2394,37 @@ def build_semantic_candidate_catalog(
                     }
                 ]
 
+        unit_resolutions = [
+            resolve_structured_source_unit(
+                str(cell.get("value_text") or ""),
+                str(cell.get("unit_hint") or metadata.get("unit_hint") or ""),
+                column_headers=cell.get("column_headers") or [],
+                row_headers=row_headers,
+                source_contexts=metadata.get("source_contexts") or [],
+            ) for cell in cells
+        ]
+        if (
+            any(provenance for _unit, _origin, provenance in unit_resolutions)
+            and not metadata.get("row_context_text")
+        ):
+            # This is a physical-row rendering, not a rewritten original quote.
+            # Do not serialize an inherited table unit beside a differently typed cell.
+            rendered_cells = [
+                " / ".join(part for part in [
+                    *_normalized_string_list(cell.get("column_headers")),
+                    str(cell.get("value_text") or ""), unit,
+                ] if part)
+                for cell, (unit, _origin, _provenance) in zip(cells, unit_resolutions)
+            ]
+            projected_row_text = " | ".join([
+                *_normalized_string_list([row_label, *row_headers]), *rendered_cells,
+            ])[:1200]
+            base_record.update(
+                source_text=projected_row_text, source_bundle_text=projected_row_text,
+                source_bundle_context_span=[0, len(projected_row_text)],
+            )
+
+        has_numeric_cells = False
         for cell_index, cell in enumerate(cells):
             raw_value = _normalise_spaces(str(cell.get("value_text") or ""))
             if not raw_value or not re.search(r"\d", raw_value):
@@ -2110,19 +2432,18 @@ def build_semantic_candidate_catalog(
             source_unit_hint = _normalise_spaces(
                 str(cell.get("unit_hint") or metadata.get("unit_hint") or "")
             )
-            raw_unit, raw_unit_source = resolve_source_numeric_unit(
-                raw_value,
-                source_unit_hint,
-            )
+            raw_unit, raw_unit_source, unit_provenance = unit_resolutions[cell_index]
             normalized_value, normalized_unit = _normalise_operand_value(raw_value, raw_unit)
             if normalized_value is None:
                 continue
+            has_numeric_cells = True
             value_year = _candidate_value_year(cells, cell_index, metadata)
             period, source_period_surface, period_source = _candidate_period_projection(
                 cell,
                 metadata,
                 value_year=value_year,
             )
+            period_labels, period_label_scope = _candidate_period_labels(cell, metadata)
             column_headers = [
                 _normalise_spaces(str(item))
                 for item in (cell.get("column_headers") or [])
@@ -2199,6 +2520,7 @@ def build_semantic_candidate_catalog(
                     "raw_unit": raw_unit,
                     "source_unit_hint": source_unit_hint,
                     "raw_unit_source": raw_unit_source,
+                    **({"source_unit_provenance": unit_provenance} if unit_provenance else {}),
                     "normalized_value": normalized_value,
                     "normalized_unit": normalized_unit,
                     "period": period,
@@ -2209,10 +2531,8 @@ def build_semantic_candidate_catalog(
                         metadata,
                         value_year=value_year,
                     ),
-                    "period_label_surfaces": _candidate_period_label_surfaces(
-                        cell,
-                        metadata,
-                    ),
+                    "period_label_surfaces": period_labels,
+                    "period_label_scope": period_label_scope,
                     "value_year": value_year,
                     "column_headers": column_headers,
                     "value_role": _candidate_value_role(
@@ -2260,11 +2580,16 @@ def build_semantic_candidate_catalog(
                 )
             )
 
-        if source_text and candidate_kind in {
+        reading_only_row = (
+            candidate_kind in {"structured_row", "structured_value", "table_row", "evidence_row"}
+            and bool(base_record["physical_table_id"] and base_record["physical_row_id"])
+            and not has_numeric_cells
+        )
+        if source_text and (reading_only_row or candidate_kind in {
             "chunk",
             "evidence",
             "table_context",
-        }:
+        }):
             narrative_payload = {
                 "kind": "narrative",
                 "source_candidate_id": source_candidate_id,
@@ -2275,6 +2600,10 @@ def build_semantic_candidate_catalog(
             narrative_rows.append(
                 {
                     **base_record,
+                    **(_narrative_source_projection(
+                        str(current.get("source_text_exact") or current.get("text") or source_text),
+                        base_record,
+                    ) if candidate_kind in {"chunk", "evidence"} else {}),
                     "candidate_id": _semantic_candidate_id(narrative_payload),
                     "kind": "narrative",
                     "raw_value": "",
@@ -2286,7 +2615,7 @@ def build_semantic_candidate_catalog(
                 }
             )
 
-    return [*numeric_rows, *narrative_rows]
+    return project_column_period_evidence(candidates, [*numeric_rows, *narrative_rows])
 
 
 def _candidate_statement_type(candidate: Dict[str, Any], metadata: Dict[str, Any]) -> str:

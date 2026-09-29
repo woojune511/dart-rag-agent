@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from src.agent.financial_graph_state import AgentAnswer, DebugBundle, ReviewTrace
+if TYPE_CHECKING:
+    from src.agent.financial_graph_state import AgentAnswer, DebugBundle, ReviewTrace
 
 
 FINANCIAL_RUN_RESULT_SCHEMA_VERSION = "financial_run_result_v1"

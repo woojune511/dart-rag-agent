@@ -329,6 +329,10 @@ def build_operand_value_slot(
         "aggregate_label": str(row.get("aggregate_label") or ""),
         "stated_change_raw_value": str(row.get("stated_change_raw_value") or ""),
         "stated_change_raw_unit": str(row.get("stated_change_raw_unit") or ""),
+        **({"source_unit_resolution": dict(row["source_unit_resolution"])}
+           if row.get("source_unit_resolution") else {}),
+        **({"source_period_resolution": dict(row["source_period_resolution"])}
+           if row.get("source_period_resolution") else {}),
     }
 
 
@@ -342,10 +346,13 @@ def build_calculated_value_slot(
     source_row_ids: Optional[List[str]] = None,
     role: str = "primary_value",
     source_anchor: str = "",
+    decimal_places: Optional[int] = None,
 ) -> Dict[str, Any]:
     rendered_value = ""
     if normalized_value is not None:
-        rendered_value = render_value_with_unit(float(normalized_value), display_unit, normalized_unit)
+        rendered_value = render_value_with_unit(
+            float(normalized_value), display_unit, normalized_unit, decimal_places=decimal_places,
+        )
     row_ids = _clean_source_row_ids(source_row_ids or [])
     return {
         "status": slot_status(

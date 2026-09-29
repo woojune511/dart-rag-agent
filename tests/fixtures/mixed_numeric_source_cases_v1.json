@@ -1,0 +1,90 @@
+{
+  "schema_version": "mixed_numeric_source_cases_v1",
+  "provenance": "Anonymous synthetic sources and explicitly authored plans, fixed before integration-test implementation. Not DART, actual planner output, or unseen holdout.",
+  "cases": [
+    {
+      "case_id": "MIXED_SCALE",
+      "question": "Compute Nova's net balance by subtracting the paragraph adjustment from the table balance; then add the paragraph supplement to that calculated net balance, reporting both results in won.",
+      "document_id": "synthetic-mixed-01",
+      "sources": [
+        {"format": "table", "source_id": "s1", "row_headers": ["Nova", "Balance"], "cells": [
+          {"key": "balance", "value_text": "16", "unit_hint": "만원", "period_text": "2081"}
+        ]},
+        {"format": "prose", "source_id": "s2", "text": "Nova adjustment is 4만원 and supplement is 0.8만원.", "values": [
+          {"key": "adjustment", "surface": "4만원"}, {"key": "supplement", "surface": "0.8만원"}
+        ]}
+      ],
+      "obligations": [
+        {"obligation_id": "net", "kind": "derived_value", "label": "net balance", "request_unit_ids": ["request_001"], "display_unit": "원", "semantic_target": {"local_subjects": ["Nova"]}, "evidence_requirements": [
+          {"requirement_id": "balance", "label": "table balance"}, {"requirement_id": "adjustment", "label": "paragraph adjustment"}
+        ]},
+        {"obligation_id": "final", "kind": "derived_value", "label": "net balance plus supplement", "request_unit_ids": ["request_001"], "display_unit": "원", "depends_on": ["net"], "semantic_target": {"local_subjects": ["Nova"]}, "evidence_requirements": [
+          {"requirement_id": "supplement", "label": "paragraph supplement"}
+        ]}
+      ]
+    },
+    {
+      "case_id": "MIXED_FORMAT_SWAP",
+      "question": "Compute Rill's net balance by subtracting the table adjustment from the paragraph balance; then add the paragraph supplement to that calculated net balance, reporting both results in won.",
+      "document_id": "synthetic-mixed-02",
+      "sources": [
+        {"format": "table", "source_id": "s1", "row_headers": ["Rill", "Adjustment"], "cells": [
+          {"key": "adjustment", "value_text": "40", "unit_hint": "원", "period_text": "2083"}
+        ]},
+        {"format": "prose", "source_id": "s2", "text": "Rill balance is 160원 and supplement is 8원.", "values": [
+          {"key": "balance", "surface": "160원"}, {"key": "supplement", "surface": "8원"}
+        ]}
+      ],
+      "obligations": [
+        {"obligation_id": "net", "kind": "derived_value", "label": "net balance", "request_unit_ids": ["request_001"], "display_unit": "원", "semantic_target": {"local_subjects": ["Rill"]}, "evidence_requirements": [
+          {"requirement_id": "balance", "label": "paragraph balance"}, {"requirement_id": "adjustment", "label": "table adjustment"}
+        ]},
+        {"obligation_id": "final", "kind": "derived_value", "label": "net balance plus supplement", "request_unit_ids": ["request_001"], "display_unit": "원", "depends_on": ["net"], "semantic_target": {"local_subjects": ["Rill"]}, "evidence_requirements": [
+          {"requirement_id": "supplement", "label": "paragraph supplement"}
+        ]}
+      ]
+    },
+    {
+      "case_id": "MIXED_SIGN",
+      "question": "Add Vale's signed paragraph adjustment to its table balance; then add the paragraph supplement to that calculated net balance, reporting both results in won.",
+      "document_id": "synthetic-mixed-03",
+      "sources": [
+        {"format": "table", "source_id": "s1", "row_headers": ["Vale", "Balance"], "cells": [
+          {"key": "balance", "value_text": "100", "unit_hint": "원", "period_text": "2085"}
+        ]},
+        {"format": "prose", "source_id": "s2", "text": "Vale adjustment is (24)원 and supplement is 6원.", "values": [
+          {"key": "adjustment", "surface": "(24)원"}, {"key": "supplement", "surface": "6원"}
+        ]}
+      ],
+      "obligations": [
+        {"obligation_id": "net", "kind": "derived_value", "label": "balance plus signed adjustment", "request_unit_ids": ["request_001"], "display_unit": "원", "semantic_target": {"local_subjects": ["Vale"]}, "evidence_requirements": [
+          {"requirement_id": "balance", "label": "table balance"}, {"requirement_id": "adjustment", "label": "signed paragraph adjustment"}
+        ]},
+        {"obligation_id": "final", "kind": "derived_value", "label": "net balance plus supplement", "request_unit_ids": ["request_001"], "display_unit": "원", "depends_on": ["net"], "semantic_target": {"local_subjects": ["Vale"]}, "evidence_requirements": [
+          {"requirement_id": "supplement", "label": "paragraph supplement"}
+        ]}
+      ]
+    },
+    {
+      "case_id": "MIXED_DISPLAY_DEPENDENCY",
+      "question": "Report Lyra's source-stated percentage change alongside the rate calculated from the table's previous and current quantities; then double the calculated rate, not the source-stated rate.",
+      "document_id": "synthetic-mixed-04",
+      "sources": [
+        {"format": "table", "source_id": "s1", "row_headers": ["Lyra", "Quantity"], "cells": [
+          {"key": "current", "value_text": "36", "unit_hint": "items", "period_text": "2087"},
+          {"key": "previous", "value_text": "30", "unit_hint": "items", "period_text": "2086"}
+        ]},
+        {"format": "prose", "source_id": "s2", "text": "Lyra reported a change of 21%.", "values": [
+          {"key": "reported", "surface": "21%"}
+        ]}
+      ],
+      "obligations": [
+        {"obligation_id": "growth", "kind": "derived_value", "label": "reported and calculated percentage change", "request_unit_ids": ["request_001"], "display_unit": "%", "semantic_target": {"local_subjects": ["Lyra"]}, "evidence_requirements": [
+          {"requirement_id": "current", "label": "current table quantity", "scope": {"period": "2087"}},
+          {"requirement_id": "previous", "label": "previous table quantity", "scope": {"period": "2086"}}
+        ]},
+        {"obligation_id": "double", "kind": "derived_value", "label": "double the calculated rate", "request_unit_ids": ["request_001"], "display_unit": "%", "depends_on": ["growth"], "semantic_target": {"local_subjects": ["Lyra"]}}
+      ]
+    }
+  ]
+}

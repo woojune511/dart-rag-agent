@@ -1,0 +1,23 @@
+{
+  "schema_version": "mixed_numeric_source_criteria_v1",
+  "never_model_input": true,
+  "claim_limit": "Authored witnesses check execution and grading; semantic roles and formulas are not inferred or repaired by the test driver. No model accuracy claim.",
+  "cases": [
+    {"case_id": "MIXED_SCALE", "normalized_sources": {"balance": 160000, "adjustment": 40000, "supplement": 8000}, "expressions": [
+      {"obligation_id": "net", "formula": "A-B", "bindings": [{"variable": "A", "source_key": "balance", "requirement_id": "balance"}, {"variable": "B", "source_key": "adjustment", "requirement_id": "adjustment"}], "expected_calculated": 120000, "expected_display": 120000, "unit": "KRW"},
+      {"obligation_id": "final", "formula": "N+S", "bindings": [{"variable": "N", "dependency_id": "net"}, {"variable": "S", "source_key": "supplement", "requirement_id": "supplement"}], "expected_calculated": 128000, "expected_display": 128000, "unit": "KRW"}
+    ]},
+    {"case_id": "MIXED_FORMAT_SWAP", "normalized_sources": {"balance": 160, "adjustment": 40, "supplement": 8}, "expressions": [
+      {"obligation_id": "net", "formula": "A-B", "bindings": [{"variable": "A", "source_key": "balance", "requirement_id": "balance"}, {"variable": "B", "source_key": "adjustment", "requirement_id": "adjustment"}], "expected_calculated": 120, "expected_display": 120, "unit": "KRW"},
+      {"obligation_id": "final", "formula": "N+S", "bindings": [{"variable": "N", "dependency_id": "net"}, {"variable": "S", "source_key": "supplement", "requirement_id": "supplement"}], "expected_calculated": 128, "expected_display": 128, "unit": "KRW"}
+    ]},
+    {"case_id": "MIXED_SIGN", "normalized_sources": {"balance": 100, "adjustment": -24, "supplement": 6}, "expressions": [
+      {"obligation_id": "net", "formula": "A+B", "bindings": [{"variable": "A", "source_key": "balance", "requirement_id": "balance"}, {"variable": "B", "source_key": "adjustment", "requirement_id": "adjustment"}], "expected_calculated": 76, "expected_display": 76, "unit": "KRW"},
+      {"obligation_id": "final", "formula": "N+S", "bindings": [{"variable": "N", "dependency_id": "net"}, {"variable": "S", "source_key": "supplement", "requirement_id": "supplement"}], "expected_calculated": 82, "expected_display": 82, "unit": "KRW"}
+    ]},
+    {"case_id": "MIXED_DISPLAY_DEPENDENCY", "normalized_sources": {"current": 36, "previous": 30, "reported": 21}, "expressions": [
+      {"obligation_id": "growth", "comparison_request_unit_id": "request_001", "formula": "(target-reference)/abs(reference)*100", "bindings": [{"variable": "target", "source_key": "current", "requirement_id": "current"}, {"variable": "reference", "source_key": "previous", "requirement_id": "previous"}], "source_display_key": "reported", "expected_calculated": 20, "expected_display": 21, "unit": "PERCENT"},
+      {"obligation_id": "double", "formula": "X+X", "bindings": [{"variable": "X", "dependency_id": "growth"}], "expected_calculated": 40, "expected_display": 40, "unit": "PERCENT"}
+    ]}
+  ]
+}

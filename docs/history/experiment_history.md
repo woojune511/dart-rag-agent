@@ -1,6 +1,551 @@
-﻿# Experiment History
+# Experiment History
 
-> Internal experiment log. For an introduction, start with
+## 2026-09-30 — Commit packaging and Git-export verification
+
+- Prepared two ordered review patches:9 code/test/contract files for explicitly opt-in caption support,and67 Markdown record/handoff files. New caption imports travel with the existing store/agent integration;no product behavior or past experiment scores changed in this step.
+- First candidate Git-tree export passes64 app/API/caption tests and35-literal domain audit using installed dependencies,without local settings/stores/recent ignored experiments. Module origins resolve inside the export;not a fresh dependency installation or live-provider test.
+- Markdown file-link check distinguishes packaged documents from69 intentionally local artifact references;raw evidence remains excluded. Separate-index patch replay verifies tree identities;the real index and HEAD are unchanged. Actual commit,push,deployment and remote CI NOT_RUN.
+- [Commit groups and validation limits](../operations/commit_packaging_2026-09-30.md).
+
+## 2026-09-30 — Offline release regression and experimental-caption isolation
+
+- Found that sidecar presence alone enabled an unadopted caption feature. Default store construction now ignores caption sidecars; only an explicit experimental path enables the retained implementation. Missing/malformed explicit files reject before provider/store construction. No new selector, prompt or parser change.
+- Red default-isolation reproduction, focused64/full2,177 tests,35-literal domain audit and saved5-case demo integrity pass. Read-only manifest/inventory check finds11 filings and15,608 matching graph/vector IDs;no native source-store open,provider calls or new embeddings.
+- Offline network guard initially interfered with Windows internal socketpairs;preserved failed logs and verified a narrowly scoped correction through53 tests plus external/unrelated-loopback blocking controls before full PASS. Existing product contracts unchanged.
+- Classified74 starting working changes;preserved3,422 protected files and prior experiment scores. No staging,commit,push,deployment or automatic paid follow-up. [Result and packaging boundary](../operations/release_readiness_2026-09-30.md).
+
+## 2026-09-30 — Offline citation-support criteria clarification
+
+- Defined evaluation-only date/unit support routes and separate supported/unsupported/undetermined/omitted dispositions. Identical date/heading is not a target-scope proof;independent explicit same-fact prose can be valid. Factual truth,packet sufficiency,citation support,request coverage and abstention remain separate.
+- Reviewed32 exposed saved answers:24 supported targeted records,2 added historical-date citation gaps,2 ambiguous adjacent-table date links,4 omitted requested date/scale fields. Not a new accuracy score or independent evaluation.49 exact source witnesses and7 existing physical caption bindings verify.
+-12 integrity contrast tests+2 docs tests pass;3,411 protected files unchanged;zero provider/embedding/search calls or cost. Existing A4/6 vsB5/6 strict scores and COMPLETE_GATE_NOT_MET preserved;no runtime,prompt,store or historical-result edits.
+- [Contract and saved-source review](../evaluation/citation_support_review.md).
+
+## 2026-09-30 — New-question caption-bundle answer comparison
+
+- Frozen6 positive/2 control inputs,3 known reports,exactDense16/BM25<=24/RRF60,unchanged A singleton versus B atomic caption selection;32 answers,gpt-5.6-terra low,8192 output,no retries/resume. Two date/unit captions restored;complete positive answers4/6 to6/6 both repeats,strict cited support4/6 to5/6. Two stable gains,one conservative citation regression;COMPLETE_GATE_NOT_MET. Same-subsection date-citation sensitivity changes the narrow gate,not the primary result.
+- Raw values/operands/arithmetic already correct;all controls abstain without requested-count fabrication. C08 byte-identical packets yield different citation support,so no causal caption claim. Same assistant condition-hidden review,not independent/new-report validation.
+- One8-input embedding batch +32 generations;USD0.47652647 estimate (0.57772147 conservative),109.96s answer batch. Provider-free6 selector/12 caption/2 docs tests,32 SDK mocks/8 fault controls,16 actual packets,and32 real response replay verify;3,257 protected files unchanged. Before paid calls,a caption-with-heading verifier assumption was corrected against full original node text;no input/rule change. No runtime/store mutation or adoption.
+- [Full result, sensitivity and limits](../evaluation/table_caption_answer_validation.md).
+
+## 2026-09-30 - Caption bundle selection comparison (offline)
+
+The [caption-bundle selection comparison](../evaluation/table_caption_bundle_selection.md) is COMPLETE_OFFLINE_FEASIBLE_NOT_ADOPTED:77 saved production candidate unions and same77 exact-Dense sensitivity compare unchanged top8(R),rank-ordered whole-source capacity selection(A),and atomic caption dependencies(B),within8 physical sources/65,536 bytes. A equals R on77/77;B swaps1 source in3 cases and reorders1. Selected linked tables retain captions1/4 to4/4,removing all3 prior attachment rejections. KB drops a heading,Samsung a benefit sensitivity table,SKI an FCW impairment note;no directly requested operand identified in those removed sources.27 prior slot controls are unchanged but do not cover the3 swaps;5 pre-frozen SKI distinct-scope witness occurrences survive.154 baseline/308 A-B packets,58 quote bindings,6 selection+2 docs tests verify. Calls/cost0;experiment-only selector,no runtime/store changes or adoption. Refusal/answer quality and scope interpretation remain untested;old6/8 versus7/8 gate unchanged.
+
+## 2026-09-30 - Caption attachment capacity on saved retrieval
+
+The [caption-capacity audit](../evaluation/table_caption_capacity_audit.md) is COMPLETE_OFFLINE_CAPACITY_AUDIT/NOT_READY_FOR_ACTIVATION:77 saved production top8 inputs select4 verified caption-linked tables;1 caption is already present and3 additions all exceed8 physical sources(3/77 overall,3/3 adding cases). Added bytes1,027-1,163 fit the byte cap;the unchanged MIX_T3_063 baseline separately omits2 sources and sends6 at65,435 bytes. Same77 exact-Dense sensitivity has identical attachment dispositions,not154 independent questions.154 baseline packets reconstruct;148 successful packets preserve all baseline-visible sources;6 executions reject before generation.12 caption contract+2 docs tests;calls/new embeddings/searches/cost0. No runtime/store changes or activation. Next candidate is separately evaluated bundle-aware final selection;old6/8 versus7/8 twice remains COMPLETE_GATE_NOT_MET.
+
+## 2026-09-30 - Explicit caption links implemented and verified offline
+
+The [table-caption attachment implementation](../evaluation/table_caption_link_implementation.md) is IMPLEMENTED_OFFLINE_VERIFIED_NOT_ACTIVATED. An explicit offline builder writes versioned XML/source-bound caption links;store lookup revalidates original body/metadata/adjacency on every use,including cached retrieval. SimpleRagAgent preserves seed hits and delivers whole captions within the same8-source/65,536-byte limits;overflow or stale bindings fail before generation. No additional search/model call,parser rewrite or embedding.12 focused tests plus existing application/storage/import/docs checks and domain audit pass;11 original reports reproduce178 pairs and24 saved input expansions exactly. Generated sidecar remains a separate artifact;current app store/.env unchanged. Calls/cost0;prior6/8 versus7/8 twice remains COMPLETE_GATE_NOT_MET. Activation and fresh model-quality evaluation are separate work.
+
+## 2026-09-30 - Table and caption linkage diagnosis (offline)
+
+The [table-caption link audit](../evaluation/table_caption_link_audit.md) is COMPLETE_OFFLINE_DIAGNOSTIC:11 original reports/15,608 stored nodes yield178 strict physical caption/table pairs from2,073 raw label candidates. NAVER loss is a separate4-column date/unit caption excluded by the parser3-column forwarding guard;described_by_uid links prior prose,not captions.155 accepted captions have4 columns;23 narrow captions already forward a unit suffix.178 whole-pair packets(max9,426 bytes) and24 prior-packet reconstructions/expansions pass;only two exposed NAVER B packets add a caption(+1,215 bytes),without any existing source removal.9 blocked-network tests,178 production-loader cross-checks,12 same-assistant structural samples and2 docs tests;2,246 protected inputs unchanged. Calls/cost0;no runtime/store changes or old rescore. Prior final-selection6/8 versus7/8 twice remains COMPLETE_GATE_NOT_MET,not answer accuracy. Narrow explicit caption linkage is feasible for separately scoped work;ambiguous/split tables remain excluded and model benefit NOT_RUN.
+
+## 2026-09-30 - Frozen final-selection comparison completed
+
+The [final-selection result](../evaluation/final_selection_result.md) is COMPLETE_GATE_NOT_MET:8 frozen new source-authored questions on4 familiar reports,exactDense16/BM25<=24/RRF60 candidate unions31-36. RRF has complete request evidence6/8;LLM selection7/8 in both repeats. Stable gains2(LGES cash reconciliation,Samsung discount-rate policy) are offset by1 stable loss(NAVER correct totals retained but required as-of-date caption omitted). All candidate pools contain complete reviewed evidence;this is selection coverage,not answer accuracy.16 selector calls+1 embedding batch(8 inputs),zero answers/retries/errors;conservative USD1.320009/10,uncached-rate estimate1.057661;selector35.87s.270 source occurrences,16 raw responses and24 actual A/B packets verify. Same-assistant label-blinded review,not independent holdout. No product adoption,post-result tuning or automatic follow-up. Prior7 held dispositions(1 corrected gold,5 development successors,1 ranking hold) and old results remain unchanged.
+
+
+## 2026-09-30 - Final-selection contract preparation (offline)
+
+The [final-selection contract preparation](../evaluation/final_selection_contract_preparation.md) is COMPLETE_OFFLINE_PREPARATION:7 held cases now have1 corrected gold,5 development-only successor questions and1 unresolved ranking-universe hold;original gold/results remain unchanged. Eight new source-authored questions(4 numeric,4 narrative) on4 familiar reports have frozen questions,request slots and source quotes,after checking73 prior files/181 distinct questions. Seven network-blocked contract tests pass. Calls/new embeddings/cost0. Genuine new-query candidates,actual final-packet parity and model comparison remain NOT_RUN/NOT_ADMITTED. Proposed follow-up is report-scoped exactDense16/BM25<=24/RRF60 top8 versus one full-source selector(max8 IDs),two selector repeats(16 calls),8 embeddings,zero answers,USD10 ceiling subject to fresh pricing/reservation and separate admission. Prior capacity audit12 covered/7 selection headroom/1 candidate miss/7 holds and section-selector NOT_MET are unchanged;no product adoption or automatic paid run.
+
+
+## 2026-09-30 — Request-evidence and whole-source capacity audit
+
+- The [request-evidence/capacity audit](../evaluation/evidence_capacity_audit.md) reviews27 exposed questions against frozen report-global exactDense16/BM25<=24 candidates:12 have reviewed minimum request-slot evidence in the current packet,7 have feasible missing candidate bundles(1-2 chunks,3,408-7,963 bytes),1 lacks a complete reviewed candidate bundle,and7 remain annotation/scope/ranking/calculation holds. These categories are not comparable to the old8/26 representative-source metric or answer accuracy.20 feasible packets(including1 held case) match actual SimpleRagAgent input construction;27 exhaustive subset checks,58 quote bindings,12 targeted XML tables and7 capacity controls pass. Calls/cost0;source/store/rubric/product unchanged. Prior [section selector result](../evaluation/section_hybrid_result.md) remains54 calls,$0.426776,2 stable recoveries with2 stable and1 intermittent loss,NOT_MET/not adopted. Next priority is evaluation-contract clarification and separately scoped final-selection validation on new questions;no paid follow-up is launched. Prior strict11/14 NOT_MET and parser adoption stand.
+
+## 2026-09-30 — Actual canonical-section selector comparison closed
+
+- The [canonical-section hybrid result](../evaluation/section_hybrid_result.md) completes54 real selector calls on27 frozen components x2, with26 primary and1 annotation-unresolved diagnostic. Final representative-source delivery is A8/26 versus B7/26 and8/26;2 stable recoveries,2 stable losses and1 one-repeat loss. The frozen preservation gate is NOT_MET;the tested hard section filter is not adopted. Input185,062/output4,721 tokens cost an estimated$0.426776 at checked standard rates,within$2.313528 reservation/$5 cap. All54 request/output/scope/ranking/packet/usage bindings pass independent offline recomputation;27 A packets match saved exactDense16 baselines. Answer quality and whole-question sufficiency remain NOT_RUN/NOT_EVALUATED;no new embeddings,retries,runtime/parser/store changes. Prior strict11/14 NOT_MET and parser adoption stand. Earlier [preparation](../evaluation/section_hybrid_preparation.md) and [tree feasibility](../evaluation/tree_navigation_feasibility.md) remain historical evidence.
+
+## Canonical-section hybrid preparation (2026-09-30)
+
+- The [canonical-section hybrid preparation](../evaluation/section_hybrid_preparation.md) implements an experiment-only one-selector seam followed by section-union filtering before exactDense16/BM25<=24/RRF60/top8.580 content-bearing canonical section nodes preserve all15,608 source references;20 empty nodes are omitted and15 POSCO direct parent edges repaired in the experimental index only. Catalog max10,462 bytes.77 scripted(no-semantic) selector replays and154 actual input packets pass;global exact16 baseline77/77 identical;8 controls and independent source/scope/packet checks pass. Initial empty-template duplicate-path failure stopped before search;original attempt preserved,successful run is attempt02. Actual LLM selection,retrieval benefit and answers are NOT_RUN;calls/cost0. A27-component x2 selector-only pilot(max54 calls,proposed$5 cap) is design-only,not provider-admitted. Product/store/parser remain unchanged;prior strict11/14 NOT_MET and parser adoption stand. Previous [tree feasibility audit](../evaluation/tree_navigation_feasibility.md) remains historical evidence of the physical-tree/coarse-section limitations.
+
+## Tree-navigation feasibility audit (2026-09-30)
+
+- The [tree-navigation feasibility audit](../evaluation/tree_navigation_feasibility.md) builds query-independent XML-section/stored-heading trees for11 v5 filings and resolves all15,608 stored source references;27 frozen representatives are addressable,not retrieved successes. Pure titles-only search is NOT_READY:7,997 sources lack intermediate heading scopes;3 menus exceed65,536 bytes;maximum637 direct chunks. POSCO physical XML ancestry differs from canonical parser paths at52 section nodes,affecting1,775 sources;no edge repair or current-runtime regression claim.8 offline controls and full source-route checks pass. No provider calls,embeddings,answers,store client opens or runtime edits. Next prerequisite is source-grounded canonical parent mapping and bounded access inside coarse sections;paid search is not run. The prior [sum/max comparison](../evaluation/full77_v5_fusion_max.md) remains no-net-gain/NOT_ADOPTED;strict11/14 NOT_MET and parser adoption remain unchanged.
+
+## Sum-vs-max fusion comparison (2026-09-30)
+
+- The [sum-vs-max fusion comparison](../evaluation/full77_v5_fusion_max.md) reuses the [Dense32 candidate pools](../evaluation/full77_v5_dense32.md), with fixed BM25<=24,constant60,native stable ties,top8 and byte limit.77 offline pairs/154 actual packets verify. Frozen representative delivery remains8:fees and warranty recover12->2,while Motional6->22 and total-capital7->10 leave. Components remain8 top8/13 candidate-only/5 corpus-only/1 unresolved;28 other positives are not sufficiency-scored.75 packets change,omissions3->7,boundary ties14->20;no answer-quality evaluation. No net gain:NOT_ADOPTED and closed without further tuning. No provider calls,store opens,runtime changes or automatic paid follow-up. Prior strict11/14 NOT_MET answer gate and parser adoption remain unchanged.
+
+## Dense16-to32 comparison (2026-09-30)
+
+- The [Dense16-to32 comparison](../evaluation/full77_v5_dense32.md) uses the same sealed exact rankings from the [exact-Dense diagnostic](../evaluation/full77_v5_exact_dense.md), fixed BM25<=24/RRF60/top8 and byte limit.77 offline pairs/154 actual packets verify. Frozen representative delivery remains8/27:2 gains (Motional22->6,KB net income11->5),2 losses (fees and warranty8->12); overseas sales newly enters candidates but stays30th. Both lost witnesses retain BM251/score1/61 while dual-list candidates grow7->11. Components are8 top8/13 candidate-only/5 corpus-only/1 unresolved; not whole-question sufficiency or accuracy.50 packets change,omissions2->3,bytes+0.42%.1038 protected inputs unchanged; no API calls,store opens,runtime changes or adoption. Exact32 is not a fresh ANN32 run; LLM selection,other sizes and paid evaluation are not authorized follow-ups. Prior answer-gate failure and parser adoption remain unchanged.
+
+## v5 exact Dense comparison (2026-09-30)
+
+- The [v5 exact-Dense comparison](../evaluation/full77_v5_exact_dense.md) completes77 no-call comparisons against the sealed [v5 retrieval audit](../evaluation/full77_v5_retrieval_audit.md), using all15,608 reconstructed vectors checked against stored readback hashes. ANN/exact neighbor overlap is1,223/1,232 (99.27%;tie-aware99.35%), final packets74/77 identical and all55 positive packets identical. Frozen27 components remain8 top8/12 candidate-only/6 corpus-only/1 unresolved; no representative recovery. Motional exact rank17 and overseas-sales rank18 fall outside the current16-candidate limit.154 actual packets/rankings and distance checks pass;5 focused tests. An initial metadata-wrapper harness failure saved0 comparison rows and was corrected using the native loader without weakening checks.744 protected inputs unchanged; no provider calls,store opens,runtime edits or automatic follow-up. Dense16-to32 is a separate proposed diagnostic, not executed; strict11/14 answer gate and parser adoption remain unchanged.
+
+## v5 full77 offline retrieval audit (2026-09-29)
+
+- The [v5 full77 retrieval audit](../evaluation/full77_v5_retrieval_audit.md) completes77 offline searches and actual packets with sealed query vectors (provider calls0). Frozen representative components on27 exposed positives move from top8/candidate-only/corpus-only/missing/unresolved10/10/5/1/1 to8/12/6/0/1. The recovered consolidated carbon paragraph is rank25; a separately reviewed recovered separate-policy paragraph is delivered at4. This is component location, not full-question sufficiency or answer accuracy; remaining28 positives stay locator-only,19 refusals ungenerated and3 diagnostic. One packet omits2 sources (previously3);154 rankings and77 actual packets reconstruct.16 contract tests/3 controls pass after a preflight Windows socketpair guard issue, with no retrieval retries.530 protected files remain unchanged. Parser adoption and strict11/14 answer-gate failure are unchanged; no runtime change or automatic paid follow-up.
+
+## Parser v5 adoption decision (2026-09-29)
+
+- The [parser v5 adoption](../architecture/parser_v5_adoption.md) records the user-approved parser/tests/docs commit separately from the unchanged [answer regression](../evaluation/paragraph_heading_v5_answer_regression.md): core14/14,strict11/14,stable4/7 (absence-wording sensitivity12/14,still gate not met). Plain and paragraph-style heading ownership, table-body preservation and bounded separator parsing are adopted. The verified local full11 v5 store has15,608 chunks; source/metadata delivery fixes do not certify all headings or general answer accuracy. Remaining added-claim citation omissions and overbroad absence wording are separate follow-up items. No new provider calls,prompt tuning,store mutation or automatic rerun is authorized by this adoption.
+
+## V5 seven-question answer regression (2026-09-29)
+
+- The [v5 seven-question answer regression](../evaluation/paragraph_heading_v5_answer_regression.md) is COMPLETE_REGRESSION_GATE_NOT_MET: core/explicit requirements14/14; strict cited support11/14,stable4/7. KB and NAVER first repeats omit citations for supported added claims; carbon second repeat extends excerpt absence to report-wide wording (narrow-reading sensitivity12/14,still no-go). Required evidence14/14, no packet omissions. Correct NAVER employee heading/body reaches both actual requests; numeric/target confusion absent. 14 answers+14 fresh embeddings,no errors/retries,conservative USD0.32555570/7,63.44s batch.35 app/budget+40 parser tests,14 blocked-network rehearsals,3 controls and911 protected inputs verify.12/14 requests excluding NAVER equal historical v4 requests; no causal claim. Active v5 full11 store15608 chunks remains ready; runtime/store/env unchanged. All-pass condition fails, so no completion commit, tuning,rerun or automatic follow-up. Prior v4 14/14 remains historical.
+
+## V5 eleven-report successor store and activation (2026-09-29)
+
+- The [v5 eleven-report successor](../operations/paragraph_heading_v5_store_rebuild_2026-09-29.md) is COMPLETE_READY / PASS_ACTIVATED: 15,608 chunks, 15,552 exact-input reused vectors,56 new inputs in1 embedding call,33,819 tokens,estimated USD0.00439647/2. All stored text/metadata/vectors read back; original NAVER employee footnote now carries its source employee heading in stored metadata/prefix and two identical actual cached agent packets. Four prior accounting tables/15 fragments remain. 11 dense/11 BM25 probes and7 saved-query hybrid searches pass (7/7 source location only).52 focused tests and actual app startup/readiness HTTP200 pass. Only two dotenv store settings switched; old v4 store and other protected inputs preserved. No new query embeddings or model answers; answer quality NOT_RUN, prior v4 14/14 remains historical. No runtime/prompt change or automatic paid follow-up.
+
+## Paragraph heading-style repair (2026-09-29)
+
+- The [paragraph heading-style fix](../evaluation/paragraph_heading_style_fix.md) is CODE_VERIFIED_STORE_REBUILD_PENDING. Plain parsing now reads P bold style for direct text, inheriting SPANs and tails, while retaining legacy SPAN eligibility and existing located headings. NAVER employee footnote changes from prior officer-heading to its original employee heading. Final full2,163 tests pass;8 new unit tests plus a new persisted/cached packet integration test distinguish pre-edit code (5/9 fail). Across11 reports/473 sections, ordered block text and12,181 table texts/grids/units are preserved;33 table headings change, not33 certified error fixes. Broader style/line/markup candidates were rejected and retained. No providers or store/env writes;848 protected inputs unchanged. Parser is v5; configured v4 store now reports mismatch/ready=false and requires a separately scoped successor rebuild. Prior v4 seven-question14/14 result remains historical; no fresh answer quality claim.
+- Root XML uses P USERMARK=B with body inside SPAN !B. Source-located paragraph-style fallback fixes the specific missed owner; no source-level answer/router rule. All candidate logs are immutable; only scoped_final is accepted. Prior tests that passed on broader candidates did not establish heading faithfulness. Source compatibility identity advances to financial_parser_v5_inherited_heading_style; no implicit store adoption.
+
+## V4 seven-question answer regression (2026-09-29)
+
+- The [v4 answer regression](../evaluation/table_context_v4_answer_regression.md) passes the frozen seven-question/two-repeat gate: core, explicit requirements and cited support14/14, stable7/7; recovered Hyundai carbon policy passes twice and no regression in six prior cases. 14 answers+14 fresh query embeddings, no errors/retries/packet omissions, conservative USD0.32655470/7, answer batch59.08s. 14 blocked-network rehearsals,3 fault controls and45 tests pass;1,065 protected files unchanged. This is exposed-panel assistant review, not full accuracy or independent validation. NAVER auxiliary source1251:17 still has an employee-body/local_heading mismatch; recorded without a runtime fix or automatic follow-up. Carbon recognition wording is a disclosed summary caveat. Active full11 v4 store remains unchanged.
+- One-run authority consumed. Existing questions/source rubric frozen before generation; maximum whole-batch reserve USD6.10806784. All28 raw requests, usages, complete source packets and unchanged inputs audit successfully. Positive-only7 questions; repeated answers are not14 independent examples. Source-ID checks remain distinct from manual semantic review and evaluator arithmetic. No source/store/env edit or automatic paid successor.
+
+## V4 eleven-report successor store and activation (2026-09-29)
+
+- The [v4 full11 store rebuild](../operations/table_context_v4_store_rebuild_2026-09-29.md) is COMPLETE_READY / PASS_ACTIVATED:15,595 chunks,13,705 exact-input reused vectors,1,877 new unique inputs. 30 embeddings,1230647 tokens,estimated USD0.15998411/2; no errors/retries. All vectors/text/metadata and four recovered tables/15 source fragments read back. 11 dense/11 BM25 probes and seven saved-query actual hybrid searches pass operational checks; target source present in7/7, not answer accuracy. Actual app startup/readiness passes after two dotenv store settings switch to app_full11_2023_v4_20260929. Old v3 store and other dotenv bytes preserved;46 focused tests pass. No fresh query embedding/answer call or automatic follow-up.
+
+## Table context-label parser correction (2026-09-29)
+
+- [Result](../evaluation/table_context_hint_preservation.md): one-cell narrative tables were consumed as period/unit hints before block generation. Positive whole-label recognition preserves other text; mixed caption bodies remain and only explicit unit suffixes label the next table. Generic parser structure change, no company/question branch or retrieval/answer change.
+- Provider-free before/after parsing of11 original reports/473 sections preserves19,408 old block texts/types/headings and table grids;1,559 blocks added. Hyundai two carbon-policy tables and LGES two corresponding tables survive complete whitespace-normalized block-to-chunk checks. Added blocks are not recovered questions or accuracy. Unit-context changes are separately reviewed in artifacts; no all-metadata-equivalence claim.
+-10 regression tests, full2,154 pass. Original behavior fails7 of the10 new test methods. Initial unit-delivery regression and attached-parenthesis boundary were corrected with intermediate outputs retained.188 protected files, active v3 store/.env and original reports preserved; zero provider/embedding calls or API cost.
+- Parser identity is financial_parser_v4_label_only_table_context. Actual current full11 v3 manifest returns mismatch/ready=false. Separate successor rebuild, search adoption and answer evaluation remain NOT_RUN; prior strict11/12 and sealed77-question v3 audit are unchanged.
+
+## Full77 v3 retrieval audit (2026-09-29)
+
+- The [v3 full77 retrieval audit](../evaluation/full77_v3_retrieval_audit.md) completes77 offline searches with reused exact-query vectors: all scopes covered,55 positive/19 refusal/3 diagnostic retained. Among27 formerly reviewed positive components:10 top8,10 candidate-only,5 outside candidates,1 known raw accounting passage absent from graph,1 annotation-scope unresolved; remaining28 positives have locator-only review, not certified sufficiency. Actual packet replay finds3 omitted sources in one case. First comparator stopped after21 saved results on existing BM25 edge-space stripping; separate no-call repair completes56, with failed query replayed once.77 rankings/packets verify,4021 protected hashes unchanged; no provider calls, answers or runtime changes. Prior11/12 remains unchanged.
+- Old retrieval used per-receipt exact dense/BM25; current Chroma/corpus-wide IDF and changed chunks prevent heading-only causal claims. Known DRAM witness and Hyundai reference-scope errors remain disclosed; corpus-missing carbon-accounting passage is confirmed against original HTML. No paid successor or product tuning.
+
+## Eleven-report app store activation (2026-09-29)
+
+- [Result](../operations/full11_store_activation_2026-09-29.md): PASS_ACTIVATED. User authorized storage activation independently from the preceding answer gate; strict11/12 and citation omission remain unchanged. Local dotenv store path and collection now select app_full11_2023_20260929 / dart_reports_v3_full11_2023; all other dotenv bytes preserved.
+- Actual FastAPI lifespan and HTTP readiness/company checks pass:11 reports,14005 chunks; six scoped hybrid searches with saved exact-query vectors find all required witnesses and corrected KB/Samsung headings.29.90s, no fresh embeddings/generation/ingest/provider cost. Initial network guard blocked Windows asyncio loopback; harness corrected, first log preserved. No product/prompt changes or persistent server startup.
+-762 protected files unchanged, rollback byte roundtrip verified. Target SQLite hash changed on open; all sidecar/index bytes unchanged, no target files added/removed. This is startup/search verification, not another model evaluation or exhaustive database audit. Original failed strict gate is preserved as historical evidence.
+
+## Heading scope end-to-end verification (2026-09-29)
+
+- [Result](../evaluation/heading_scope_delivery_verification.md): existing generic parser fix confirmed from source to delivered packet; no new runtime change. Added3 portable tests covering plain peer, bold inline peer and legitimate named child. All3 fail with the pre-fix HEAD parser, all3 pass currently; focused58 pass. Actual temporary Chroma persistence/reopen, graph/payload readback, BM25/RRF, alternating cached requests and answer packet/citation projection exercised with synthetic embeddings/model only.
+- Original KB/Samsung tables retain body text while titles change from stale subsidiary/division to current rating subsection. Rebuilt stored sources and4 prior actual provider packets match current source parsing.761 protected files unchanged; zero fresh provider calls or source-store mutations. App activation still withheld by the separate preceding citation-support gate. No claim that every heading in all reports is correct.
+
+## New-store six-question answer regression (2026-09-29)
+
+- [Result](../evaluation/heading_scope_answer_regression.md): COMPLETE_ACTIVATION_GATE_NOT_MET.6 questions x2 actual app runs on an identical new-store copy.12/12 core correct and required evidence available/cited; strict all-claim citation support5/6 then6/6. KB/Samsung target confusion absent, prior four successes hold twice. G02 first answer adds domestic ratings correctly from retrieved24:24 but cites only overseas23:23; second cites both. This is citation omission, not value or retrieval failure.
+-12 answer+12 fresh query embeddings, zero errors/retries/NOT_RUN/packet omissions; input84082/output2485/embedding1050 tokens, conservative USD0.24016150 under independent agent-setUSD6 ceiling. Batch60.77s, question mean3.47s, copy/preparation excluded.35 focused tests,12 blocked-network rehearsals and3 fault controls pass;963 protected files verify. Pre-provider runner whitespace/cache assumptions corrected with old drafts/logs retained.
+- All-six-both-repeats adoption gate fails (stable strict5/6), so .env remains on old NAVER v2 mismatch; original new v3 store and prior evidence preserved. No prompt/runtime tuning, paid retry or automatic follow-up. Exposed regression only; changed corpus/chunks and Chroma retrieval prevent heading-only causal claims.
+
+## Eleven-filing heading-scope store rebuild (2026-09-29)
+
+- [Result](../operations/heading_scope_store_rebuild_2026-09-29.md): user selected11 familiar 2023 reports. New data/app_full11_2023_20260929 / dart_reports_v3_full11_2023 is compatible.14005 chunks,473 parents,12330 payloads;10259 exact full-input vectors reused,3746 missing occurrences deduplicated to3658 new texts.
+-58 embeddings,2866885 tokens,estimated USD0.37269505; agent-set cap2, global reservation0.37366017, pending0, live errors/retries0. Embedding237.67s,build/readback176.82s; no answer/query embeddings. All vector/text/metadata hashes read back,11 scoped dense and11 BM25 probes pass; stored KB/Samsung headings corrected.187 protected files, current .env and old NAVER store unchanged. No app activation or answer-quality evaluation.
+- Existing catastrophic separator regex reproduced in a bounded child process, replaced with equivalent whitespace-delimited repetition;2141 tests pass.473 full sections reparse without fallback under explicit budget0. Offline preparation typo corrected; slow all-batch mock interrupted with logs preserved, then single-write JSON and two representative SDK mocks/all58 input checks pass. Paid authority consumed once, no auto-resume or additional batch.
+
+## Generic heading-scope parser correction (2026-09-29)
+
+- [Fix and verification](../evaluation/heading_scope_fix.md): plain numbered/inline heading recognition preserves body text; observed numbered parents survive bracket children and terminate them on peer return. Valid children/captions remain. No company/question/metric branches.
+- Eleven original overview sections replayed against the pre-edit HEAD parser with blocked network:112 tables,33 serialized row records and135 value records preserved; exact XML context spans verify. KB and Samsung stale headings clear;121→175 chunks.804 original/old-experiment files unchanged. No provider/embedding/store writes or new model-quality measurement.
+- Ten new regression tests; parser schema financial_parser_v3_heading_scope prevents silent v2-store adoption. Full-suite initial2139 run had only the pre-existing current-status length failure; its old checkpoints were preserved verbatim in a linked history excerpt. Final full suite passes2139/2139 (54.273s), with no weakened tests. Existing store rebuild remains unexecuted.
+
+## Company-overview heading-scope diagnosis (2026-09-29)
+
+- [Result](../evaluation/heading_scope_diagnosis.md): current unmodified parser, no experiment regex adapter,11 original company-overview sections;121/121 chunk bodies/local headings uniquely match saved table corpus. This is a section-only parse, not fresh ingest or a store rebuild.
+- KB Life heading persists across the next peer item containing KB Financial ratings; Samsung DX heading also survives company-wide items and inline bracket headings. Eight diagnostic candidate paragraphs in two reports are not eight independent failures; the scan is not exhaustive. Plain heading recognition and static bracket/number hierarchy explain the structural reproduction; model-error causality is not isolated.
+- Generic minimal controls reproduce plain-mode persistence and show forced structured mode still nests the next numbered item under the bracket.54 existing parser/heading tests pass;925 protected input hashes unchanged. API/embedding calls0, cost0, no source/store edits. Diagnosis complete; generic boundary contract/fix and paid answer comparison remain unexecuted.
+
+## Frozen rank-disagreement gate, fresh repeated comparison (2026-09-29)
+
+- [Preparation](../evaluation/rank_gate_validation_preparation.md), [result](../evaluation/rank_gate_validation_result.md): eight new source-authored positive questions on four familiar reports plus2 dependent whole-source-removal controls; two fresh independent selection/answer repetitions, retrieval shared. Frozen disagreement>6/7 calls only G03. No threshold fitting, question replacement, parser fix or product change.
+-60/60 generations+8/8 query embeddings complete, errors/retries/NOT_RUN0. Actual estimated USD1.904832/20,195.73s; maximum reservation USD19.38616. All positive witnesses already in top8. Conditional chooses observed branch, no third answer run. Both arms pass called G03 twice; shared G02 target-company failure remains. Original KB report heading versus stale [KB라이프생명] context recorded without causal attribution or metadata correction.
+-RRF/conditional positive score6–7/8 then7/8, selector7/8 twice. G07 first RRF correct formula/operands but18.9% display versus18.950342% exact; tolerance not preregistered, primary undecided with nearest-rounding fail/truncation-allowed pass sensitivity. Confirmed stable benefit0; strict sensitivity gives only one benefit, which gate skips. Controls2/2 per repeat; refusal confusion TP8/FN0/FP0/TN2 per repeat includes wrong positive answers as TP. No independent-question inflation.
+-Conditional estimated policy cost USD0.487708, +31.0% vs RRF0.372364, -68.2% vs always-selector1.532576. Progression fails; effect not established, no automatic successor.9 blocked-network contract tests/10 fault controls,60 actual request reconstructions, zero source-window/answer omissions. Raw outputs and previous artifacts sealed separately; current docs intentionally updated, authority consumed.
+
+## Additional selector-call necessity, saved-outcome audit (2026-09-29)
+
+- [Audit](../evaluation/selector_call_audit.md): separate old12 inputs/six paired questions and N01–N12; strict support plus nonabstention primary, core/evidence/sensitivity separately. Outcome oracle is the upper envelope of two saved single responses, not causal policy performance. No new provider/embedding/ingest or runtime change.
+- Development never3/12, always9/12, primary oracle9/12 with6 calls. Separate never11/12, always11/12, oracle12/12 with1 call. Saved estimated separate costs USD0.256140/1.067338/0.307849 respectively, including shared recorded embedding; old retrieval cost unavailable. Never charge both answer branches to hypothetical routing.
+- Frozen pre-scoring heuristic uses dense/BM25 top8 Jaccard disagreement above unlabeled development median6/7. Development4 calls,5/12 primary, TP2/FP2/FN4/TN4 and one core/evidence regression. Separate2 calls (N02,N05),12/12 primary, TP1/FP1/FN0/TN10, USD0.416701. Previously exposed labels and only one separate-panel win; no independent router validation or post-result threshold search. Candidate-insufficient cases absent.
+- COMPLETE_OFFLINE_NOT_ADOPTED:9 blocked-network tests pass;1,204 input hashes protected. Findings do not justify default conditional selection, classifier or automatic fresh experiment. Current handoff docs updated, original experiment files preserved.
+
+## Lossless structural candidate catalog, offline successor (2026-09-29)
+
+- [Rules and result](../evaluation/structural_selection_feasibility.md): full metadata, observable paragraph/pipe-line units and exact context/unit interning; no truncation, semantic repair, vocabulary rules or runtime change. Design and all12 separate N01–N12 inputs fixed before measurement, with old12 inputs as development controls.
+- Full text/context/identity/order reconstruct across785 candidate occurrences. Twelve blocked-network tests pass;34 prior development anchors remain in whole units and21 stored witness occurrences across12 evaluation questions retain full text. Zero overlapping source IDs across panels, but prior exposure/familiar reports remain; not independent generalization evidence.
+- Local serialized request tokens750,537→724,045 (-3.53%) on development and544,369→502,222 (-7.74%) on separate evaluation. Frozen50% reduction gate fails; COMPLETE_OFFLINE_NO_GO, no post-result tuning or paid successor. Actual model quality/cost/latency NOT_RUN, provider/embedding/ingest0.2,261 protected input hashes checked; old artifacts preserved and current handoff docs intentionally updated.
+
+## Compact candidate previews, provider-free feasibility (2026-09-29)
+
+- [Result and rules](../evaluation/compact_selection_feasibility.md): frozen query-independent head/middle/tail excerpts plus bounded stored metadata, on all12 prior fixed-pool inputs (six questions x flat/table; six historical successes and six selection losses). No new gold, provider calls, embeddings or ingest.
+- Same local tokenizer request totals750,537→338,938, reduction54.8%; not provider usage or workflow cost. All391 candidate occurrences and1,685 spans preserve identity/order/source linkage; full originals rehydrate. Nine network-blocked tests pass, including characterization that partial=false does not guarantee metadata retention.
+- Representative candidate review finds topic/period/unit clues lost in9/12 inputs; not9 model errors or exhaustive alternative-evidence absence. Frozen v1 fails the no-discriminator-loss gate and stops without tuning or paid comparison. Model quality/cost/latency NOT_RUN; runtime/API unchanged.
+- Re-reading historical SKH DRAM original witness41:0 reveals raw-material share63%, not DRAM. Actual selected654:2 supports DRAM share and the preview retains it. Discrepancy recorded separately without changing historical artifacts/scores.2,246 input file hashes protected; initial unavailable tokenizer attempt preserved and replaced with cached cl100k_base before projection/review.
+
+## Same-evidence header-link reader pilot (2026-09-29)
+
+- [Preparation](../evaluation/header_link_pilot_preparation.md), [result](../evaluation/header_link_pilot_result.md): user authorized16 fixed-context inputs x2 representations x2 repetitions, at most64 generations/USD20. Twelve new source-authored positives on four familiar reports plus four dependent whole-source-removal controls; no retrieval, new ingest or independent gold.
+- A original and B original plus question-independent column/header links both pass12/12 positives and4/4 controls in each repetition. Period/scope/unit groups tie; all6 calculations correct in each repetition. Both confusion matrices sum toTP24/FN0/FP0/TN8, with repetitions explicitly dependent. H16 safely refuses the requested purpose-specific loan values but adds separately labeled supported average-balance calculations.
+- Stable B wins0 and regressions0: progression criterion not met; ceiling effect, not general evidence that table structure cannot help. B input tokens+17.4% and conservative cost+14.5%.64/64 complete, errors/retries/NOT_RUN0, total USD0.846894,183.26s; one-run authority consumed.
+-13 source chunks verified against original XML;8 contract tests, two byte-identical64-request blocked-network rehearsals,8 fault controls passed. All64 live requests match the frozen schedule.1,189 protected hashes verified before intentional handoff documentation updates;1,075 pre-review artifacts sealed. No runtime/API changes, post-result tuning, automatic successor or artifact publication.
+
+## Frozen semantic selection on new questions (2026-09-29)
+
+- The [new-question selector comparison](../evaluation/semantic_selection_new_questions_result.md) completed12/12 pairs with36 generations and12 query embeddings, no errors/retries/NOT_RUN. Both arms delivered sufficient evidence12/12; frozen supported-complete criteria11/12 RRF versus11/12 LLM selection (explicit-question sensitivity11/12 versus12/12). One period-reading improvement and one rubric-sensitive answer omission, not retrieval recovery. Average sources8.00→1.92; workflow cost4.17x/time1.57x, total estimated USD1.32334789 and151.31s. Four familiar reports, source-authored non-independent positive-only panel. Actual candidate/answer omissions0;12 search/12 selection/24 answer packets and790 protected hashes verify. No production adoption or post-result tuning; one-run authority consumed.
+- [Preparation](../evaluation/semantic_selection_new_questions_preparation.md): dataset/rubric frozen before query retrieval; original selector/answer prompts retained. Pre-live synthetic-vector rehearsal exceeded input bound; generic whole-source selector window added before paid calls, with baseline-delivered evidence preserved. Old offline attempt retained; live omission count0.
+
+## Chunk-reference ledger, six-case completed batch (2026-09-28)
+
+- [Preparation](../evaluation/agentic_ledger_chunk_refs_preparation.md), [result](../evaluation/agentic_ledger_chunk_refs_result.md): user approved source_id+note instead of coordinates/duplicated quotations. Chunk linkage replaces exact-span linkage; other source/scope/capacity checks remain. First-case execution gate passed, then five cases continued in the same authorized batch.
+-6/6 completed,22 generations/6 query embeddings, zero errors/retries/NOT_RUN; USD1.25090466,164.50s. No live repair/resume or post-result tuning.
+- Kakao decline caveat retained; Celltrion total consideration recovered at candidate13; Samsung misses Welstory and drops joint liability despite its presence in delivered449:102. SKH correct operands yield wrong arithmetic (-1,480,004 instead of -332,236 million), regressing a former-success control. Direct-sales control passes; missing-policy control remains partial with abstained=false.
+- Same five-answerable-case core-summary criterion: initial1/5→final2/5; historical final3/5→2/5. Kakao alternative sensitivity and corpus omission remain separate. Assistant exposed-data review, not independent gold, causal effect or general accuracy.
+-22 contract tests,42 mock calls,15 controls;12 decisions/10 answers/6 search reconstructions/61 chunk references and2,078 protected hashes verify. Historical workflow cost1.05x/time1.45x. Default SimpleRagAgent and all prior sealed records unchanged; authority consumed.
+
+## Single-selection live batch, first-decision span-limit failure (2026-09-28)
+
+- [Preparation](../evaluation/agentic_ledger_single_selection_live_preparation.md), [result](../evaluation/agentic_ledger_single_selection_live_result.md): user explicitly requested execution of the fixed six-case validation. Separate one-run USD15 carrier; prompts, contract functions, panel/rubric and42 mocked requests match the sealed offline successor.
+- One provider generation completed with47,470 input/714 output tokens, but one qualification selected existing pieces1–11 (11 total) above the maximum8. All source IDs are visible/in-scope; five other references are valid. Not a source-ID mismatch or nonexistent-coordinate failure.
+-0 completed,1 ERROR,5 NOT_RUN; no search/answer, retry, repair or resume. Conservative USD0.127243,11.27s; authority consumed. Answer quality NOT_RUN, no score changes or product adoption.
+-24 contract tests/42 mock calls/15 controls passed before execution;1,753 protected hashes and prior1,043/394/314 manifest/seal files verify. Runtime and old sealed artifacts unchanged.
+
+## Single-selection ledger contract, offline only (2026-09-28)
+
+- [Contract and checks](../evaluation/agentic_ledger_single_selection.md): removed duplicate model-owned selected_ids; stable deduplication of evidence/qualification sources now owns retention and answer delivery. Eight unique sources and existing physical/visibility/whole-source limits remain enforced.
+-24 contract tests,42 blocked-network mock SDK calls,15 fault/scope controls;18 decisions,12 answers and12 search records reconstruct. Eight newly retrieved candidate omissions, zero retained-source omissions.5,239 unique source reconstructions,1,438 protected hashes and prior1,043/394 manifest/seal files verified;314 successor artifacts sealed.
+- Saved-failure pattern is a separately authored diagnostic with three referenced sources, not a repaired historical output or five-source union. Initial test reader had23 passes/1 error; corrected message-item extraction passes24, with engine and original test result preserved.
+- Zero fresh provider calls/cost; live entry disabled; semantic quality NOT_RUN. Default application, source corpora, previous failures and scores unchanged. No automatic paid follow-up or rubric revision.
+
+## Addressed-ledger live batch, interrupted after three cases (2026-09-28)
+
+- [Result](../evaluation/agentic_ledger_addressed_result.md): newly authorized one-batch USD15 scope;13 generation +4 query-embedding calls, USD1.06809,138.51s. Three completed, fourth rejected, two NOT_RUN. No retry/resume.
+- Kakao preserves decline qualification through two searches and final answer; Samsung preserves partial status and joint-liability caveat but misses Welstory; Celltrion marks all self-defined requirements covered and skips search despite missing total consideration. Prior same-three strict rubric1/3→0/3; KAK alternative-answer sensitivity1/3→1/3. Partial, exposed, historical comparison only.
+- Fourth decision references visible source214:124 in qualifications but omits it from selected_ids; union would be5 within top8. Physical ranges valid, output contract rejected. No source injection, output repair or successor execution.
+- Completed workflow cost1.47x/phase time1.91x predecessor same three, excluding diagnostic answers and rejected-case cost.7 decision/5 answer request reconstructions,4 search replays,53 accepted physical references,1,043 protected hashes. Existing product/source/stores and sealed experiments preserved; no default adoption.
+
+## Evidence-ledger attempt and addressed-source successor (2026-09-28)
+
+- [Ledger design](../evaluation/agentic_ledger_preparation.md), [interrupted result](../evaluation/agentic_ledger_result.md): stable requirements, source-backed qualifications, explicit revisions and stopping checks.42 mocked SDK calls,15 controls and6 transition checks passed before dispatch.
+- First provider response completed with45,395 input/1,058 output tokens, but one of seven quote references normalized the source space in `카카 오게임즈`. Exact-quote validation rejected it. USD0.1261835,13.62s, no embedding/search/answer; five cases NOT_RUN. No repair, retry, resume or efficacy claim. Failed source/output/artifacts sealed.
+- [Separate addressed successor](../evaluation/agentic_ledger_addressed_preparation.md): model selects source-local fixed-piece ranges; code copies original spans with source fingerprint, preserving whitespace. No automatic conversion of failed quotes.42 blocked-network mock calls,15 controls,16 additional checks and5,239 unique source reconstructions pass. Zero fresh provider calls; actual quality NOT_RUN. Proposed USD15 one-batch scope prepared, not authorized/consumed. Default application unchanged.
+
+## Bounded Agentic search comparison (2026-09-28)
+
+- [Preparation](../evaluation/agentic_search_preparation.md), [result](../evaluation/agentic_search_result.md): six exposed table cases, shared initial selection/answer, maximum two added searches. New joint-sufficiency prompt differs from the previous selector; no direct prior-score comparison.
+-21 generation +5 query-embedding calls, no retry/error/NOT_RUN, estimated USD1.21970122 under fresh consumed USD15 cap,123.96s. Workflow-specific cost1.85x and recorded phase time1.42x baseline; shared-prefix and saved-initial-search limitations disclosed.
+- Celltrion consideration recovered from candidate27 and net-assets/goodwill table12. Kakao adds acquisition figures but omits a decline qualification; Samsung declares sufficiency while Welstory remains absent; corpus omission persists with textual limitation but abstained=false. Two successful controls share initial answers. KAK alternative-answer sensitivity is explicit.
+-42-call blocked-network rehearsal and10 controls; six initial and five added-search replays;21 request reconstructions; zero whole-source omissions;335 protected files unchanged. Isolated prototype only, no default-app change or automatic full rerun.
+
+## Fixed-pool selection and fresh-answer comparison (2026-09-28)
+
+- [Result](../evaluation/fixed_pool_selection_result.md):36/36 once, no retry/error/NOT_RUN. Six exposed questions x A/C, full original candidate union, fresh RRF and semantic-selection answers. Evidence sufficiency6/12→11/12; core content6/12→11/12; strict answer/citation support3/12→10/12, or9/12 with nonabstention. Alternative explicit separate scope and rounding-claim sensitivities are disclosed.
+- Six old missing components recovered; one prior-success selection drops current-period sources and answer substitutes prior-year inventory loss. Fresh baseline also adds uncited/year-confused claims; historical scores are not reused. Extra selector costs make semantic selection+answer4.04x baseline answer cost.
+-36-call blocked-network rehearsal and7 failure controls passed. Estimated USD1.9092735 under a fresh consumed USD12 cap,183.55s total. All requests recompose from frozen panel/selected IDs; source/review seals unchanged. Runtime, stores, embeddings and original evaluations unchanged; no automatic adoption or full rerun.
+
+## Full77 failure-boundary diagnosis (2026-09-28)
+
+- [Offline source audit](../evaluation/structure_full77_failure_boundaries.md) of77 failed positive outputs (55 shared questions across three arms):16 before candidates,39 selection losses,17 answer/citation failures with sufficient input,5 unresolved. Candidate-stage16 splits into14 reviewed recall gaps and2 missing accounting passages in B/C corpora. Four additional selection losses coexist inside upstream-classified cases.
+- Representative dropped witnesses are34 BM25-only and5 dense-only. Exact231 RRF top8 replays and actual packet comparisons pass;33 frozen corpora and original final-review seals verify. Candidate usefulness is not full-pool sufficiency or recovered-answer quality. No new provider calls, runtime edits or rescoring.
+- Original review note for MIX_T3_048 transcribed dividends paid incorrectly: source is9864474million, not9864506. New report records erratum; original sealed notes and all three failures remain unchanged.
+
+## Full77 text/document/table comparison completed (2026-09-28)
+
+- [Three-arm result](../evaluation/structure_full77_result.md):231/231 once, unchanged SimpleRagAgent. Correct/complete/cited-supported positives A38/55, B18/55, C32/55; frozen-policy refusals17/19,17/19,18/19. A/C discordant pairs11:5; no overall table-structure advantage. B improves to26/55 under separately disclosed unit-support leniency. Exposed-data assistant review; extraction/chunking/context are joint differences, not isolated structural causality.
+- Source review found a further reference defect: HYU_T3_036 asks consolidated warranty-provision increase2175691million, but reference1569085 is separate. Raw dataset/rubric remain unchanged. Excluding this case gives38/54,18/54,31/54. Three previously identified diagnostic cases remain outside the frozen55 primary denominator.
+-433 embedding and231 answer calls; zero retries/errors/NOT_RUN. Estimated USD10.38216732 under consumed standalone USD12 combined cap;84.9min includes embedding pacing, retrieval, generation and I/O. Agent retrieval timing is precomputed-hit adapter lookup, not actual search latency. No new authorization or automatic continuation.
+- Raw3,153/frozen241/protected201/review-packet9 hashes verify; 231 row judgments and all77 pairs retained locally. No production/runtime/settings/dataset/original-store edits or post-result tuning. Experiment artifacts remain ignored; report and handoff documents updated.
+
+## Saved retrieval failure boundary audit (2026-09-28)
+
+- [Read-only diagnosis](../evaluation/retrieval_failure_boundary_audit.md) on `ec714bd0`: exact18 RRF rank/score replays,32 primary packet comparisons and54 anchor/representation checks. Six of seven failed hybrid pairs lose useful BM25-only sources at final selection; structured SK borrowing/assets lacks denominator values in all35 candidates. These are evidence locations, not recovered answers. Existing32-case ratings and ambiguities are unchanged.
+- Raw HTML/nine witness chunks confirm missing sources. Local neighbor recovery is plausible for two flat table cases; distant missing narrative/operating-profit evidence favors testing fixed-pool selection first. No new retriever, prompt, provider call, embedding, store client or answer evaluation.188 sealed outputs,156 input entries and six HTML sources retain hashes. New audit artifacts remain ignored; one candidate-selection comparison is proposed without automatic execution or consumed-approval reuse.
+
+## Table answer comparison completed (2026-09-28)
+
+- [Actual answer result](../evaluation/structure_answer_result.md): all36 calls completed once with unchanged SimpleRagAgent, exact rehearsed requests and frozen8-primary/1-diagnostic criteria. Fully correct/complete/cited-supported answers: flat dense2/8, flat RRF5/8, structured dense3/8, structured RRF4/8. Structured+RRF uniquely answers the FX gain/loss case; no aggregate structure advantage. Alternative evidence, missing cause explanations, period/basis confusion and source-display-versus-arithmetic differences are reviewed separately.
+- Assistant review is development-exposed/non-blind. NIM group values are recovered by all arms, while both RRF answers add an unsupported rounding explanation. SAM narrative attribution has a stricter4/8 flat-RRF sensitivity; SK total borrowing is a plausible broader question reading, raising flat-dense to3/8 if accepted. These do not silently replace the frozen primary metric.
+-36 calls,402,659 input/10,571 output tokens, zero retries/errors/NOT_RUN/new embeddings,138.75s with local instrumentation. Conservative added USD1.1334995; standalone USD6.85 authority consumed. Retrieval+generation total USD2.60968694, not observed billing. Initial key-loading and relative-launch-path failures were local pre-dispatch; existing dotenv and absolute launch path resolved them without changing runner/requests or paid retry.
+-188 sealed output/review files and156 frozen inputs verify. Runtime/prompts/canonical stores and prior raw results are unchanged. Raw outputs, reviews and authorization remain ignored; report/portfolio docs updated without post-result tuning or remote publication.
+
+## Table answer comparison prepared; NIM reference corrected (2026-09-28)
+
+- User requested actual answer correctness beyond retrieval. [Prepared comparison](../evaluation/structure_answer_preparation.md) replays four fixed top8 lists through unchanged SimpleRagAgent:36 generation requests, no embeddings, retry or paid judge. Paid generation is NOT_RUN; proposed standalone ceiling USD6.85 is not yet authorized.
+- Before sampling answers, source review found `KBF_T1_017`'s1.83/1.73 NIM reference belongs to KB Kookmin Bank rather than the requested group. Group endpoints2.44/2.30 differ by0.14pp while the source change column says0.13pp. The item is diagnostic-only; primary denominator8 per arm. Earlier raw results are untouched and their NIM structure-success interpretation is withdrawn.
+- Two blocked-network36-request SDK/persistence rehearsals produce identical ordered bodies; all288 selected source occurrences fit the production packet limit. Five budget/transport/usage/citation/persistence controls stop further dispatch. Focused SimpleRag/admission/documentation tests26/26 pass. Early offline tokenizer-cache attempts failed before external transport; the optional tokenizer estimate was removed, retaining conservative byte-based reservations. No paid request or product-runtime edit.
+
+## Flat/structured × dense/RRF retrieval comparison completed (2026-09-28)
+
+- One approved retrieval-only 2×2 run uses nine development-exposed table-heavy questions and six 2023 filings. Flat visible-text chunks total1,923; current parser/prefix chunks total7,099. The representation factor jointly changes extraction, chunk boundaries, metadata visibility and indexed text. All26 required anchors are verified in both corpora before dispatch; one ancillary Celltrion government-grant sentence is present only in flat and remains a separate parser-loss diagnostic.
+- [Result and claim boundary](../evaluation/structure_retrieval_factorial.md): flat dense13/26 anchors and3/9 all-required questions; flat RRF18/26 and4/9; structured dense12/26 and4/9; structured RRF19/26 and5/9. RRF adds5 flat and7 structured anchors. Structure changes dense/hybrid anchor coverage by-1/+1, so structure is not uniformly better and `flat_hybrid` prevents attributing the generic fusion gain to parsing.
+- The same nine `text-embedding-3-large` query vectors are reused across all four arms. 118 calls,11,355,288 input tokens, zero retries/errors; estimated USD1.47618744 under the consumed standalone USD1.60 cap, not billing. Answer generation, answer correctness and latency comparison are NOT_RUN. Raw corpora/stores/vectors/receipts remain ignored; product runtime, canonical stores, prompts and policies are unchanged.
+
+## Simple-RAG final application evaluation completed (2026-09-22)
+
+- Clean `6083bf36`, runtime unchanged from `a9270221`; the user's continuation admits one frozen12-case run under USD5.25. Authorization `ae05c61742fb693827fbe017d88de73116e56cdfae84fabf96f973cb1c8c9543` is consumed before transport. Actual `build_app_services`/serialized operation/`SimpleRagAgent` uses live scoped hybrid retrieval on a copied1,872-chunk NAVER2022/2023 store. No new funding, ingest, original-store/settings change, Compiler or paid judge.
+- [Final source review and report](../evaluation/simple_rag_final_result.md): runtime12/12, answerable correct/complete/supported9/9, safe abstention2/3 (empty scope1/1, model1/2), no positive retrieval miss. F11 safely abstains but overstates that the provided text only contains2023 information; F12 divides annual revenue by365 and substitutes a daily average for unavailable actual daily revenue, so fails despite its caveat. Familiar source-authored corpus/assistant review is not independent gold or unseen-company evidence. No post-result prompt, schema or runtime tuning.
+- Eleven answers and12 query embeddings; errors/retries/NOT_RUN/unknown usage0. Input71,701/output2,356 including reasoning, embedding808. Query mean4.02s, generation-case mean4.37s, total57.73s including startup. Instrumented local times include result checkpointing, not production HTTP latency. Conservative new cost0.20762954 gives shared21.20953897/26.32, remaining5.11046103, pending0; no invoice claim, historical loss ceilings unchanged.
+- Provider-admission/simple-RAG27/27 pass, complete blocked-network12-case/23-HTTP rehearsal and six failure controls pass before dispatch. A missing tokenizer artifact was resolved locally before the successful rehearsal. All135 protected files,86 runtime/dependency files and144 pre-review-frozen raw files retain hashes. Prior full2125/2125 was not rerun for this docs-only close. [Local saved-response demo](../overview/simple_rag_demo.md) passes12 selections/exact text/source checks, desktop/mobile layout and no-JS-error checks; ignored raw/viewer artifacts are not published with Git. The scoped final evaluation/report/demo milestone is complete, with no automatic retry, new experiment or per-question repair queue.
+
+## Simple-RAG final panel prepared, no paid run (2026-09-22)
+
+- On `a9270221`, froze [12 source-authored questions, separate criteria and cost envelope](../evaluation/simple_rag_final_preparation.md): lookup/calculation/explanation/insufficient-evidence3 each. NAVER2022/2023 source graph only,1,872 chunks; familiar corpus, not independent human gold or unseen holdout. Zero normalized exact matches among239 prior questions does not prove semantic novelty. Empty-company abstention is separate from model abstention.
+- Verified17 body excerpts,3 Decimal calculations, scopes and11 actual-SDK mocked answers plus1 empty-scope case with sockets blocked. All135 protected settings/store/prior-artifact files unchanged;86 runtime/dependency hashes bound. No runtime edits, retrieval-quality sampling, full-suite rerun, paid calls or funding. An initial local check stopped on a historical JSON BOM before SDK mocks; the reader handles it without rewriting history. Final `verified.json` binds corrected absence-claim wording; the earlier receipt is separate.
+- Full reservation5.23548672 under proposed cap5.25 fits remaining5.31809057. Official rates verified; conservative input2.50/output12 plus embedding0.13 USD/M, no cache discount, at most12 answers/12 embeddings. Shared accounting remains21.00190943/26.32, pending0. Plan `f1028bd804c79dcc5bbea349678e2ca6ba75225a95520c142a9a95a037d34a72` is preparation only. Actual-app adapter and admission/persistence rehearsal remain before one future run and demo/report; no automatic retry or per-question tuning.
+
+## Portfolio workflow comparison: four development pairs completed (2026-09-22)
+
+- Clean `6bc4aae5`; [completed successor and source review](../evaluation/portfolio_workflow_comparison_successor.md). Seven fresh arms use11 calls, one saved baseline is reused with exact input/model/artifact identity; four pairs complete, errors/retries/unknown-usage0. The [original writer failure](../evaluation/portfolio_workflow_comparison_result.md) remains interrupted with zero pairs and its conservative loss charge; raw files are unchanged.
+- Same four exposed questions/eight chunks/Terra settings. This jointly varies source representation and workflow, selects one filing and includes reused latency. Assistant source review finds no clear current-workflow quality advantage: cash lacks exact retrieved evidence and still loses year-end meaning; both growth formulas are correct, but current output misses one-decimal formatting; acquisition primary claims are supported and both missing-segment abstentions appropriate. Current source/calculation traces are useful but do not prove semantic correctness. No aggregate accuracy, unseen-holdout, production-default or isolated causal claim.
+- Represented simple/current costs0.084147/0.291979, elapsed17.33/82.96s: current3.47x cost/4.79x time. New estimated spend0.359777; reused0.016349 not recharged. Shared21.00190943/26.32, remaining5.31809057, pending0, not billing. Cap5.67 and full reservation5.6131735; approval consumed, no new funding/automatic batch.
+- Full pre-run2271/2271 tests (72.440s), 16 comparison contracts and blocked-socket real-SDK/graph/persistence rehearsal pass. Product runtime/prompts/policies/stores unchanged. Freeze per-error additions; carry simple RAG as a candidate into a separate final evaluation/demo while retaining inspectable source/calculation protections.
+
+## Real-question Planner sample: year-end boundary lost (2026-09-22)
+
+- Clean `3ad921f5`; [two original real questions](../evaluation/planner_real_questions_result.md) sampled once under fresh `ccb9fba3...1515c6`, USD0.29. Four HTTP200, no retries/repair, exact original routing and52 observed source sections from1872 frozen metadata rows. Cash2023년 말 becomes2023/within_year; prior dividends retain whole2022/separate and filing2023. Frozen-criteria assistant review period1/2, scope2/2, combined1/2; structurally valid cash negative remains unmodified.
+- Entire new requirements replay against unchanged saved sources/programs: cash3,576,456,533,329 KRW and dividends468,978,562,474 KRW both complete, ledgers2/2, one mock Compiler each. All50 retrieved/seed document occurrences including duplicates retain2023 filing scope. Anonymous geometry controls show within_year also accepts midyear, partial-year and coarse annual evidence; saved-choice2/2 is not semantic2/2 or a newly observed wrong value. Current full-date/no-derived-date guidance is a plausible contributing seam, not proven sole cause. Fresh Compiler/retrieval/full app NOT_RUN; no store client/mutation.
+- Controls72, two fresh12-file/15-check mocks, counted capture14, evidence review87, replay15, existing focused41 and docs2 pass. All14811 predecessors,177 sources,24 stores/settings retain hashes; five docs only, ignored `planner_real_questions_2026-09-22`; prior full2267/2267/audit83 not rerun. Input13823/13865, output496/638 including reasoning142/230. Generation estimate0.082828 plus0.02 count contingency adds0.102828, shared20.02917543/20.32, remaining0.29082457, pending0, no added budget/invoice claim. Next provider-free calendar-boundary guidance/contract clarification with frozen anonymous contrasts, preserving fiscal ambiguity; no automatic paid retry/resume, source-filter repair or ingestion.
+
+## Planner constraints with saved real sources (2026-09-22)
+
+- Clean `97bd38e1`; [provider-free integration review](../evaluation/planner_real_source_integration.md) replays five immutable real NAVER cases,4202 catalog rows/4036 numeric rows and8 selected cells. Explicit authored period copies retain5/5 prior values; exact historical requirements retain4/5, with the legacy cash phrase2023년 말 still incomplete. Scope-only5/5, period-only5/5 and point-as-whole-year1/1 controls reject the unchanged source choices; all21 ledgers ok. Nine successful calculations preserve all old fields; no source/choice substitution or historical plan repair.
+- All8 source period witnesses retain exact attached quotes, document/table/cell identity and raw values/axes. Production filters keep36 saved document occurrences under2023 filing scope and reject year2022 metadata even for2022 measurements. The four immutable paid synthetic plans reject these sources on company and period in48/48 pairs, which is incompatibility rather than positive real-source execution. Mock schema/permission failures in negative controls are local source-authority rejection, not provider errors. No new model, retrieval, store client or ingestion.
+- **125/125** focused contracts, **136** replay assertions, **138** source/linkage assertions, **88** result checks and docs2 pass. All **14761** predecessors, **177** sources and **24** stores/settings retain hashes; five docs only, ignored `planner_source_integration_2026-09-22`. Prior full2267/2267/audit83 not rerun. Added calls/accounting0; shared **19.92634743/20.32**, remaining **0.39365257**, pending0. Next prepare original cash/prior-dividend real questions under new Planner-only criteria/request manifest: two count/generation pairs require full0.286608 within proposed0.29/current balance, followed by fixed-evidence local replay. This is feasibility only, no new paid authority, automatic retry/resume, Compiler generation, ingest or funding increase.
+
+## Remaining Planner contrasts: five meanings preserved (2026-09-22)
+
+- Clean `14216c6f`; user continued the [remaining three questions](../evaluation/planner_remaining_contrasts_result.md). Fresh `21055ff3...969171d` consumed once under USD0.43; complete funding0.429912. Three counts and three generations all HTTP200, three valid plans, periods5/5, scopes5/5, combined3/3; no retry/repair. Within-year permission, reference2059 minus3, whole/within-year distinction and exact point/inclusive actual-cumulative interval all retain their own consolidation scopes. All5/9/4 exact units and binding/display intent survive. Shared scope remains unknown; production filters retain2060 and exclude2055/2056/2058/2059. No retrieval or final-answer claim.
+- **72** caller controls, two fresh SDK mocks with17 identical files/19 assertions each, **133** offline evidence/review checks and docs2 pass. Canonical request bodies match the original corrected schema; distinct SDK wire hashes match mocks and live. Later-failure controls preserve completed evidence and stop remaining calls; semantic-negative fixtures are not repaired. All **14498** predecessors, **177** sources and **24** stores/settings retain hashes; five docs only, ignored `planner_remaining_contrasts_2026-09-22`. Prior full2267/2267/audit83 not rerun.
+- Input8476/8838/8528, output581/926/899 (reasoning136/134/140 included). Generation estimate **0.093477** plus count contingency0.03 gives **0.123477** added; shared **19.92634743/20.32**, remaining **0.39365257**, pending0, no funding increase/invoice claim. The known four-question/six-meaning panel is fully sampled across this and the separate u01 admission on identical source; assistant review is not blinded/human gold, A/B or general accuracy. Historical period2/6/scope6/6 remain unchanged. Next provider-free review of source-period/report/scope integration using saved evidence before any real-source paid probe; no automatic retry/resume/ingest.
+
+## Single Planner generation: annual period and unspecified scope (2026-09-22)
+
+- Clean `1641781f`; user continued the [one-question generation](../evaluation/planner_single_generation_result.md). Fresh `fbcf7fd4...b44bcf` consumed under USD0.15; one count and one generation, both HTTP200, one structurally valid plan, no retry/repair. Raw year2058/offset0/whole_year/null dates lowers unchanged; consolidation stays unknown, all four exact units and original display intent retained. Production filter admits2060 report and rejects2058/2059. Sampled period/scope/combined1/1; no retrieval, numeric answer or general accuracy claim. Other five meanings and old period2/6/scope6/6 remain separate.
+- **60** caller/control assertions, two fresh mocks with7 identical files and10 assertions each, **55** offline evidence/review checks and docs2 pass. Canonical count/generation bodies42611/42690 bytes match frozen requests; separate SDK wire hashes match the two mock processes and live transport. Initial canonical-versus-wire hash assumption and reviewer clause-versus-full-unit whitespace mismatch are preserved and corrected in new checker files; source/model text and runtime validation remain unchanged, no extra API call.
+- Input8417/output567 (reasoning140; input cache writes8414, cached0). Generation estimate **0.0278465** plus count contingency0.01 gives **0.0378465** added, shared **19.80287043/20.32**, remaining **0.51712957**, pending0; conservative input2.5/output12 accounting, not invoice or budget increase. All **14324** predecessors, **177** sources and **24** stores/settings retain hashes; six docs only, ignored `planner_single_generation_2026-09-22`. Prior full2267/2267 and audit83 are not rerun. Remaining u02/u03/u04 at unchanged14000/8192 limits require a full **0.429912** envelope and fit proposed0.43; fresh manifest required, no automatic retry/resume.
+
+## Corrected Planner schema accepted by input counting (2026-09-22)
+
+- Clean `5fb9558c`; user continued the [one-count verification](../evaluation/planner_corrected_schema_count_result.md) after the annotated-reference fix. Fresh `e1d70dc6...c4d1d` consumed once under USD0.01. **HTTP200**, **1/1 count**, **8417 measured input tokens**, **0 generations**, no SDK/HTTP retry or resume. Same question/input/prompt/model; only the reviewed schema substitution changes the old body, **40444 → 42611 bytes** (+2167), exact canonical/new SDK identity `4eee5fc8...f8507`.
+- Reviewed caller/checks copied byte-for-byte; helper predecessor/accounting bindings updated. **20** caller tests/27 scenarios and two fresh SDK mocks with6 identical files pass before execution; authored14000-token mocks remain separate. **39** offline evidence checks and docs2 pass after the live call, including consumed entry stopping before credentials/transport. All **14147** predecessors, **177** sources and **24** stores/settings retain hashes; six docs only, ignored `planner_corrected_schema_count_2026-09-22`. Prior full2267/2267, focused109 and audit83 are not rerun.
+- Added **USD0.01** count contingency, shared **19.76502393/20.32**, remaining **0.55497607**, pending0; no funding increase or invoice claim. This is count-endpoint acceptance only: no generated plan, semantic score, recovered historical error message or proof of sole400 cause. Old rejections and historical period2/6/scope6/6 remain unchanged. Next one fully funded frozen-question Planner generation probe with explicit semantic criteria, unchanged output bounds and a fresh count/generation manifest; no automatic retry/resume or consumed-manifest reuse.
+
+## Annotated OpenAI schema reference compatibility (2026-09-22)
+
+- Clean `e88cdcbf`; [local transport fix](../evaluation/openai_schema_reference_compatibility.md). The failed schema has one new `$ref` with title/description at the Planner period field; the preceding accepted schema has none. Installed SDK2.29.0 explicitly expands annotated refs. The project strict wrapper now inlines only annotation-bearing local refs, preserving referenced constraints and original Pydantic validation. Pure refs/definitions remain; ambiguous validation siblings and invalid/cyclic expansion fail. No semantic field, prompt, model, source-selection or execution change; sole historical400 cause and provider acceptance remain unproven.
+- **12** new regression tests reproduce the gap; **109** focused, **26** boundary, full **2267/2267**, docs2 and audit83 pass. Two existing tests inspect expanded fields while retaining missing/null rejection. One further old-reference assertion failed the initial focused gate, and the first full command stopped at namespace-package discovery; corrected runs and original logs are retained. No runtime contract was weakened.
+- **58** comparisons: before capture exactly reproduces8 prior SDK mock requests; two fresh after processes each mock4 counts/4 generations with15 identical files and4 unchanged plans. The only request change is the annotated-reference expansion, **+2167 bytes** each (40523–42138 to42690–44305). Current Planner projection matches the SDK after the existing default-removal policy. Mock counts/replies establish no provider acceptance, token savings or semantic accuracy.
+- All **14068** predecessors, **176** unrelated production sources and **24** stores/settings retain hashes; source count177. One utils owner, three test files and seven docs only; ignored packet `planner_schema_compatibility_2026-09-22`. Added calls/accounting0; shared **19.75502393/20.32**, remaining **0.56497607**, pending0. Old manifests remain consumed and six Planner meanings unassessed; historical period2/6/scope6/6 unchanged. Next a fresh fully funded one-count validation of the corrected schema, without automatic retry, generation or budget increase.
+
+## One-count Planner diagnostic: explicit schema rejection (2026-09-22)
+
+- Clean `f11947f7`; user continued the [prepared one-count diagnostic](../evaluation/planner_count_error_probe_result.md). Manifest `977908cd...f474da` consumed before transport under **USD0.01**, no source/schema/prompt/model/budget change. **1 actual count attempt, 0 successes, 0 generations/plans**, terminal HTTP400/BadRequestError; no retry, resume or fallback. Frozen canonical body and actual new SDK bytes both match the40,444-byte identity.
+- V2 receipt and exclusive sidecar capture **invalid_json_schema / invalid_request_error / text.format.schema**, a bounded request ID and absent Retry-After. Capture/write succeed; no raw failed body, free message, header map or credential is retained. This request's schema rejection is observed; the older uninstrumented response is not recovered. General JSON Schema validity,10 fixed/required objects,88 properties,20 resolved refs and reviewed unsupported-composition checks pass locally. The exact rejected subschema/keyword remains unidentified; no compatibility or Planner-accuracy claim.
+- **42** provider-free evidence checks and docs2 pass, including consumed entry stopping before credentials/transport. All **14045** predecessors, **177** sources and **24** stores/settings retain hashes. Six docs only; ignored result packet `planner_count_error_run_2026-09-22`. Prepared51 tests/two SDK mocks and prior full2238/2238/audit83 are not rerun because production source is unchanged. All six Planner meanings stay unassessed; historical period2/6 and scope6/6 unchanged.
+- Count contingency **USD0.01**, generation estimate0, shared **19.75502393/20.32**, remaining **0.56497607**, pending0; no invoice, verified count tariff or funding increase. Next provider-free schema/transport compatibility investigation before changing constraints. Any later paid diagnostic needs a fresh fully funded manifest; no automatic retry, resume or generation.
+
+## One-count Planner error diagnostic preparation (2026-09-22)
+
+- Clean `eca4ea64`; [one-count preparation](../evaluation/planner_count_error_probe.md). Copy the consumed probe's exact40,444-byte `u01` count body, full model/input/reasoning/text schema intact. Freeze criteria, identity, policy and versions before authored mocks. Fresh manifest binds the final clean docs commit; **one count, zero generations**, no Planner/Compiler/retrieval/embedding/ingest calls or schema adjustment.
+- Full **USD0.01** attempted-count contingency is covered by remaining **0.57497607**; no generation authority/reserve or budget increase. This is not a verified tariff or invoice. Actual dispatch retains the allowance even on uncertain failure; proved pre-dispatch failure retains0.00. SDK/transport retries, redirects, second calls and resume are denied. Runtime coupled counting guards remain unchanged.
+- V2 bounded code/type/parameter/header observation is saved before SDK failure in receipt and exclusive sidecar. Capture/write failure retains the original HTTP/SDK result and metadata when available; existing files and private-data boundaries survive. **20** caller tests/27 execution scenarios, **29** metadata contracts and docs2 pass; two fresh SDK mocks produce6 identical files with six assertions each. Their14000-token counts are authored. Actual unadmitted entry stops before credentials/transport/consume/live output.
+- All **13874** predecessors, **177** production sources and **24** stores/settings retain hashes. Five docs only committed; ignored packet `planner_count_error_probe_2026-09-22`. Prior full2238/2238 and audit83 not rerun. Actual calls/added accounting0; shared **19.74502393/20.32**, remaining **0.57497607**, pending0. Next one newly admitted count and separate metadata review, without automatic retry/generation. Earlier HTTP400 cause remains unknown, six Planner meanings unassessed; historical period2/6 and scope6/6 unchanged.
+
+## Bounded HTTP400 request-error diagnostics (2026-09-22)
+
+- Clean `7772dc2a`; [provider-free logging extension](../evaluation/openai_request_error_diagnostics.md). Add one explicit v2 projection for reviewed exact code/type/parameter names plus existing bounded headers. Preserve v1/public behavior. Missing/null/unknown fields stay explicit; duplicate or malformed JSON, free messages, raw failed bodies, request values and dynamic paths do not enter body metadata. No HTTP status/prose inference or reconstruction of the earlier400 cause.
+- New mock-only caller preserves captured metadata in the receipt and exclusive sidecars before SDK error handling. Capture and OSError/TypeError/FileExistsError persistence failures preserve the original HTTP/admission stop, existing files and full count/failed-generation accounting. No live constructor/entry or credential loading. Two healthy fresh SDK processes preserve all8 frozen requests/all4 normalized plans; eleven failure cases yield **119** controls, plus6 healthy assertions each. **17** new/12 legacy projections and existing admission/count contracts give **56** focused passes; public/import/topology/docs gates recorded in the packet.
+- All **13759** predecessors, **176** unrelated production sources and **24** stores/settings retain hashes. One appended ops owner changes; source count177. Prior full2238/2238 and audit83 are not rerun. Source/tests/docs only are committed; packet `openai_request_error_diagnostics_2026-09-22` stays ignored. Added calls/accounting0, shared **19.74502393/20.32**, remaining **0.57497607**, pending0. The prior consumed count400/zero-generation failure and unknown cause remain intact; six meanings stay unassessed. Next prepare a minimal fully funded count-only diagnostic under a new immutable manifest; no automatic paid retry or budget increase.
+
+## Uniform-period Planner probe: first count HTTP400 (2026-09-22)
+
+- Clean `251db717`; user authorized the [prepared whole batch](../evaluation/planner_uniform_period_probe_result.md), cap **USD0.58**, without funding increase. Manifest `01c674fc...923afe` consumed before transport. First `responses/input_tokens` request returned **HTTP400**, SDK `BadRequestError`; `provider_token_count_failed` closed the run. **1 HTTP attempt, 0 generations, 0 completed plans**, no retry/repair; other counts not attempted. HTTP return about8.2s, final verification about12.9s.
+- Exact frozen request identity and local admission confirmed; local SDK fields/JSON schema/authored fixtures pass but do not prove provider acceptance or the cause. Frozen caller saves only2xx bodies and count error class/status; no detailed error code/parameter/request ID/message was retained. Root cause remains unknown, with no measured input overflow or budget denial. Six meanings are unassessed, not0/6; historical paid periods2/6, scopes6/6, coverage0/4, combined1/5 remain unchanged.
+- **34** offline evidence checks, docs2 and syntax/diff/link checks pass; consumed replay stops before credentials/transport. All **13726** predecessors, **177** production sources and **24** stores/settings retain hashes. No runtime/default/source/store changes; prior focused132, controls72, full2238/2238, audit83 not rerun. Only six docs committed; failure packet `planner_uniform_period_run_2026-09-22` stays ignored.
+- **USD0.01** attempted-count contingency, generation estimate0, shared **19.74502393/20.32**, remaining **0.57497607**, pending0; no invoice/count tariff or budget increase. Next provider-free bounded HTTP400 metadata capture for a new local caller; any future paid diagnostic requires new exact-manifest funding and cannot reuse the old0.58 cap or consumed batch.
+
+## Uniform-period Planner diagnostic preparation (2026-09-22)
+
+- Clean `d0c034fb`; [prepared batch](../evaluation/planner_uniform_period_probe.md). Four new synthetic questions preserve six separately reviewed period/scope meanings: absolute whole/within-year, a mixed-scope relative-year pair, and exact point/interval. Questions and criteria are frozen before authored seven-field replies. One current condition, no A/B, holdout, human gold or fixed fixture decomposition as semantic authority.
+- Four counts/generations; experiment input guard **14000**, unchanged output **8192**. Conservative standard Terra rates **2.5/12** plus **0.01/count** contingency yield complete modeled envelope **USD0.573216**, cap **0.58**, within remaining **0.58497607**. Fresh official pricing checked; count contingency is not a verified tariff, no invoice or measured tokens. Overflow/unknown usage/provider failure/incomplete/invalid plan stops, without retry, truncation, cap escalation or resume.
+- Two fresh-process actual-runner SDK mocks have identical eight wire bodies/four plans, **40523–42138 UTF-8 bytes**, and all six authored period choices lower unchanged. **72** caller controls, **132** focused tests, docs2 and syntax/diff/link checks pass. Active-null/inactive-populated fields fail typed validation despite fitting the nullable schema; invalid dates/refs stop. Structurally valid wrong coverage/year/scope stay semantic negatives. Partial completed plans and failed reserves survive later failure; filters retain selected2060 report and mixed scopes stay neutral for shared retrieval.
+- All **13470** predecessors, **177** production sources and **24** stores/settings retain hashes. Runtime unchanged; prior full **2238/2238** and audit83 are not rerun. Five docs only are committed; ignored packet `planner_uniform_period_probe_2026-09-22` holds frozen manifest, request hashes and no-authority stop before credentials/transport. Actual calls/added accounting **0**; shared **19.73502393/20.32**, pending zero. Prior paid periods **2/6**, scopes **6/6**, coverage **0/4**, combined **1/5** remain historical. Next one freshly admitted whole batch, then separate semantic/accounting review.
+
+## Uniform Planner period declaration (2026-09-22)
+
+- Clean `041c0d1d`; [contract and evidence](../evaluation/planner_period_wire.md). Replace six generation period objects with one seven-field declaration separating precision, reference year/offset, coverage, exact dates and request refs. A generic adapter maps only explicit choices to existing internal kinds. Required/inactive field conflicts, invalid dates/year arithmetic and refs are rejected; no query interpretation, fiscal defaults, keyword repair, extra call or source/execution change.
+- **13** new tests; **132** focused, **43** additional transport/presentation, full **2238/2238**, audit83 and import/topology/docs/syntax/diff pass. Initial focused/full failures exposed old wire fixtures in six existing SDK/schema tests; explicit test payloads were updated while original internal-result/rejection assertions and failure logs remain. Fixed nullable fields move cross-field consistency to typed validation, which still rejects invalid combinations before accepted planning.
+- Five before bodies exactly reproduce the last paid requests. After bodies change only period schema/instructions and are **2265 bytes smaller** each; no token estimate. Lossless projection of original decisions to the new wire preserves all five normalized plans and historical model dumps, including four wrong year-coverage choices. Paid periods **2/6**, scopes **6/6**, coverage **0/4**, combined **1/5** stay unchanged; no new model sample or accuracy improvement claim.
+- All **13416** predecessors, **174** unrelated existing production sources and **24** stores/settings retain hashes. Only the period owner, Planner scope integration, declarative instructions, tests and docs are committed; packet `planner_period_wire_2026-09-22` stays ignored. Added calls/accounting **0**; shared **19.73502393/20.32**, remaining **0.58497607**, pending zero. Next prepare a smaller new diagnostic with frozen criteria and fresh whole-batch admission. No paid retry, ingest or funding increase.
+
+## Planner period/scope diagnostic: five first responses (2026-09-22)
+
+- Clean `c68d7e73`; [result](../evaluation/planner_period_scope_probe_result.md). The user authorized the prepared whole batch under USD 0.75. Frozen manifest `9dd3ce6b...06d15a7` was consumed before transport; **5/5** structured first plans, **10/10 HTTP 200**, no API/parsing/requirement errors, repair or retry. Five counts plus five generations; about62s with30s heartbeat.
+- Frozen semantics: periods **2/6**, reporting scope **6/6**, combined questions **1/5**, year coverage **0/4**, exact point/interval **2/2**. n01/n02 invent January-December endpoints; n03/n04 choose unnecessary unresolved despite known anchor/coverage. All six raw scope/period objects survive normalization unchanged; the clarified prompt and reachable year/relative-year coverage schema reached the provider. Correct prose does not repair fields. Scope covers ordinary/negated/English wording and mixed output ownership; all five filters retain the selected report, without actual search. This is a new synthetic sample, not A/B, hidden holdout, human gold or general/full-app accuracy.
+- **113** evidence checks, consumed-entrypoint stop before credentials/transport, docs/syntax/diff pass. No source change; prior119 focused/57 controls and full2225/audit83 are preserved, not rerun. All **13361** predecessors, **176** sources, **24** stores/settings retain hashes. Prepared artifacts and raw failures remain immutable; only docs committed, packets ignored.
+- Usage **42409 input / 3121 output**, including648 reasoning; generation estimate **0.14347450** plus0.05 count contingencies gives added accounting **0.19347450**. Shared **19.73502393/20.32**, remaining **0.58497607**, pending zero; no invoice, funding increase or verified count tariff. Next provider-free period-representation simplification separating year/coverage from exact dates. No keyword repair, repeated paid prompt-only attempt, ingest or historical-answer rewrite.
+
+## Prepared five-question Planner period/scope diagnostic (2026-09-22)
+
+- Clean source `60ec339f`; [preparation](../evaluation/planner_period_scope_probe.md). Five new questions and criteria are frozen before model responses: six period/scope meanings across absolute/relative coverage, ordinary/negated/English reporting-basis wording and a mixed exact point/interval question. One current-runtime condition; the relative cases change two axes, so no isolated A/B or hidden-holdout claim. No runtime, schema, prompt or source-store change.
+- Production Terra/low/8192, default tier, store=false and retries=0 remain. Caller-only input guard **16,000**, maximum **5 counts + 5 generations**, complete modeled envelope **0.741520** under cap **0.75** and available **0.77845057**. Overflow stops without truncation or automatic limit increase. Official pricing fetched; conservative 2.50/12 per million and 0.01 count contingency retained, not an invoice or a verified count tariff.
+- Two fresh-process final-caller rehearsals reproduce ten exact bodies and five authored plans; **57** controls, **119** focused tests and documentation/syntax/diff checks pass. Initial test assertions exposed binary float 0.7415200000000001; Decimal-tolerance comparison fixes only the mock assertion, retaining failed receipts and frozen inputs. Wrong scope/coverage remains a semantic negative; source-report filters 5/5 and mixed-scope neutrality are fixture evidence, not new model results.
+- All **13,087** predecessors, **176** sources and **24** stores/settings preserve hashes. Prior full **2225/2225** and audit 83 are not rerun for unchanged production. Packet `planner_period_scope_probe_2026-09-22` stays ignored; only docs committed. Preparation actual calls/accounting **0**, shared **19.54154943/20.32**, remaining **0.77845057**, pending zero. Fresh manifest unconsumed and no live authority created. Next exact-manifest whole-batch execution and separate semantic/accounting review; no paid retry, ingest or funding change.
+
+## Planner consolidation-scope ownership correction (2026-09-22)
+
+- Clean `70784547`; [result](../evaluation/consolidation_scope_ownership.md). Two runtime owners change: Planner preserves declared scope, with known parent inheritance for unknown children; retrieval preference aggregates actual source-owner declarations and is neutral for mixed/unknown scope. Query substrings and filing metadata no longer overwrite/erase request scope or supply ranking defaults. No model/schema/prompt change, new keyword rule or automatic semantic repair.
+- Exact six-response SDK replay retains every request body. Only c04 changes: eight normalized projections keep original unknown instead of forced separate. The other five plans and all six periods/report filters are identical. The old period score stays **2/6**, coverage **0/4**; no new model sample or historical answer rewrite. Old generic wrong-scope fixtures remain unchanged and are explicitly tested as semantic negatives, not keyword-repair successes. Known source conflicts still fail.
+- Twelve new regressions (ten failures before the edit), **170/170** focused, full **2225/2225** in70.512s, audit83 and import/topology/docs pass; no skips or external test connections. Removing an obsolete caller mock initially left two stale tuple indexes; test-only correction and failed log retained. Syntax/diff checks pass. All **13040** predecessor files, **174** unrelated sources, **24** stores/settings and old fixtures retain hashes.
+- Packet `consolidation_scope_ownership_2026-09-22` remains ignored; only source/tests/docs committed. Added provider calls/accounting **0**, shared **19.54154943/20.32**, remaining **0.77845057**, pending zero. Next prepare a bounded new Planner comparison with frozen period/scope criteria and fresh admission within the remaining allowance. No paid retry, ingest or funding increase; no new full-app/general accuracy claim.
+
+## Planner period-kind instruction clarification (2026-09-22)
+
+- Clean `d2b73b8b`; [details](../evaluation/planner_period_kind_clarification.md). Provider-free prompt and field-description clarification distinguishes known year/coverage from exact dates, without inferred fiscal endpoints or unnecessary unresolved choices. Two source owners change; no fields, validators, normalization, execution or case-specific rules change.
+- Installed-SDK before bodies reproduce all six actual probe requests. After bodies differ only in the period instruction and three schema descriptions, retaining schema structure, model settings and all other content; +1537 local UTF-8 bytes per request, not tokens. All six original raw responses retain identical normalized plans and filters. Actual period semantics stay **2/6**, coverage **0/4**; all four failures and the consolidation defect remain. No new model sample or repair.
+- **107/107** focused tests, audit **83**, import/topology/docs and syntax/diff pass. Historical full **2213/2213** not rerun for descriptions. The initial offline HTTP mock binding was corrected before verified captures; failed log retained. All **12977** predecessors, **174** unrelated sources, **24** original stores/settings retain hashes. Only source/docs committed; packet `planner_period_kind_clarification_2026-09-22` ignored.
+- Added provider calls/accounting **0**; shared **19.54154943/20.32**, remaining **0.77845057**, pending zero. Next separate ordinary-word consolidation contract seam; any later model comparison requires fresh admission and frozen criteria. No paid retry, ingest, funding increase or historical-result rewrite.
+
+## Planner coverage semantics: six new questions (2026-09-22)
+
+- Clean `2be41eb2`; [result and frozen criteria](../evaluation/measurement_coverage_probe_result.md). User accepted the next independent Planner verification within the existing allowance. Four absolute/relative whole-year versus within-year questions and two exact point/interval controls were frozen before responses. Fresh `316c54ff...f5ca71` consumed once; six full generation/count ceilings **0.949824** fit cap **0.95** and remaining **1.00396007**. No budget increase, response-based case selection or partial old-batch retry.
+- **6/6** structured first responses, but frozen period review **2/6**, coverage **0/4**, pairs **0/2**. c01/c04 unnecessarily choose unresolved; c02 converts within-year permission into exact January–December equality; c03 invents fiscal endpoints. Exact point and inclusive noncalendar interval remain correct. Raw and normalized periods match; correct rationale cannot repair an operative error. Production report filters retain 2046 only **6/6**, despite c04's extra year hints. This is not actual search, source availability or a full-app result.
+- A separate posthoc c04 defect changes raw consolidation unknown to separate: the marker `별도` matches ordinary `별도의 특정 날짜`, and normalization forces that marker. Exact raw-plan replay and isolated phrase reproduce it. No runtime patch, phrase exception, historical rewrite or semantic retry; source owners and all original failed responses remain unchanged.
+- Two identical-body caller rehearsals and **54** controls pass; focused **107/107**, documentation/syntax/diff pass. The authored mock's invalid scope.subject field was corrected in a separate preparation completion to existing scope.company. All **12 actual requests HTTP 200**, provider/parsing/requirement errors and retries zero; generation **51655 input / 3031 output**, including **354** reasoning tokens. Added accounting **0.22550950** (generation **0.16550950** + count contingency **0.06**), shared **19.54154943/20.32**, remaining **0.77845057**, pending zero; not invoice. Run about55s, heartbeat30s, peak including reservations **0.31709350**.
+- All **12676** predecessor files, **176** sources, **24** original stores/settings retain hashes. Unchanged source keeps preceding full **2213/2213** and audit83 without rerun. Only docs committed; ignored packet `measurement_coverage_probe_2026-09-22`. Next provider-free period-kind clarification; treat consolidation keyword override as a separate seam. Old paid **6/8** and authored real-source **5/5** remain separate. No consumed-manifest reuse or new paid retry.
+
+## Real-source period declaration linkage (2026-09-22)
+
+- Baseline `dd540241`; [implementation and evidence](../evaluation/real_source_period_coverage.md). Five saved disclosure snapshots contain 4,202 catalog rows / 4,036 numeric rows and eight selected fiscal-column cells whose actual dates live in attached declaration blocks. Generic complete column-label linkage now preserves the unique exact quote and physical coordinates; matching dates support point/interval requests and a bounded twelve-calendar-month annual check. No assumed fiscal endpoints, candidate mutation, model/schema change, extra call, domain-specific branch or quota expansion.
+- Correct separately authored periods complete **5/5**, versus **4/5** before the correction; all nine successful exact/declared replays retain old calculation and operand fields, adding only source-period provenance. The original `2023년 말` phrase stays unresolved and untouched. A real point-cell/whole-year negative is blocked; **11/11** ledgers are structurally ok. All **37** preceding synthetic calculation results remain identical, including **18** healthy results and both blocked partial-year answers. Original **32/33** frozen expectations, p01 exposure limit and paid combined **6/8** remain unchanged; this is not new model accuracy.
+- **17 new / 58 period / 163 focused**, full **2213/2213**, domain audit **83**, import/topology/docs **24/24**, syntax/diff pass. Two pre-fix characterization failures remain. The first real replay's preservation check lost only the Document type tag in its test serialization; a separately retained corrected adapter reruns identical choices with complete document fields. Old-program mock projection adds only two empty relationship defaults. No expectation or production contract is weakened.
+- All **12523** predecessors, **24** original stores/settings and **173** unrelated sources retain hashes. Only source/tests/docs are committed; packet `real_source_period_coverage_2026-09-21` stays ignored. Added calls/accounting **0**, shared **19.31603993/20.32**, remaining **1.00396007**, pending zero, not invoice. Next prepare independent Planner coverage semantics and whole-batch SDK/budget admission. No paid run, ingest, funding change, consumed-manifest reuse or release claim.
+
+## Explicit request/source period coverage (2026-09-21)
+
+- Baseline `da30a50e`; [implementation and evidence](../evaluation/measurement_period_coverage.md). New year/relative_year Planner objects require nonnull whole_year/within_year coverage with owned request references. Old objects remain byte-equivalent after serialization; code never infers coverage from query keywords or filing year. Located dates/intervals and reviewed partial-period source markers cannot silently match whole-year/legacy annual constraints. Explicit within-year dates require all endpoints in the target year. Source-year conflicts retain precedence; raw axes, annual projection, IDs, exact-date contracts and exposure quotas remain unchanged. No fiscal calendar binding is inferred, even for calendar-year source intervals.
+- All **37** prior request/normalized-plan/retrieval/catalog/authored-Compiler states replay through exposure, V2, execution, final answer and ledger; retrieval/store/provider are not rerun. Both old yearly 31원 partial-source counterexamples are blocked; **18** healthy calculation results stay identical. p06 fixed relative choice now executes 140원 because compatible annual evidence ranks ahead of unknown partial coverage; p01 fixed older choice remains outside exposure. Frozen expectations **32/33**, separate visible annual controls retained, ledger **37/37**, replay **150** and independent **347** assertions pass. No historical result is overwritten or new model accuracy inferred.
+- **20 new contracts**, **41 period**, **146 focused**, full **2196/2196**, domain audit **83** pass. Initial characterization records nine false year matches; four new fixture-shape/serialization errors were corrected. First full **2194** run found one explicit-year-conflict regression; source precedence and a new regression test resolve it without weakening contracts. A final token-boundary control prevents nonperiod H1N1-like labels from becoming half-year markers. Import/topology/docs **24/24** and syntax/diff pass; receipts remain immutable. All **12337** predecessors, **24** original stores/settings and **172** unrelated source files retain hashes. Source/tests/docs are committed; packet `period_coverage_2026-09-21` stays ignored.
+- Added calls/accounting **0**, shared **19.31603993/20.32**, remaining **1.00396007**, pending zero, not invoice. Original paid combined **6/8** and failures remain. Next inspect saved real-source compatibility, then prepare an independent Planner coverage probe and exact whole-batch admission. Wrong well-formed coverage still needs semantic evaluation; no fresh paid run, ingest, budget change, consumed-manifest reuse or release claim.
+
+## Saved structured plans: retrieval-to-ledger replay and annual coverage (2026-09-21)
+
+- Clean `d4a8d7b6`; [result](../evaluation/structured_period_downstream.md). Eight exact paid plans, thirteen prior authored source cells and three document-scope controls exercise production retrieval, candidate building/exposure, Compiler V2 validation, numeric execution, final answer and ledger. Search/Compiler are explicit test doubles; no provider, embedding, real search backend or store opens. The initial candidate-ready metadata adapter fails before retrieval; a separate parser-row fixture adapter preserves original bodies/axes/values and the failed inputs/script. No production or paid-plan repair.
+- **33 frozen scenarios**, expected outcomes **31/33**: isolated selections **21/21**, full-pool fixed choices **6/8**, swapped-input/foreign-filing rejection **4/4**. p01/p06 chosen cells are catalog-visible but outside the two exposed bundles, rejected on both attempts. Their failures remain; separate visible annual choices complete **2/2** at 140원. No quota widening or unanswerability claim. Correct exact intervals/prior-year/comparison fixtures execute 131/151/120원 and 20%/-16.666666666666664%.
+- Two additional deliberate visible partial-year choices for exact p02/p06 business-year requests execute **31원** with yearly answer labels instead of the annual fixture's 140원. Raw 2037-01-01 through 2037-03-31 axes survive; year-only matching accepts projected 2037 without coverage equivalence. This is an authored semantic counterexample, not actual model behavior. **37/37** ledgers remain structurally ok, including both semantically wrong answers; annual-coverage gap is not fixed.
+- **510 evidence assertions**, focused **66/66**, documentation **2/2**, syntax/diff pass. Unchanged production retains preceding full **2176/2176** and audit **83** without rerun. All **12252** predecessor files, **176** sources, **24** original stores and settings retain hashes. Packet `structured_period_downstream_2026-09-21` remains ignored; only docs are committed.
+- Added provider calls/accounting **0**; shared **19.31603993/20.32**, remaining **1.00396007**, pending zero. Original paid combined **6/8** and two failures remain immutable. Next characterize and define explicit request/source period coverage without assumed fiscal-calendar dates, case rules, expanded quotas or historical-plan repair. No paid retry, ingest, funding change or consumed-manifest reuse; no new accuracy/release claim.
+
+## Explicit report-year source-filter correction (2026-09-21)
+
+- Clean `057ea5b7`; [result](../evaluation/report_year_scope.md). User accepted the provider-free generic retrieval fix. Explicit valid caller year now constrains report metadata before comparison/trend hint handling; multiple distinct source receipts retain precedence. Planner hints, query text and independent measurement constraints stay unchanged. Only the existing retrieval owner changes, with no model/prompt/schema/ontology or store mutation.
+- Exact eight paid plans reproduce **6/8** filter acceptance before correction and **8/8** afterwards against authored metadata. Only p07/p08 filters change; **66 assertions** verify unchanged paid responses/plans, measurement scopes and non-filter fields. Sockets are denied and no source store opens. This is deterministic filter evidence, not actual retrieval, a new model sample, Compiler endpoint selection, arithmetic, source availability or full-app accuracy. Original paid combined **6/8** and **106/108** review retain both failures.
+- **11 new regressions**, **112 focused**, full **2176/2176**, domain audit **83**, import/topology/docs and syntax/diff pass. Two targeted regressions fail before the source edit. The initial new-test pass uses a wrong trace key and a concatenation stub instead of production merging; these test-harness assumptions are corrected without changing the runtime fix or expected source boundary, and failed logs are retained.
+- All **12216** predecessor files, **175** unrelated sources, **24** original stores and local settings preserve hashes. Packet `report_year_scope_2026-09-21` stays ignored; only source/tests/docs are committed. Added provider calls/accounting **0**; shared **19.31603993/20.32**, remaining **1.00396007**, pending zero, not invoice. Next provider-free downstream candidate/Compiler replay using saved structured plans and authored sources. No paid retry, ingest, budget increase or consumed-manifest reuse.
+
+## Structured measurement-period eight-question live probe (2026-09-21)
+
+- Clean `209f396e`; [result](../evaluation/structured_period_probe_result.md). User accepted proposed **+USD 0.25** and actual execution; cap **20.07 -> 20.32**, available **1.30143757**, unchanged run cap **1.27**. Fresh `574dee6e...966f016` binds all exact prepared questions/SDK bodies and is consumed once before transport. Production Terra/low/8192, 20000 input guard, prompt/schema/ontology remain unchanged; empty inventories and fixed numeric routing isolate Planner. Two independent caller rehearsals and **36 controls** pass; missing-authority and consumed-manifest checks stop before transport.
+- **8/8 valid first responses**, separate assistant measurement-period review **8/8**, four period pairs **4/4**. Full intervals and explicitly anchored prior/current periods are structured correctly. Comparisons preserve distinct input years and exact reference directions. However, raw p07/p08 years `[2035,2036]` merge with caller 2037 and production scope construction emits `$in:[2037,2035,2036]`, violating selected-report-only scope. **25 offline assertions** reproduce this without search/store/provider access. Combined period/report checks **6/8**, pairs **3/4**; **106/108** saved-evidence assertions pass, with both real failures retained. No runtime fix, criteria relaxation or response repair. p03 rationale's claimed source availability remains unverified diagnostic prose.
+- **16/16 HTTP 200**, eight counts/eight generations, no API/parsing/requirement errors or retry. Input **63015**, output **4995** including **861** reasoning tokens. Generation estimate **0.21747750** plus count contingencies **0.08** adds **0.29747750**; shared **19.31603993/20.32**, remaining **1.00396007**, pending zero. Peak with reservations **0.38241350/1.27**; count tariff/invoice unobserved and prior failed reserves retained. Official prices rechecked; whole-batch funded before transport; approximately 79 seconds including integrity check and 30-second heartbeat.
+- All **12009** predecessor files, **176** sources, **24** original stores and settings retain hashes. Documentation **2/2**, syntax/diff pass; prior source gates are not rerun for unchanged runtime. Packet `structured_period_probe_execution_2026-09-21` stays ignored, documentation only committed. Known synthetic questions do not establish general accuracy, A/B, source availability or full-app correctness; original paid Planner/app results remain unchanged. Next correct explicit document-year filter precedence with generic contracts and exact saved-plan replay, preserving measurement-period and receipt/multiple-report semantics. No paid rerun, ingest or consumed-manifest reuse.
+
+## Structured measurement-period Planner probe preparation (2026-09-21)
+
+- Clean `d4d4df10`; [preparation](../evaluation/structured_period_probe_preparation.md). Eight prior questions remain byte-identical; separate review criteria extend the original four contrasts to nonnull structured constraints, owned anchors/endpoints and independent comparison inputs. Equivalent supported representations remain allowed. These known questions are diagnostic, not a blinded holdout or independent human gold. Production source/profile, stores and settings are unchanged.
+- Two fresh-process installed-SDK rehearsals reproduce eight exact request bodies (39,853–40,057 canonical UTF-8 bytes) and normalized authored plans, each with eight mocked count/generation pairs. **160 assertions/22 controls** pass: source drift and actual insufficient funding stop before transport; changed query/scope/schema/order/phase, repeated/extra questions, count/generation failures and malformed period constraints stop without retry. A well-formed wrong 2099 target remains structurally accepted. Synthetic full-ceiling usage and hypothetical funding do not constitute measured tokens, semantic accuracy or real available funds.
+- Focused count/transport/period/Planner **70/70**, docs **2/2**, syntax/diff checks pass. First test wrapper blocked Windows asyncio loopback socketpair; failed wrapper/log are preserved, and the corrected test-only wrapper permits literal loopback while keeping external access denied. Production code and strict mock boundary are unchanged. Prior full **2165/2165** is not rerun for documentation-only preparation. All **11686** predecessors, **176** sources, **24** original stores and local settings retain hashes.
+- Official pricing searched/fetched 2026-09-21 retains conservative Terra input/output rates **2.50/12 USD per million**. Eight full 20000-input/8192-output generations plus count contingencies need **1.266432**, rounded **1.27**; current remaining **1.05143757** is short by **0.21856243** against the cap. Suggested **+0.25** is not applied. Draft `726e6f52...98bb5c` binds source/SDK/questions/criteria/request hashes, has no paid authority/live dispatcher and is unfunded. Calls/cost **0**; shared **19.01856243/20.07**, pending zero, not invoice. Resolve funding before fresh single-use admission; no partial paid run, output reduction, ingest or consumed-manifest reuse. Prior paid Planner 8/8 and partial app results remain immutable; packet `structured_period_probe_preparation_2026-09-21` stays ignored.
+
+## Structured measurement-period exact and authored replays (2026-09-21)
+
+- Baseline `5df6e9d6`; [implementation and evidence](../evaluation/structured_measurement_period.md). Exact eight paid plans run the same 21 prior authored source/Compiler choices under the new code; legacy complex-period counterexamples no longer yield numeric outputs. Complex plans, including parenthesized current-year text, stay unchanged and unresolved. Seven annual/unrestricted/comparison controls retain byte-identical calculation results. No provider response is repaired or attributed a new interpretation.
+- A separate authored successor adds only explicit period structures to the raw plans, then uses production Planner normalization. Stripping those fields reproduces every original normalized requirement. The same 21 selections/catalogs/formulas/values now execute correct prior-year 120 and exact intervals 131/151; anchor 140, partial intervals, point dates and wrong endpoints are blocked. Forward/reverse supplied bindings retain 20%/-16.67%; foreign-company and unknown-period controls remain blocked. **42 replays**, ledger ok throughout, **264 evidence assertions**; source availability and actual Compiler/Planner choices remain untested.
+- **21 new tests**, **93 focused**, full **2165/2165** (64.281s), domain audit **83**, import/topology/docs and syntax/diff gates pass. Initial full pass and corrective work are preserved: old strict-wire fixtures lacked the new object, legacy model serialization added a null field, and a malformed child raised before the existing shape check. Contract requirements stayed strict. All **11599** predecessor files, **24** original stores and settings retain hashes; unrelated source files verified. Ignored packet `structured_measurement_period_2026-09-21`; source/tests/docs are committed separately from artifacts.
+- Added provider calls/accounting **0**, shared **19.01856243/20.07**, remaining **1.05143757**, pending zero, not invoice. Prior paid Planner 8/8/four-pair semantic review and partial app results remain unchanged. Next prepare new-schema exact SDK bodies, independent semantic criteria and whole-batch admission before any provider request. No budget increase, ingest, paid retry or consumed-manifest reuse.
+
+## Saved Planner periods: downstream source-selection diagnosis (2026-09-21)
+
+- Clean `571d87fb`; [diagnosis](../evaluation/planner_period_source_selection.md). All eight actual paid plans/queries stay unchanged. Thirteen authored source cells pass through production candidate building; 156 owner/source checks and 21 source-grounded mock Compiler selections exercise cohorts, V2 reference/validation, numeric execution, answer and ledger. Document filters remain the selected company/annual report/2037. No source store/search/provider client opens; fixtures are not actual DART source availability or new model samples.
+- p05 `2037사업연도의 직전 사업연도` is reduced to anchor 2037: correct 2036/source-labelled prior cells are excluded, while wrong 2037 executes as 140원 even with the correct 120원 cell present. p03/p04 exact cross-year source intervals remain unknown and fail period validation; annual substitutes execute, as do p03 partial-year and point-date substitutions. Full endpoint text survives but scalar-year comparison loses its meaning. Forward/reverse child controls preserve owner periods and execute authored 100/120 bindings as 20%/-16.67%; no actual Compiler endpoint-choice claim.
+- Initial mock programs omit required source interpretation for nonempty basis fields. A separate fixture pass adds only explicit source-axis/request proofs, retaining exact chosen IDs, formula, quantities, sources and paid plans. This isolates period defects without treating physical linkage as semantic truth. All 21 grounded traces have ledger integrity ok, including incomplete or semantically wrong outputs. The recorder-only envelope serialization error and initial partial files are preserved; no runtime response repair.
+- **221 evidence assertions**, existing period/Planner/source contracts **39/39**, documentation **2/2** pass. These verify counterexamples, not period correctness. All **11527** protected predecessors, **175** source files, **24** original stores and settings preserve hashes. Documentation only is committed; ignored packet `planner_period_source_selection_2026-09-21` contains both fixture passes. Preceding full **2144/2144** and audit **83** are not rerun for unchanged production source.
+- Added calls/accounting **0**, shared **19.01856243/20.07**, remaining **1.05143757**, pending zero, not invoice. Prior paid Planner 8/8 semantic review/four pairs and partial app results remain immutable. Next structure request target year/interval and source-period granularity, preserving request ownership, source axes and explicit source-year precedence; begin anonymous contracts and exact provider-free replay. Defects are not fixed. No funding change, paid retry, ingest or consumed-manifest reuse.
+
+## Planner measurement-period eight-question live result (2026-09-21)
+
+- Clean `df4be34b`; [result](../evaluation/planner_period_probe_result.md). User accepted the prepared actual Planner evaluation under USD 1.27, without added funding. Fresh `8a2875e3...36dfb80` binds eight exact question/SDK bodies and count projections and is consumed once before transport. Unchanged Terra/low/8192 output, 20000 input guard, production prompt/schema/ontology; empty inventories and supplied routing isolate planning. Review criteria and historical answers cannot be read during generation.
+- **8/8 structurally valid first responses, 8/8 separate assistant period acceptances, 4/4 complete pairs**. Report-only p01 stays blank, p02 keeps 2037 business year; p03/p04 retain both full-range endpoints and actual cumulative basis; p05/p06 distinguish anchored previous/current periods; p07/p08 retain distinct inputs and forward/reverse reference instructions. Raw and normalized periods agree. No independent human gold, A/B, general/full-app correctness, source-absence or Compiler arithmetic claim. Relative-string compatibility with downstream selection remains untested.
+- All **16 HTTP requests return 200**: eight counts and eight generations; every counted total equals actual input usage. Input **56695**, output **3929** including 137 reasoning tokens; no provider/JSON/requirement errors, retry or repair. Generation estimate **0.18888550** plus **0.08** count contingency adds **0.26888550**. Shared **19.01856243/20.07**, remaining **1.05143757**, pending zero; peak run accounting with reservations **0.35871750/1.27**. Conservative rates retain cache-write input accounting, not invoice or observed count tariff; prior failed reserves remain.
+- Two fresh-process caller rehearsals reproduce preparation; **36** caller checks, separate missing-authority/consumed stops and **88** saved-evidence/accounting assertions pass. Initial offline reviewer called model_dump on a dataclass; only its projection was corrected to asdict, with failed script preserved. All **11326** predecessor files, **175** sources, **24** original store files and settings preserve hashes. Documentation only is committed; execution artifacts remain ignored. Next provider-free downstream selection review of saved relative/full-interval plans; no paid retry or manifest reuse.
+
+## Planner measurement-period semantic probe preparation (2026-09-21)
+
+- Clean `e1369d0a`; [preparation record](../evaluation/planner_period_probe_preparation.md). Eight synthetic questions form four fixed contrast pairs: document-only versus measurement year, shifted non-calendar intervals, explicitly anchored relative periods and reversed comparisons. Production Terra/low Planner prompt/schema, 8192 output limit and ontology stay unchanged; supplied numeric routing and empty source inventories isolate planning. Review criteria stay outside all model inputs. No new model sample, retrieval, Compiler, embedding, ingest or source-absence result.
+- Two fresh-process installed-SDK rehearsals reproduce eight captured canonical generation bodies and normalized authored plans, each with eight mock count/generation pairs. **98 assertions across positive replays and 10 controls** pass: changed query/report scope and insufficient run/shared funding stop before transmission; count 503/input overflow prevent generation; generation 503/unknown usage/incomplete output stop without later questions or retry. Wrong 2099 periods remain structurally accepted semantic negatives. Synthetic usage fills the configured ceilings and is not measured tokens or billing.
+- Existing transport/count/Planner contracts **49/49**, documentation **2/2** pass; zero external connection attempts. All **11124** protected predecessor files, **175** sources, **24** original store files and local settings retain hashes. Only documentation is committed; packet `planner_period_probe_preparation_2026-09-21` stays ignored. The preceding runtime full gate **2144/2144** is not rerun for this preparation.
+- Official pricing was searched/fetched on 2026-09-21: retained conservative Terra input/output accounting USD 2.50/12 per million. Eight full 20000-input/8192-output reservations plus eight 0.01 count contingencies total **1.266432**; rounded proposed cap **1.27** fits remaining **1.32032307**, leaving **0.05032307** after the cap. Count tariff/invoice and actual input tokens are unverified; no output reduction or new funding. Draft `950e2b77...d09912` binds inputs/criteria/source/request hashes, with no paid authority or live dispatcher. Added calls/cost **0**, shared **18.74967693/20.07**, pending zero. Next prepare fresh single-use admission and preserve separate semantic review; no paid retry or consumed-manifest resume.
+
+## Fixed dense-result full-app integration replay (2026-09-19)
+
+- Clean `b4ef729c`; [result](../evaluation/fixed_retrieval_app_replay.md). User accepted the experiment-local exact dense-result fixture replay and two fresh-process full-app runs. Seventeen captured `backend_b` dense ID/distance lists combine with recorded raw source bytes to reconstruct the four Chroma result fields consumed by the adapter. This 521-candidate input is the source of the immutable Compiler HTTP fixtures, not a selected search-quality winner.
+- Guard binds verified store-copy files, 1,872 vectors/IDs/metadata, collection configuration, BM25 corpus/IDF and returned source bytes. Exact ordered query/vector/filter/k/RRF input is required; mutated/unbound/extra/repeated/out-of-order calls terminate. Independent native query dispatch is forbidden. Production BM25, hydration, RRF, candidate building, Compiler validation, arithmetic, answer assembly and ledger run unchanged, with observations validating returned values rather than replacing them.
+- **Two fresh-process replays complete**, each HTTP 200, **2/2 outputs**, ledger ok, two tasks/five artifacts/six evidence IDs, 32 seed sources/521 candidates, 41.4% plus three previously reviewed narrative claims. All **27 SDK wire-body hashes** (19 embeddings/four counts/four generations) and **17 dense receipts** agree. Only **272 measured search duration values** differ in raw full API bodies; an explicit timing-path-only projection is identical across both and the prior successful app replay. No raw result rewrite, response-matching relaxation, repair or new model/semantic sample.
+- **11 guard controls**, **37 evidence assertions**, docs **2/2** pass. No full benchmark or production source change. All **9426** predecessors, **174** sources, seven owners, **24** original store files and settings retain hashes; only disposable-copy chroma.sqlite3 bytes change. Artifacts stay ignored under `compiler_fixed_retrieval_app_2026-09-19`; documentation only is committed.
+- Real provider/native nearest-neighbor query calls **0**, added accounting **0**, shared **15.22872845/16**, remaining **0.77127155**, pending zero. Proposed future 1.70 envelope remains unfunded by 0.92872845; recommended +1.00 is neither authorized nor applied. Fixed-input integration is complete; native ANN variability is not fixed or certified. Next prepare a fresh native-retrieval full-app admission packet with existing whole-batch funding before bootstrap; no paid call or cap increase is authorized by this replay.
+
+## Retrieval seed drift isolated to native dense search (2026-09-19)
+
+- Clean `bf211011`; [diagnosis](../evaluation/retrieval_seed_drift_diagnosis.md). User accepted provider-free per-query dense/BM25/RRF diagnosis. Two instrumented app prefixes each serve 23 exact mocked requests (19 embeddings, routing/planning count+generation), then stop deliberately after candidates and before Compiler. Their local HTTP 500 is the diagnostic stop, not provider failure or a new final answer.
+- Identical requests, vectors, filters, limits, plan, BM25 corpus/IDF and all 17 BM25 outputs. Native dense outputs vary on queries 4/9/13 but those first differences do not affect bounded RRF; both prefixes retain 530 candidates. Two bounded native probes then replay all 17 frozen vectors without an embedding client; each repeats query 13 twice inside its process, with identical within-process results.
+- Native probes share all 1,872 stored 3,072-dimensional vectors, IDs, metadata and configuration hashes. Query 13 includes chunk 96 at rank 62 in one process and omits it in the other; BM25 rank 47 stays fixed. The source's dual RRF score is 0.017542515703998774 versus BM25-only 0.009345794392523364, changing top-32 inclusion. Seed score 0.7713886695501526 displaces chunk 76 at 0.7005925447101917.
+- Replacing only query 13's observed result in either direction reproduces both historical seed document bytes/scores and full 521/530 candidate catalogs exactly. Final eight documents and six used evidence candidates remain equal. Independent float32 squared-L2 gives chunk 96 rank 62; the omission is not an equal-score tie. Chroma 1.5.5 uses HNSW L2/ef_search 100; the native internal cause (loading/traversal/threading/WAL) is not isolated, and no production tuning guarantee is claimed.
+- **64 evidence assertions**, three negative network/fixture controls and docs 2/2 pass. No production source change, full benchmark, fresh ingest, provider call or model/sample/quality claim. All **9325** predecessors, **174** sources, seven owners, **24** original store files and settings retain hashes. Only disposable-copy chroma.sqlite3 bytes change; its internal write cause remains unexamined. Ignored packet: `compiler_seed_drift_diagnosis_2026-09-19`.
+- Added accounting **0**, shared **15.22872845/16**, remaining **0.77127155**, pending zero. No cap increase, paid manifest or live runner. Next bind captured dense results to exact query vectors/filters/limits/source identity for an experiment-local full-app integration replay in two fresh processes; this will establish fixed-retrieval integration, not actual search stability. Prior paid app stop and consumed manifests stay intact.
+
+## Normal-app offline replay and repeat drift (2026-09-19)
+
+- Clean `8e6a4c5a`; [review and budget](../evaluation/compiler_axis_app_rehearsal.md). User approved provider-free combined-answer rehearsal and fresh cost estimate. Actual ASGI app uses the selected source-complete store's temporary copy, unchanged runtime/profile, dummy key, denied external sockets and exact ordered recorded MockTransport replies. No live runner, paid manifest, provider call or cap increase.
+- Run A consumes all 27 mocked pairs (19 embeddings, four counts/four generations), HTTP 200, ready/non-degraded 1,872 chunks, **2/2 complete outputs**, ledger ok, two tasks/five artifacts/six evidence IDs. 41.4%, exact numeric inputs and three previously reviewed narrative claims survive final composition. Canonical aggregate and public answer/structured/trace agree after the existing projection removes whole Compiler records; no repair or new model/sample/measurement claim.
+- Run B's first 25 bodies match, then its narrative count descriptor differs and no recorded response is served. Local HTTP 500/provider_token_count_failed reflects fixture identity rejection, not actual provider failure. Routing/plan/final eight retrieved documents are identical; seed 32 changes chunk 76 → 96, catalog 521 → 530 (four removed/thirteen added), with every common candidate and all six answer evidence candidates unchanged. Backend cause is unisolated. No matching relaxation or repeated runs until green; next inspect per-query dense/BM25/merged results provider-free.
+- Seven caller controls plus docs 2/2 pass (**nine checks**); the application outcomes remain one complete / one stopped, not two identical successes. Originals remain byte-identical: **9224** predecessors, **174** sources, seven owners, **24** stores/settings. Only chroma.sqlite3 changes inside the disposable copies; no claim about its exact internal write cause. Original paid app and consumed manifests are preserved.
+- Added accounting **0**; shared **15.22872845/16**, remaining **0.77127155**, pending zero. Recorded-response scenario **0.72609436**, sequential pending-output peak **0.90964436**, recorded-input/all-output reservation **1.29754252**; none is a forecast/new invoice. Proposed max 30,000-input Terra 2/Astra 2, unchanged output ceilings, four count contingencies and 48 embeddings bounded at 8,192 reserve **1.69972608**, rounded **1.70**. Shortfall **0.92872845**, minimum cent +0.93, recommendation +1.00; no increase authorized/applied. Whole batch must be funded before bootstrap; repeat drift diagnosis precedes paid successor preparation.
+
+## Two-case v11 Compiler actual API probe (2026-09-19)
+
+- Clean `f67b0ccf`; [result](../evaluation/compiler_axis_probe.md). User approved +USD1 and the frozen numeric/narrative experiment, raising the shared cap 15 → 16. Fresh `6dac4e5c...6271f1a` consumed once; exact ordered body hashes, measured input limit 30,000, output limit 5,120, whole-batch ceiling 1.282, two counts/two first responses maximum, no repair/retry/resume or full-app call.
+- Four HTTP 200 transmissions; **2/2 runtime and assistant source-review passes**, zero provider/schema/source errors. Numeric source cells/complete axes/attached periods and independent arithmetic yield **41.3957043439745% → 41.4%** with null source display. Three narrative claims/seven exact support occurrences preserve purpose versus realized effect, direct Commerce impact with other drivers, and acquired-company/subsidiary post-acquisition revenue/loss scope. Both raw responses have zero outside-string whitespace. Raw numeric format metadata is `0.00`; runtime renders 41.4%, with no requested precision or general-format claim.
+- Count and generation input usage agree at **23,664 / 17,372**; output **911 / 1,449**, including reasoning **163 / 346**. Historical original counts 26,131 / 17,529 differ by 2,467 (9.4409%) / 157 (0.8957%). These are descriptive historical comparisons on one known question, not a fresh baseline arm, isolated A/B, unseen quality or invoice savings.
+- Canonical reconstruction uses the original 521-candidate catalog and 204 source candidates. Input insertion order was restored after a no-call mismatch; the original unordered diagnostic copy is preserved. Initial mock caller failures identified absent HTTP transport context-manager support, fixed before admission. Eleven final caller controls pass; independent processes reproduce 13 identical files/four SDK bodies. Docs checks 2/2: **13 checks this turn**, no fresh production-suite claim. Historical numeric output appears only in an offline positive control, never in paid input.
+- Added conservative generation estimate **0.63095** plus count contingency **0.02** = **0.65095**. Shared **15.22872845/16**, remaining **0.77127155**, pending 0; peak batch usage/reservation/contingency 0.83450, not invoice. All **9124** predecessors, **174** sources, seven owners, **24** stores and settings preserve hashes. Only documentation committed; runtime/defaults and immutable earlier results unchanged.
+- Probe complete. The earlier mixed app remains budget-stopped without a final answer; no planning/retrieval/composition/ledger completion was exercised here. Next is a provider-free normal-app combined-answer rehearsal and new cost admission. No automatic additional provider run or cap increase.
+
+## Two-case v11 Compiler probe preparation (2026-09-19)
+
+- Base `f2c14af4`; [preparation record](../evaluation/compiler_axis_probe_preparation.md). Two current v11 numeric/narrative requests from the same known-source app question are frozen with exact schemas/count descriptors, order and source-review criteria. One first response each is proposed; no paired baseline or new Planner/retrieval/app claim. Model, reasoning, output limit and source bytes are unchanged.
+- At a proposed 30,000-input/5,120-output ceiling for each case, conservative input/output reservation plus two $0.01 count contingencies is **1.282**. Current **0.42222155** leaves **0.85977845** unfunded; minimum cent increase 0.86, recommendation 1.00. No increase or paid call was authorized/applied. New counts remain unknown; old counts and byte reductions are not substituted as measurements. The later full-app smoke is outside this budget.
+- Two fresh-process SDK rehearsals produce five byte-identical files/four request bodies using dummy credentials, explicit mock transport and blocked sockets. Authored counts/usage at the maximum and missing-output responses are controls only. Nine new controls, 38 existing admission contracts and two docs checks pass (49 total); underfunded batches, changed/order/size/extra requests, invalid counts, 503 and usage overruns stop as specified.
+- All 9079 predecessor files, 174 sources, seven owners, 24 stores and settings retain hashes. Documentation only; mock packet remains ignored. Added cost 0, shared **14.57777845/15**, pending zero. No live runner or paid manifest; future fresh funding/admission and exact-source execution review are separate. Prior app failure and consumed manifests stay unchanged.
+
+## Provider-free Compiler input payload audit (2026-09-19)
+
+- Base `1e052f05`; [audit record](../evaluation/compiler_input_payload_audit.md). Two immutable numeric/narrative app requests are decomposed by exact prompt UTF-8/compact JSON sizes. Numeric candidate payload 62,666 bytes contains 38,924 candidate-object bytes and 17,342 bytes of axis-provenance fields. Narrative payload 46,970 bytes contains 23,435 source-reading bytes. Original server counts 26,131/17,529 remain historical; no new count/generation/embedding/ingest calls or admission.
+- Experiment-only candidate-local sharing retains each axis field/path/reference, sharing only exactly equal present provenance. Including explanatory/version overhead, canonical request bytes **97,309 → 89,875 (7.640%)**, **65,447 → 65,149 (0.455%)**. Both expanded payloads are canonically identical; sources/axes/units/contexts/partitions/order/cohorts/schema/settings preserved. Seven anonymous positive/negative controls pass. Cached cl100k proxies are not Astra token measurements, billing, model quality or proof of budget fit; no production adoption.
+- Current source readings already reference 8/5 repeated surfaces. Remaining literal repetitions are 3/20 groups with different source-address contexts; 356/4,577 repeated value bytes, including two identical narrative piece arrays across distinct surfaces. No quote, location or context is removed or treated as interchangeable authority. Text sharing would need a separate presentation contract.
+- All **9022** predecessors, **174** sources, seven runtime owners, **24** original store files and local settings retain hashes. Source/defaults unchanged; documentation only committed. Added cost 0; shared **14.57777845/15**, remaining **0.42222155**, pending zero, not invoice. Prior app stop/no final answer remains unchanged. Next bounded seam is candidate-local axis provenance in prompt presentation, followed by provider-free numeric/mixed/narrative/shared-basis/retry contracts; any paid successor requires fresh funded admission.
+
+## Compact JSON normal-app mixed smoke stopped by budget (2026-09-18)
+
+- Clean `2879db60`; [full record](../evaluation/compiler_compact_json_app_smoke.md). One known-source Commerce-growth/acquisition question used fresh planning/retrieval, normal OpenAI routes and a verified disposable NAVER store. Fresh `9c86b2cf...dc9b7a7` consumed once; unchanged USD 15 shared cap, run allowance 0.89380341, conditional per-call funding without a completion guarantee.
+- Health/companies HTTP 200, ready/non-degraded, 1,872 chunks. All **26** provider transmissions returned HTTP 200: 19 embeddings, 4 counts, Terra 2, Astra 1. One numeric island validates, raw JSON has **zero outside-string whitespace**; 26,131 input/996 output tokens including 191 reasoning. Original cell/axis/context review and independent arithmetic support 41.3957043439745% → 41.4%, not a delivered application answer. Fresh inputs and no paired baseline preclude savings or isolated-policy claims.
+- Narrative input 17,529 plus unchanged 5,120 output requires 0.47511250 against 0.42222155 available: **0.05289095** short. Generation denied before transmission; app HTTP 500 is local `budget_reservation_exceeded`, not provider 503. No final answer/ledger, narrative review or public-output verification; no repair, SDK/HTTP/whole-query retry or resume. Original partial evidence is retained.
+- Controls **23/23** pass, external/provider calls 0; actual-store rehearsal uses authored replies/counts. Initial six local fixture errors from an omitted evidence label remain preserved; corrected labeled invocation passes without runtime changes. All **8913** predecessors, **174** sources, seven owners, **24** store files and settings match hashes. Documentation only committed.
+- Added estimate **0.43158186** plus count contingency **0.04** = **0.47158186**; shared **14.57777845/15**, remaining **0.42222155**, pending 0, not invoice. Peak admitted reserve 0.66778186 within run cap. Numeric Compiler estimate is 86.77% input: next inspect input size/repeated metadata provider-free, keeping sources/schema/limits intact. A paid successor requires fresh funding/admission; the point-in-time shortfall is not a rerun quote.
+
+> Internal experiment log, not a first-read portfolio document. Start with
 > [../../README.md](../../README.md) and
 > [../overview/experiment_report.md](../overview/experiment_report.md)
 > for the compressed experiment story. This file preserves detailed historical
@@ -11,6 +556,743 @@ point only to compact summaries retained for provenance; detailed raw outputs
 remain recoverable from the pre-Phase-5 Git history when needed.
 
 이 문서는 benchmark와 retrieval 파이프라인이 버전별로 어떻게 바뀌었는지, 그리고 그때 실험 결과가 어떻게 달라졌는지를 한 번에 보기 위한 기록이다.
+
+## Different-source compact-JSON comparison (2026-09-18)
+
+- Clean `d55874fa`; [completed record](../evaluation/compiler_compact_json_transfer_comparison.md). User explicitly increased the shared experimental cap 14 -> 15 by one dollar. Fresh `2d77084c...383e1af3` consumed once: all four counts precede generation, full reservation **2.1481**, eight HTTP 200s, **4/4 first responses**, **6/6 runtime outputs**, **4/4 frozen content reviews**. No retry/repair/resume or runtime/default change.
+- Frozen numeric/mixed requests and 5120 output ceiling are unchanged; caller input rejection threshold 30000 covers observed 15882/15965/27482/27399 inputs, with whole-batch funding still mandatory. Output tokens baseline/candidate **1092/948** numeric (-13.19%), **1594/1224** mixed (-23.21%); structural whitespace **1499/2142 -> 0/0**. +83 input tokens per candidate. Output totals include independent rationale/reasoning/wording differences, not exact whitespace-token attribution.
+- Both conditions retain **226354918 thousand KRW** and **-3789 hundred-million KRW**, original periods/signs/scales, attributed cash-decline principal cause and separate Selecta restatement reason. Four claims/eight support occurrences, eight numeric input occurrences, six original XML witnesses and 166 original catalog objects checked. Assistant condition-masked review was locked before condition/cost join; preparer knows design. One mixed candidate internal display_format is Japanese, despite correct executed value/Korean claims; final app display is untested.
+- Caller checks **14**, transport/count **29**, docs **4** pass; two fresh-process rehearsals yield **36 identical files**, and untouched sampled payloads pass four runtime reconstructions with no repair. All **8012 protected predecessor files**, 174 sources, seven owners, 24 stores and settings retain hashes. Generation estimate **1.327** plus **0.04** count contingency settles **1.367**; shared **14.10619659/15**, remaining **0.89380341**, pending zero, not invoice. Historical provider-failure reserves remain.
+- This is two known excerpts with authored plans and one response per case/condition, not unseen-source, retrieval/Planner, reliability or application-quality proof. Next provider-free work traces display-format language through public output boundaries before a separate adoption decision. No more calls under the consumed manifest.
+
+## Different-source count-only budget measurement (2026-09-18)
+
+- Clean `1663a54a`; [count-only record](../evaluation/compiler_compact_json_transfer_count.md). The user's continuation covered four frozen input-token counts with at most 0.04 contingency and zero generation. Corrected fresh manifest `49fc8888...eb5117cb` consumed once: four HTTP 200 counts, numeric baseline/candidate **15882/15965**, mixed **27399/27482**, total **86728**. Prefix adds 83 input tokens per case. Counts do not establish generation schema acceptance, output savings, semantics or reliability.
+- The first consumed local caller `58b0afb9...5727c4b` raised a logger argument-collision TypeError before its HTTP delegate; SDK exposed APIConnectionError. Its premature sent flag and raw 0.01 accounting remain immutable. Frozen control flow and a mocked reproduction with the real signature prove zero transmissions, recorded in a separate pre-transmission accounting correction to zero. No historical paid-failure reserve was released and no provider request was retried. Corrected caller moves sent after the log and shares the tested recorder with live execution.
+- Corrected guard checks **11**, docs **4** pass; two fresh-process mock rehearsals have **18 byte-identical files**. All **7848 protected files** (7737 prior plus initial caller's 111), 174 sources, seven runtime owners, 24 stores and local settings retain hashes. Four actual provider transmissions, zero generations/embeddings/retries; no source/runtime/default changes.
+- Added count contingency **0.04**, not invoice; shared **12.73919659/14**, remaining **1.26080341**, pending zero. At measured inputs, full generation reserve **2.1081**; a future counted comparison with fresh 0.04 contingencies requires **2.1481**, short by **0.88729659**. Proposed total cap **15** (+1) would cover this with **0.11270341** headroom at unchanged counts. No cap change or generation applied. Next proposed full two-case comparison needs a fresh manifest, larger measured-input guard than the prior 12000, unchanged 5120 outputs, new counts and full-batch funding.
+
+## Different-source compact-JSON comparison preparation (2026-09-18)
+
+- Clean `6ddd37d5`; [preparation record](../evaluation/compiler_compact_json_transfer_preparation.md). Two newly authored numeric/mixed questions use the previously piloted CJ CheilJedang 2025 filing, separate from the earlier NAVER advertising paragraph. Complete selected table/source groups retain 149 and 17 unchanged catalog objects. Fixed criteria cover cash-flow difference, liquidity difference, attributed principal cause and separate comparison-restatement reason; no current model samples or untouched-source claim.
+- Four prefix-only baseline/candidate request bodies, unchanged Astra/medium/strict schema/5120 output ceiling. Two fresh-process SDK rehearsals produce 15 byte-identical files, eight mocked missing-output responses; token usage is synthetic metadata. Six raw-source witnesses use the existing parser/sanitizer and table context attachments, retaining original text and duplicated-footnote locations. Failed strict/recovery-only preparation scripts remain preserved; no parser, source or runtime repair.
+- Transport/count contracts **29**, docs **4** pass; all **7673 predecessors plus three original-source artifacts**, 174 sources, seven runtime owners, 24 store files and local settings preserve hashes. Provider/count/generation/embedding calls and added cost are **0**. Only documentation is committed.
+- Shared **12.69919659/14**, remainder **1.30080341**, pending **0**, not invoice. Full four-response reservation at the old 12000-input ceiling is **1.664**, shortfall **0.36319659**. Actual counts unknown: total measured input must be at most **18944** tokens at retained conservative rates to fit. Next prepare count-only measurement of the four frozen bodies, at most **0.04** contingency and zero generation, then reassess. No paid manifest, runner, cap increase, smaller output ceiling or default adoption.
+
+## Provider-free compact-JSON output-kind compatibility (2026-09-18)
+
+- Clean `292d3d0a`; [compatibility record](../evaluation/compiler_compact_json_compatibility.md). User continued the specified numeric/mixed/multiline-quotation step. Eight authored cases, baseline/candidate prefix and pretty/compact replies: **32/32 positive combinations**, **56 output instances**, identical compiled programs, validation, source/units/formulas/dependencies and execution. Installed SDK with dummy credentials and mocked HTTP, blocked external sockets; no new model samples, runtime/default/prompt/schema/limit change or paid admission.
+- **28/28 negative combinations** preserve rejection for quote normalization, foreign references, omitted quantity proof, self-referencing formula, missing output, incomplete status, refusal and truncated JSON. Exact context normalization yields context_quote_not_exact; invalid formula keeps invalid_formula_step_reference. Four intentionally contradictory narrative claims stay structurally valid, demonstrating that physical checks do not certify meaning. Raw model claims and source quotations retain whitespace; existing final narrative display joins whitespace and avoids duplicated subjects.
+- Completed matrix **64 mocked SDK requests**, existing focused contracts **55**, docs **4** pass, external attempts/provider calls 0. Initial preparation's Pydantic union dump and missing explicit paragraph null were corrected only in authored fixtures; original failed artifacts retained. Local assertions were corrected to distinguish calculated versus displayed values and raw claim versus rendered text after characterization. No runtime contract weakened, criteria quantities/source strings altered or paid response repaired. Completed matrix reuses 24 passing receipts; 78 total mock SDK attempts including superseded local runs, no billed usage claim.
+- All **7283 preceding evidence files plus 27 preserved initial preparation files**, 174 sources, seven runtime owners, 24 original store files and local settings retain hashes. Added cost 0; shared **12.69919659/14**, remaining **1.30080341**, pending zero, not invoice. Prior four live samples retain their conclusions; local compatibility does not establish model instruction compliance, generalization, reliability or default adoption. Next prepare different-source numeric/mixed inputs and frozen content criteria, then full-reservation budget feasibility; no automatic paid successor.
+
+## Compact-JSON first-response comparison (2026-09-18)
+
+- Clean `76b89b5c`; [comparison](../evaluation/compiler_compact_json_comparison.md). User continuation and standing no-repeat-approval direction covered a fresh bounded first-request contrast: one known input, two conditions, two scheduled repeats each, order baseline/candidate/candidate/baseline. Candidate adds only a 466-character serialization prefix preserving all original prompt text, required content and quoted strings. Model/schema/medium reasoning/store=false/default tier/5120 output ceiling unchanged; no runtime/default change.
+- Fresh `f3baae2ce4c062beee6df48250e11b90e66bbdba8cbaef52c93fee20e2f0f200` consumed once. Four counts precede four generations; all full ceilings reserved at 1.6318250 under cap 1.70, within unchanged USD 14 shared cap. All eight HTTP calls return 200, all four first responses complete, no refusal/schema/provider/usage error, repair, SDK/whole-query retry or resume. No Planner/retrieval/embedding/ingest/application query occurs.
+- Baseline output tokens 2123/2147 (mean 2135), candidate 1865/1851 (mean 1858), about 13% lower; input 11315 vs 11398. Structural whitespace 3501/3298 vs 0/0; trailing whitespace zero for all. Both baselines complete, so this does not establish whitespace-loop prevention. Wording/reasoning also differ; token savings cannot be attributed wholly to whitespace or generalized from this one known input.
+- All four samples execute four unchanged claims and pass separate four-criterion assistant source review; 48 exact support occurrences verified. Product improvement versus category expansion, AI search advancement and display effect-as-effort remain intact. Candidate growth statement is source attributed and supported. Content projection omits condition/order/cost; assessment locked before joining and fresh execution review. Preparer has design/key knowledge, so not independent blinding, human gold or holdout.
+- Batch 11, packet 4, existing count/transport/admission 37 and docs 4 checks pass; six exact production-SDK replays, two identical eight-request mocked rehearsals and saved/fresh Compiler replays 4/4 each. Initial nonexistent test-module loader error and corrected 37-test result are retained. Analysis syntax/control-expectation corrections did not repeat provider calls or rewrite evidence. Offline prompt reconstruction canonicalizes only four JSON sections' object key order; live uses unchanged frozen request objects. Full suite not rerun for docs-only scope.
+- Added 0.9671250 estimated generation usage + 0.04 count contingency = **1.0071250**; shared **12.69919659/14**, remaining **1.30080341**, pending zero, peak with reservations 13.32389659, not invoice. All 6841 predecessor/388 sealed packet/174 source/24 original-store files and local settings retain hashes. Packet remains ignored; only docs committed. Next provider-free numeric/mixed/exact multiline-string compatibility before wider independent-source evidence; no default promotion or additional paid run in this scope.
+
+## Provider-free Compiler output-limit diagnosis (2026-09-18)
+
+- Clean `63b29393`; [diagnosis](../evaluation/compiler_output_limit_diagnosis.md). User continued inspection of the saved first-response ceiling event, without new provider calls. The first output has 33676 characters; 32342 (96.04%) are trailing whitespace: 30032 spaces and 2310 newlines. It stops during the first claim's evidence array, with nine enclosing containers open. Provider reason is max_output_tokens at 5120 output tokens, including 162 reasoning. The final response completes four outputs at 2176 tokens with the same 9750-byte canonical schema, route and ceiling. This is observed generation noncompletion with repeated structural whitespace; underlying model/decoder cause is unestablished.
+- Both prompts lack the literal JSON word but both use strict json_schema. Official Structured Outputs documentation's incomplete-response guidance applies; its separate JSON-mode whitespace warning does not prove this cause. Trailing-trim and structural-whitespace-only diagnostic projections remain invalid JSON. Successful local compaction preserves the whole final object at 4117 characters/5634 bytes, without a model-quality or provider-token-saving claim. Neither failed nor successful paid response is rewritten.
+- Eight anonymous lexical controls, four actual-SDK exact-request replays and ten existing transport contracts pass with blocked external connections. Raw failure remains rejected, raw success parses identically, authored compact success preserves the object, and authored valid JSON with incomplete status is rejected. Two authored cases use synthetic usage solely for transport shape; no new generation, full application run or accounting charge. Docs checks 4/4; no full-suite rerun or runtime/prompt/schema/limit/retry change.
+- All 6824 predecessors, 174 source files and 24 protected store/settings files retain hashes. Added cost zero; shared 11.69207159/14, remaining 2.30792841, pending zero, no invoice claim. Prior four-output live acceptance and original failed draft remain unchanged. Next prepare a serialization-only instruction contrast retaining fields/string contents and all grounding contracts, with no current paid admission, response salvage, larger ceiling or extra retry.
+
+## Planner request-range real application check (2026-09-18)
+
+- Clean `5f68bff4`; [separate run and review](../evaluation/planner_section_range_app_check.md). User continued the concrete real-question check after the local range-contract change. Fresh `280f7bd6...38c957` is consumed once under 1.50 inside the unchanged 3.08061745 remainder. Same frozen known-source question/criteria and ordinary application, verified disposable store copy, no runtime/model/profile/ingest changes.
+- All four generated output owners select request_001 through request_003 and the correct observed section. Exact copied range retains all 91 characters. One source is eligible/retrieved, three candidates reach Compiler, one shared-basis declaration links four members. Final public HTTP 200 / structured ok, 4/4 outputs, ledger ok. Four final claims pass the unchanged four criteria under assistant review; 12 subject/fact support occurrences match the original source. Product improvement and category expansion remain distinct; no unsupported added claim observed. This is known-source preparer review, not independent holdout or causal patch proof; the fresh plan has four outputs rather than the earlier two.
+- All 36 HTTP calls return 200: 28 embeddings, four counts and four generations (Terra two, Astra two). First Compiler response is incomplete/max_output_tokens at 5120 tokens, including 162 reasoning, and is rejected before parsing. The one existing feedback repair completes at 2176 output tokens with unchanged candidates/schema/ceiling. Four initial compiler_response_schema_error entries remain recorded; final validation errors zero. No HTTP failure, timeout, budget stop or SDK/transport/whole-query retry. The incomplete draft is not semantic-pass evidence.
+- Added 0.73268904 usage estimate plus 0.04 count contingency = **0.77268904**; shared **11.69207159 / 14**, remaining **2.30792841**, pending zero, peak reserved about 0.91988904. No invoice/count-tariff claim; historical reserves retained. Preflight 87 checks and two identical nine-request mock rehearsals pass; docs 4 checks pass. Prior unchanged-runtime 160 focused/2058 full checks were not rerun. All 6684 predecessor artifacts, 174 source files and 24 store/settings files retain hashes; only docs committed.
+- Earlier incomplete and wording-fidelity results remain unchanged. Next inspect the frozen incomplete response and output-size boundary provider-free before proposing any generic change; no extra paid run or budget increase in this scope.
+
+## Real-DART narrative pipeline check (2026-09-18)
+
+- Clean `74fb36d2`; [pipeline check](../evaluation/dart_narrative_pipeline_check.md). User continued a small real-DART retrieval-to-answer verification. One unchanged known-source NAVER 2023 search/display question and its four frozen content criteria were selected; normal application/services/providers used a verified disposable store copy. Fresh `331b8c2c...971d73` consumed once under cap 1.50 inside existing remainder 3.16643496; no cap increase or runtime/source/model change.
+- All six HTTP calls return 200: two embeddings, two counts and two Terra generations. Routing input/output 1251/79 and requirements 15950/1803; counts match usage, full 8192 outputs reserved, about 39 seconds total. The public API is HTTP 200 but structured incomplete, 0/2 completed outputs, 0/4 delivered contents, no citations, ledger ok. No provider error, SDK/whole-query retry, Compiler call or repair. Semantic comparison is unavailable because the required source never reaches the Compiler.
+- The sampled Planner adds an opening quote to request_003's requested_text in both source-section bindings. All request units together preserve the original question; the chosen section ID is known and correct. Exact excerpt validation yields invalid_source_section_request twice; 15 retrieval query entries have empty_scope with no vector or retrieval embedding attempt. The source is still present in the ready 1872-chunk store. Title fragmentation at punctuation is observed, but its causal role in the model error is unproven.
+- Five local contrasts preserve the raw plan: untouched bindings fail; an explicitly authored copy removing only the extra quote resolves both section links; wrong-unit, unknown-section and unowned-unit variants fail. This is section-link characterization, not automatic repair or a completed answer. Caller/dispatcher 24, provider/diagnostic 45, section/request 45 and docs 4 pass; two actual-store mock rehearsals retain nine identical SDK requests. Initial missing test-artifact label failure is preserved. All 6577 predecessors, 174 sources, 24 stores/settings unchanged; only docs committed.
+- Added accounting 0.06581751 usage estimate + 0.02 count contingency = 0.08581751; shared 10.91938255/14, remaining 3.08061745, pending zero. Historical failed reserves retained; no invoice/count-tariff claim. Next is provider-free generic Planner section-reference characterization, preserving exact request ownership and hard source boundaries; no additional paid run occurred.
+
+## Multi-sentence narrative comparison completed (2026-09-18)
+
+- Clean `77791423`; [comparison](../evaluation/narrative_multisentence_comparison.md). User continued the frozen six-case/twelve-response scope under cap 4.092 within existing allowance, without an increase. The source/question/rubric, balanced generation/display schedule and full source exposure are unchanged. Fresh `5c190bd6...75bce` consumed once; all twelve exact counts (3709-3859) precede generation and reserve all full 5120-output limits for 3.7580500. All 24 HTTP calls return 200 and twelve first responses complete in about 181 seconds; no retry/repair/resume/replacement or extra provider work.
+- Preparer review locks all 50 required-criterion decisions and 35 claim/clause reviews before condition-key join and structural outcome inspection. Both conditions retain 23/25 criteria and accept 4/6 answers: four accepted ties, two rejected ties, no better/worse/uncertain/unavailable pair. M03 omits unconfirmed delivery-time savings; M06 omits the earlier proposal's both-hall scope. All stated claims are faithful and all responses meet the three-sentence limit; no unsupported addition or unnecessary abstention observed. Known fictional sources and preparer label masking are not independent blinded review, human gold or general efficacy evidence.
+- Twelve untouched sampled JSON replays pass current Compiler/execution, one invocation each, zero retries/external calls; all 35 claim texts and 87 subject/fact support occurrences retain exact source linkage. Structural acceptance does not detect or excuse required content omissions. No prompt/runtime change was made from these findings; the adopted instruction and earlier results retain their claim limits.
+- The initial exact-ceiling mock blocked because float accumulation produced 4.0920000000000005. Its receipt is preserved. Experimental-caller-only Decimal arithmetic passes exact equality and rejects cap 4.091999999999999; production budget code and request bytes unchanged. Final 11 caller controls, 27 count/admission contracts, 12 authored rehearsals, 12 raw replays and docs 4/4 pass. All 1857 sealed preparation files, 4601 predecessor artifacts, 174 sources and 24 stores/settings retain hashes; only docs committed.
+- Added accounting 1.1066000 observed-token estimate + 0.12 count contingency = 1.2266000; shared 10.83356504/14, remaining 3.16643496, pending zero. No invoice/count-tariff observation or release of older failed-request reserves. This set is now development evidence. Next prepare a bounded real-DART retrieval-to-answer check against an existing store, separating evidence exposure, interpretation omissions and final rendering; no such paid run began here.
+
+## Multi-sentence narrative comparison preparation (2026-09-18)
+
+- Clean `6c6a2891`; [design](../evaluation/narrative_multisentence_design.md). User continues the harder-source/new-question design after the eight-case tie. Six assistant-authored fictional notes, three Korean/three English, 18 paragraphs and 25 exact-source-linked criteria are frozen before capture. Each question asks for at most three sentences and requires facts across all three paragraphs. New to this series, not independent holdout, human gold or real DART coverage.
+- Source/question hash `4cdc05c0...96505`, rubric `1028b79f...c6c39e`. Model input includes only the question, fixed narrative obligation and source paragraphs. Twelve real SDK bodies are captured before HTTP with dummy credentials and blocked external sockets; full source exposure and instruction-only differences verified. No provider/count/embedding/Planner/retrieval/ingest call, sampled answer, score or live admission.
+- The first authored rehearsal used source IDs p1-p3 that collided with piece IDs and was rejected as unknown_compiler_reference. Failed capture/diagnostic retained. Only synthetic identity fields were namespaced to paragraph_1-paragraph_3; source/question/rubric and authored claim text unchanged. No runtime patch or weakened contract. All 24 authored positive/negative replays then pass structurally, including 12 intentionally wrong meanings; no automatic semantic grader or provider-success claim.
+- Reviewer table/JSON/ZIP have twelve empty slots and fixed content criteria, excluding condition key, execution order, diagnostics and authored answer examples. Generation-first/display-A balances each 3/3, joint 2/1/1/2, with opposite one/two balances by language. Review all clauses, qualifiers, required content, request compliance, abstention and uncertainty; lock before key join and retain uncertain/unavailable/tied-failure distinctions. Preparer review is not independent blinding.
+- Proposed 6x2x1 run, all twelve exact counts before generation, caller input ceiling 6000 and unchanged 5120 output bounds. Full maximum reserve 4.092 fits remaining 4.39303496, outside-run 0.30103496, no increment. Shared 9.60696504/14 and pending zero unchanged; unknown count tariff/invoice and historical failed reserve remain separate. Later continued execution requires fresh verified caller/admission, fixed schedule, first-failure stop and no retry/repair/resume/trimming/replacement.
+- Twelve negative checks, complete exposure for all twelve requests, 25 source-span criteria, 24 authored structural replays and docs 4/4 pass. All 174 sources, 4492 predecessor files, 24 stores/settings unchanged; only docs committed. Earlier live results retain their conclusions. If a later change uses this set, it becomes development evidence and cannot be called unseen again.
+
+## Completed eight-control narrative comparison (2026-09-18)
+
+- Clean `d10c51b1`; [result](../evaluation/narrative_eight_control_comparison.md). User continuation accepts the prepared eight-case/sixteen-response scope and concrete +5 allowance: shared cap 9 to 14, available 5.35228496, experiment cap 5.056, outside-run remainder 0.29628496. Same sixteen request bodies, original sources/contrast labels, schema, Astra/medium/Standard/5120/store=false and balanced schedule; only the already reviewed narrative instruction differs.
+- Batch caller passes 10 controls plus 27 existing count/admission contracts with no external calls; sixteen authored Compiler rehearsals pass. New `3b086419...e571` consumed once. All sixteen exact counts 2633-2745 precede generation and fully reserve 4.7938. All 32 transmissions return HTTP 200, sixteen completed responses in about 111 seconds, no repair/retry/resume; no Planner/retrieval/embedding/ingest/full-app execution.
+- Source/response judgments are locked before joining condition labels; preparer knowledge and telemetry prevent independent or secure blinding. Both instructions are 8/8 faithful and complete, all eight pairs tie, unsupported additions/abstentions zero. Fifteen claims repeat their short source verbatim; one baseline response faithfully translates the Korean action/object distinction. The copying-dominated known-source pilot does not establish general efficacy or harder synthesis performance.
+- Sixteen untouched sampled payloads pass current Compiler/execution; 32 exact subject/fact support occurrences match source spans. Structural linkage is reported separately from assistant semantic judgment. Docs 4/4 pass; all 174 sources, 3104 predecessor artifacts, 1238 sealed files, 24 stores/settings unchanged. Only documentation committed; local raw artifacts and key stay outside Git. Full runtime tests not broadly rerun.
+- Conservative usage estimate 0.79925 plus sixteen count contingencies 0.16 accounts 0.95925. Shared 9.60696504/14, remainder 4.39303496, pending zero; no observed invoice/count tariff or release of the original 503 reservation. Keep the adopted generic instruction; earlier short tie and long sample difference retain their claims. Next define harder multi-sentence/unseen-question coverage before additional paid work; no automatic repeat or reuse of consumed admission.
+
+## Eight-control masked review preparation (2026-09-18)
+
+- Clean `70f70aa0`; [preparation](../evaluation/narrative_blind_review_preparation.md). User continues the provider-free review/budget recommendation. Eight original anonymous sources, their authored contrast labels/reasons and 16 SDK-captured requests are unchanged. Reviewer-only table/JSON/ZIP have 16 uncollected slots, null scores, no condition labels/expected examples or internal diagnostics. The condition key remains local and separate.
+- Fixed shuffled case order; each condition appears first in generation and as A four times, with two cases in each joint cell. Review decisions precede unmasking, with all clauses/coverage/qualifiers/abstention assessed and exact source/response quotes recorded. Missing or failed requests are not semantic scores. Preparers know the key and prior outcomes; this is label masking, not independent blinded review or fresh accuracy evidence.
+- Non-executable scope: 8 cases x 2 conditions x 1 response, 16 exact counts before any generation, full output bound 5120 unchanged, input ceiling 4000 as a stop condition (unmeasured). Full reserve 5.056 = outputs 4.096 + count contingency 0.16 + input ceiling 0.8. Additional allowance needed 4.70371504; practical proposal +5, shared cap 9 to 14, outside-suite headroom 0.29628496. No proposal applied: shared 8.64771504/9, remaining 0.35228496, pending 0; calls/new scores/added cost/cap change all zero. Count tariff/invoice unknown.
+- Input/label hashes, 4/4 and 2/2/2/2 balances, empty score records, archive exclusions and Decimal math pass. Eight negative checks reject leakage, premature score, changed source, missing slot and invalid count shapes/bounds; docs 4/4, external attempts zero. All 174 sources, 3067 predecessors, 24 stores/settings unchanged. Runtime/full suite not rerun; only docs committed. Existing pair caller remains two-count/two-response; future funded scope requires a verified batch caller and fresh admission. Prior sampled conclusions are unchanged.
+
+## Completed longer-source diagnostic pair (2026-09-18)
+
+- Clean `1af0598d`; [result](../evaluation/narrative_long_pair_diagnostic.md). User authorizes one fresh pair under remaining 0.79567246; shared cap remains 9. Same frozen Compiler source/catalog/plan/schema/model/output bounds; only the reviewed narrative instruction differs. Verified diagnostic caller is byte-identical. New `e908e324...def77d1f` consumed once.
+- Both exact counts 8555/8656 fund the full 5120-output pair for 0.7471375 before generation. All four requests return 200 in about 61 seconds, output tokens 2104/2061 including reasoning 122/127. No repair, retry, resume or other provider request. Both schema/source/Compiler/V2 execution passes and 4/4 required contents; 12 exact supports per arm.
+- Assistant review: baseline extra search summary joins product/category with expansion/improvement, extending an action beyond its source object. Adopted sample preserves product improvement/category expansion/AI search advancement and all other required relations, with no observed unsupported extra claim. Sample-level difference only: one known input, one answer per arm, fixed order, unblinded review; no general/causal efficacy, unseen or full-agent result. Existing policy retained; short-source tie and original application/503 artifacts unchanged.
+- Conservative usage 0.4233875 plus 0.02 count contingency accounts **0.4433875**; shared **8.64771504 / 9**, remaining **0.35228496**, pending 0. Not invoice; retain earlier unknown-usage reservation. No cap increase. Another unchanged pair cannot fit even the output/count floor 0.532 before inputs.
+- Fresh caller 7/7, diagnostic transport 4/4, two historical Compiler rehearsals, two sampled-response replays and docs 4/4 pass. All 174 sources, 2848 predecessors, 187 sealed files, 24 stores/settings unchanged. Prior full 2029/2029 and audit 83 not rerun. Only docs committed; requests/results/receipts remain local. Next is provider-free preparation for a broader frozen-control comparison, without an automatic paid follow-up.
+
+## Opt-in OpenAI failure metadata (2026-09-18)
+
+- Base `093cde70`; [implementation](../evaluation/openai_error_diagnostics.md). User continues the recommendation to record error.code, request ID and Retry-After before another attempt. One new ops helper selects reviewed overload/ramp-rate codes, locally accepted req_ IDs, bounded numeric/canonical-date retry hints and explicit availability states. No free-form error text, raw error body/header map, credentials, public projection or automatic retry. The original 503 cause remains unavailable.
+- A separate ignored successor runner records safe metadata for count/generation errors in calls[].http_error and an exclusive sidecar. Capture/persistence exceptions retain the original HTTP/admission stop; sidecar failure still leaves final-receipt metadata. Consumed caller/result bytes remain immutable; no live manifest or dispatch is created. Mock 503/429 evidence is not a new provider observation.
+- Projection **12/12**, SDK metadata transport **4/4**, caller **7/7**, import/API/request-diagnostic boundaries **24/24**, docs **4/4** pass (**51**), without external attempts; pycompile/diff pass. Tests retain failure reservations and no-next-arm behavior, reject private canaries/malformed/unknown fields, and preserve public errors. One new ops source makes 174; all 173 originals, 2659 predecessor artifacts, 24 stores/settings remain unchanged. Prior full 2029/2029 and audit 83 not rerun. Shared **8.20432754 / 9**, remaining **0.79567246**, pending 0; added cost/calls/cap increase 0. Next: fresh fully reserved pair under this remainder using the new caller; no consumed-manifest resume.
+
+## Longer-source narrative comparison: provider-stopped attempt (2026-09-18)
+
+- Clean `a28cc398`; [attempt review](../evaluation/narrative_long_pair.md). User continues the already planned old/new comparison on frozen known search/display inputs. Shared cap 9 stays fixed; caller cap 1 is within remaining 1.17860996. Only the narrative instruction differs across inputs; four existing source criteria and the additional-fidelity review remain outside model input. New `a804af99...70b3c4b` consumed once; no retry/resume.
+- Counts 8555/8656 both return 200 before any generation. Complete pair reserves 0.7471375 including both 5120-output ceilings and count contingency. The first baseline generation returns HTTP 503 (`InternalServerError`), closing admission with `provider_request_failed`; adopted generation is unattempted. Three transmissions in about four seconds, **zero new answers**, zero SDK/whole-run retries or repairs. Comparison incomplete; no semantic scores, instruction efficacy, local-runtime defect or provider root cause beyond HTTP status is established. Earlier short-source tie and historical application fidelity concern remain.
+- Usage is unavailable. Retain the full failed-generation reserve 0.3629375 plus count contingency 0.02: accounted 0.3829375, not measured spend/invoice. Release the unsent adopted reserve 0.3642. Shared **8.20432754 / 9**, remaining **0.79567246**, pending 0; no budget increase. No retrospective response reconstruction or billing-zero assumption.
+- Byte-identical caller, **7/7** fresh controls, two identical mocked SDK runs, two untouched historical-response Compiler rehearsals and four same-source witnesses pass; these are not new model samples. Docs **4/4** pass. All 173 sources, 2488 predecessors, 149 sealed files, 24 stores/settings unchanged; prior budget 27/27, full 2029/2029 and audit 83 not rerun. Next continuation: one fresh fully reserved pair under 0.79567246, with unchanged model/output settings; the previous quote fits with 0.04853496 margin but does not admit another run. Reclassify if the same provider failure repeats. No further call this turn.
+
+## One-source narrative instruction comparison (2026-09-18)
+
+- Clean `9f9a26e5`; [result](../evaluation/narrative_clause_pair.md). User accepts one additional USD 1 and one frozen anonymous source with old/adopted instructions once each. Shared cap 8 → 9; caller cap 1 preserves prior 0.30722246 outside its allowance. New `7a6a20d2...162b0f51` consumed once, with 147 pre-dispatch files sealed. Same source/schema/settings; only the 418-byte instruction differs. Expected statements remain outside input.
+- Both counts precede either generation: 2644/2745 input tokens, matching usage. Full output ceilings plus inputs/count contingency reserve 0.5993625. All four requests return 200 in about 34 seconds, outputs 405/420 tokens including reasoning, no error/repair/retry. Usage estimate 0.1086125 plus 0.02 count contingency accounts 0.1286125; shared **7.82139004 / 9**, remaining **1.17860996**, pending 0, not invoice.
+- Both untouched sampled claims repeat “솔라는 장비를 정비하고 창고를 확장한다.” Strict schema/current compilation/V2 source/execution pass 2/2 with four exact subject/fact supports; frozen actual first prompts and schemas match. Assistant review finds both required action/object pairs preserved, no addition/omission/excess abstention: **tie, no observed improvement or regression**. One known short source copied verbatim does not establish paraphrase quality, general accuracy or repair of the prior paid fidelity concern. No runtime policy adjustment follows this tie.
+- Caller controls **7/7**, budget **27/27**, docs **4/4** pass without external attempts; two repeated mocked SDK successes and two authored Compiler rehearsals remain separate from the paid samples. All 173 sources, 2309 predecessor files, 147 sealed files, 24 stores/settings unchanged. Full 2029/2029 and audit 83 not rerun. Local receipt serialization and review-script syntax errors were corrected without further provider calls. Next: one fully funded pair on the already frozen longer search/display input, retaining cap/settings and no repair/retry; this consumed manifest permits no additional calls.
+
+## Narrative semantic-check budget feasibility (2026-09-18)
+
+- Base `2a915ce3`; [review](../evaluation/narrative_semantic_feasibility.md). Official Standard Astra pricing matches pinned 12.5/50 input-reserve/output rates; 0.01/count remains contingency, not observed tariff. Unchanged 5120 output bound reserves 0.256; one output/count pair floors at 0.266 before input. Full-reserved old/new pair 0.532 exceeds remaining 0.30722246 by 0.22477754 before inputs. Eight-control old/new floor is 4.256, excluding inputs/repairs. These are reservation scenarios, not predicted invoices; sequential low actual usage can cost less but cannot guarantee completion.
+- Eighteen current SDK requests are serialized and stopped before HTTP: eight frozen anonymous inputs plus known search/display, each old/adopted. Good/bad expected statements and labels stay outside model input. Schemas/settings/source values are identical across modes; prompt adds only 418 UTF-8 bytes. Adopted anonymous bodies 12666–12693 bytes, schemas 2643, known request 35840; byte lengths are not provider counts. A single response needs at most 3297 measured input tokens; pure current preflight accepts hypothetical 3297 and rejects 3298. No exact count or live result was produced.
+- Budget contracts **27/27**, docs **4/4**, no skips/external attempts; 173 source files, 2269 protected predecessors, 24 stores/settings unchanged. Prior full 2029/2029 and audit 83 were not rerun. Provider/count/embedding calls, added cost, new admissions and cap/bound/model changes 0. Shared 7.69277754/8, remaining 0.30722246, pending 0. Feasibility complete; retain inputs/labels until an explicit budget/scope change, without counting alone or beginning an incompletely reserved comparison. Historical qualifications remain.
+
+## Generic narrative clause instruction adoption (2026-09-18)
+
+- Base `891c9e80`; [implementation and verification](../evaluation/narrative_clause_policy.md). One policy instruction preserves every claim clause's action/object/qualifier relations while allowing paraphrase. Both existing templates add 418 UTF-8 bytes; schema, selection, execution, model settings and call count are unchanged. No domain terms or deterministic semantic rewrite.
+- Three baseline/adopted pairs exercise a saved raw narrative response plus narrative/general initial-and-repair calls. Only the instruction changes in actual prompts; schemas, source/input values, programs, validation, execution and retry counts match. Sixteen anonymous responses equal prior candidate receipts, with eight unsupported variants still structurally accepted. The 26 fixed-response adapter invocations are delivery/compatibility evidence, not model effectiveness or recall evidence.
+- Post-adoption focused **40/40**, full **2029/2029**, docs **4/4**, audit **83**, pycompile/diff pass. A CRLF patch-context application failure left source unchanged; the first 40/40 receipt is explicitly pre-adoption, separate from the successful direct insertion and post-adoption checks. Only policy changes among 173 sources; 172 sources, 2238 predecessor files, 24 stores, runtime owners/settings and consumed manifests are preserved.
+- Provider/count/embedding calls and added cost 0; shared **7.69277754 / 8**, remainder **0.30722246**, pending 0. Historical search/display qualification remains. Next: provider-free feasibility of a fresh semantic check with complete existing bounds and frozen controls; no silent limit/model change, paid admission or cap increase.
+
+## Narrative paraphrase-fidelity diagnosis (2026-09-18)
+
+- Base `15db6a39`; [review](../evaluation/narrative_paraphrase_diagnosis.md). The disputed explanation already exists in the raw Compiler response and remains unchanged in lowering, execution and public answer. Source/subject/fact selection is intact. Current input values and instruction prefix reproduce; saved JSON key sorting prevents byte-identical prompt text. Production strict-schema projection matches the paid schema. An initial harness compared raw Pydantic schema and exact JSON ordering; its failed comparison remains, separate from the corrected verified run.
+- Eight anonymous paired sources cover action/object attachment in two languages, swapped predicates, valid shared actions, conditional plans, negation, quantified scope and additional explanation. All **16** addressed variants validate/execute: eight faithful and eight semantically unsupported by assistant labels, deliberately demonstrating that source attachment is not entailment. Three invalid surface/hidden-source/number controls are rejected. These are authored semantic contrasts, not human gold or model-accuracy samples; valid paraphrases and multiple sentences remain allowed.
+- Current instructions cover subject/scope/numeric/causal authority but do not explicitly specify every summary clause's action/object correspondence. The internal claim description is not in the dynamic wire text field. This observed gap is not a proven cause. An **unadopted** generic policy diff adds one 418-byte instruction to existing general/narrative templates. In-memory baseline/candidate comparison uses two saved-response replays and 32 authored variants: **34** fixed-response adapter invocations, equal schemas/programs/results and only an instruction-prefix difference. No improvement or preserved-recall claim; unsupported language still passes structural validation.
+- Focused **34/34**, docs **4/4**, external attempts/provider/count/embedding calls and cost 0. All **173** sources, **2177** predecessor files, **24** stores and settings retain hashes; prior full **2029/2029** and audit **83** are unchanged-source evidence, not rerun. Production policy and paid qualification stay unchanged; shared **7.69277754 / 8**, remainder **0.30722246**, pending 0. Next: apply only the reviewed narrative instruction and verify current template delivery provider-free; no schema/validator/keyword rewrite, new paid admission or cap increase.
+
+## Current-source search/display application execution (2026-09-18)
+
+- Clean `370b3f0b`; [review](../evaluation/search_display_current_app.md). Fresh prepared `d8eb12ca...c5d5e68` consumed once under **0.61397895**, shared cap unchanged at 8. Normal app/lifespan/ASGI, routing, Planner, retrieval and Compiler run on a verified disposable store copy. No authored answers/plans/retrieval, historical-answer reads or criteria injection. All **26/26** HTTP requests return 200: 20 embeddings, three counts, Terra routing/planning 2 and Astra Compiler 1. Count/usage inputs **1251 / 15950 / 8559**, outputs **26 / 1766 / 2097**; exact count/generation bodies match. About 89 seconds, no API/schema/runtime/budget error, no repair or whole-query retry, store ready afterwards.
+- **2/2** runtime outputs and ledger `ok`; four claims preserve **13** exact subject/fact supports in the requested unchanged source. All **4/4 required contents** appear publicly. Full semantic acceptance is conservatively **withheld** because an additional sentence applies ‘widening’ to search products where the source separately says product improvement and category expansion. The first sentence is correct; the questionable paraphrase remains untouched in the saved answer. Source links prove location, not entailment; this is assistant review on known sources, not human gold or general accuracy.
+- Planner groups by comparison axes, with two required outputs/four required children; one shared-basis declaration and both member refs survive. The old paid plan grouped by business with optional owners, so this fresh result does not isolate that correction's effect. Original paid **0/4**, offline **4/4** and both live-unexecuted questions remain distinct. Usage estimate **0.27675649** plus **0.03** count contingency settles **0.30675649**; shared **7.69277754 / 8**, remainder **0.30722246**, pending 0. No invoice/tariff claim or further paid attempt.
+- Current docs **4/4** pass; prior caller **23/23**, budget **30/30**, full **2029/2029**, audit **83** are unchanged-source evidence, not rerun. All **173** source files, **2094** protected predecessors, **24** stores and settings retain hashes; raw wire/results and consumed admission are preserved. Only documentation changes; no runtime/model/output/ingest/store change. Next: provider-free diagnosis of the single paraphrase-fidelity concern using the exact prompt/response and anonymous controls; no keyword rejection, deterministic semantic rewrite, new paid admission or cap increase.
+
+## Current-source search/display admission preparation (2026-09-18)
+
+- Base `9698bd4a`; [review](../evaluation/search_display_current_admission.md). A fresh single-question manifest is bound to the final clean documentation commit and remains unconsumed. The old paid manifest stays consumed. Caller policy only lowers the allowance from **0.91655740** to **0.61397895**; models, output bounds, call limits, source question/criteria, runtime and settings remain fixed. Runner changes select a fresh output and derive the current source count instead of stale 172. No production code or tests change.
+- Caller/runner **23/23**, counted-budget contracts **30/30**, docs **4/4** pass, without skips or external connection attempts. Actual app/lifespan/ASGI and normal retrieval use a disposable store copy with authored responses, counts and embeddings: nine mock attempts, three count/generation pairs, HTTP 200 / incomplete for the deliberately missing output. SDK bodies **3720 / 64156 / 48405** bytes preserve all admitted count fields/schema. These are rehearsal inputs, not measured tokens or known future prompts. Two-question success stress controls use 500 authored input tokens under the smaller cap; 100000-token rejection and output limits remain unchanged.
+- Official pricing supports the existing conservative Astra **12.5/50**, Terra **2.5/12** input-envelope/output rates and embedding **0.13** per million, without cache discounts or historical repricing. Base input rates are separately 10/2; the envelope includes higher cache-write rates. Input cap 200K stays below the documented 272K long-context boundary. Count tariff/account access remain unverified; **0.01** per attempted count is contingency. Full-output three-call scenario **0.482608** leaves **0.13137095** before inputs/embeddings; adding one full Compiler repair/count reaches **0.748608**, over the remainder by **0.13462905**. Complete sequential live fit remains unknown, and no model/output/cap adjustment is made.
+- All **173** sources, **2050** protected predecessors, **24** store files and settings retain hashes; main/API/run owners are separately verified. Prior full **2029/2029** and audit **83** remain unchanged-source evidence, not rerun. Only docs are tracked; new packet stays ignored. Provider/count/embedding calls, paid retries, ingest and added cost **0**; shared **7.38602105 / 8**, pending 0. Paid result remains **0/4**, offline replay **4/4**, other two questions live-unexecuted. Next: consume the fresh admission once for the single current-source application question, review the same four criteria and settle accounting; stop on provider/budget/app errors without a whole-query retry, other question or cap increase.
+
+## Frozen results through the public API (2026-09-18)
+
+- Base `b7d9c874`; [review](../evaluation/frozen_api_boundary.md). Actual app factory/lifespan, ASGI `/api/query`, threadpool dispatch under the service lock, and `FinancialAgent.run()`/diagnostic wrapper package unchanged graph results through explicitly mocked services. No live graph nodes, routing, retrieval, Planner, Compiler or store client run. Twelve positive requests cover three frozen cases and independent default/review/debug/both modes; question/report scope reach the wrapper unchanged.
+- All public text, citations, full structured result and source/calculation trace are equal, including nested nulls and unit/year/narrative proof values. Review merges the final ledger; debug retains historical attempts but only new wrapper events, with no manufactured phase/model telemetry. Defaults omit both optional fields after debug on the same agent. Missing costs remain `ob_001` missing, public/aggregate `partial`, integrity `ok`; HTTP 200 is not completion. Six full default/both payloads and six other-mode body hashes retain evidence. The original saved-provider/authored distinction and paid 0/4 result stay unchanged.
+- Four controls return not-ready 503, blank-question 422, missing-agent 503, and graph-error 500. Only the graph-error control dispatches once; all responses contain error detail without an answer/ledger or private exception text. Focused **35/35** and docs **4/4** pass, no skips or external connection attempts. Prior full **2029/2029** and audit **83** remain unchanged-source evidence, not rerun.
+- Documentation only; all **173** source files, **2029** protected predecessor artifacts, **24** store files and settings retain hashes, with main/API/run owners separately hashed. No provider/count/embedding calls, admissions, paid retries, ingest or added cost. Shared **7.38602105 / 8**, remainder **0.61397895**, pending 0, including count contingency rather than invoice. Next: no-call admission preparation for one fresh current-source search/display application run under the same remainder and unchanged output limits; no consumed-manifest resume or paid dispatch scheduled.
+
+## Three frozen questions: current-runtime integration (2026-09-18)
+
+- Base `a57c5dfa`; [review](../evaluation/frozen_question_integration.md). Current production Planner normalization, Compiler, execution, final answer and ledger phases replay the three frozen questions. Two original provider output texts and six previously authored response objects pass eight strict-schema/actual-SDK roundtrips with mocked HTTP, no migration or repair. Routing and candidate intake are fixed inputs; no normal retrieval, `FinancialAgent.run()` orchestration or ASGI request is claimed.
+- Exact search/display replay retains the original normalized plan, four claims, citations, complete calculation outputs, one shared-basis declaration and two member refs: **4/4 offline**, runtime `ok`, ledger `ok`. Twelve exact supports match the original stored node. Actual Planner/routing metadata and responsibility/cache projections differ from the old Compiler-only harness; whole-public-object equality is not claimed. Original paid score stays **0/4**.
+- Authored research retains **21건** from count cell `3:1:5` and year cell `3:0:5`, organization exclusions and internal R&D functions: **2/2**, runtime `ok`. Authored missing-cost explanation retains **2/2 criteria**, requested costs missing and aggregate task `partial`. Both whole public answers and all six SDK request bodies/responses equal their predecessors. Eight narrative claims/23 exact support occurrences across cases; ledger integrity **3/3 ok**. Source-valid semantic misattribution remains a separate review failure, not a new runtime guard.
+- Focused **70/70**, docs **4/4**, no skips or external connection attempts. Prior full **2029/2029** and domain audit **83** are verified unchanged-source evidence, not rerun. Only documentation tracked; all **173** source files, **1993** protected predecessor artifacts, **24** store files and local settings retain hashes. No provider/count/embedding call, admission, paid retry, ingest or added cost. Shared **7.38602105 / 8**, remainder **0.61397895**, pending 0; count contingency is not invoice. Both authored questions remain live-unexecuted and complete-run budget fit unknown. Next: provider-free API response projection of these frozen results, without a paid dispatch or cap increase.
+
+## Missing-project-cost abstention and narrative period correction (2026-09-18)
+
+- Base `cde5d824`; [review](../evaluation/missing_project_costs_readiness.md). Five exact stored section nodes retain 13 source candidates/37 catalog entries; all 1872 committed metadata rows support Planner inventories. No individual project costs appear in the reviewed section; totals, ratios and annual project counts are not per-project amounts. No whole-report/XML-completeness absence claim.
+- Current Planner normalization filled authored blank narrative periods from the filing year, hiding the count row while retaining its header. The first two authored source-address attempts failed locally before Compiler SDK dispatch; a failure-receipt collision is also retained. A visible-only response abstained but met only one frozen criterion fully. Changing metric hints did not restore the row. Six anonymous characterizations and an explicit internal period override isolated the mechanism; the override was never a production Planner success.
+- One-owner correction preserves unspecified narrative parent/child periods, explicit parent/child period constraints and existing numeric defaults. Filing identity, report year, requested section and exact request stay fixed; no schema/prompt/ranking/quota/parser change. Corrected production SDK bodies/responses and public answer equal the pre-change internal diagnostic without an override. Bodies **49940 / 28585 / 65614** bytes, not measured token usage.
+- Current authored source review **2/2**: one supported explanation, requested source-defined cost collection missing, final **partial**, ledger `ok`, two claims/seven exact supports. No numeric outputs or allocation formula. Current all-missing and empty-intake controls remain incomplete, not valid abstention; invented amounts fail after one existing offline repair. Source-valid aggregate misattribution/global absence still pass structural checks and fail assistant semantic review. All aggregate ledger tasks remain partial.
+- **9** new anonymous contracts, focused **99/99**, full **2029/2029** (64.442s, no skips), audit **83**, docs **4/4** pass. One existing source changes; **172** other sources, **1827** protected predecessors, **24** store files and settings retain hashes. Packets stay ignored. Provider/count/embedding calls, new admissions, paid retries, ingest and added cost **0**. Shared **7.38602105 / 8**, remainder **0.61397895**, pending 0, includes prior count contingency rather than invoice. Paid search/display **0/4** and separate earlier exact replay **4/4** stay distinct; the other two questions remain live-unexecuted. Next: provider-free three-question integration regression on corrected source; no dispatch or cap increase.
+
+## Authored research mixed-question rehearsal (2026-09-17)
+
+- Base `ed3d9362`; [review](../evaluation/research_mixed_rehearsal.md). Read-only projection of 1872 committed metadata rows and five frozen section nodes reproduces 13 source candidates/37 catalog entries. Current Planner + two Compiler models pass strict schema and actual SDK serialization with mocked HTTP; authored results traverse final answer/ledger. Three successful request bodies/responses repeat identically. No routing sample or normal retrieval claim.
+- Complete authored answer **2/2**, ledger `ok`: 21건 retains its own year/count axis and original raw fields; two narrative claims/four exact support occurrences retain organization exclusions and business-unit functions. Wrong-year selection remains invalid after its single offline repair and preserves narrative; declared missing narrative preserves count. Both final statuses are partial, ledgers ok. Deliberately contradicted scope passes runtime source-address validation but fails assistant source review; no semantic guard or accuracy claim is added.
+- Exact HTTP bodies **68082 / 74586 / 39825** bytes. Existing byte-bound diagnostic reservations **0.271069 / 1.201125 / 0.7666125** use historical rates and 1024 overhead; neither Compiler independently fits the remainder under that conservative method. No server input counts. Full-output/count-contingency scenario with routing is **0.748608**, short by **0.13462905** before inputs/embeddings; two Compiler repairs would raise that scenario to **1.280608**. Sequential actual usage may be lower; complete counted live fit remains unknown. The consumed manifest is read only, never resumed.
+- Focused **70/70**, docs **4/4** pass. The preceding full **2020/2020** and audit **83** remain unchanged-source evidence and were not rerun. Harness setup failures (callback, mock method signature, envelope serialization) remain recorded; final verified receipts supersede incomplete/vacuous setup flags. No production fix was required.
+- Only docs tracked. All **173** source files, **1749** protected predecessors, **24** store files and local settings retain hashes. Provider/count/embedding calls, paid retries, admissions, ingest and cost **0**. Shared **7.38602105 / 8**, remainder **0.61397895**, pending 0, includes count contingency rather than invoice. Paid search/display **0/4** and exact offline replay **4/4** stay distinct; other two frozen questions remain live-unexecuted. Next bounded work: provider-free `missing_project_costs` evidence/abstention and final answer/ledger review; no paid dispatch or cap increase.
+
+## Same-column annual period contract (2026-09-17)
+
+- Base `a9637b99`; [review](../evaluation/same_column_period_contract.md). Existing structured row/column metadata supplies exact annual-axis evidence without parser/store mutation. Compiler selects an owner-exposed period option; code binds source/target cells, full column paths, document identity and owned requests. Raw candidate values/units/periods/IDs stay intact. Seven frozen numeric entries gain evidence, changing complete V2 catalog content; no hidden operand authority or quota increase.
+- **19** new anonymous controls, focused **164/164**, full **2020/2020** (56.172s, no skips), domain audit **83** and docs **4/4** pass. The first focused new-test run caught decimal `2049.5` being readable as year.month; scalar-axis readings now require a whole bare annual label. Its failed receipt remains. An explicit ambiguous-known-period guard passed renewed focused/full checks; final frozen-source artifacts match the initial observations. A catalog-identifier counterexample still passes physical validation, explicitly preserving the semantic boundary.
+- Twenty-four unchanged prior authored responses are now invalid; four previously ready clipped-2023 cases fail missing column linkage. Twenty-four new controls yield four correct-column executions (`3:1:5` -> `3:0:5`, 21건); the equal-valued 2022 cell, other-column refs, totals/ongoing context substitution and contradictory contexts fail. Organization cohort/prompt projections are unchanged. No sampled model response, normal retrieval, live question result or semantic-accuracy claim.
+- Nine original sources change, one module is added, and **163** other original source files, **1708** predecessor files, **24** store files and settings retain hashes. Provider/count/embedding calls, admission, paid retry, ingest and cost are **0**. Shared **7.38602105 / 8**, remainder **0.61397895**, pending 0, includes count contingency rather than invoice. Prior paid **0/4** and preceding offline **4/4** stay distinct; two other frozen questions remain unexecuted. Next is provider-free complete mixed-question answer/ledger and budget-fit rehearsal, without a scheduled paid call.
+
+## Source-grounded count-unit contract (2026-09-17)
+
+- Base `7d5c6ebe`; [contract review](../evaluation/source_count_unit_contract.md). Generic count labels live in declarative policy and offer finite readings only for located UNKNOWN-unit cells without explicit units. Compiler selects an option; lowering checks cell ownership, validation binds owned requests/full axes, and execution uses the selected dimension while retaining original scalar/unit provenance. No company/question/year branch or catalog/store mutation; quotas and UNKNOWN applicability remain.
+- **18** new anonymous controls, focused **128/128**, full **2001/2001** (56.717s, no skips), domain audit **83** and documentation **4/4** pass. One initial fixture used an unused company field to imply source exclusion; the corrected explicit-period fixture preserves runtime authority. Its failed receipt remains. The first frozen-source harness incorrectly expected unit resolution even after an invalid range context; final checks preserve that rejection and its secondary unit errors.
+- Production catalog reconstruction equals all 37 frozen entries and the organization projection is unchanged. Twenty-four authored selections show count-row exposure under the same quota and rendering with an explicit unit choice. Missing period and multi-year context still fail. The clipped 2023 quote lets both 2023/21 and 2022/21 render, so structural readiness does not establish semantic acceptance. Same-column year provenance is the next bounded provider-free seam.
+- Nine source files change; **163** other source files, **1683** predecessor files, **24** store files and local settings retain hashes. Provider/count/embedding calls, new admission, retries, ingest and cost are **0**. Shared **7.38602105 / 8**, remainder **0.61397895**, pending 0, includes count contingency rather than invoice. Paid search/display **0/4** and preceding offline replay **4/4** remain distinct; two other frozen questions remain unexecuted. No paid run or cap increase scheduled.
+
+## Research count/source-scope readiness (2026-09-17)
+
+- Clean `852da9ef`; [provider-free review](../evaluation/research_count_readiness.md) reads five exact stored section nodes and hydrates existing table payloads without a store client. Production extraction creates 13 source candidates / 37 catalog entries. Twelve numeric cells in the count table include five years and seven counts; source cells `3:0:5`/`3:1:5` establish 2023/21 in column 5, separately from 2022/21 in column 4, total 154 and ongoing 152. Distinct physical identities survive.
+- The count scalar is present but its dimension stays UNKNOWN, period blank and value year unresolved. With an authored numeric owner, blank display unit exposes the correct row but fails `empty_direct_rendering`; explicit `건` allows known-COUNT prose bundles to take the two slots. A table-only diagnostic restores exposure but still fails `direct_result_unit_mismatch` and rendering. Six such isolated selections and twelve full-section selections remain diagnostic, not model responses or accepted answers. No quota/unit guard was changed.
+- An attached full 2019–2023 quote fails single-year binding. Its exact short 2023 substring passes period context validation for both equal-valued count cells; numeric output remains invalid. This proves no same-column semantic attribution. The year row remains separately visible, not a bound count-cell axis. Both organization-scope meanings survive as addressable p1–p2 and p3 passages for an authored narrative owner.
+- **17/17** local characterization checks (seven anonymous), **37/37** existing focused contracts and documentation **4/4** pass; provider calls/external test connections 0. Initial chunk-prefix filtering incorrectly missed table-identity candidates; the complete catalog stayed intact and a separate analysis uses physical table provenance. An initial schema rejection was recorded as a diagnostic rather than stopping the matrix. Two initial test assumptions were corrected: anonymous cells now pass through production physical-row projection, and a quote spanning adjacent same-partition pieces is resolved through the production address contract. Earlier receipts remain unchanged.
+- All **1650** predecessors, **172** source files, settings and **24** original/selected store files retain hashes. No runtime edit, sampled plan, normal retrieval, new admission, ingest or added cost; preceding full **1983/1983** and audit **83** were not rerun. Shared accounting **7.38602105 / 8**, remaining **0.61397895**, pending 0, including prior count contingency rather than invoice. The question remains unexecuted. Next: source-grounded count-dimension contract with anonymous missing/conflicting-unit controls, preserving a separate same-column year gate; no paid rerun scheduled.
+
+## Optional-output authority and terminal failure preservation (2026-09-17)
+
+- Base `c3d9a751`; [provider-free correction](../evaluation/optional_output_contract.md) gives every declared optional child its own restricted cohort, aligns empty narrative selections with visibility, and includes invalid optional owners in the existing bounded repair. Planner descriptions clarify optionality without changing saved flags or forcing request-specific outputs.
+- Code-owned `failed_obligation_ids` survives final revalidation/pruning and is bound by the existing V2 fingerprint; details remain in attempt diagnostics. Empty programs cannot be `ready`/`ok`, invalid selected optional outputs remain material, and valid required answers can omit optional supplements. Three runtime owner files change; no domain branch or weakened authority check.
+- **15/15** anonymous optional controls, rendering/optional **22/22**, full **1983/1983** without skips, domain audit **83**, docs **4/4** pass; external test connections/provider calls **0**. Initial authored controls had two fixture errors (required display fields and stale narrative projection); they were corrected. One intermediate module selection had two loader-name errors alongside 149 passing tests; the correct wire controls passed 68/68. The first full suite failed one old assertion requiring final errors to disappear after rejected claims; the assertion now requires a persistent failure marker, and final full validation passes. Earlier receipts remain immutable.
+- The exact saved sampled response, original plan/catalog/optional flags, source readings and provenance replay unchanged. Cohorts grow 2 to 6; **2/2** public outputs, four verbatim claims, one shared declaration/two member refs and ledger `ok`, with no repair. Assistant review of the frozen same-source criteria is **4/4 offline**. No fresh model, Planner, retrieval, live application or unseen-source claim; the original paid empty-answer failure stays **0/4**.
+- All **1616** predecessor files, settings and **24** original/selected store files retain hashes; **169/172** sources unchanged. No paid retry, new admission, ingest or added cost. Shared accounting stays **7.38602105 / 8**, remaining **0.61397895**, pending 0, including prior count contingency rather than invoice. Next: provider-free readiness of frozen research count/source scope, especially UNKNOWN units and same-column year linkage; no new live question is scheduled.
+
+## Search/display live application failure (2026-09-17)
+
+- Base `73a5b68c`; [first frozen-question experiment](../evaluation/search_display_app_probe.md) consumes fresh single-use manifest `f896a23e...82ac8a` under the unchanged USD 8 shared cap, with run allowance **0.91655740**. Normal application planning/retrieval/Compiler runs on a verified disposable store copy; no source criteria, authored plan or candidate override enters the runtime.
+- All **25** API attempts return 200: **19** embeddings, **3** counts, Terra **2** and Astra **1** generations. All three input counts match generation usage. Offline caller/transport/store controls pass **23/23** before dispatch; the real all-optional plan is outside those authored success fixtures.
+- The needed source `20240318000844:21:0` and all four frozen passages are visible. The model drafts four source-compatible search/display claims, one shared-basis declaration and two member refs. Both outputs/four child requirements were marked optional by Planner; child cohorts are absent while narrative schema keys remain. Lowering rejects both outputs with `candidate_not_authorized_for_output_input`. Empty required-missing IDs cause no repair; final revalidation/pruning erases failed outputs/errors and yields empty `ready`/`ok`. Ledger reports missing result payload and final answer; runner stops on its integrity assertion. Public answer criteria **0/4**, no successful abstention or end-to-end shared-basis validation.
+- The exact sampled candidate payload, lowered response and both errors reproduce with external sockets blocked, zero provider calls and no source edits. Actual API output stays empty; no reconstructed answer or paid retry. The initial local review script indexed the criteria list as a map; its local reader was corrected, then all replay/source assertions passed. Frozen questions, source and live artifacts remain unchanged.
+- Accounted **0.30257845** = usage estimate **0.27257845** + **0.03** count contingency. Shared total **7.38602105 / 8**, remaining **0.61397895**, pending 0; no budget block, not invoice, count tariff still unknown. All **1514** predecessors, **172** source files, settings and **24** store files retain hashes. Docs **2/2** pass; prior full **1968/1968** and audit **83** were not rerun.
+- Next is provider-free optional output/requirement contract correction with frozen-response and anonymous controls, preserving owner restrictions and error/completion honesty. No further live question, paid rerun or cap increase is scheduled; the two remaining questions stay frozen.
+
+## New question controls and read-only budget readiness (2026-09-17)
+
+- Base `ef7772ae`; [frozen questions and criteria](../evaluation/new_question_controls.md) define search/display comparison, 2023 research completion count plus organization-scope qualification, and source-limited abstention on individual project costs. Three API-only request envelopes are separated from eight assistant-authored review criteria and six source nodes; no plan, candidate or expected answer is injected into runtime inputs.
+- Scanned **766** benchmark/test JSON files, including ignored results, containing **974** unique literal question/query values. No exact or normalized duplicate of the three new questions; prior platform-revenue/R&D-cost topics and the same source document remain acknowledged. No unseen-document, random-holdout, human-gold or global semantic-novelty claim.
+- Exact quote spans and the 2023/21 same-column source cells are frozen. The 2022 count is also 21, so value equality is insufficient. Stored count cells have UNKNOWN normalized units and the year is in another physical row; runtime candidate exposure is not established. Initial preparation expected four section nodes; the complete boundary check found a fifth footnote node, which was inspected and included before freezing criteria. No source bytes or questions were changed to bypass this check.
+- Current official pricing matches pinned Standard cache-write input/output reserve rates; count-specific pricing remains unestablished and USD 0.01/count stays contingency. Remaining cap **0.91655740**. Two Terra plus one/two/three Astra full-output/count reserves are **0.482608 / 0.748608 / 1.014608**, excluding inputs/embeddings. Three questions at two Terra/one Astra each reserve **1.447824** before inputs; this is not expected cost or proof of failure because actual settlement may release output reserve.
+- **Three** request-schema round trips and **eleven** Decimal/read-only ProviderBudget threshold checks pass, including exact-cap/one-token-over controls with unchanged snapshots. Docs **2/2** pass. No provider/count/generation/embedding request, store client or new execution admission. All **1494** predecessors, **172** sources, settings and **24** original/selected store files retain hashes; previous full **1968/1968** and audit **83** were not rerun. Shared accounting remains **7.08344260 / 8**, pending 0, not invoice.
+- Preparation is complete. Next: one normal-app `search_display_comparison` run with a fresh bounded single-query admission, the existing full outputs/count guard/internal repair, no whole-query retry, and no cap increase. Review semantic criteria and actual relationship coverage separately; reassess funds after settlement before another frozen question. No fresh-run token estimate, provider-schema acceptance or retry-reduction result is claimed.
+
+## Shared-basis declarations and member references (2026-09-17)
+
+- Base `47cf17ea`; [implementation and controls](../evaluation/shared_basis_declarations.md) replace exact local-basis text equality with one declaration per request-grounded relationship and explicit member references. Numeric/narrative local proofs remain separate; source scope, ownership, period, physical rows and V2 program/validation binding remain enforced. Overlapping declarations stay independent, and partial retry freezes declarations used by accepted outputs without extra model calls.
+- **16** new authored schema/lowering/retry/execution controls; focused **180/180**, replay/debug **43/43**, review/admission **7/7**, final relationship **33/33**, full **1968/1968** without skips, domain audit **83** and docs **2/2** pass with provider/count calls and external test connections **0**. The successful final full process emitted an ignored Windows `ProactorEventLoop.__del__` cleanup warning after its result; no test failed.
+- Initial fixture checks exposed unmodeled envelope input, an incorrect expected execution status, empty default proof maps in a historical authored fixture, and a missing derived-source requirement ID; test authorship was corrected without changing frozen fixtures. First full suite had six failures and fourteen errors: the offline rehearsal projection discarded explicit proof maps, and targeted retry omitted empty map keys. After fixing those paths, two failures and one error remained because a single-output authored case retained proofs for its removed relationship. Clearing those explicitly removed fixture proofs passed all 1968 tests. Final review then reproduced missing numeric source interpretation for a relationship declared only by another member; using all grounded members closed that boundary. The strengthened focused controls and final full suite pass. Earlier receipts remain immutable.
+- Four saved source payloads and active-obligation projections remain exact, with original model/program hashes verified. Three historical related replies lack the new explicit proofs and fail closed under the current schema/validator; the independent certification reply stays ready. No historical output is migrated or retroactively repaired; authored fixture projection never becomes sampled model evidence.
+- All **1451** predecessor files, settings and **24** store files retain their hashes. Nine of **172** source files change, with **163** unchanged. No real store client, fresh ingest, paid retry, new execution admission or additional cost. Shared accounting stays **7.08344260 / 8**, remaining **0.91655740**, pending 0, including count contingency rather than verified tariff/invoice.
+- Provider-free representation work is complete. Live provider schema acceptance, reduced model retries, latency, token savings and unseen semantic quality remain unmeasured. Next bounded work: freeze a small unseen, source-backed control set and assess current-schema/budget feasibility for later evaluation; no further paid execution is scheduled.
+
+## Shared-basis declaration characterization (2026-09-17)
+
+- Base `bc5116f0`; [provider-free characterization](../evaluation/shared_basis_characterization.md) replays four exact saved Compiler responses from their own preserved plans, catalogs and prompts. Complete payload/active-obligation projection, original program hashes and lowering match; validation remains invalid/ready/ready/ready. Two authored one-field/relationship diagnostic copies isolate declaration equality without rewriting any sampled response or constructing the interrupted run's final answer.
+- Twelve anonymous controls extend the relationship suite to 17. Initial **15 pass / 2 fail** identifies a separate omission: accepted narrative sources never reached the shared-basis known consolidation-scope check. One runtime assignment repairs narrative/narrative and numeric/narrative conflicts while retaining unknown scopes, independent outputs, original evidence and same-cohort repair.
+- **17/17** relationship, **147/147** focused contracts, domain audit **83**, documentation **2/2**, and four unchanged exact replays pass after the correction. No full-suite rerun; prior 1940 is historical evidence. No external test connections, provider calls, store client access or new cost. All **1432** predecessors, local settings and **24** original/selected store files remain unchanged; one of 172 source files changes.
+- Shared accounting remains **7.08344260 / 8**, remainder **0.91655740**, pending 0, not invoice. Current free-text equality and potential model repair remain; the next bounded design declares a relationship basis once with explicit member references and preserved local source proofs. No paid successor is scheduled and no semantic-equivalence, retry-reduction or unseen-accuracy claim is made.
+
+## Counted narrative budget successor (2026-09-17)
+
+- Base `6ea17d40`; user requested a modest budget increase. Shared cap **7 → 8**, one fresh-run allowance **1.38441766**, manifest `bfe437b6...e846810b` consumed once. [Result](../evaluation/counted_narrative_budget_successor.md).
+- **26 HTTP 200**: 18 embeddings, four counts, Terra 2/Astra 2 generations. Inputs **1229/16276/11667/11296** match counts and usage exactly. Both Compiler islands pass first response; no repair, SDK/whole-query retry, Google, fallback or ingest. Full output bounds 8192/5120 remain unchanged.
+- **HTTP 200 / structured ok / 3 required outputs / ledger ok**. After-run assistant review against unchanged frozen source criteria passes three required checks plus optional Chuncheon PUE attribution. Sejong LEED Platinum is pending as reported; original source graph and fact/subject spans match. No generated response is rewritten.
+- Generation/embedding estimate **0.42786026** plus **0.04** count contingency = **0.46786026**. Shared **7.08344260 / 8**, remaining **0.91655740**, pending 0, not invoice. Count tariff unknown.
+- **23** offline controls and docs **2/2** pass. **1327** protected predecessors, **172** sources, .env and original/selected stores stay unchanged. Copied caller changes only budget; runner only output path. Prior full1940/audit83 retained, not rerun. Old consumed packets and earlier numeric results remain unchanged.
+- This closes one known-source narrative sample, not a fresh three-question batch or broader reliability claim. Fresh plans/responses differ; the preceding shared-basis mismatch is not fixed by this cap change. Next is provider-free consistency characterization. Repetitive Sejong wording is a presentation limitation.
+
+## Counted narrative application experiment (2026-09-17)
+
+- Base `c7aefc4f`; user explicitly requested an experiment. Fresh manifest `41749c34...1c6d61f` was consumed once. [Terminal experiment report](../evaluation/counted_narrative_experiment.md). No source/default/output-bound/cap change.
+- **24/24 HTTP 200**: 15 embeddings, five counts, Terra 2/Astra 2 generations. Counted/generated inputs **1229/16276/13171/14623** match exactly; last count **11664** has no generation. No Google, SDK/whole-query retry, fallback or ingest. Count access for both models is observed; tariff remains unknown.
+- One two-output island initially fails shared-basis declaration equality, then passes its permitted repair. Two raw responses match saved parsed programs; model/lowered hashes verify. Second island certification is pending. Its USD **0.4018** reservation exceeds **0.38441766** remaining by **0.01738234**; local budget denial, HTTP 500, no final answer/ledger, no reconstructed or resumed result.
+- Experiment estimate **0.52114657** plus **0.05** count contingency = **0.57114657**. Shared **6.61558234 / 7**, remaining **0.38441766**, pending 0; not invoice. Full output reserves remain 5120/8192.
+- Provider-free controls **20+3** pass, including actual app/store-copy rehearsal. Initial receipt-label and authored request-unit fixture errors were corrected before admission; failed local receipts are preserved. **1224** predecessors, **172** sources, .env and original/selected stores stay byte-identical. Prior full1940/audit83 retained, not rerun.
+- Next is provider-free shared-basis/Planner relationship characterization against saved traces. No semantic equivalence claim from string equality, no complete narrative success, causal model comparison or claim that another two cents guarantees a new full run.
+
+## Read-only counted narrative readiness (2026-09-17)
+
+- Base `82f1d698`; [readiness review](../evaluation/counted_narrative_readiness.md) and local immutable specification freeze the exact narrative request and existing policy without source, store, profile, cap or dispatcher changes. Seven official pages were fetched. Generation cache-write/full-output rates still match policy; public count-specific tariff/free status and exact permission are not established.
+- RBAC separates model listing and requesting; effective project key permissions also need applicable user role permissions. Only effective key presence was inspected locally, without recording credentials or querying the account. Prior generation success is historical evidence, not current count/access proof.
+- Three historical cold prefixes plus proposed USD 0.01/count and full Astra output reserve yield conditional measured-input maxima **48,650 / 33,082 / 16,738** for historical requests 45/46/47. Prior actual generation inputs **12,776 / 12,772** produce conditional reserves **0.50713277 / 0.70168277**, not fresh counts. The third and later input/output demand remains unknown.
+- Two Terra and three Astra requests at full output, plus five proposed count allowances, need **1.014608 before inputs/embeddings**, above the remainder by **0.05904377**. This is an illustrated maximum-output scenario, not actual cost or proof that every run fails. Dynamic settlement releases unused output reserves; call ceilings alone do not guarantee full completion.
+- **Nine** Decimal/Fraction/real-ProviderBudget preflight boundary checks pass without snapshot mutation or callbacks. Docs **2/2**, pycompile and diff checks pass. All **1209** predecessors and **172** sources, .env and store bytes stay intact. The earlier full 1940-test and audit-83 evidence is retained, not rerun. Provider/count/authenticated API calls and local attempted connections **0**.
+- Shared estimate stays **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice. The read-only review is complete; live dispatch remains unavailable until count-specific terms/access evidence and a separately bounded execution decision exist. No repeated-public-search/mock-preparation loop, paid resume, reconstructed response or new semantic-quality claim.
+
+## Counted application caller preparation (2026-09-17)
+
+- Base `a201af08`; [local preparation](../../benchmarks/results/counted_application_caller_2026-09-17/RESULTS.md) connects the existing counted guard, shared embedding admission and finally-persisted diagnostics. No source/default setting/CLI/paid dispatcher change. Only an explicit mock HTTP transport is accepted; prior consumed packet code is not imported. The narrative request envelope is copied separately as a non-executable proposal without reference answers.
+- Frozen exact question/scope/debug/review sequence, agent identity and actual graph phases authorize the model/schema pair before counting. Changed request/phase/policy, missing phase, repeated/out-of-order question, existing output path, unscoped embeddings and alternate transport are rejected. Bootstrap uses the fixed canonical batch; query embeddings require routing/retrieval. Diagnostics remain observations, not authority.
+- Cap **0.95556423**, generation/count limits **12/12**, embeddings **48**, per-count allowance **0.01**, bytes/tokens **300000/200000**, full Astra/Terra outputs **5120/8192**. Allowance is explicit contingency, not endpoint pricing. Authored count and usage inputs never become measured tokens or live feasibility.
+- **20/20** new local caller contracts, **66/66** focused runtime contracts and **24/24** import/topology/docs pass; one additional CLI-entry check passes. Six captured and six capture-disabled SDK/ASGI scenarios cover success and five later stops. Success: two anonymous questions, ten count/generation pairs, three shared embeddings, identical full answers/results/ledger/bodies/receipts. Stops: two earlier ready Compiler programs, third pending island, original HTTP 500 and skipped second question retained; no invented result, fallback or retry.
+- First run: six ASGI errors from an authored readiness fixture missing the required collection_name. Correcting the fixture passed 16 contracts; explicit bootstrap/query embedding boundaries and fresh-output/missing-phase controls expanded coverage to 20. No runtime contract was weakened. The initial imported test-class alias also caused seven unrelated tests to be discovered; subsequent receipts include only the named caller class. Earlier receipts stay immutable.
+- All **1145** predecessor files, all **172** source files, local settings and original/working stores preserve their bytes. No real store opened; readiness/planning/retrieval/catalogs/HTTP are fixtures. Existing exact-runtime full **1940/1940** and audit **83** are retained, not rerun. Provider/count calls, external test connections and new execution admissions **0**. Shared estimate **6.04443577 / 7**, remaining **0.95556423**, pending 0, not invoice; interrupted paid narrative and missing historical responses remain unchanged.
+- Next: verify the count endpoint billing/access requirements from current official evidence and prepare a read-only narrative-only readiness specification. The USD 0.01 count allowance is an explicit experimental contingency, not a verified tariff or free-count assumption. Account/model acceptance and a complete-run budget remain unknown; no live dispatcher, new paid admission, cap increase or consumed-packet resume is available from this preparation.
+
+## OpenAI input-token-count admission extension (2026-09-17)
+
+- Base `3ded2b35`; [local extension](../../benchmarks/results/openai_input_count_admission_2026-09-17/RESULTS.md) adds an explicit ops-only counted Responses context, with fixed final SDK input/schema, caller-owned phase authorization, independent count/generation limits and allowance under the unchanged shared cap. Full output bounds stay intact; no default activation, byte-bound fallback, retry, source/model/prompt change or historical admission reuse.
+- Installed OpenAI 2.29.0/httpx 0.28.1/langchain-openai 1.1.11 serialize both count and generation. Count JSON is checked against the frozen complete input projection; one prepared generation request is sent afterwards. Strict text/stateless scope excludes tools/media/external state. Existing cached raw-response wrappers share the lower SDK request boundary. Count/generation pairs serialize on the shared budget; identities, redirects and credential-safe stops are covered.
+- New **19/19**, focused **99/99**, full **1,940/1,940** without skips, domain audit **83** pass; actual provider/count calls and external test connections **0**. Anonymous Compiler feedback keeps invalid→ready status, exact generation bodies, V2 proof/program and execution. Exact below/equal/above reservation tests retain the 5120 output bound and count allowance; Terra keeps 8192. Four stored descriptor pairs/eight success-denial receipts and three Google count controls match baseline canonical bytes.
+- Initial 17 tests and existing 46 contracts passed. The added paired Compiler check exposed a real cached raw-wrapper entry issue; moving only the new guard to SyncAPIClient.request resolved it. The next failed assertion came from the fixture omitting include_debug_bundle; explicitly enabling existing diagnostic collection resolved that test-only issue. All earlier receipts remain immutable. The earlier 46-test process also emitted an ignored Windows ProactorEventLoop cleanup warning after successful completion; it was not a test/provider failure.
+- All **1118** predecessor files, **169** unchanged source files, settings and original/working store bytes remain preserved. Two ops source files change and one is added, total **172**. Shared estimate **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice. Test count/usage values are authored, not a measured tokenizer, live account acceptance, model quality or fresh-run budget. No new execution manifest or paid call.
+- Next bounded seam: a non-executable application-caller successor using counted admission and finally-persisted diagnostics, paired SDK/ASGI success/interruption controls and frozen question/phase/count/cost authority without live calls. Count pricing/account-model access and complete-run feasibility remain unverified. Old interrupted results stay interrupted; no cap increase, consumed-packet resume or assumed free counting.
+
+## Lossless narrative piece presentation (2026-09-17)
+
+- Base `0b5aa608`; [provider-free audit and correction](../../benchmarks/results/narrative_request_composition_2026-09-17/RESULTS.md) changes only the presentation owner and Compiler integration. Wire v10 declares piece columns once; exact source text, references, partitions, order, context attachments and permissions remain intact. Internal objects, numeric-only wire v9, response V2, source proofs, validation and execution stay unchanged; unknown piece fields are rejected, not discarded.
+- Four complete saved SDK requests are first verified against their original hashes and lengths. All four round-trip exactly after decoding rows; schemas and original response bytes remain identical. Three narrative bodies shrink **4,263 / 4,263 / 4,911 bytes**, **7.0051% / 6.3639% / 5.1034%**; numeric-only body is byte-identical. Historical response schema checks pass 4/4 without regrading their recorded invalid/ready states. The interrupted datacenter bodies remain lost.
+- Seven new tests and four paired real-SDK/mock-HTTP initial/retry/numeric/mixed controls retain programs, V2 proofs, schemas, retry counts and execution. Final focused **70/70**, full **1,921/1,921**, no skips (57.882s), domain audit **83** pass with actual provider calls/external connections **0**. The successful full test process emitted an ignored Windows `ProactorEventLoop.__del__` cleanup warning after its result; no test failed.
+- Early local preparation omitted the SDK's `stream:false`; restoring that stored setting yields all four exact full-request hashes/lengths. Two initial SDK fixture checks lacked required nullable/default response fields; constructing complete authored fixture responses with the existing Pydantic model fixed the fixtures. The initial 7-test/2-failure receipt is retained alongside the final 7/7 receipt. No provider response was rewritten and no runtime test contract was weakened.
+- All **1094** predecessor files, **169** unmodified source files, local settings and both store trees retain their bytes. Two source files change, total source count **171**. No new admission, provider/count call, cap increase, output-bound reduction or reservation weakening; shared estimate **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice. Body size is not a token, billing, semantic-quality or fresh-run-feasibility measurement.
+- Next bounded seam: provider-free design and mocked-SDK validation of opt-in OpenAI input-token-count admission, binding exact generation inputs/schema and keeping full output/shared-cap checks plus separate count limits/cost allowance. The official [counting guide](https://developers.openai.com/api/docs/guides/token-counting) and installed SDK expose the endpoint; pricing/model-account availability and complete-run feasibility remain unverified. Existing byte-bound paths stay unchanged; no live count/generation, retry/fallback or consumed-packet resume.
+
+## Narrative-only budget feasibility (2026-09-17)
+
+- Clean `bbd30fbb`; [provider-free sizing](../../benchmarks/results/narrative_budget_feasibility_2026-09-17/RESULTS.md) reads immutable request metadata/usage and the unchanged admission policy. Official Standard rates were searched/fetched and match the pinned conservative cache-write estimates. No application, SDK, store client or consumed packet was executed.
+- All **46** prior request costs reconcile. With a cold bootstrap and the same observed narrative sequence/usage, the first Compiler request requires **USD 0.97860777**, exceeding the remaining **0.95556423** by **0.02304354**. A hypothetical path to the last blocked request needs **1.45023277**, short **0.49466854**; it does not establish a complete-run budget or authorize a higher shared cap. Its response and future calls remain unknown.
+- Four isolated `ProviderBudget` controls replay sizing metadata and observed usage callbacks: old sequence, cold narrative-only, warm narrative-only and blocked request alone. Each stops before the expected callback; no missing response is manufactured. Six preflight checks cover below/equal/above the two thresholds without mutating budget snapshots. All sockets/DNS blocked, attempted connections/provider calls **0**; docs **2/2** pass.
+- Warm-start sensitivity still needs **0.97839483** for the first Compiler request. At unchanged prefix/rates/output, its body would need at least **1,844** fewer canonical JSON bytes, with no demonstrated lossless savings or later-call admission. Missing historical bodies/parsed replies/island identities are not reconstructed from hashes or sizes.
+- All **1081** protected predecessor files, **171** source files, local settings and original/working store bytes remain unchanged. Shared estimate **6.04443577 / 7**, remainder **0.95556423**, pending 0, not invoice. No new admission, cap/output/reservation change or historical resume. Next bounded work is generic narrative request-composition inspection with complete saved or explicitly authored diagnostics and preserved evidence/validation contracts; paid retesting remains infeasible for the observed shape.
+
+## Caller-owned diagnostic persistence correction (2026-09-17)
+
+- Base `bba00dcb`; [provider-free correction](../../benchmarks/results/application_diagnostics_capture_2026-09-17/RESULTS.md) adds only the ops persistence helper and its tests/import boundary, plus a new local caller template. Existing capture delivery is reused; agent graph, compiler/prompt/schema, source stores, API result shape and all 170 prior source files remain unchanged. Frozen old callers/results are preserved.
+- `persist_request_diagnostics(path)` saves the delivered snapshot list in finally on success or exception, without enabling debug collection. No snapshot means no file. Exclusive file creation prevents overwrite; persistence failures are logged by class only and do not replace the result or original stop. It is not crash recovery or an atomic-filesystem guarantee.
+- Six new contracts and final focused **18/18**, import/topology **22/22**, docs **2/2** pass. Five mocked SDK/ASGI wrapper controls use three authored narrative islands: success with/without capture, a later budget stop with/without capture, and a later HTTP 503. Two preceding parsed programs/validations and a pending third request retain exact hashes and separate island/attempt identities. Original error/HTTP behavior and no-retry controls remain intact; success answers/full projections/request bodies/call counts are identical. Drafts do not become interrupted answers or ledgers.
+- Early local fixture runs are retained: the initial handler treated an encoded reference as an owner ID; a second serialization check exposed reused owner/source IDs. Separate authored source IDs and strict-schema prechecks resolved the test fixture before the final five comparisons. No runtime fix or provider retry was used. The initial 27-test receipt double-discovered an imported TestCase; the corrected final suite contains 18 distinct tests, not 27 new checks.
+- All **1047** protected predecessor files and source/store bytes verified. Actual provider calls, new admissions and paid cost **0**; shared estimate **6.04443577 / 7**, remainder **0.95556423**, not invoice. The original real narrative remains budget-interrupted with unavailable intermediate replies; mock success cannot recover or grade it. The template omits live finalization/CLI and requires a separately frozen feasible admission for any future use.
+- Next bounded seam: provider-free sizing/feasibility of a fresh narrative-only packet. The previous last-request reserve 1.0099 exceeds the current remainder even before new planning/embedding. No automatic paid rerun, cap increase or reservation weakening; repeated scope wording remains separate.
+
+## Independent-question application pass and budget stop (2026-09-17)
+
+- Clean `107a00de`, unchanged runtime `83dfc4c9`; [one normal-app pass](../../benchmarks/results/independent_question_app_2026-09-17/RESULTS.md) of the three byte-identical frozen requests. Only ordinary request fields entered the app; reference answers and IDs remained review-only. New manifest **0ec3c9dcfb9712869c029ec37afbb3c24077b7ca84fe76ef78a233f17b6c92db** is consumed.
+- **2/3 questions complete and fully accepted**: standalone 2022 dividends received **468,978,562,474원** and standalone 2022→2023 operating-revenue growth **1.76%**, HTTP 200 and ledgers ok. Both select the correct full original cells, years and scope. Growth has correct reference denominator/direction and request-owned final rounding; each numeric question uses one parsed/ready Compiler response without feedback repair. No numeric parsing/validation/execution error.
+- The narrative reaches two completed Astra requests, then a further dispatch is blocked by **budget_reservation_exceeded** before transmission; API HTTP 500, no final answer. All **46** transmitted requests complete (Terra 6/Astra 4/embeddings 36), upstream provider errors 0. The required reserve **USD 1.0099** exceeds the remainder **0.95556423** by **0.05433577**. Usage estimate **0.93785431**, shared **6.04443577 / 7**, peak admitted with reservations **6.76731077**, pending 0; not invoice. No SDK/whole-query retry, cap increase or reservation weakening.
+- Interrupted narrative parsed outputs, island/repair identities and source/semantic completeness are unavailable: the caller saves agent/debug artifacts only on successful return and did not use existing capture_request_diagnostics() exception delivery. Its usage/transport hashes do not reconstruct those missing observations. No completed 3/3 evaluation or narrative-accuracy claim; known-source assistant review is not human gold or blind holdout.
+- Two identical provider-free SDK rehearsals, cap/no-retry/terminal controls and mocked full-wrapper paths passed. All **997** protected predecessors/22 frozen admission files and original bytes verified. Original/working logical tables remain 1,872/59,477 rows. Startup ready; ordinary final readiness skipped on stop, with read-only post-run integrity checks passing. No runtime/config/ingest change; prior 241 runtime checks retained and docs-only handoff checks separate. Earlier result bundles remain unchanged.
+- Next bounded seam: caller-only capture/persistence in finally plus a mocked later-call admission failure that retains earlier parsed observations and original stop identity. Preserve this consumed admission and historical trace gap. No paid rerun, cap increase, reservation weakening or semantic runtime change; narrative evaluation remains pending.
+
+## Independent-question source-review preparation (2026-09-17)
+
+- Clean `d2f62aca`, unchanged runtime `83dfc4c9`; [three-question review packet](../evaluation/independent_question_review.md) freezes direct standalone 2022 dividends received, standalone 2022→2023 operating-revenue growth and separate Chuncheon/Sejong environmental methods/certification status. Reference results are **468,978,562,474원 / 1.76%**; Sejong LEED Platinum is pending, Chuncheon PUE 1.1x is optional context. These are prepared references, not model answers.
+- Source selection is reviewer-only. Numeric rows preserve physical cell IDs, column years, unit and attached contexts; four narrative quotes have exact candidate/chunk spans. Three required narrative themes and one optional metric criterion separate attribution/completeness from mere source linkage. Ordinary API requests contain only questions, report scope and review/debug flags; no expected values, source IDs, frozen plans or reference candidates enter execution.
+- Provider-free validation confirms three numeric references, independent Fraction/Decimal arithmetic, request schemas and five working-store primary/contrast source memberships. Eleven altered pack copies are rejected without mutating originals. Original/working logical tables remain identical at 1,872/59,477 rows. All **969** predecessor files and **170** runtime files remain unchanged; no store clients, ingest, app query, provider call or attempted external connection. Current-runtime 241 checks reused, not rerun; preparation has separate reference/docs validation.
+- `review_set_manifest.json` SHA **89fe64e162f1919c19be88877124a1c02836b701cee061d528fc31d6ec621fd2** freezes 12 files and is not an execution admission. Twenty protected admission files contain ten unique prior questions, with no exact duplicates of these three; this is not an exhaustive dataset/training audit. Known-source assistant review is not a blind holdout or human gold, and normal retrieval/Compiler visibility remain untested for the new questions.
+- Shared estimate stays **USD 5.10658146 / 7**, remaining **1.89341854**, not invoice. Next: fresh immutable admission plus one normal-app pass of the frozen three requests, unchanged source/model settings and existing reservation/terminal-stop rules. Keep review inputs separate; no consumed-manifest reuse, automatic rerun or fresh ingest. Every earlier paid result and source artifact retains its original state.
+
+## Direct compatibility-witness provider-free clarification (2026-09-17)
+
+- Base `406dedd8`, runtime `e89fdd99`; [exact characterization and replay](../../benchmarks/results/direct_compatibility_guidance_2026-09-17/RESULTS.md) reconstructs both latest saved catalogs/cohorts, all three raw wire lowerings and the original cash error. First and repaired cash selections/interpretation/attached contexts/visibility are identical; the first response's separate same-topic liquidity witness violates existing direct context validation. No provider error or missing correct source is diagnosed.
+- Change only numeric Compiler instructions and direct compatibility_refs description: use [] when selected-source scope is already supported; choose exposed narrative refs for needed support, with at least one same-source-context witness. Same filing/topic/value elsewhere alone and attached context_ref IDs are insufficient. Validation still retains any-same-context behavior, per-witness scope/owner/source checks and valid derived cross-context compatibility. No silent clearing, schema constraint or candidate/ingest/model change.
+- Six new anonymous/authored SDK contracts. Five boundary controls passed before source edits; final focused **217/217**, import/topology **22/22**, docs **2/2**, audit83 pass. One new test initially checked a calculated-output-only key on a direct output; corrected to its answer slot. A regression command named two nonexistent modules; corrected module discovery and all actual suites pass. These are local harness mistakes, not provider/runtime failures; first receipts are retained. No external test connections or provider calls.
+- Before/after replay is identical for catalogs, cohorts, payloads, visibility, all wire lowerings/validations, programs and output signatures. First cash draft remains invalid; actual repaired cash **3,576,456,533,329원** and margin **15.40%** retain exact answers and ledger integrity. All **936** protected files preserved. Direct schema 3,188→3,639 bytes, derived 9,670 unchanged, numeric template 13,240→13,824; no constraint changes after description removal. Bytes are not tokens/cost or model-quality evidence.
+- No new paid packet or retry-reduction claim; prior numeric 2/2 with one actual repair remains unchanged. Full1,898 predates the two text-only instruction changes and was not rerun. Shared estimate **USD5.10658146/7**, remaining **1.89341854** unchanged, not invoice. Next: provider-free preparation of a small independent-question review set with frozen source/request/arithmetic/display criteria; later model work requires a fresh immutable admission, without consumed-manifest reuse or fresh ingest.
+
+## Fresh numeric application verification after Planner clarification (2026-09-17)
+
+- Clean `930325f0`, runtime `e89fdd99`; [fresh same-two-question app verification](../../benchmarks/results/planner_numeric_app_2026-09-17/RESULTS.md) returns **2/2 HTTP 200, 2/2 runtime complete, 2/2 outputs, 2/2 full frozen acceptance**, ledger ok. No runtime/config/ingest change; normal app request construction and model settings retained.
+- Cash Planner uses empty display_unit and original-unit presentation intent in display_format/owned request units, with no child inputs. Final full-statement 2023-12-31 consolidated cell is **3,576,456,533,329원**, preserving exact source value/unit and citation. The original selected cell survives both Compiler attempts: first response adds separate liquidity narrative as a compatibility witness, rejected by direct_compatibility_context_mismatch; existing single feedback repair removes only that witness, keeping all other direct fields and visible IDs identical.
+- Margin uses exact 2023 consolidated revenue **9,670,643,576,585원** and profit **1,488,820,269,608원**, with correct division × 100, owned final-round quantity 2 and **15.40%** answer/slot/trace. No reported-ratio substitution or margin retry. Both frozen criteria pass assistant source review; known sources/fresh plans preclude unseen-accuracy or isolated causal claims.
+- Fresh `6857684d...e100df` consumed once after identical no-call rehearsals and terminal/full-wrapper controls. **22** completed requests: Terra 4/Astra 3/embeddings 15. API/parsing/unhandled runtime/requirement-preflight errors 0; first-response validation errors 1, Compiler feedback repair 1, SDK/whole-query retries 0. Estimate **USD 0.70462915**; shared **5.10658146 / 7**, remaining **1.89341854**, peak with reservations **5.89606896**, pending 0; not invoice.
+- All **891** predecessor/16 admission files and source bytes preserved. Selected working store stays ready with original/working source and metadata rows identical at 1,872/59,477. Same-runtime local 179 checks reused, not rerun; docs-only handoff. Prior numeric 1/2, earlier numeric 0/2, broader 1/3 and narrative 2/2 results remain unchanged.
+- Next bounded seam: provider-free direct compatibility-witness guidance/contract characterization using anonymous same/different-source-context controls. Preserve physical/owner/period constraints and first/repair response bytes; no silent witness clearing, new paid packet or fresh ingest.
+
+## Numeric Planner unit/presentation clarification (2026-09-17)
+
+- From clean `c7df8d5b`, [provider-free correction/replay](../../benchmarks/results/planner_numeric_presentation_2026-09-17/RESULTS.md) changes only Planner policy and schema field descriptions. Concrete named measurement units retain their scale, including unsupported requests; source-unit/notation preservation and precision belong in display_format and owned exact request text. Both may coexist. No pre-retrieval guess, phrase-specific runtime alias, invalid-value clearing, new field/call, model change or numeric enum.
+- Frozen before/after replay preserves both catalogs/cohorts, original cash invalid-unit rejection and exact saved margin program/answer **15.40%**. An authored cash copy changes only display_unit to empty; preflight clears and exact full-statement source remains visible with unchanged permissions. No fresh model output or final cash answer was produced.
+- Four new authored contracts and focused **155/155** pass; import/topology and domain audit pass. API calls/attempted external test connections **0**; source/history/store/config bytes protected across **863** predecessor files. Initial SDK fixture callback omission was corrected locally; it was not an application/provider failure. The previous full **1,898** gate was not rerun for description/prompt-only changes.
+- Strict schema shape is byte-identical after description removal. Strict schema/template UTF-8 bytes **15,612→16,719** / **10,553→11,323**; not SDK tokens or model-quality evidence. Raw unsupported numeric strings remain available for rejection.
+- No additional paid cost: shared estimate **4.40195231 / 7**, remaining **2.59804769**. Next is one fresh bounded same-two-question normal-app verification with a new immutable admission and existing source copy/model settings; no automatic paid retry, fresh ingest or consumed-manifest reuse. Existing paid outcomes remain unchanged; fresh Planner behavior and final cash selection remain unverified.
+
+## Numeric application source/calculation/display verification (2026-09-17)
+
+- Clean `e0a7f40e`, runtime `24d97285`; [two unchanged known-source questions](../../benchmarks/results/numeric_final_app_2026-09-17/RESULTS.md) through normal ASGI/shared services. Both HTTP 200/ledger ok; runtime **1/2 complete, 1/2 incomplete**, **1/2 outputs**, **1/2 full frozen acceptance**. Source and model settings unchanged during this packet.
+- Margin uses correct 2023 consolidated revenue **9,670,643,576,585원** and operating profit **1,488,820,269,608원**. Sampled profit/revenue × 100 gives 15.395255319023432% before request-grounded rounding; actual answer, slot and trace preserve **15.40%**. No source-ratio display substitution or feedback repair. This confirms live fixed-decimal behavior for this question.
+- Cash now retrieves the exact full statement first; **3,576,456,533,329원** is cataloged and owner-visible. Planner instead blocks completion by putting the presentation instruction `원문 단위` in numeric `display_unit`; `invalid_obligation_unit` stops the island before a Compiler call. Direct child inputs remain empty. No final cash source-choice result exists; this is a requirement error, not API/parsing failure or Compiler refusal.
+- Provider-free diagnosis reproduces catalog/cohorts and merged visible membership. A copy changing only the unit to empty clears preflight, without a model call or answer; original records remain intact. Next: numeric Planner presentation/unit contract, retaining strict unit rejection and request/source boundaries, without a phrase-specific fallback.
+- Fresh `3b03b442...de07c7` consumed once after identical SDK rehearsals and full-wrapper controls. **22/22** requests completed: Terra 4, Astra 1, embeddings 17; API/parsing/unhandled runtime errors and all retries 0, requirement preflight errors 1. Estimate **USD 0.36485839**; shared aggregate **4.40195231 / 7**, remaining **2.59804769**, peak with reservations **5.18276481**, pending 0; not invoice.
+- All **820** predecessor/16 admission files and original source bytes preserved; working store ready/non-degraded and logical source/metadata tables unchanged at 1,872/59,477 rows. No ingest or source changes; matching-runtime full gate 1,898/audit 83 is reused, not rerun. Known-source assistant review and fresh plans/retrieval do not establish unseen accuracy or an isolated patch effect. Earlier paid results keep their original status.
+
+## Numeric application verification after contract corrections (2026-09-17)
+
+- Clean `7326ae58`, runtime `c1d843d9`; [two unchanged known-source questions](../../benchmarks/results/corrected_numeric_app_2026-09-17/RESULTS.md) through normal ASGI/shared services and unchanged OpenAI settings. HTTP 200/ledger ok for both, runtime **1/2 complete, 1/2 incomplete**, **1/2 outputs**, full frozen acceptance **0/2**. No production source change during this packet.
+- Direct cash generation has empty child requirements and no prior contract error. The selected summary-financial amount **3,576,456백만원** exists verbatim, but misses the requested full consolidated statement and exact **3,576,456,533,329원**. That expected source is absent from retrieved/seed windows and catalog; selected-source fidelity is separate from request compatibility. No rounding explanation is invented.
+- Operating margin's exact 2023 revenue/profit cells are retrieved and cataloged but both omitted from Compiler visibility. The response parses and returns missing rather than using unrelated allowed amounts. No expression executes and fixed-decimal presentation is unexercised; the local exact-program `15.40%` replay remains valid but is not live acceptance.
+- Provider-free replay reproduces catalog/cohort fingerprints. Scope/search statement-type wording becomes an implicit local subject, relegating correct input cells to unknown subject match. An authored control removing only the declared basis from copied retrieval hints exposes profit but not revenue; this is a partial ranking diagnosis, not a complete fix or new model result. Next bounded seam is numeric requirement exposure, including bundle ranking, preserving source permissions and evidence; full-statement cash retrieval is separate.
+- Fresh `72b5dced...4b3ca` consumed once after identical five-request SDK rehearsals and full two-query/terminal-stop checks. **23/23** successful requests: Terra 4, Astra 2, embeddings 17; API/parsing/unhandled runtime errors, Compiler/SDK/whole-question retries and Google/context calls 0. Estimate **USD 0.68876178**; aggregate **4.03709392**, remaining **2.96290608**, peak with reservations **5.44039392** under shared USD 7; pending 0, not invoice.
+- All **717** protected predecessor/19 frozen admission files and original source bytes preserved; working store remains ready/non-degraded, logical source/metadata tables unchanged at 1,872/59,477 rows. No ingest or consumed-admission reuse. Known-source assistant review is not human gold/unseen accuracy; fresh plans/retrieval prevent isolated causal claims. Previous paid answers and their acceptance results remain immutable.
+
+## Broader normal OpenAI application questions (2026-09-17)
+
+- Clean `173d5d02`, unchanged runtime `7e43f740`; [three new/source-reviewed questions](../../benchmarks/results/broader_app_2026-09-17/RESULTS.md) through real normal ASGI/shared services, selected NAVER 2023 working store and unchanged OpenAI routes. HTTP 200 and ledger ok for 3/3; **4/4 outputs**, runtime **2/3 complete, 1/3 partial**. All frozen criteria pass for **1/3**, with two partial; no unseen/general accuracy claim.
+- Consolidated year-end cash 3,576,456,533,329원 is source/period/unit correct, but Planner emits a child evidence requirement unsupported for direct-value output. Validator retains `evidence_requirement_on_unsupported_obligation` alongside the accepted binding; no missing output or provider error. Anonymous offline controls reproduce Planner admission versus runtime partial status with the same source/binding.
+- Operating margin uses exact consolidated revenue 9,670,643,576,585원 and operating profit 1,488,820,269,608원: unrounded 15.395255319023432%, explicit final `round(...,2)` gives 15.4. No reported-ratio substitution. Final `15.4%` fails requested `15.40%`; generic renderer strips trailing zeros. Anonymous 12.50/8.00 controls reproduce this presentation gap without changing code or historical output.
+- Naver Pay payment and financial-service narratives cover domestic/overseas expansion, comparison/refinancing, SME support and platform direction. Ten claims/28 subject-fact support occurrences pass source checks and separate assistant semantic review, preserving explicit chronology, report-as-of reach and intended-versus-achieved wording. Repeated labels/long clauses remain a readability issue.
+- Fresh `5a7767e2...b376d` consumed once after identical five-request SDK rehearsals and full three-query/terminal-error wrapper checks. All 43 requests completed: Terra 6, Astra 4, embeddings 33; Compiler/SDK/whole-question retries, API/parsing/unhandled runtime errors, Google/context calls and fresh ingest 0. Estimate USD 1.05468823; combined prior accounting USD 3.34833214, peak with reservations USD 4.03783214 within shared USD 7; not invoice. All 15 frozen packet/618 protected predecessor files and original source bytes preserved; logical tables unchanged at 1,872/59,477 rows.
+- No runtime changes or paid rerun. Next bounded seam is direct-value Planner/preflight alignment with strict validation, followed separately by explicit decimal presentation. Source linkage, semantic content, runtime status and full requested formatting remain separate acceptance axes; previous paid samples stay immutable.
+
+## Fresh normal OpenAI narrative-unit successor (2026-09-17)
+
+- Clean `136a1a06`; [two unchanged questions](../../benchmarks/results/narrative_quality_2026-09-17/RESULTS.md), both known/source-exposed. Normal ASGI/shared services and unchanged OpenAI application settings returned **2/2 complete questions, 3/3 outputs**, HTTP 200 and ledger ok. Empty narrative display units retain separate presentation intent; `invalid_obligation_unit` does not recur.
+- Commerce calculation remains 41.3957043439745% → 41.4% with exact source-owned 2023/2022 context. The narrative cites direct Commerce acquisition impact, additional growth contributors and post-acquisition Poshmark/subsidiary revenue/loss without conflating them with segment profit or net causal effect. Cloud covers organizational integration, HyperCLOVA X, CLOVA Studio and security-oriented hybrid services, preserving achieved-versus-intended wording. Six claims/20 subject-fact support occurrences pass source checks and separate assistant semantic review; cloud repetition remains a readability issue.
+- Cloud's first response used a context unauthorized for `ob_001:req_002`; one existing feedback repair succeeds with identical visible candidates. No source permission/validator/default change, SDK/whole-question retry, API/parsing/runtime error or fresh ingest. All attempts and the earlier 1/3-question result remain immutable; fresh plans/retrieval preclude isolated causal or unseen-accuracy claims.
+- New `0a08e0eb...aa189e` consumed once under the remaining USD 6.17433744 of a shared USD 7 cap, following identical five-request numeric/narrative SDK rehearsals and full-wrapper controls. A mock-only obsolete schema-name lookup was fixed before paid dispatch. All 45 requests completed: Terra 4, Astra 4, embeddings 37. Estimate USD 1.46798135; combined with prior accounting USD 2.29364391, peak including reservations USD 3.12099391; not invoice. Google/context calls 0, all 582 protected files/original source bytes preserved, logical source/metadata tables still 1,872/59,477 rows.
+
+## Fresh normal OpenAI quality check after period correction (2026-09-17)
+
+- Runtime clean `10ee083d`; [three fixed questions](../../benchmarks/results/period_quality_v2_2026-09-17/RESULTS.md), one regression and two newly authored/source-reviewed cases. Real normal ASGI app/shared services, unchanged OpenAI routes and existing NAVER working copy. HTTP 200 for 3/3, ledger ok for 3/3, but **1/3 whole questions complete and 2/4 outputs accepted**.
+- Commerce growth now uses exact attached `당기`/`전기` proofs as 2023/2022 and returns 41.3957043439745% → 41.4%. New consolidated 2023 operating cash flow less PPE outflow returns 1,361,609,576,268 KRW with correct sign/period/unit/source. Both numeric outputs pass assistant source review; fresh plans/retrieval do not isolate the prompt change.
+- Acquisition-impact and cloud-AI narratives were never compiled: Planner `display_unit` values `text` and `서술` trigger `invalid_obligation_unit` in their islands. Relevant sources were retrieved, but no narrative semantic quality result exists. Next seam: generic narrative-unit Planner/schema contract; preserve strict numeric-unit validation and avoid case-specific aliases or answer backfill.
+- Original packet `5e86d4b8...406b86` failed before question execution and before HTTP transmission on caller log argument collision. One dispatch-intent marker and USD 0.00022958 reservation were retained; not API/model failure or observed billing. Original inputs remain untouched. Successor `a1b7ef41...300a0` fixes caller logging and additionally tests the actual three-query loop and terminal-stop path with mock HTTP, alongside identical SDK rehearsals and cost/no-retry checks.
+- Successor 56/56 requests completed: Terra 6, Astra 2, embeddings 48; no Google/context calls or SDK/whole-question/Compiler retry. USD 0.82543298 usage estimate; USD 0.82566256 including prior local reservation, peak including reservation 1.75520537 within shared USD 7, not invoice. All 528 protected files preserved; read-only logical tables still 1,872 source/59,477 metadata rows. No fresh ingest, original-store mutation or production code change during the packets.
+
+## Relative-period contract correction without provider calls (2026-09-17)
+
+- Baseline `d3c6f6ed`; [local reconstruction](../../benchmarks/results/relative_period_contract_2026-09-17/RESULTS.md) reads original source sidecars and immutable normal-app results without opening a store client. Both visible numeric cells retain exact attached current/prior quotes; existing source proofs resolve 2023/2022 unchanged.
+- Ingestion `year` is the business year; the Compiler prompt incorrectly called it filing year. Corrected guidance explains existing attached-context period selection. Anonymous negative controls additionally showed that a declared calendar value could fill missing/ambiguous/unanchored quote evidence; the validator now requires one matching quote-resolved year.
+- Six new authored contracts and focused **146/146** pass with external networking blocked. Catalog, payload, cohorts, source proofs and 494 protected files remain unchanged. No provider/embedding call, fresh ingest, store write or consumed-manifest reuse. The saved model response remains missing; no live accuracy or isolated causal claim.
+
+## Formula-step compiler: generation admission failure (2026-09-16)
+
+- Approved `e2dc8c1e0cfa13e9954a4f50a520f25f829e872ea2cd6266d41e3414ebf626dd`
+  consumed once on clean `6e25dedb` (runtime `8fe84445`), same six known synthetic
+  inputs/criteria, Gemini 2.5 Pro, USD 0.80 cap, all retries zero.
+- [Result](../../benchmarks/results/formula_steps_compiler_2026-09-16/RESULTS.md):
+  first token count succeeded, 6,644 tokens; first generation returned HTTP 400
+  INVALID_ARGUMENT. Five remaining cases not attempted under the provider-error
+  stop rule. No model response and no syntax/semantic/runtime/ledger assessment;
+  do not record this as six incorrect answers or compare accuracy with prior 4/6.
+- Both transmitted bodies and schema field order match the immutable SDK receipts.
+  Non-schema generation settings match the prior run. The safe error projection
+  retains codes, not the detailed provider message; exact invalid-field/server
+  cause is unknown. Schema compatibility is a follow-up target, not a proven cause.
+- Failed generation usage unknown: retained reservation USD 0.059505 plus count
+  contingency 0.06 gives accounted USD 0.119505 < 0.80, pending 0. Not actual billing.
+  No further call, JSON reconstruction, runtime/store/embedding/OpenAI change.
+- Original clean-HEAD verification passed for 167 runtime files, 41 dependencies,
+  11 packet files and all 32 protected predecessor files. Local reviewer made no
+  calls; artifacts stay uncommitted. Local/schema/count checks did not establish
+  generation acceptance. Investigate that boundary and credential-safe diagnostic
+  capture before another immutable, separately approved request.
+
+## Inline request operands: approved first-response run (2026-09-16)
+
+- Approved `950de7e78b8d57b88bed729453587058be12d52db5703564f85bf8130fe53ae1`,
+  consumed once on clean `589b3240` (runtime `234cb782`). Same six synthetic
+  questions, plans, sources/candidate IDs, order and independent criteria.
+  Six Gemini 2.5 Pro count/generation pairs; internal/SDK/automatic retries 0.
+- [Result](../../benchmarks/results/inline_request_operands_compiler_2026-09-16/RESULTS.md):
+  JSON/schema 4/6 versus previous 6/6; runtime unchanged 4/6, ledger 4/4. Eight
+  finalized calculated/display values and units match. Eight assessed source,
+  finite-formula and display probes match; four requested outputs unassessable.
+- Double newly succeeds: inline value 2, owned request and interpretation;
+  dependency calculation 20%, source display 21%, final 40%. Half and previously
+  accepted negative multiplier fail before their transform expression: the first
+  growth formula repeats 1,433 / 1,419 opening-parenthesis tokens, zero closing
+  parentheses/formula variables, then MAX_TOKENS. SDK parse failures are
+  ValidationError; strict offline JSON gives JSONDecodeError. Quantity meanings
+  are unknown, not two arithmetic/subject rejections. No JSON/answer reconstruction.
+- Source interpretation quotes and converted exact value assertions 7 each;
+  one grounded quantity expression and two unassessable cases. Original complete
+  replies used production replay only, with source/unit/AST/authority unchanged.
+- Input 39,812 / output including thinking 14,444 tokens; count/generation time
+  106.35s. Generation estimate USD 0.194205 + count contingency 0.36 = 0.554205
+  < 0.80, pending reservation 0, invoice unknown. API errors 0, parse failures 2.
+- SDK bodies match identical rehearsals; server input counts match usage. Forty
+  dependencies, 11 packet files, 167 runtime files and six raw responses verified
+  unchanged. No planner/retrieval/embedding, runtime/store/dataset edits or artifact commit.
+- No aggregate improvement: one newly accepted case and a new sampled regression.
+  Repetition is observed; model/decoder/schema/prompt causal contributions remain
+  unestablished. Review fine-grained formula serialization offline, not automatic
+  paid repetition or a presumed token-cap fix. Known-case, one-sample historical
+  comparison, not novel-question or full-agent evidence.
+
+## Named request inputs: approved first-response run (2026-09-16)
+
+- Approved `76f0581f591b4c658b946973d85a248c05b5cf3334538ff6b95efd12fe80536b`,
+  consumed once on clean `1b66b44f` (runtime `f8d59110`). Same six synthetic
+  questions, plans, sources, order and criteria; six Gemini 2.5 Pro count/generation
+  pairs, API/JSON/schema errors 0, internal/SDK/automatic retries 0.
+- [Result](../../benchmarks/results/named_request_inputs_compiler_2026-09-16/RESULTS.md):
+  schema 6/6 versus preceding 5/6; runtime unchanged 4/6; ledger 4/4. Raw source,
+  finite formula and display probes 12/12 each; eight finalized values/units match.
+  Original sampled replies replayed offline through production execution, not a
+  full-agent run. Raw-selection checks do not imply runtime acceptance.
+- Double and half select the correct dependency and write `*2` / `/2`, but leave
+  request_inputs empty; both fail `undeclared_formula_constant`. The old half's
+  invented origin enum no longer occurs, but declaration omission remains. -3
+  alone has a named value/request/interpretation and formula use: 1/3 quantity
+  expressions grounded. Empty lists are not proof coverage. Naming alone did not
+  resolve the failures; no missing values or final answers were reconstructed.
+- Read-only dependency calculations 20/30 were retained in offline targeted
+  feedback; no repair was sampled. Sign keeps 76/82 KRW, and the accepted negative
+  multiplier keeps source -9%, calculated -10% and dependent 30%.
+- Lists 12/12, exact prose interpretation quotes 9/9, value-recopy fields 0, exact
+  converted value assertions 9. Whole-request linkage is not semantic proof.
+- 39,866 input / 9,295 output-including-thinking tokens; completed count/generation
+  time 84.37s. Generation estimate USD 0.1427825 + count contingency 0.36 =
+  0.5027825 < 0.80; no pending reservation, not observed billing.
+- SDK sends equal rehearsals; 38 dependencies, 11 packet files and 166 runtime
+  files verified; original responses unchanged after review. No runtime, planner,
+  retrieval, embedding, ingest or store changes. An offline reporting list/set
+  error was corrected without a provider retry or criteria change.
+- One historical/new sample per known synthetic case, not randomized A/B,
+  causal isolation, unseen accuracy or release evidence. Next work is offline
+  formula/request-proof interface inspection; no automatic paid repeat or relaxed
+  undeclared-value gate. Artifacts stay ignored; predecessor bytes remain intact.
+
+## Addressed numeric proofs: approved first-response run (2026-09-16)
+
+- Approved `7c9742d9661ac5b3f7baf3b243716882fcd6766d1cea8605ea3b022c88c0b746`,
+  consumed once on clean `b17db852` (implementation `75501486`). Same six questions,
+  fixed plans, sources, order and criteria; six Gemini 2.5 Pro count/generation pairs.
+  API/JSON syntax errors 0; schema failure 1; internal/SDK/automatic retries 0.
+- [Result](../../benchmarks/results/addressed_numeric_proofs_compiler_2026-09-16/RESULTS.md):
+  schema 5/6, full runtime 4/6, unchanged from the predecessor's 4/6. Complete-case
+  ledger 4/4; all eight finalized calculated/display values and units match.
+  Raw source/requirement/dependency, finite formula and display probes 12/12 each;
+  invalid raw-response diagnostics are not schema/runtime acceptance.
+- Sign newly passes 76/82 KRW with exact `(24)원` and `6원` spans. Double newly
+  fails `undeclared_formula_constant`: correct `*2`, but `constants: []`.
+  Offline feedback preserves preceding calculated value 20 and targets only double;
+  no repair is sampled and final case outputs remain empty.
+- Half supplies `/2`, scalar 2, owned request and interpretation, but its sibling
+  growth declares neutral 100 with invented `origin=deterministic_calculation`.
+  This is not a ban on literal 100. Whole-response schema failure prevents lowering
+  and execution; half's actual request grounding remains unassessable. No 15%
+  answer is reconstructed. Negative multiplier remains source -9% / calculation
+  -10% / dependent 30% with a whole-owned-instruction proof.
+- Required lists 12/12, exact prose interpretation quotes 9/9, value-recopy fields 0.
+  Eight converted exact value assertions verified; non-neutral declarations present
+  2/3, actual grounding 1, missing 1, schema-blocked 1. Linkage is not quantity meaning.
+- Estimated generation USD 0.133410 + count contingency 0.36 = accounted 0.493410
+  within 0.80; invoice unknown. Input 39,704 / output including thinking 8,378.
+  All server input counts equal generation usage; no pending/denied requests.
+  Total count/generation 71.87s, mean 11.98s; no speed or causal-effect claim.
+- Sent bodies/order match both SDK rehearsals; runtime 166 files, 37 dependencies,
+  11 packet files and six unchanged raw response hashes verified before docs update.
+  No runtime/store/dataset change, prior-response repair or additional paid call.
+  Next work is a general constant-declaration contract review, not another blind rerun.
+
+## Addressed numeric proofs: same-six preparation (2026-09-16)
+
+- Runtime `75501486`; [successor design](../../benchmarks/results/addressed_numeric_proofs_compiler_2026-09-16/DESIGN.md)
+  reuses the previous six questions, plans, synthetic sources, order and independent
+  criteria. No historical response is repaired or supplied to generation; prior 4/6 remains.
+- New wire drops redundant value/request quotes. The offline review uses actual
+  production lowering, retains complete value spans and whole owned instructions,
+  and keeps address linkage separate from scalar interpretation/formula correctness.
+- Provider-free 19 experiment checks (six positive and six wrong-formula witnesses),
+  63 focused tests and 24 import/topology/docs checks pass; domain audit 83,
+  pycompile/diff pass. Previous integration gate remains 1,753/1,753 on `75501486`.
+- Proposed one first response per case, Gemini 2.5 Pro, at most six count/generation
+  pairs, retries 0, USD 0.80 accounted cap. Two separate-process SDK no-call receipts
+  must agree with a new clean-build manifest before separate approval. Paid calls 0.
+  No planner, retrieval, embedding, ingest, source-store change or full-agent claim.
+
+## Required-evidence same-six first-response run (2026-09-16)
+
+- Explicitly approved `417037b9119e88c8ba864c7c20f579815e41ca6c0daa3f9b469b484a5726981f`,
+  consumed once on clean `1865ffee` (runtime source `30a89618`). Six identical
+  questions/plans/sources/frozen criteria; Gemini 2.5 Pro first response per case.
+  Six count/generation pairs, provider/JSON/schema errors and all retries 0.
+- Schema 6/6, full runtime acceptance **4/6 -> 4/6**, ledger 4/4 ok on complete cases.
+  Source/requirement/dependency, finite formula and display-choice probes 12/12 each;
+  completed eight calculated/display/unit outputs match. No full semantic accuracy claim.
+- Explicit constant lists 12/12 and selected prose interpretations' exact body
+  quote presence/containment 9/9. Non-neutral scalar declaration coverage 3/3,
+  actual request grounding 2/3; the other nine outputs do not exercise the contract.
+- Negative multiplier newly passes: source -9%, calculated -10%, dependent 30%.
+  Sign case newly fails: correct sources/formulas, but `(24)` and `6` quotes omit
+  the unit in preserved `(24)원` / `6원` value spans. Exact substrings exist;
+  `source_assertion_text_mismatch` is span undercoverage, not a sign/arithmetic failure.
+  Subsequent missing-source-assertion errors are consequences of these same rejections.
+- Half now supplies `/ 2`, scalar 2, request ID and interpretation, but `half`
+  occurs twice in its owned request unit: `constant_request_quote_invalid`.
+  Observed pre-retry dependency is calculated 30, not source 31. Failed case final
+  outputs remain empty; no reconstructed 15%, sampled repair or additional call.
+- Generation estimate USD 0.134295 + count contingency 0.36 = 0.494295 < 0.80;
+  invoice unknown. Server count equals generation input on all six: 39,476 input /
+  8,495 output incl. thinking. Count+generation total 82.91s, mean 13.82s.
+  Single historical/current samples do not establish latency improvement or causality.
+- All live bodies/order agree with SDK rehearsals; manifest/runtime/dependencies
+  and six raw responses verified unchanged after offline review. Runtime/store
+  changes and planner/OpenAI/embedding calls 0; no artifact commit.
+- Next is provider-free numeric/request quote-address contract review, not another
+  prompt trial, inferred quote repair or weakened grounding. Fixed finite criteria
+  do not establish symbolic equivalence, negative-reference denominator semantics,
+  nullable comparison intent correctness, general accuracy or full-agent acceptance.
+  [Results and exact failure evidence](../../benchmarks/results/required_evidence_compiler_2026-09-16/RESULTS.md).
+
+## Required-evidence same-six successor preparation (2026-09-16)
+
+- Source `30a89618`, no runtime edit. Same six questions, fixed plans, candidate
+  catalogs and independent criteria as the consumed `b72b2038...4220bc` packet.
+  The historical 4/6 result and original replies are unchanged and not model inputs.
+- Gemini 2.5 Pro first responses only: at most six counts/generations, no internal,
+  SDK or automatic retry; provider/budget errors stop the remaining suffix. No
+  planner, retrieval, embeddings, OpenAI, store mutation or new DART transmission.
+- Field presence/quote containment, scalar grounding, frozen source/formula probes
+  and runtime display/ledger are reported separately. Schema and instructions
+  changed together; single historical/current samples cannot isolate causality or
+  establish general accuracy. Literal-free equivalent formulas remain admissible.
+- Provider-free packet tests 16/16, focused contracts 29/29; six positive and six
+  wrong-formula witnesses, unchanged cases/criteria and no response repair. The
+  exact clean-build manifest and separate-process SDK no-call receipts belong to
+  the local packet. Preparing them authorizes no provider call.
+- Proposed accounted cap USD 0.80; expected generation USD 0.15–0.32 plus count
+  contingency USD 0.36, not an invoice or asserted count API tariff. Public Gemini
+  pricing rechecked 2026-09-16. Separate exact-manifest approval remains required.
+  [Scope, inputs and approval packet](../../benchmarks/results/required_evidence_compiler_2026-09-16/review.html).
+
+## Request-constant six-case first-response run (2026-09-16)
+
+- Explicitly approved `b72b2038fcf728f8d29f399952f7312cf7bd0d801b0cc4f9043435ef8b4220bc`,
+  consumed once on clean `b4a065b5` (source `f990f3ab`). Gemini 2.5 Pro, previous four
+  unchanged synthetic cases plus two authored half/negative-multiplier controls.
+  Six counts/generations, first responses only, internal/SDK/automatic retries 0.
+- Schema 6/6, full runtime acceptance 4/6, ledger 4/4 ok on complete cases. Fixed
+  source/requirement/dependency and finite formula/display-choice probes 12/12;
+  executed eight calculated/display values and units match. Not general meaning proof.
+- Original four now pass, including source 21%, calculated 20%, dependent 40% with
+  model-declared `double -> 2`. The old 3/4 artifact remains immutable, not repaired.
+  Non-neutral scalar declarations are grounded 2/3: `double -> 2` and `음의 세 배 -> -3`.
+  Half uses the correct `/ 2` formula but omits constants. Nine other outputs do
+  not exercise this contract and are excluded from its coverage denominator.
+- Both new cases omit `source_display.interpretation.source_evidence_text` despite
+  selecting/quoting the correct reported numeric source. First failure is
+  `source_interpretation_evidence_mismatch`; dependency/assertion errors follow.
+  Half's missing declaration is established by independent original-wire inspection,
+  not its first runtime feedback, which stops on the failed predecessor. Failed
+  values remain null; no reconstructed 15%/30%, mocked repair or extra provider call.
+- Generation schema permits these omissions while conditional runtime checks need
+  the missing information. Next step is a provider-free contract review, not another
+  paid trial or automatic source/constant inference. Nullable comparison intent and
+  negative-reference denominator semantics are not separate frozen scorer gates.
+- Input counts agree across count/generation: 39,002 input / 8,417 output incl. thinking.
+  Generation estimate USD 0.1329225 + count contingency 0.36 = 0.4929225 < 0.80;
+  invoice unknown. Mean completed count+generation 15.56 seconds, total 93.35 seconds.
+  All live bodies/property orders match rehearsals; raw responses and manifest/
+  runtime/dependency hashes verified unchanged after review. Runtime/store changes 0.
+  [Results and claim limits](../../benchmarks/results/request_constants_compiler_2026-09-16/RESULTS.md).
+
+## Mixed-source first-response model run (2026-09-16)
+
+- Explicitly approved `97ac73c7944df143768537471ff0891f9e57f3ec76bfb4d55304ee7cd0a2751f`,
+  consumed once on clean `dc8b7c79`. Gemini 2.5 Pro, four authored synthetic inputs,
+  one initial response each; no internal/SDK/automatic retry or runtime change.
+- Wire schema 4/4, complete runtime acceptance 3/4. Frozen source/requirement/
+  dependency matches 8/8, finite formula probes 8/8, source-display choices 8/8.
+  Completed cases preserve scale 120000/128000, format-swapped sources 120/128,
+  and parenthesized negative 76/82; ledger 3/3 ok. Not symbolic or general accuracy.
+- Last case selected source 21% and generated the correct current/previous formula;
+  the actual pre-retry read-only dependency contains calculated 20%. Its dependent
+  `calculated_rate * 2` fails `undeclared_formula_constant` on owner `double`.
+  No retry was sampled; the frozen first-response reviewer leaves its values null.
+- Unchanged-response diagnostic confirms only that validation error. The sampled
+  response omitted constant declarations, but even a query-origin declaration for
+  `double` would fail: `_query_constants` extracts only digit-form literals and
+  returns `[]`; cardinality 2 also differs from its one dependency binding.
+  Prior authored `X+X` did not exercise this boundary. This is a request-to-constant
+  contract gap, not observed wrong source selection or a paid repaired answer.
+- Four count/generation pairs, provider/JSON/schema errors 0. Input counts match
+  generation usage: 25,322 input / 5,743 output including thinking. Generation
+  estimate USD 0.0890825 + count contingency 0.24 = 0.3290825 < 0.60. Invoice unknown.
+  Mean completed count+generation 12.97s; extra diagnosis is provider-free.
+- Live body hashes/field orders and call order match both SDK no-call receipts.
+  Frozen source/dependency files and all four raw-response hashes were verified
+  unchanged after review. No planner/OpenAI/embedding/store calls or artifact commit.
+  [Full result and claim limits](../../benchmarks/results/mixed_source_compiler_2026-09-16/RESULTS.md).
+
+## Source-choice six-control model run (2026-09-15)
+
+- User requested execution of the prepared manifest
+  `55029ef11ee331f4cea8541d815f03a2959443db53b86b28f719608d853000e0`; consumed once
+  on clean `386cf867`. No runtime/prompt/schema/source/criteria change since preparation.
+- Gemini 2.5 Pro, six synthetic questions, one current-schema response each. Runtime
+  acceptance 6/6 and independent endpoint/formula/scalar evaluation 6/6. Row-mirror,
+  equal-value and Korean direction pairs each 2/2. Equal scalar 0 was not sufficient:
+  distinct reference/target source IDs also matched the frozen direction criteria.
+- Six count/generation pairs, API/JSON/schema errors and abstentions 0, all retries 0.
+  Server input counts equal generation usage: 32,606 input / 7,939 output incl. thinking.
+  Generation estimate USD 0.1201475 + count contingency 0.36 = 0.4801475 < 0.75;
+  actual invoice unobserved. Mean completed count+generation 11.21 seconds.
+- All live request bodies/property orders match the two prepared SDK no-call receipts.
+  Manifest source/dependency hashes verified after offline review; original responses
+  unchanged. No planner/OpenAI/embedding/store/DART transmission or artifact commit.
+- One sample/case, no current same-order arm; not row-order/language causality, unseen
+  or general accuracy, a remedy for the earlier temporal-direction error, or full-agent
+  evidence. Next scope is provider-free mixed table/prose/dependency checks. No new
+  source-selection patch or automatic endpoint repair follows from these six successes.
+  [Results](../../benchmarks/results/source_choice_controls_2026-09-15/RESULTS.md) and
+  [original responses](../../benchmarks/results/source_choice_controls_2026-09-15/result_review.html).
+
+## Source-choice six-control preparation (2026-09-15)
+
+- Source-identical successor to `830233aa` / handoff `4a833f79`; no runtime changes.
+  Six previously frozen row-mirror/equal-value/Korean questions, plans, candidate IDs,
+  physical source records and criteria are preserved. Actual catalog reconstruction
+  agrees; reversing carrier order changes only internal list iteration, not candidate
+  content/fingerprint or the final prompt/schema. No parser or data repair.
+- Authored positive responses execute for all six; endpoint-swapped responses remain
+  source-valid semantic negatives. Both equal-value negatives still compute the right
+  scalar and are nevertheless wrong. Formula, hidden-reference, abstention and provider
+  error controls stay separate. The fixed semantic scorer is unchanged.
+- Local focused 50, experiment 9 and import/topology/docs 24 pass; domain audit 83,
+  pycompile/diff pass. No full suite rerun: runtime source matches the historical
+  1,716-test gate. Provider calls 0; authored witnesses are not new model samples.
+- Proposed compiler-only scope: one current-schema response per question, six counts
+  and six generations, Gemini 2.5 Pro, output 4096/thinking 1024, all retries 0.
+  Proposed cap USD 0.75; estimated generation 0.10–0.20 plus count contingency 0.36,
+  not measured usage or invoice. Exact manifest and two separate SDK no-call receipts
+  are local artifacts required before an approved run, not authorization by this note.
+- Not A/B, unseen holdout, repeated-sample accuracy or a causal language/row-order
+  study. Prior named responses use older schemas and are not matched current controls.
+  Mixed-source and current full-agent accuracy remain unmeasured.
+  [Design](../../benchmarks/results/source_choice_controls_2026-09-15/DESIGN.md) and
+  [pre-run review](../../benchmarks/results/source_choice_controls_2026-09-15/review.html).
+
+## Numeric source-choice schema A/B (2026-09-15)
+
+- Implementation `830233aa`, pre-edit capture `a9b7f792`. Immutable manifest
+  `8b0468edf6621189cb1bd275a31b67fb205615c5b6f2ae9fdafc7f7374f3b6b1` consumed once.
+- Full production question/plan/instructions/source/IDs/authority held fixed;
+  only the owner-source enum and cell/prose/dependency schema differs. Two known
+  temporal-direction questions, three repeats each, 12 count/generation pairs.
+  Gemini 2.5 Pro, temperature 0, output 4096/thinking 1024, all retries 0.
+- Before/after runtime 5/6→6/6, semantic and both gates 3/6→5/6. Forward 3/3 each;
+  reverse 0/3→2/3. Before's last reverse response swapped requirement source refs;
+  exact offline lowering retained `candidate_not_authorized_for_output_input`.
+  After's first reverse response stayed source-valid but chose the wrong direction.
+- API/JSON/schema errors 0, no calls to planner/OpenAI/embedding/store. Two SDK
+  rehearsals match `f04218039ebfa5e1eec788a5d3b435084017bfffabc3fcd228ac4bd02dd2746b`;
+  every live count/generation matches the frozen body/ordering. Local full suite
+  1,716 passed; new contracts 10, grounding/wire 18, broader 143, import/topology/docs
+  24 and experiment tests 5; domain audit 83, pycompile/diff passed.
+- Schema/request bytes +184; observed mean input tokens 5,435 in both. Mean completed
+  count+generation latency 11.76/11.28 seconds is descriptive, not a speed claim.
+  Generation estimate USD 0.241115 + count contingency 0.72 = 0.961115 < 1.20;
+  invoice unobserved. No paid retry/resume, prior response edit or artifact commit.
+- Repeated diagnostics, not independent unseen questions, general accuracy, enum-only
+  causality or full-agent release. Mixed/prose/dependency paths have local contracts
+  only. [Interpretation](../../benchmarks/results/source_choice_schema_2026-09-15/INTERPRETATION.md)
+  and [original responses](../../benchmarks/results/source_choice_schema_2026-09-15/result_review.html).
 
 ## At a Glance
 
@@ -7548,3 +8830,1480 @@ References:
   `9901c8fc...e9180`. No provider/compiler call or store write occurred. This is
   runtime trace-variant coverage only, not new retrieval, compiler-selection,
   evaluator, held-out-question, or release evidence.
+
+## Reviewed Compiler-Only Selection Gate (2026-09-06)
+
+- Admission `ef95dc95...f016` bound clean commit `e9a5be0`, five reviewed
+  questions, six compilation islands, Google Gemini 2.5 Flash, client retry 0,
+  and USD `0.12`. Two no-call receipts were byte-identical at
+  `ea2c7c1e...66d47`; no retrieval, planner, evaluator, embedding, or store work
+  was in scope.
+- The one approved process stopped after its first failing question as required.
+  `KBF_T1_017` passed. `KBF_T2_018` selected the exact reviewed 2023/2022 signed
+  candidates and narrative, with validation `ready` and execution `ok`.
+- The compiler nevertheless used `((current-prior)/abs(prior))*100`, producing
+  `-70.2809595%`; the reviewed magnitude calculation is
+  `((abs(current)-abs(prior))/abs(prior))*100 = +70.2809595%`. Structural
+  validation cannot currently distinguish these meanings, so no internal retry
+  fired. LGE, NAVER, and Celltrion were not dispatched.
+- Usage was 2 calls / 14,157 input / 4,048 output / 18,205 total tokens, with an
+  estimated USD `0.0143671`. Result SHA-256 is `496394bb...b0c90f`. No automatic
+  retry is authorized; the previous approval is exhausted.
+- Follow-up provider-free comparison also accepts the ordinary signed-prior
+  formula `((current-prior)/prior)*100`, with the same reviewed positive value.
+  Thus this same-sign pair does not establish which comparison convention is
+  intended in general or prove a missing signed/magnitude schema. The successor
+  strengthens the existing compiler prompt and `rationale`, with sign-transition
+  and zero-denominator counterexamples; no new enum or automatic sign correction
+  is introduced. These local checks do not establish improved provider choices.
+
+## Compiler Sign-Interpretation Successor (2026-09-06)
+
+- Admission `7060c8b7...8c08` bound clean commit `5d33c99`, the unchanged five-case
+  reviewed corpus, Gemini 2.5 Flash, output limit 2,048, client retry 0, and USD
+  `0.12`. Independent no-call receipts were byte-identical at `a838804b...15d5`.
+  The user separately approved the exact manifest and Google API transmission.
+- One process ran and stopped at its first failed question. `KBF_T1_017` passed
+  with the reviewed NIM candidates and `0.10%p`. `KBF_T2_018` used its one allowed
+  internal retry but yielded no executable numeric or narrative output. The
+  remaining LGE, NAVER, and Celltrion questions were not dispatched.
+- The final retry's recorded parser exception contains a partial expression
+  whose variable binding has an empty source ID, with required `formula`,
+  `source_display_candidate_id`, and `source_display_reason` absent. Final
+  validation is `invalid`, execution `incomplete`; no arithmetic ran for T2.
+  Unlike the predecessor's wrong signed formula, this failure prevents measuring
+  the sign-interpretation prompt's effect.
+- Token exhaustion is a hypothesis, not an observed finish reason. The runner
+  records prompt hashes and aggregate usage, but not per-call raw responses,
+  finish reasons, or the initial response. Inspect the output-budget/response
+  boundary provider-free before another paid proposal; no formula or validator
+  patch is justified by this artifact alone.
+- Usage: 3 API calls, 23,273 input and 5,874 output tokens, 29,147 total; estimated
+  cost USD `0.0216669`. Retrieval, planner, evaluator, embedding, and store calls
+  are zero. Corpus SHA `2af019ff...bb33` and predecessor result SHA
+  `496394bb...b0c90f` remain unchanged. The approval is exhausted; no further
+  provider attempt occurred or is authorized.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_sign_interpretation_successor_2026-09-06/result.json`
+  (SHA-256 `f9edebb2bfe273f0666d2e2e6be7c5be986f29f01bc73bea8ce7d855a2654679`).
+- Subsequent provider-free SDK inspection showed that LangChain's old recorded
+  output count includes thinking; the missing split cannot be reconstructed from
+  this artifact. Partial-JSON repair and genuinely absent fields can yield the
+  same parser exception, so token exhaustion remains a hypothesis. The v2 runner
+  now preserves pre-parser final text, finish reasons, and disjoint usage, and
+  binds explicit output/thinking budgets. No historical bytes were rewritten and
+  no additional provider run was made.
+
+## Compiler Response-Capture Successor (2026-09-06)
+
+- Admission `66af6f4de025f986b6c57a2e2babd52ee925ee4760a137c3c5ecde0e491b3eef`
+  bound clean `88e1760`, the unchanged five-case reviewed corpus, Gemini 2.5 Flash,
+  inclusive output limit 4,096, thinking budget 1,024, client retry 0, and USD
+  `0.20`. Separate-process no-call receipts matched at `a999ef92...e867`. The
+  user explicitly approved the exact manifest and Google API transmission.
+- One process exited 1 after the first failed question, `KBF_T1_017`. One allowed
+  internal island retry ran; the other four questions were never dispatched.
+  Both responses ended `STOP`, with no structured-output parsing error.
+- First response: correct `1.83%` and `1.73%` direct bindings and subtraction,
+  but `result_unit=PERCENT_POINT` is unsupported. Validation reported
+  `result_unit_mismatch` at `expression.result_unit`, with `repair_program`.
+- The targeted retry contained only `nim_change` and the 2023 candidate. Its
+  `depends_on` still named the two upstream obligations, but their accepted
+  results were not supplied and `declared_obligation_ids` listed only the target.
+  The model returned missing `nim_change` because it could not see the 2022
+  candidate. Final direct values survived; validation/execution remained partial.
+- Provider-free replay of the two captured final responses reproduced both
+  prompt hashes and the final program exactly. This confirms a unit-vocabulary
+  trigger followed by incomplete retry dependency context, not truncation in this
+  run. It does not resolve the older uncaptured failure or measure T2 sign choice.
+- Usage: 2 calls; first input/answer/thinking `6450/436/918`, second
+  `4323/136/904` (2,908 cached input). Total: 10,773 input, 572 answer, 1,822
+  thinking, 13,167 tokens. Estimated cost USD `0.0092169`; billing is unobserved.
+  No retrieval, planner, evaluator, embedding, or source-store calls occurred.
+- Corpus SHA `2af019ff...bb33`, both predecessor result hashes, and admission/
+  rehearsal bytes remain unchanged. Runtime code was not patched and the paid
+  run was not repeated. The approval is exhausted; next work is provider-free
+  unit-vocabulary/retry-dependency repair, not another paid attempt.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_response_capture_successor_2026-09-06/result.json`
+  (SHA-256 `7d415ab44d3b6bd6dc732a0a1ffcd039cd5e27003eba246ec3751f6e747da766`).
+
+## 2026-09-06: Unit/dependency successor passes KBF T1, fails KBF T2 sign semantics
+
+- Explicitly approved admission
+  `9d1f74a4084c4cc41525a657da8a260ac68c5f7171be9547665d854724ac1d6a`
+  bound clean `14628e073ec8dc4965fb3db009381b49f0ad6150`, runtime source SHA
+  `c6c6e8290fe829201839ea03db90928381bd09657c89a581afd8a709d812f167`,
+  unchanged five-case corpus, Gemini 2.5 Flash, output/thinking `4096/1024`, and
+  USD `0.20`. Separate-process no-call receipts both hashed `74742929...1d0f`.
+- One process exited 1 in `19.38s`, before the first scheduled 30-second heartbeat.
+  KBF T1 passed with `1.83%`, `1.73%`, and `0.10%p`, using one compiler call.
+  KBF T2 then failed; LGE T1, NAV T2, and CEL T1 were not dispatched.
+- KBF T2 selected the reviewed candidates and preserved both parenthesized amounts:
+  `(3,146,409)` and `(1,847,775)` million KRW. The compiler chose
+  `((current - prior) / abs(prior)) * 100`, producing `-70.2809595324106` against
+  reviewed magnitude growth `+70.2809595324106`. Its rationale describes an
+  absolute cost increase while retaining the signed numerator.
+- Both responses ended `STOP` without parser errors. Both programs had validation
+  `ready`, execution `ok`, and no runtime errors; only T2 expected numeric outputs
+  failed. No internal retry ran, so this run does not exercise retry dependency
+  inputs. It confirms a semantic formula-selection failure, not unit/input loss.
+- Replaying both captured responses with a provider-free queue reproduced their
+  programs, checks, output comparisons, and prompt hashes exactly. No expected
+  answer was fed back to the live compiler, and runtime code was not patched.
+- Usage: 2 calls; first input/answer/thinking `6706/292/1020`, second
+  `8353/605/843`; total `15059/897/1863`, 17,819 tokens, no cached input.
+  Estimated cost USD `0.0114177`; actual billing is unavailable. Retrieval,
+  planner, evaluator, embedding, and store activity were all zero.
+- Approval is consumed; no automatic retry or fresh ingest occurred. Corpus,
+  admission, rehearsal, and predecessor hashes are unchanged. Next work must
+  isolate comparison semantics provider-free, not repeat the same paid attempt
+  or force negative percentages positive.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_unit_dependency_successor_2026-09-06/result.json`
+  (SHA-256 `8c4b28b6e895a79350acb86d297a1b59330de4df62e0a1a8485271802421f371`).
+
+## 2026-09-06: Synthetic comparison successor passes 8/9, fails ambiguity abstention
+
+- The user explicitly approved Google transmission and admission
+  `11b34e4b3cb9a391ce2907100d28573490504d9b785fefdc0fd86ccdd142c7dd`,
+  binding clean `4fefb273b50c646ea8d5d1f37d2a87f4803ca827`, runtime source SHA
+  `887b5b0eb99982e3cbe35097544ebb6f835c685f1fc1622d31a68ba4d83c8f78`,
+  nine synthetic contrasts followed by five unchanged reviewed real questions,
+  Gemini 2.5 Flash, inclusive output/thinking budgets `4096/1024`, client retry 0,
+  and USD `0.40`. No-call receipts matched at `d2c68c82...6573c`.
+- One process exited 1 in `55.1s`, with a running heartbeat at 30 seconds and no
+  runner restart. Seven numeric cases produced the expected `50%`, `-50%`, `-60%`,
+  `-75%`, `125%`, `-125%`, and `-90USD`. The zero-prior ratio correctly remained
+  incomplete with no output on both its initial call and one allowed internal retry.
+- Case nine, `comparison_unspecified_transition`, explicitly leaves comparison
+  target and denominator unspecified for current `40USD` and prior `(160)USD`.
+  The model interpreted the sign transition as negating both inputs, selected
+  `((-current)-(-prior))/(-prior)*100`, and returned `-125%` with no ambiguous ID.
+  The required behavior was ambiguity with no numeric output. Structural validation
+  and execution accepted the valid formula, so no retry ran for this semantic failure.
+- Synthetic gate: `8/9`; all five real questions were not dispatched. This does not
+  establish that the preceding KBF T2 source-derived sign failure is fixed. All ten
+  responses ended `STOP`, parsed successfully, and had no validation/execution errors.
+  The lone retry exercised an abstention, not the dependency-context repair.
+- Replaying all ten captured final responses with sockets blocked reproduced every
+  program, output, validation/check, island diagnostic, and prompt byte/hash exactly.
+  No expected program or answer was transmitted to the live model. The compiler-only
+  result is not retrieval, planner, evaluator, full-agent, or release evidence.
+- Usage: 10 calls; 57,864 input tokens (15,049 cached), 2,612 answer, 6,770 thinking,
+  67,246 total. Estimated cost USD `0.0408142`; actual billing is unobserved.
+  Retrieval, planner, evaluator, embedding, and source-store activity were zero.
+  Corpus, admission, rehearsal, and predecessor hashes stayed unchanged.
+- Approval is exhausted. No automatic rerun, fresh ingest, runtime patch, or
+  validator relaxation occurred. The next bounded investigation is a model
+  comparison on frozen ambiguity evidence, subject to separate manifest/cost and
+  transmission approval, not another warning-only prompt patch.
+- Immutable ignored result:
+  `benchmarks/results/semantic_comparison_compiler_successor_2026-09-06/result.json`
+  (SHA-256 `14e7490ce15e00ed1f6ee81a5a489ed628543614cade690d8ce3fb7f7154a9d8`).
+  Captured-response replay in the same directory: `captured_response_replay.json`
+  (SHA-256 `6a3def82286dc24dfa1445c034065f7b04c355ff6251e53310026a6c75422312`).
+
+## 2026-09-06: Four-case Gemini 2.5 comparison passes Flash 3/4, Pro 4/4
+
+- Explicit Google-transmission approval consumed admission
+  `3edbcb94b94917ba7cb1c943c4eb512b79b6d53ee68fca1cfa343126ff531558`
+  once on clean `847ebfc8762af7e41d68f1924e9bdb7b2b3041fb`, runtime source SHA
+  `55196f828310b6dac8f33c61a255978b6965dd8d07401969ae3a43f974435ebc`.
+  Flash then Pro each processed unspecified transition, magnitude transition,
+  signed-prior transition, and reviewed KBF T2 in that order. Corpus field order
+  matched predecessor inputs; no-call receipts matched at `ff58c6e9...abbe2`.
+  Initial prompt bytes/schema, temperature 0, output/thinking `4096/1024`, and
+  existing max-one internal island retry were shared. Client retries were 0.
+- One foreground process exited 1 after `83.9s`, with 30/60-second heartbeats,
+  8 completed cases, 8 islands, 9 compiler calls, and no restart. Comparison mode
+  recorded the failed Flash case and still ran all remaining cases and Pro.
+  Overall 7/8 is failed because both models were required to pass all four cases;
+  there was no provider error or initialization failure.
+- Flash passed 3/4. It again interpreted the unspecified sign transition as
+  negating both inputs, choosing `(-current - (-prior)) / (-prior) * 100` and
+  returning `-125%` instead of ambiguity. Structural validation and execution
+  correctly accepted the math; the semantic review expectation failed.
+- Pro passed 4/4. It declared ambiguity on its first response and maintained
+  that decision during the existing internal retry. It produced no numeric
+  output for that case; expected invalid/incomplete is not a runtime error.
+  This retry exercised abstention, not validated predecessor dependency inputs.
+- Both models correctly returned `-75%` for magnitude and `-125%` for signed-prior
+  comparison. KBF T2 preserved `(3,146,409)` / `(1,847,775)` million KRW and used
+  `(abs(current)-abs(prior))/abs(prior)*100`, returning `+70.2809595324106%` with
+  the reviewed narrative source. No normalization, sign, or evaluator patch ran.
+- Flash: 4 calls, no retry, `23.7292215s`; input/answer/thinking tokens
+  `25760/1709/2773`, cached input `3684`, total `30242`; estimate USD `0.01793832`.
+  Pro: 5 calls, one retry, `52.9797268s`; tokens `31995/1284/4929`, cached input
+  `14594`, total `38208`; estimate USD `0.0857055`. Combined USD `0.10364382`,
+  below approved `0.60`; actual billing is unobserved. Per-model time includes
+  compilation, validation, execution and retry, not pure generation latency.
+- All nine final responses ended STOP and parsed successfully. Socket-blocked
+  replay reproduced every program/output/check, island diagnostic and prompt
+  byte/hash exactly, including the Flash failure. Initial prompts match across
+  both models. Result/input/fixture/admission/predecessor hashes are unchanged.
+  Retrieval, planner, evaluator, embedding and source-store operations were 0.
+- Approval is exhausted. No paid rerun, production model change, or runtime
+  patch occurred. One small budget-matched trial does not establish general
+  model superiority or full-agent readiness. The next proposed gate is Pro on
+  the five reviewed real questions, with a new manifest/cost/transmission approval.
+- Immutable ignored result:
+  `benchmarks/results/compiler_model_comparison_2026-09-06/result.json`
+  (SHA-256 `160680c8ff1977248c122b1fda5d0eea662e31dca8d1395676c12bc5a7d6d754`).
+  Captured-response replay in the same directory: `captured_response_replay.json`
+  (SHA-256 `c7286a1eb104811ef4a6f61a80223041582f0fd707b5420afbcbf93ac9b5dc7e`).
+
+## 2026-09-07: Pro-only compiler gate passes all five reviewed real questions
+
+- The user explicitly approved Google transmission and admission
+  `dd8e92f1cad5814b23677a21ee091a65b0cf8dfc81b9d5ecf30bb15e3ad642f1`,
+  binding clean `bd6bd49d61e03a91406510432d516cfa6707d8e6`, runtime source SHA
+  `12a727d04e262a6ab2c429c39dd9a33d7638f0d94136992fe3469347de8ec6e6`,
+  the unchanged five-case reviewed fixture, Gemini 2.5 Pro, temperature 0,
+  output/thinking `4096/1024`, client retries 0, and USD `0.70`.
+  Both separate-process no-call receipts hashed `bb992e15...3043` (41,027 bytes).
+- One foreground process exited 0 after `74.3s`, with 30/60-second heartbeats
+  and no restart. All five cases passed in the approved order, using six islands,
+  six calls and zero internal retries. No further provider execution occurred.
+
+| Reviewed case | Observed compiler/executor result |
+| --- | --- |
+| KBF_T1_017 | `1.83%`, `1.73%`, and dependency subtraction `0.10%p` |
+| KBF_T2_018 | Negative source amounts preserved; magnitude growth `+70.2809595324106%` and reviewed narrative source |
+| LGE_T1_051 | `2,163,234 - 676,874 = 1,486,360` million KRW, using declared answer dependencies |
+| NAV_T2_006 | Source display `41.4%`, calculated trace `41.39137193937039`, and both reviewed narrative sources |
+| CEL_T1_013 | Capitalized-development ratio `52.992379963193336%`, rendered `52.99%` |
+
+- Every response ended STOP and parsed; all validations were ready, all executions
+  ok, and validation/execution errors were zero. Selected candidate sets matched
+  review. KBF T1, LGE and NAV bound declared preceding answer outputs as formula
+  inputs. No retry occurred, so this run does not test retry dependency context.
+- Replaying all six captured final responses with sockets/provider creation
+  blocked reproduced every program, output, validation/check, island diagnostic
+  and prompt byte/hash. Prompt fingerprint `372d966f...4db4` matches admission.
+  Corpus, manifest, rehearsals and predecessor comparison hashes are unchanged.
+- Usage: 6 calls; 44,767 input tokens (15,075 cached), 2,082 final-answer tokens,
+  6,059 thinking tokens, 52,908 total. Estimated cost USD `0.120409375`; actual
+  billing is unobserved. Retrieval, planning, evaluator, embedding and source-store
+  reads/writes were outside this compiler-only harness and were not performed.
+- Approval is exhausted. No runtime/prompt/default-model change, oracle adjustment,
+  fresh ingest or runner retry occurred. This is compiler selection over compact
+  source-derived reviewed fixtures, not fresh retrieval, full-agent faithfulness,
+  or a new release claim. Next work is to assess a separately approved store-fixed
+  full-agent gate, not automatically switch production models or rerun paid work.
+- Immutable ignored result:
+  `benchmarks/results/reviewed_compiler_pro_2026-09-07/result.json`
+  (SHA-256 `30ba48223a416975360f91630e7286322af2b2b6cb8cd8df694e48317a534fed`).
+  Captured-response replay in the same directory: `captured_response_replay.json`
+  (SHA-256 `1c541486c80e44f56376d188a30b52f75df2f1f2d9110a08469c6642630483ba`).
+
+## KB Store-Fixed Full-Agent Integration (2026-09-07)
+
+- Explicit approval bound manifest
+  `138b5fbcfcbd05cf0cda328142f1f14176b0ba4d440efd4691cfdde72251a028`,
+  unchanged dataset order `KBF_T2_018` then `KBF_T1_017`, one worker/run and USD 0.40.
+  Runtime ran on clean `457d776`, source-content hash `fa9be327...ae25`, Python 3.13.13.
+  The two no-call receipts matched (`151039e7...5cc2`) before provider dispatch.
+- The existing eval-only runner used a disposable copy of the approved 2,093-vector
+  OpenAI store. Gemini 2.5 Pro was configured for compiler/evidence extraction,
+  Flash for other phases, output/thinking 4096/1024, SDK retries disabled.
+  Paid evaluator judges and evaluator embedding metrics were deliberately skipped.
+- One process completed in 107.5 seconds with 30-second heartbeats. Both questions
+  had two completed outputs, validation ready, execution ok, runtime errors zero,
+  missing outputs zero and ledger ok with no integrity issues. No compiler retry occurred.
+  Fourteen searches used successful hybrid retrieval; two reused those exact cached queries.
+
+| Case | Source-grounded runtime answer | Unmodified numeric evaluator |
+| --- | --- | --- |
+| KBF_T2_018 | `(3,146,409)` and `(1,847,775)` million KRW retained; `(abs(A)-abs(B))/abs(B)*100 = 70.2809595324106`, rendered `70.28%`, plus retrieved risk-scenario explanation | PASS |
+| KBF_T1_017 | Same physical NIM row: `1.83%`, `1.73%`, difference `0.10%p` | FAIL: tokenizer falsely extracts `2023 명` and `2022 명` from the following word `명목순이자마진` |
+
+- T1's displayed values match source and reference. Its FAIL is caused by
+  `src/ops/evaluator.py:_extract_numeric_candidates` accepting a count-unit prefix
+  inside a following word; `_compute_numeric_equivalence` then reports unsupported
+  headcounts. Socket-blocked reproduction confirms the exact extraction and FAIL.
+  No evaluator, runtime answer, dataset, tolerance or original result was changed.
+- Six Gemini requests (four Flash, two Pro) and 17 OpenAI embedding requests all
+  completed. Embeddings were the fixed 74-query routing batch, two routing questions,
+  and 14 search queries; no filing/document ingest embedding occurred.
+  Usage-based cost without cache discounts: USD `0.10416639`, below USD 0.40;
+  actual billing is unobserved. Provider/429 errors and automatic reruns were zero.
+- Socket-blocked exact runtime replay reconstructed both catalogs and repeated
+  the saved visibility/validator/envelope/executor path: 2/2 passed. Manifest inputs,
+  source store and original result hashes remain unchanged. No extra provider call ran.
+- Runtime integration gate is 2/2; unmodified numeric evaluation remains 1 PASS / 1 FAIL.
+  Skipped judge zeros mean unmeasured, not failed faithfulness. This is not a new
+  full-release or HTTP startup claim. Approval is exhausted. Next work is a generic,
+  provider-free evaluator token-boundary regression/repair, preserving this predecessor.
+  LG/NAV store preparation and Celltrion store absence remain separate work.
+- Immutable ignored artifacts under `benchmarks/results/reviewed_full_agent_kbf_2026-09-07/`:
+  `kb-2023/results.json` SHA `2868505060070397cada2d4ee8c043575592ac31570511c026122e17ef8b1568`;
+  `run_receipt.json` SHA `d56de29490f83e7b4406872261664b88a2c863eb0ca1a9a25b8eb82a6758e8c1`;
+  `exact_runtime_replay.json` SHA `165996c8f05be795812d3ca1cf2d861c484e89b1eeb70277c3b0904d8d7d6f71`;
+  `post_run_review.json` SHA `07849f81af392ccdea64f7473552757ad6a7365b9ec958822364dfe0354b5527`.
+
+## Count-Unit Boundary Evaluator Repair (2026-09-07)
+
+- The saved T1 false FAIL was reproduced before repair. The evaluator's `명/개/곳`
+  extractor now requires a complete token or supported Korean grammatical suffixes,
+  so a following word cannot contribute just its first character as a count unit.
+  Candidate spans exclude the suffix, and signs/precision stay unchanged.
+- Regression coverage includes word prefixes, attached/spaced counts, postpositions,
+  copulas, exact spans and unsupported real counts. This is evaluator-only parsing:
+  no company/question branch, runtime change, dataset edit or tolerance relaxation.
+- Focused evaluator/math tests pass 129/129; import/topology 22/22, documentation 2/2,
+  domain audit (84 reviewed literals), pycompile and diff checks pass. The full runtime
+  suite was not repeated for this isolated evaluator seam; its last gate remains 958/958.
+- The existing `replay_full_eval_from_results` scorer processed only the two saved
+  KB answers, with sockets and provider factories blocked. Disabling only the new
+  boundary reproduces original PASS/FAIL; current scoring gives PASS/PASS. Grounding
+  is inherited from the saved result, not a new judge call. Answer, evidence, program,
+  original-result and dataset hashes remain unchanged; no agent/provider/store activity.
+- Original full-agent results still contain T1 FAIL. The ignored evaluator-only
+  successor is `benchmarks/results/kbf_count_unit_boundary_replay_2026-09-07/summary.json`;
+  its receipt SHA is `b7048b34b52360c7271f3d458f269e646d3da1ba22ff88e80b9011c0d3605f1b`.
+  This corrects lexical scoring, not model accuracy or faithfulness; no paid rerun occurred.
+
+## LG/NAV Existing-Source Rebuild Preparation (2026-09-07)
+
+- On runtime baseline `e1a3889`, a read-only SQL/graph/payload audit verifies all
+  783 LG 2023 and 1,837 NAV 2022/2023 documents. Rebuild input text is byte-identical
+  to stored vector text; all 125 parents and 2,099 table payloads are present.
+  Source-directory hashes equal the previous readiness audit and stay unchanged.
+- NAV's 747 documents from 2022 and 1,090 from 2023 are retained: the unchanged
+  question source inventory names both reports. No answer-directed chunk subset,
+  reparse, contextualization or original-store mutation is needed. Existing Google
+  vectors cannot be adopted as OpenAI vectors by changing their manifest.
+- Exact local tokenizer volume is 2,630,085 document tokens. One <=500-character
+  stored-text health probe per store adds at most 1,026 tokens. At the official
+  OpenAI standard USD 0.13/M rate, the estimated upper cost is USD 0.34204443;
+  proposed cap USD 0.40, billing unobserved. Runtime code is unchanged.
+- New manifest `3109b537d095f1fe06c9f330fe874e7818b0a83a6cbd1e64a00680fcdb60a865`
+  binds exact texts, source hashes, runtime/packages, new targets and request plans.
+  It proposes LG then NAV, one attempt each, <=44 OpenAI embedding requests,
+  SDK/outer retries disabled, no resume and first-failure stop with artifacts retained.
+  Full-agent questions and Celltrion remain outside this store-only boundary.
+- Two separate read-only inventories match at `b5c6245d...734e`; production-order
+  no-call receipts match at `81c9ff87...5772`. They stop before target/provider
+  creation. Existing focused store tests pass 20/20; admission mock-transport tests
+  pass 5/5, including real-text batch encoding and an installed-SDK 429 single attempt.
+  Script pycompile passes. No full runtime suite rerun or new model result is claimed.
+- Provider requests and source writes are zero; new target stores do not exist.
+  Separate data-transfer/budget approval is still required. The ignored manifest,
+  scripts and receipts are under `benchmarks/results/reviewed_lge_nav_store_preparation_2026-09-07/`.
+
+## Approved LG/NAV Existing-Source Rebuild (2026-09-07)
+
+- The user explicitly approved sending saved LG 2023 and NAVER 2022/2023 DART
+  chunks and bounded health excerpts to OpenAI under manifest `3109b537...a865`,
+  one rebuild per store and USD 0.40 total. Clean checkout `bf512e7` retained the
+  manifest-bound `e1a3889` runtime bytes. Execution ran LG then NAV once.
+- LG: 783 vectors, 41 parents, 699 table payloads; 13 document calls and one
+  health query, 624,913 input tokens, usage-estimated USD 0.08123869.
+- NAV: 1,837 vectors covering the original 2022/2023 inventory, 84 parents,
+  1,400 table payloads; 29 document calls and one health query, 2,005,625 input
+  tokens, usage-estimated USD 0.26073125.
+- Total: 44 successful OpenAI embedding requests, 2,630,538 reported input tokens,
+  146.368 seconds, no 429/errors/retries. At the confirmed official USD 0.13/M
+  rate, estimated USD 0.34196994 is below the cap; billing remains unobserved.
+  Thirty-second heartbeat ended completed. No Google, generation, evaluator,
+  fresh fetch, parsing, contextualization or question execution occurred.
+- Both separate-process dense-health checks and strict manifest readiness pass;
+  degraded false. Output SQL texts, physical provenance and parent maps match
+  saved source inputs. All original store hashes remain unchanged. Both new
+  manifests have SHA `58251b09bb516a7f12c60a665d0124c4340d178614d3bb33196b02d12c159239`.
+- Socket-blocked post-run review independently rechecked SQL/manifest/provenance,
+  runtime/source hashes and usage without provider/Chroma construction or store
+  writes. This closes store readiness only, not full-agent answer quality.
+- Ignored result directory: `benchmarks/results/reviewed_lge_nav_openai_stores_2026-09-07/`.
+  Run receipt SHA `72bc11d001e9b4f3bc95130069c4bf1544c71523931670445232d47bf5608fee`;
+  read-only review SHA `50fbc2e17aa0984ff1e15a367042ab1513ac1034d7c4ab2afeb2b79053fd1c7c`.
+  Approval is exhausted. Next is a separately approved store-fixed full-agent
+  admission for LG/NAV using disposable copies; Celltrion and default KB stay out of scope.
+
+## LG/NAV Store-Fixed Full-Agent Admission Preparation (2026-09-07)
+
+- On clean `70fc65f`, prepared manifest
+  `461b3d4300edbfa25fe9c0ffeb8f37ded801488d3ca3682bc3deb135c2ad84c8`
+  for `LGE_T1_051` then `NAV_T2_006`, one existing matrix-runner eval-only attempt.
+  Runtime source is unchanged. Both complete OpenAI stores match the successful
+  rebuild review; disposable copies preserve all 2,620 vectors and report inventory.
+- Configuration/report inventory is projected from legacy results, but embedding
+  identity comes exclusively from the new OpenAI manifests. Neither legacy Google
+  metadata nor old evaluation/ingest claims are carried into the new experiment.
+- Reuses KB's tested Pro compilation/evidence extraction and Flash other-phase
+  routes, 4096/1024 budgets, zero SDK retries and at most one internal island retry.
+  Search/canonical routing use OpenAI; fresh filing embedding/ingest, paid judges,
+  evaluator embedding metrics, source mutation and automatic run retry are forbidden.
+- Proposed shared cap USD 0.40; planning range USD 0.10–0.30 from earlier KB/Pro
+  usage, not measured LG/NAV request volume or billing. Official Google/OpenAI
+  rates were rechecked; the existing budget guard/self-tests are reused byte-for-byte.
+- Focused runner/routing/provider/embedding tests pass 49/49, guard tests 7/7.
+  Two network-blocked separate-process rehearsals verify company/store/question
+  dispatch and matching model controls. Receipts match at
+  `ca500b8804fd30c98706490fc96b0beab79b354d1a12f14932ac58f8d379db5f`
+  (4,554 bytes); source files remain unchanged and scripts pass pycompile.
+- No provider call, new question answer or source-store write occurred. The paid
+  target remains absent; data-transfer/budget approval is still required. Ignored
+  manifest/scripts/receipts: `benchmarks/results/reviewed_full_agent_lge_nav_admission_2026-09-07/`.
+
+## Approved LG/NAV Store-Fixed Full-Agent Result (2026-09-07)
+
+- Explicit data-transfer/one-shot/USD 0.40 approval for `461b3d43...84c8` ran on
+  clean `af9f060`, preserving admitted runtime `f30f0594...544d`. LG then NAV,
+  one worker, 119.93 seconds and 30-second heartbeat. Source stores were copied;
+  all immutable input/source hashes remain unchanged. No fetch/ingest/filing embedding.
+- Nine Gemini calls (4 Flash + 5 Pro), 19 OpenAI embedding calls, all completed;
+  no API errors/429 or SDK retry. Two allowed internal compiler retries, no run
+  retry. Usage-estimated USD 0.20988988 < 0.40; billing unobserved.
+- Runtime completeness is 0/2. LG completed 2/3 obligations: retained profit
+  `2,163,234백만원` and source-rounded AMPC `6,769억원`, but not the subtraction.
+  Initial missing scope witness caused binding/dependency/assertion rejection;
+  retry repaired the direct bindings, then hit `expression_context_mismatch`
+  on `context_fingerprint` between the table and prose sources. Evaluator FAIL retained.
+- NAV completed only the narrative obligation (1/2), using one Poshmark source.
+  Its first `전기` candidate of `1,801,079백만원` from the 2023 report was rejected
+  for visibility/semantic/period applicability; catalog period is relative and
+  value_year absent. Retry selected the same amount from a 2022 report, then hit
+  the same context-fingerprint error with current revenue/source display from
+  other tables. Numeric judgement null is N/A, not completion or pass.
+- Both ledgers are ok with zero integrity issues; exceptions/execution errors 0.
+  Each question has eight successful hybrid queries, no degraded fallback. The
+  gate failure is numerical-output validation, not provider transport or store health.
+- Socket-blocked catalog/validator/executor replay reproduces both saved partial
+  outputs exactly (2/2 replay checks, not 2/2 answers). Rejected raw expression
+  ASTs are absent from the pruned final program; review preserves validation
+  history and reconstructed proposed candidate metadata without inventing ASTs.
+- Independent read-only review SHA `ebe45bcee5c3a4822cacbb882c0d5b89f049c3341f96c9ce0508c6ae40572b88`.
+  Results: `benchmarks/results/reviewed_full_agent_lge_nav_2026-09-07/README.md`.
+  Approval exhausted; artifacts preserved, no runtime fix or paid rerun. Next
+  provider-free seam: relative-period resolution and source identity versus
+  semantic calculation compatibility, retaining genuine scope/provenance checks.
+
+## Approved LG/NAV Period-Context Successor Result (2026-09-07)
+
+- Explicit data-transfer/one-shot/USD 0.40 approval for manifest
+  `03f03d99ff816a3fb64e671008578b9d07771fba254f73f4d6f8554ae194237e`
+  ran on clean `5fe3a5f`, with source repairs from `1e562fb` and admitted runtime
+  SHA `39c427b28dcf485366a244750e47b36b635b415e8cff1dc69d9faecfa53ce6a5`.
+  Separate-process no-call receipts matched `546cb74c...cfa0` before dispatch.
+- LG then NAV, one worker, 116.909 seconds and 30-second heartbeat. Eight Gemini
+  requests (4 Flash + 4 Pro), 19 OpenAI embedding requests, all completed. One
+  allowed LG internal compiler retry; no provider failures, SDK/run retry, new
+  filing embedding, fetch, ingest, or source-store write. Usage estimate includes
+  80,048 input tokens and 12,320 output/thinking tokens: USD 0.17174414 < 0.40;
+  actual provider billing remains unobserved.
+- Runtime required-output completion improves from 0/2 to 2/2. Final validation
+  is ready and execution ok for both; exceptions/execution errors 0, both ledgers
+  ok with zero integrity issues. Eight hybrid queries per question have positive
+  vector results with no degraded fallback. This is not two quality-approved answers.
+- LG preserves the three selected source IDs and exact source assertion from its
+  predecessor. Its first missing-scope-witness error is repaired within the one
+  allowed retry. The cross-source subtraction now completes all three obligations:
+  `2,163,234백만원 - 6,769억원 = 1,486,334,000,000원`.
+  The input is still approximate AMPC, not precise `676,874백만원`. Numeric FAIL
+  remains `no_atomic_accepted_calculation_variant`: displayed claims match the
+  rounded answer variant, but the trace does not match either atomic variant's
+  value/label, source-anchor and scope constraints. No evaluator tolerance,
+  dataset, output, or provenance was changed to force acceptance.
+- NAV uses `cand_2027eeef0a303f1e006c` and `cand_1f4468e30585e0368482` from the same
+  physical row: source labels 당기/전기 stay intact and resolve to 2023/2022.
+  `(A - B) / abs(B) * 100` yields 41.39574110852439%; source display
+  `cand_3536af4636a8d67fcb56` supplies 41.4%. No compiler retry is needed.
+  Its narrative selects `cand_48a6308b60133927a222`, replacing the predecessor's
+  financial-impact excerpt with generic service positioning. It does not explain
+  acquisition performance; heuristic completeness is 0.625. Numeric judgement
+  null is mixed-question N/A. The narrative island also declared another island's
+  obligation missing; `unknown_program_obligation_id` remains in attempt history
+  while merged final validation has no errors. No new execution authority leaked.
+- Socket-blocked exact saved-program/catalog/visibility/validator/executor replay
+  passes 2/2 without changing decisions or generating another answer. All manifest
+  input, admitted runtime and original store hashes remain unchanged. Judge metrics
+  were not measured; console zeros are not measured faithfulness failures.
+- Ignored outputs: `benchmarks/results/reviewed_full_agent_lge_nav_period_context_2026-09-07/`.
+  Run receipt SHA `f7579da2706a811d4ad00d65101205d67cebf59511f5ed2376f0fed4b1636155`;
+  exact replay SHA `f904e397fa15097983502f8e6e02448c4df1a76a2d3621ae48a0c59980c35a7b`;
+  independent read-only review SHA `66d5b9270a96b1633387a03b46967bf74e0ed74232c3a7bf9f6bc205b58da051`.
+  Approval exhausted. No source fix or paid rerun; next bounded work is provider-free
+  LG precision/provenance and NAV narrative evidence-coverage review. Celltrion,
+  default KB 2022, broad release claims and fresh provider work remain out of scope.
+
+## Approved LG/NAV Source-Reparse Vector-Reuse Successors (2026-09-07)
+
+- Explicit data-transfer/one-shot/USD 0.10 approval for manifest
+  `ac0a3ea77fcb4a05d49722f6f722084c8c758d65fd4c2774e9f1a7b773a42c89`
+  executed once on clean `639ee86`. It used the frozen v2 parser preparation,
+  not another fetch, reparse, context-generation call or whole-store embedding.
+- LG 20 and NAV 453 unique missing texts produced nine OpenAI embedding requests.
+  All completed with 444,973 reported input tokens; usage-estimated cost
+  USD 0.05784649 < 0.10, billing unobserved. SDK/automatic retries, API errors and
+  failed builds were zero. Approximate attempt-to-receipt wall time was 79.7s;
+  the 30-second heartbeat recorded embedding and local-build progress.
+- New stores have 783/1,872 vectors, including 763/1,417 exact-input reused vectors,
+  699/1,428 table payloads and 41/84 parents. Separate socket-blocked builder
+  processes checked complete snapshot readback and local dense probes (6/6)
+  before manifest-last publication. Strict readiness passes 2/2, degraded false.
+- All 21 original inputs, admitted runtime and predecessor preparation/result
+  bundles remain unchanged. Read-only post-review matches supplied vectors to
+  all provider response indices/values, usage and request plans, then freezes the
+  new store file hashes without opening their indexes or calling a provider.
+- Run receipt `b419292c9bd5afc41c53ba11701be527bb6e1b3bff807637131ba5e3ad465f83`;
+  review `ea25cc1c6da5221cdff70a5b46328dec5ebf838a875a8dd540d26e586f73fe4e`.
+  Results: `benchmarks/results/parser_successor_openai_stores_2026-09-07/README.md`.
+  Approval exhausted. No full-agent/evaluator execution, default-store switch or
+  new answer-quality/release claim. Next: provider-free candidate/context preflight
+  on working copies, then a separately approved store-fixed LG/NAV full-agent gate.
+
+## LG/NAV Successor Candidate Preflight (2026-09-07)
+
+- On runtime `7cf5522`, socket-blocked working-copy inspection passes strict
+  readiness/source integrity 2/2 and document-vector self-search 6/6. Provider,
+  embedding and compiler calls are zero. Frozen successor store file hashes match.
+- Saved search strings run through real BM25 plus current source supplements and
+  evidence selection with explicitly reconstructed state and saved obligations.
+  Catalogs are 592/547; visible numeric/narrative IDs 8/3 and 10/7; v6 shared
+  contexts 14/16, compact payload bytes 46,598/85,544. Reversed inputs are identical.
+  This is not new planner output or hybrid-query ranking/answer-quality evidence.
+- LG precise AMPC rows are present but hidden from `ob_002`. Company-labelled
+  asset/liability rows with no metric match win because `document_subject` is
+  compared before `metric`. Both groups are unknown_only, not explicit conflicts.
+  A diagnostic neutral-factor projection exposes both precise rows; the unchanged
+  V2 validator/executor passes both with exact preceding-period context bindings.
+- NAV required current/prior amounts, source growth display and multiple acquisition
+  impact sources are visible. Two share cells still receive `백만원/KRW` despite
+  source `(단위 : 백만원,%)`; the old lifecycle probe has the same column-unit issue.
+- Context/period/retrieval focused tests 37/37; matching/cohort/bundle tests 25/25.
+  No runtime fix, store mutation, evaluator/dataset edit or new paid manifest.
+  Next: bounded generic ranking-authority and mixed-column-unit repairs first.
+- Review `0da83a80749bcae6c6dca2d7e1827518844f641d39d3b5bee6120d4ad5f29411`.
+  Ignored results: `benchmarks/results/parser_successor_candidate_preflight_2026-09-07/README.md`.
+
+## Current KB Compiler-Only Gate (2026-09-08)
+
+- Approved manifest `409a8ed269a8d7d5a25e62a040f99338e579d3e920aca8d22c76f924f2f91318`
+  ran once on clean `f015faf1141ab999a0a816aa2f9415d36878536d`: `KBF_T1_017` →
+  `KBF_T2_018`, Gemini 2.5 Pro, temperature 0, output/thinking caps 4096/1024, SDK retries 0.
+- Compiler-only **2/2 PASS** with two calls, zero retries and zero validation/execution errors.
+  T1 preserves the reviewed 1.83%/1.73% cells and computes +0.10%p. T2 retains negative
+  provision inputs and computes 70.28% using the model's magnitude-change formula;
+  its narrative selects the reviewed risk-scenario source. Both raw responses end STOP and parse.
+- Wall time 50.292s with 30-second monitoring. Reported usage: 33,833 prompt tokens,
+  1,017 output tokens, 1,955 thinking tokens, 3,491 cached input tokens. Usage-estimated
+  USD 0.068083875 (0.07201125 without cache discount) < approved 0.40; billing unobserved.
+- Actual captured-response socket-blocked replay is byte-identical for both programs,
+  validation/execution, island results and prompt fingerprints. SDK requests match
+  preflight; original source/input/store hashes are unchanged. No additional provider call.
+- Result SHA `9f32ce93223c567809b6a35eb34898e9d7b9b0d3d5d407e3b49d8d68d0c174e9`;
+  review SHA `731dd64078e265939831b492734a6e3ae39761564537cc21ab98b3892f5a32a8`.
+  Ignored artifacts: `benchmarks/results/kbf_current_compiler_admission_2026-09-08/RESULT.md`.
+- Approval exhausted; single-use claim and predecessor artifacts retained. No retrieval,
+  planning, evaluator, embedding, ingest, ledger assembly or store mutation ran. This is
+  fresh selection on frozen current catalogs, not synchronized full-agent/release evidence.
+  Old KB catalog replay still rejects its fingerprints; historical exact replay remains 3/5.
+
+## Eight New Source-Coverage Questions (2026-09-08)
+
+- On `126b0d5f`, authored eight questions over four immutable source stores: two each
+  direct values, calculations, table context and narrative synthesis. Supplied semantic
+  requirements and source-picked windows make this a favorable-condition preservation
+  audit, not unseen-model accuracy, retrieval, planner, execution or release evidence.
+- All 8 declared numeric target atoms survive original source/catalog projection;
+  only 6 are owner-visible. Footnoted NAV prior revenue and Celltrion revenue lose
+  exact metric priority, tie with broad alias matches, and miss the two-bundle cutoff.
+  Annotation-stripped metric-only copies improve tier 600 to 1000; no runtime fix applied.
+- Narrative bodies retain 4/6 inspected quotes; fixed 1,200-character prefix truncation
+  loses NAV's B2B paragraph and Celltrion's final funding-risk response. Other core
+  evidence survives. Ultium current group/blank standalone cells are a separate source
+  interpretation limit; period, group headers and note remain visible.
+- Reverse-order projections 8/8; exact original XML context/span checks 58; focused
+  matching/source-bundle/cohort tests 30/30. All original inputs and four stores unchanged;
+  provider/embedding/ingest/store-write calls 0. Experimental outputs remain ignored.
+- Report: `benchmarks/results/new_question_source_coverage_2026-09-08/REPORT.md`.
+  Confirmed source review `e5d04ca0d1fb3e6aac24bb0c4e8c123f1c91ed2f9ba7911184bd7392786ec182`.
+  Next: bounded metric annotation normalization, then narrative source-window preservation.
+
+## Source-Coverage Boundary Repairs (2026-09-08)
+
+- Metric fix `d59986ac` uses the existing parser-footnote helper on exact comparison
+  keys only; raw axes, semantic qualifiers and candidate identity remain unchanged.
+- Narrative projection separates known metadata prefixes from exact body windows
+  (1,200 characters/window, 4,800 body characters/source). Continuations reuse the
+  source-context dictionary and existing candidate; omitted tails are explicit.
+  Existing located bracketed notes are preserved. V2 binds continuation content/span.
+- Reprojecting the same eight source-picked inputs improves numeric owner visibility
+  6/8 → 8/8 and checked body quote visibility 4/6 → 6/6. All IDs/catalog fingerprints,
+  numeric record bytes and reverse-order invariants stay intact. Exact body-span checks: 13.
+  Total payload bytes: 144,996 → 141,529, not a token or billing measurement.
+- Focused tests 107/107; full unittest 1,128/1,128 (Python 3.13.13, 30.764s);
+  domain audit 84, import/topology/docs 24/24, pycompile and diff pass.
+- Original filings, four stores and predecessor audit remain hash-identical.
+  No provider/embedding/ingest/store writes, fresh retrieval/planner/compiler outputs,
+  or answer-quality/release claim. Ultium group/standalone ambiguity remains source-bound.
+- Local report: `benchmarks/results/new_question_source_repairs_2026-09-08/REPORT.md`.
+  Verified receipt SHA `ac3d4add408432f433e463bed587bac9fee7557ea0565e25991c60ca75da8d17`.
+  Outputs remain ignored; any model-backed selection/synthesis check needs new approval.
+
+## Whole-Source Compiler Pilot (2026-09-10)
+
+- After qualified HTML acceptance of 12 provisional references, the user delegated one
+  paid compiler-only run without another confirmation. Agent-announced cap: USD 2.00.
+  Clean checkout `7c7f079a`, runtime `7aa4adf2` / `5a74ff8d...9d7b`; manifest SHA
+  `989566857a7ec8394fc1572fdcbb3f9260226581b11856c2cb28d4029c2fd916`.
+- Whole-filing catalogs contain 51,388 candidates from 대한항공, KT&G and CJ제일제당 2025.
+  Question-authored requirements and current cohorts exclude gold from model inputs.
+  Two separate abstention-only SDK rehearsal receipts are byte-identical; guard/usage tests 16/16.
+- All 12 questions attempted: Pro 21 calls, three internal retries, transport failures 0,
+  arithmetic execution errors 0. Runtime complete 7/12; exact reference scalars 4/9 numeric
+  questions (8/21 outputs). Codex source review finds all three narratives deficient in
+  theme coverage, entity/business scope or absence claims; no new human/paid-judge score.
+- Estimated USD 0.90074875 without cache discount, billing unobserved; compiler loop
+  1,109.637s includes whole-catalog validation, not ordinary query latency measurement.
+- Preserved factor replay infers `2025년` as a local subject, hiding correct metric rows
+  behind date-matching unrelated rows. Numeric precision alternatives and narrative
+  subsidiary/absence claims are reported separately; no runtime or label fixes followed.
+- OpenAI, embedding, store mutation, planner/retrieval, full-agent, paid judges and batch
+  reruns 0. No ledger/release or untouched-source generalization claim. Delegation consumed.
+- [Local report and immutable artifacts](../../benchmarks/results/independent_pilot_compiler_2026-09-10/README.md).
+
+## Request/Source Boundary Anonymous Probe (2026-09-14)
+
+- The user delegated the next bounded validation without another approval prompt.
+  Runtime `ad51fa61`, assistant-selected USD 1.60 cap, one compiler-only run;
+  manifest `aa88c29ec8488fdace88db91096abdc028983a455062de1c7913c64560ccb163`.
+- Twelve anonymous questions were fixed as six pairs before runtime edits. Nine
+  received model results: seven accepted and source-reviewed correct, one
+  over-abstention, one wrong direction in a source-invalid reverse-comparison draft.
+  Structural acceptance is separate from source/meaning review, not a blended score.
+- Five questions used the one allowed retry for invalid context links; nine
+  `context_not_attached_to_candidate` occurrences, four repaired and one withheld.
+  The source-display pair's bare 110/100 operands were absent before execution;
+  missing candidates were not injected to make a compiler test pass.
+- Question ten stopped before generation at Google `countTokens` HTTP 404
+  `NOT_FOUND`; exact provider-side cause unestablished. Two questions remained
+  unattempted. Generation calls 14 / count attempts 15, runner restarts 0.
+- Estimated generation USD 0.257575 plus a separate USD 0.90 count contingency;
+  accounted USD 1.157575 below the cap, not an invoice or count-token tariff.
+  All 14 successful input counts matched observed generation input and linked
+  request fingerprints. No OpenAI/embedding/store/ingest/judge calls or mutations.
+- Two fresh real-SDK/socket-blocked rehearsal receipts were byte-identical; focused
+  source/authority/wire/server-count tests 32/32. Runtime, fixed inputs and old
+  artifacts stayed unchanged. No complete-pair, full-agent, ledger, or release claim.
+- [Local result/source review](../../benchmarks/results/request_source_boundary_compiler_2026-09-14_v2/RESULTS.md).
+
+## 2026-09-14 — Interrupted question continuation and bare-scalar coverage
+
+- User requested proceeding with only the 404-interrupted question and local
+  candidate repair. Under the prior no-additional-approval delegation, the successor
+  manifest `4cea0e537fcb645ede929c0ae628a56e0deaa8a70609a3cc9ae2ed46285c055d`
+  fixed one question, a USD 0.25 cap and at most two counts/two generations.
+- `CONTROL_05_B` ran on unchanged `2f80217e` source/input bytes. The identical
+  initial count request succeeded; the prior 404's exact provider-side cause remains
+  unknown. The model selected the correct separate row, but invented context links
+  and a schema-invalid retry prevented an accepted answer. No accepted output was
+  reconstructed, and no completed predecessor question was called again.
+- Generation 2 / count 2, generation estimate USD 0.03393625, separate count
+  contingency USD 0.12 (not billing). Both server input counts matched observed
+  generation usage. No SDK/runner automatic retry, embedding, store mutation or judge.
+- The subsequent catalog-only extraction change preserves legacy surface indices
+  and admits standalone unitless scalars independently of digit count. Existing
+  calendar exclusions and evaluation extraction remain unchanged; new values do not
+  inherit neighboring currencies. Source signs/spans, assertions and atomic budgets
+  remain enforced. No fixture-specific vocabulary or operand insertion.
+- All 12 control catalogs retain their old members' IDs, values, spans and physical
+  provenance. The source-display pair now passes authored, socket-blocked compiler
+  and V2 execution witnesses (source 11.5%, calculated 10%); model accuracy for the
+  two questions remains unmeasured. Frozen inputs/results/criteria were not rewritten.
+- Python 3.13 full unittest 1,660/1,660 (63.278s, no skips), focused 71,
+  import/topology/docs 24, domain audit 83 reviewed literals, pycompile/diff checks.
+- [Paid result and local coverage](../../benchmarks/results/request_source_boundary_remaining_2026-09-14/RESULTS.md).
+
+## 2026-09-15 — Numeric axis/context compiler successor
+
+- User explicitly requested proceeding without another approval prompt. The new
+  manifest `8998a3473b8ef4ffa5500783a801418afff4390f5434d8b093b3e0eb3d0a87d3`
+  fixed the prior context failure and two unattempted source-display questions,
+  assistant-selected USD 0.80 cap, one compiler-only run on clean `51330fe5`.
+  This was delegated authorization, not explicit user approval of a named SHA/cap.
+- Runtime V2 numeric transport attaches selected-cell axes deterministically and
+  quotes outside context once; independent bare-scalar catalog coverage supplies
+  real 110/100 operands. Original question/plan bytes, old candidate identities,
+  criteria, helper and predecessor evidence remain unchanged; no expected input
+  or historical model response was injected into live prompts.
+- All three source/execution validations passed; separate Codex source-semantic
+  review passed two. `CONTROL_05_B` selected the correct separate 2045 row, 23 items,
+  without invented context. Only one candidate was eligible: no two-visible-row claim.
+  `CONTROL_06_A` selected 110/100 and forward growth 10%, preserving source 11.5%.
+  `CONTROL_06_B` computed 10% but wrongly chose source display 11.5% despite the
+  explicit calculation-only request. Its raw response already contains that choice.
+- This is an observed display-intent error, not missing evidence or arithmetic.
+  The generic source-first instruction omits explicit calculation-only precedence;
+  the model's stated reason is consistent with over-applying it, but sole causation
+  has not been demonstrated. No runtime/criterion/result correction or paid retry
+  followed. Request-priority semantics is the next generic contract seam.
+- Generations 3 / token counts 3, internal retries 0, provider errors/404 0.
+  Input tokens 13,031; output plus thinking 4,209. Generation estimate USD
+  0.05837875 without cache discount; count contingency USD 0.18; accounted total
+  USD 0.23837875 below cap. Contingency is not an observed tariff or invoice.
+- Two independent socket-blocked real-SDK rehearsals were byte-identical, receipt
+  SHA `0f9acf0f701b4f3d48d2111315b560e10ff080407841d2c7229bcf3de4d7fc74`.
+  Focused numeric/wire/prose/count tests 44/44 passed before calls; prior implementation
+  gate was 1,672/1,672. All manifest-bound files and the frozen fixture were verified
+  hash-identical after the run. OpenAI/embedding/planner/retrieval/judge/store writes 0.
+- Three previously exposed synthetic questions, not human gold or unseen holdout.
+  No current full-agent/final-answer/HTTP/ledger, context-rich model performance or
+  generalized retry-reduction claim. Manifest consumed; no automatic rerun.
+- [Immutable output and source review](../../benchmarks/results/numeric_grounding_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Request-first display-intent compiler successor
+
+- User continued under the prior no-additional-approval delegation. Manifest
+  `67788de2d89c1a3448ece8e4719cb60f388890abaa875f0b72e0f3d3782c09ff`
+  fixed `CONTROL_06_A/B`, clean runtime `a2d89d40`, one Gemini 2.5 Pro compiler-only
+  execution and assistant-selected USD 0.50 cap, announced before calls. This was
+  delegated authorization, not explicit approval of this named SHA/cap.
+- Each input case (question, fixed plan, catalog) and pre-frozen criterion is
+  canonically byte-identical to the numeric predecessor. Existing candidate IDs,
+  source spans, helper and results are unchanged. Expected labels, authored
+  witnesses and historical model responses were never live inputs.
+- Source/execution validation 2/2; separate Codex source-semantic review 2/2.
+  Both select current 110 / previous 100 and calculate forward growth 10%.
+  A retains source 11.5% plus calculated 10% with separate provenance. B selects
+  null source display and primary 10%, explicitly citing the calculation-only
+  request. These are raw model choices, not a lowering correction. No invented
+  rounding explanation. The predecessor's B failure remains immutable.
+- Generation 2 / token count 2, retries 0, provider errors/404 0. Input 9,508;
+  output plus thinking 2,763 tokens. Generation estimate USD 0.039515 without cache
+  discount; count contingency USD 0.12; accounted USD 0.159515 below cap. Estimates
+  are not an invoice; contingency is not a count tariff. Each generation request
+  grew 892 SDK bytes and 120 input tokens versus its prior counterpart.
+- Focused display/wire/prose/server-count tests 39/39. Two independent socket-blocked
+  real-SDK rehearsals byte-identical, SHA
+  `42af08ff30156345843ca845ea7660ddfbfee15be90d0235e2b0d052b567b465`.
+  Runtime, fixture and every bound file verified unchanged after calls. Prior
+  implementation gate 1,678/1,678; no runtime edits in this experiment turn.
+- Two previously exposed synthetic fixed-plan controls, not human gold or unseen
+  holdout. No general semantic accuracy, isolated prompt-component causation,
+  context-rich/table, retry reduction, planner/retrieval/final-answer/HTTP/ledger
+  or full-agent claim. Comparison direction and over-abstention remain separate.
+  OpenAI/embedding/ingest/store/judge calls or writes 0; manifest consumed, no rerun.
+- [Immutable output and source review](../../benchmarks/results/display_intent_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Numeric reading and abstention compiler probe
+
+- User explicitly delegated experiments without another approval prompt. New manifest
+  `24deb34370e61d7508cdb1eca7a4d3f4501d43b5098a02c0500b11b8bcd2141a`
+  fixed eight cases, clean runtime `02c799a0`, Gemini 2.5 Pro compiler-only once,
+  assistant-selected USD 1.20 cap. This is not user approval of a named SHA/cap.
+- Original parent/child and forward/reverse pairs retain canonical input/criterion
+  bytes. Four variations change names/values/order, add explicit reference wording
+  or a genuinely incomplete/overlapping coverage caption. They were authored after
+  implementation but before calls, not unseen holdout or a one-factor causal ablation.
+  Expected labels, historical answers and offline witnesses were not live inputs.
+- Source/execution accepts four numeric outputs. Separate Codex source review finds
+  three correct numeric answers and one accepted wrong reverse direction. Withheld
+  outputs are one appropriate evidence-gap abstention, two excess abstentions and
+  one scope-declaration rejection. These are not a blended semantic success rate.
+- `CONTROL_02_A` and renamed/reordered `VAR_ROW_01` again conjecture group-total
+  ambiguity instead of selecting the explicit parent row under the frozen criterion.
+  The child row is selected correctly. `VAR_ROW_02` appropriately cites its attached
+  coverage caption and does not manufacture a complete group scalar from partial rows.
+- `CONTROL_03_A` selects correct operands and forward formula in both raw responses,
+  but assigns period names to `interpretation.scope.segment`; both attempts fail
+  `expression_context_mismatch(segment)`. This is not voluntary abstention or an
+  arithmetic error. `CONTROL_03_B` repairs a basis conflict but retains a forward
+  formula, producing -10% instead of the requested reverse +11.111…% while passing
+  execution checks. Explicit-reference variations produce +50% and -33.333…%.
+- Generations/counts 10/10, existing internal retries 2, SDK retries 0, provider errors
+  0. Input 53,829 and output including thinking 13,002 tokens; generation estimate
+  USD 0.19730625 without cache discount, count contingency USD 0.60, accounted
+  USD 0.79730625 below cap. Contingency is not observed count pricing or an invoice.
+- Focused 41/41 before calls. Two independent socket-blocked real-SDK rehearsals are
+  byte-identical, SHA `c9d7ab84833bca89ef65b4008adac9613eef8d13e76b9af4f782cac99d14ce3a`.
+  Runtime, fixture, all bound predecessor/input files and original criteria verified
+  unchanged after calls, before documentation edits. Two IDs remain exposed per attempt.
+  Prior implementation gates 104 focused / 24 import/topology/docs; latest full suite
+  remains 1,678 on `a2d89d40`, not rerun for this experiment-only task.
+- No new runtime patch, forced row, formula correction, criterion relabeling or paid
+  rerun. First reproduce scope declaration/grounding/feedback with actual drafts and
+  independent true-conflict negatives provider-free; inspect request scope/direction
+  separately. No instruction-only general remedy or full-agent/HTTP/ledger claim.
+  OpenAI/planner/retrieval/judge/embedding/ingest/store writes 0; manifest consumed.
+- [Immutable output and source review](../../benchmarks/results/numeric_reading_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Comparison request binding, same-source direction controls
+
+- Exact user approval bound manifest
+  `b2a68ca0e1e329c6c91e412f654e3d37e6045404fddfa1137bdfac2c908ff0f0`, clean runtime
+  `9837d78b`, Gemini 2.5 Pro compiler-only once, four fixed cases and USD 0.60 cap.
+  All source catalogs/plans byte-identical; two original inputs/criteria unchanged.
+  Two explicit-reference controls were authored before calls but after implementation.
+- Source/execution accepts 4/4; separate Codex review against frozen synthetic
+  criteria finds 3 correct directions and 1 wrong direction. All four retain exact
+  comparison request links; only three assign the requested endpoints correctly.
+  The original reverse question still gives -10% instead of +11.111…%, while the
+  same-source explicit-reference reverse question is correct. No abstentions.
+- Original reverse draft places the previous candidate under the current requirement.
+  `candidate_not_authorized_for_output_input` correctly rejects it. Its one retry
+  repairs nesting only, leaving previous=reference/current=target and the wrong
+  forward result. The rationale changes directed wording to a comparison “between”
+  periods; arithmetic executes the submitted formula correctly. Request ID binding
+  does not prove semantic correctness. Fixed-plan `growth` bias is only a hypothesis.
+- Generations/counts 5/5, internal retries 1, provider errors 0, SDK retries 0.
+  Input 28,133; output 1,797 plus thinking 5,544 = 7,341 tokens. Generation estimate
+  USD 0.10857625 without cache discount; count contingency USD 0.30; accounted
+  USD 0.40857625 below cap. No observed count tariff or invoice. Case time 69.129s.
+- Focused 41/41 before calls; two separate socket-blocked SDK receipts identical,
+  SHA `b18cc789d55a7454f09e1ca43fa8c5cef03545ec9f0094322ba5985b7d52a76d`.
+  First paid request hashes match rehearsals; count/generation hashes and input
+  tokens agree. Runtime, all bound files and original inputs/criteria verified
+  unchanged after calls, before docs. Latest full suite 1,706 on the same runtime;
+  not rerun for this experiment-only task. All attempts expose the same two candidates.
+- Manifest consumed. No runtime patch, automatic rerun, source/store mutation,
+  OpenAI/planner/retrieval/judge/embedding/ingest call, formula repair or criterion
+  change. No unseen/human-gold/general/full-agent/HTTP/ledger/release claim.
+  Next inspect request/endpoint interpretation and competing plan instructions
+  provider-free rather than adding fields or flipping formulas from this case alone.
+- [Immutable output and raw-response review](../../benchmarks/results/comparison_binding_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Post-exposure plan metric hints, provider-free ablation
+
+- Inspected the failed direction pair's actual prompts and fixture origin on clean
+  `b56c9958`. `growth` is authored by the frozen fixture's `owner_for`, then copied
+  into label and metric_surfaces; no actual Planner was called. Planner failure and
+  causal label bias are not established. Existing direction instructions stay fixed.
+- Diagnostic-only copied prompt values clear those two derived-output fields after
+  exposure. Query/requests, canonical plan, source catalog, requirements, subjects,
+  concepts, scope/unit/period, permissions, schema and retry feedback remain unchanged.
+  No runtime rule or production hint-removal path was added; artifacts stay ignored.
+- Five diagnostic contracts and 41 existing focused tests pass. Two separate blocked-
+  socket captures are byte-identical, SHA
+  `5bee0e87b53fb018ef41544bc7597e1f37ebe805dc69e618482864b901a21d2f`.
+  Four saved cases replay their five original wire responses in both variants:
+  all program/validation/execution and complete V2 envelope bytes remain identical,
+  including the wrong reverse -10% and the correctly rejected first input placement.
+- Each initial prompt text shrinks 14 UTF-8 bytes, two metric mentions to zero;
+  this is not SDK-token or model-accuracy measurement. Provider/store writes 0,
+  predecessor bytes unchanged. A response-free initial-input pack is prepared,
+  not a paid admission. Next compare original direction pairs with/without hints
+  only after a new bounded manifest; no correction or automatic rerun was performed.
+- [Provider-free analysis and comparison inputs](../../benchmarks/results/plan_metric_hint_ablation_2026-09-15/README.md).
+
+## 2026-09-15 — Plan metric hints, approved original/neutral Compiler A/B
+
+- Approved and consumed manifest
+  `045a3eb536d0fad95aabac2fdf627a6549fae729f8b0ee1826f379ae1a4dfe53`,
+  clean `60593584`, Gemini 2.5 Pro, USD 0.60 cap. Two original forward/reverse
+  synthetic questions each sampled once with original/neutral prompt projection;
+  order forward original/neutral, reverse neutral/original. No cross-cell responses.
+- Neutral projection clears only derived-output label and metric_surfaces after
+  exposure. Questions, canonical plans, requirements, sources, authority and schema
+  stay fixed; growth originated in the authored fixture, not a sampled Planner.
+- Source/execution 4/4; separate Codex direction review original 2/2, neutral 1/2.
+  Neutral reverse selects previous=reference/current=target and yields -10%, not
+  +11.111…%. Original reverse is correct. Exact request links 4/4, endpoints 3/4.
+  All four use the same formula; code executes, not repairs, the model's assignment.
+- No observed hint-removal benefit; do not promote production target clearing.
+  One sample per cell establishes neither causal effect nor systematic harm.
+  Same original reverse initial SDK SHA as the preceding run, different final
+  value (-10% then, +11.111…% now); cause is unestablished, historical failure retained.
+- Generation/count 4/4, retries/provider errors 0. Input 21,670; output 1,531 plus
+  thinking 4,566. Generation estimate USD 0.08805750, count contingency USD 0.24,
+  accounted USD 0.32805750 below cap; not invoice/count tariff. Case time 56.930s.
+  Input tokens original/neutral 5,419/5,416; SDK bytes 26,398/26,382, not a cost claim.
+- Pre-call diagnostic 5/5 + focused 41/41, two independent SDK rehearsals identical
+  (`752cbe241cb5167de10067fb887bdea1d93ed5369c50c4d0ddbf5b57d5e7dbdf`).
+  Paid initial hashes/count links/tokens agree; runtime and all bound files unchanged
+  after execution, before docs. No runtime/Planner/retrieval/OpenAI/judge/embedding/
+  ingest/store/dataset mutation, automatic rerun, or artifact commit. No unseen,
+  general-accuracy, actual-Planner/full-agent/HTTP/ledger/release claim.
+- [Immutable A/B outputs and raw-response review](../../benchmarks/results/plan_metric_hint_compiler_2026-09-15/RESULTS.md).
+
+## 2026-09-15 — Minimum/current comparison-reading baseline, provider-free
+
+- On clean `28f9db79`, froze five synthetic pairs / ten conditions before diagnostic
+  implementation: new temporal values/years, named entities, a physical-row mirror,
+  equal-valued different entities, and Korean requests. Eight unique question texts;
+  the row-mirror pair reuses two questions with changed physical source positions.
+  Source/query-only plans and separate offline endpoint/value criteria are SHA-bound.
+- Current arm captures the actual Compiler prompt/schema and guarded execution.
+  Minimum arm exposes the exact question, two raw rows and the same short source IDs;
+  output selects reference/target, formula or abstention. It uses the shared restricted
+  arithmetic engine but only diagnostic ID/arithmetic checks, never production V2 authority.
+  No new production reading call, enum, forced formula or source validation change.
+- Twelve diagnostic contracts + 41 current focused tests pass. Wrong directions remain
+  semantic errors in both paths. Equal-valued swapped endpoints remain wrong even when
+  the scalar is correct. Unknown refs, extra result fields, bad AST/variables, nonfinite
+  arithmetic and zero division fail. Carrier/catalog reordering preserves identities
+  and resolution; physical-row mirrors retain their own source provenance.
+- Two separate blocked-socket captures are byte-identical:
+  `f5535784614e4e244d779443790fa2ffc28adc1d293bd4a350a4ce602070f683`.
+  Per capture: ten current-Compiler authored-response invocations, zero retries, ten
+  minimum authored evaluations with matching endpoints/values. Not sampled model answers.
+- Current/minimum prompt text 19,913–20,153 / 759–812 UTF-8 bytes; schema
+  4,847–4,850 / 745 bytes. These are local serializations, not SDK tokens, cost or speed.
+  This jointly changes instructions/plan/schema/proof burden, not one isolated factor.
+- Initial-input and execution-input exports exclude criteria/authored responses.
+  Provider/store/runtime writes 0; no paid mode or authorization in this artifact.
+  Future first-response consistency sampling needs a new bounded admission and SDK
+  no-call; production retries stay a separate measure. No real-DART/Planner/signs/
+  full-agent/unseen/general-accuracy claim, and no production hint clearing.
+- [Diagnostic source/input review and local contracts](../../benchmarks/results/comparison_reading_baseline_2026-09-15/README.md).
+
+## 2026-09-15 — Reading interface x named-formula aid, delegated bounded run
+
+- User delegated design/execution without another approval. New consumed manifest
+  `2f4535a1fc6a802e6546b7fd4e0c53600d4a87df57084fb98a08f6b398375cb3`,
+  clean `ff36d19e`, Gemini 2.5 Pro, USD 4.00 cap. No earlier approval was reused.
+- Four frozen anonymous temporal/named forward/reverse questions; four conditions
+  (current, current+formula, minimum, minimum+formula), three independent first-response
+  samples each. Balanced within-case order; 48 generations/counts, no cross-call answers,
+  compiler/SDK/runner retry 0. Not 48 independent questions or an unseen holdout.
+- Formula treatment appends the same generic positive-quantity equation only; SDK
+  body comparisons confirm no other difference within each interface. It does not
+  assign endpoints or replace the original current prompt's generic formula examples.
+- Separate semantic review: A 9/12, B 9/12, C 12/12, D 10/12. Temporal reverse alone
+  is 0/3, 0/3, 3/3, 1/3; all remaining cases 3/3. Every wrong result is -20% instead
+  of +25%. All 48 formulas pass positive-input contrasts; JSON/schema/visible refs 48/48.
+- Wrong final rationales explicitly prefer conventional previous-to-current chronology
+  over the requested reverse direction. This observes output behavior, not hidden thought.
+  Current runtime accepts 10/12 and 12/12: two A drafts additionally swap input ownership.
+  First-response offline replay records the need for repair without sampling that repair.
+  Minimum checks are diagnostic and confer no production V2 authority.
+- No formula-addition benefit observed. Minimum's improvement is a joint prompt/plan/
+  schema intervention, not proof of a particular field or general model superiority.
+  No runtime patch, formula forcing, target clearing, evaluator relaxation or paid expansion.
+- Generation estimate USD 0.74502000, count contingency USD 2.88, accounted USD
+  3.62502000; no invoice/count tariff claim. Input 136,224; output+thinking 57,474;
+  sequential count+generation time 540.895s. API/parsing errors 0; heartbeat every 30s.
+- 4 design + 12 baseline + 35 focused tests preceded generation. Six offline-review
+  tests verify arithmetic variants, equal-value wrong-subject rejection and real source
+  gates. Two separate SDK rehearsals identical (`0f2ab00d...3a6f1de`), and all actual
+  request hashes/count inputs match. Blocked-socket rehearsals emitted an asyncio cleanup
+  warning on exit 0; live calls did not fail. Runtime and predecessor hashes verified
+  before docs. Store/dataset/embedding/Planner/retrieval/OpenAI/judge mutations/calls 0.
+- [Results, interpretation and raw responses](../../benchmarks/results/comparison_formula_factorial_2026-09-15/INTERPRETATION.md).
+
+## 2026-09-15 — Fixed-schema plan/instruction deletion, partial delegated run
+
+- Latest "진행해줘" continues the user's delegated comparison design/execution without
+  another approval. New manifest `056572ba969e7ffe3aecc764d242953a05ea84a220eca5469438d1a3cdb7f504`,
+  clean `b7807573`, Gemini 2.5 Pro, USD 2.20 cap; no predecessor approval/run reuse.
+- Four frozen temporal/named direction cases, current versus deletion-only input,
+  three repeats intended: 24 generations/counts maximum, balanced AB/BA order.
+  Canonical plan, question/scope, source payload, owner authority and output schema
+  unchanged. Existing prefix lines and plan descriptions alone deleted; no new guidance,
+  equation, direction assignment or hint-based runtime branch. Joint deletion treatment.
+- Generation 15 (`R2_TEMPORAL_A_B_trimmed`) returned Google 503 UNAVAILABLE after its
+  count succeeded. Stop policy worked: 14 responses, one API failure, nine not run,
+  no compiler/SDK/runner retry or subsequent paid execution. Provider internal cause unknown.
+  Completed responses are the same seven question/repeat pairs in both arms. The API
+  failure is excluded from semantic denominators and separately preserved.
+- Current/trimmed semantic correct **5/7 each**. Temporal forward 1/1, temporal reverse
+  0/2, named forward 2/2, named reverse 2/2 in both. Paired outcomes: five both-correct,
+  two both-wrong. Schema, visible source, formula contrasts and current runtime pass
+  14/14; these do not prove requested-direction correctness. All four wrong responses
+  set previous=reference/current=target and produce -20% instead of requested +25%.
+- Final rationales restate the reverse request, then prefer conventional earlier-to-later
+  change. This is final-output evidence, not observation of hidden reasoning. Deleting
+  this subset alone shows no gain; it does not establish equivalence, a schema cause,
+  model inability or general performance. No production change or validation relaxation.
+- Server input tokens average 5,449.29 current versus 3,983.00 trimmed (26.9% lower).
+  Mean completed count+generation latency 13.74s/13.35s; no general speedup claim.
+- Successful generation estimate USD 0.27641250; failed unknown-usage reservation
+  0.05616375 retained; count contingency 0.90; accounted 1.23257625 < 2.20, not invoice.
+- 4 design + 6 frozen-review + 35 focused tests precede calls. Separate SDK no-call
+  processes are byte-identical (`2411e32f0882735dba434482cee1cdf08d3047e42898d9cb96e900b274f10b3b`).
+  All 15 count/generation bodies match captured hashes; successful input usage matches counts.
+  Rehearsal socket-teardown warnings exited 0; the actual stop is live Google HTTP 503.
+- Bound evaluator/criteria/report/runner and predecessors unchanged. A presentation-only
+  partial-review wrapper calls the frozen assessor and separates API failures from answers;
+  the original report's HTML path assumed a final rationale on every row. No scoring repair.
+  Runtime/store/dataset/candidate/embedding/Planner/retrieval/OpenAI changes/calls 0.
+- Next candidate: provider-free opaque requirement-ID projection while retaining periods,
+  sources, schema structure and authority. Do not preassign endpoints or resume this manifest.
+- [Partial results, interpretation and raw responses](../../benchmarks/results/compiler_instruction_plan_ablation_2026-09-15/INTERPRETATION.md).
+
+## 2026-09-15 — Requirement-ID-only transport naming comparison
+
+- Continued delegated experiment, not a resume of the prior partial run. Clean `c7f3a8f5`;
+  consumed manifest `36a2e3dd08f9236e5ab2775396a2533e868c851318b4418bb7d0e6c71cd7081c`,
+  Google Gemini 2.5 Pro, cap USD 1.20. Two frozen temporal direction questions, three
+  conditions (current/previous, r7/r9, r9/r7), two samples each: 12 generations/counts.
+- All use the preceding B_trimmed input, not a new production prompt. Changes are
+  plan requirement IDs, matching cohort labels, schema input property names/titles/required
+  keys only. Source words/period roles, candidate IDs/authority, field positions and all
+  other SDK contents remain unchanged. Alias decoding changes keys only, never selections,
+  arrays, formula, variable names or rationale. Original internal plan/catalog untouched.
+- Initial local manifest `aa47a3eb...eabd3` lacked the runner constructor helper; both
+  no-call processes stopped before any API call. V2 preserves those files, adds the helper
+  and constructor test; no question/criteria/condition/cap change or paid retry.
+- All 12 generations/counts completed, no API/JSON parsing error, no retry. Meaning/value
+  correctness A/B/C **4/4, 3/4, 2/4**; runtime acceptance **2/4, 3/4, 4/4**; intersection
+  **2/4 in each**. Each denominator four repeats two questions, not four independent cases.
+  Ordinary direction is correct throughout. All formulas pass restricted positive contrasts.
+- A reverse drafts both correctly choose current=reference/previous=target but put both
+  selections in current and leave previous empty. Existing
+  `candidate_not_authorized_for_output_input` rejects them. B ordinary second draft uses
+  correct selections/formula but non-null table evidence_text; existing
+  `source_assertion_nonprose_candidate` rejects it. B reverse second and both C reverse
+  drafts keep valid input scope but invert meaning, producing -20% instead of requested +25%.
+- Provider-free inspection captures the existing retry feedback for the three rejected
+  drafts then stops before a second response; no correction, sample or semantic regrading.
+  The unchanged named SDK input varies from the prior run's error pattern. This bounds
+  claims from tiny samples; no reliable ID remedy, root-cause/equivalence claim or promotion.
+- Eight projection + nine review + 35 focused tests precede calls. Two SDK no-call captures
+  match (`e80fc5b0ceefbc7ead37e4e7afe6c848e562c96de1bb29d466a571fc93290626`). Six condition
+  inverses match predecessor SDK values; live body hashes and input field order checked.
+  Blocked-socket cleanup warnings exit 0 and are separate from actual provider behavior.
+- Input tokens 47,700, output+thinking 15,458. Mean input A 3,971 / B,C 3,977: shorter
+  key bytes do not save tokens. Generation estimate USD 0.214205, count contingency 0.72,
+  accounted 0.934205 < 1.20; not observed billing. Provider rates rechecked on official page.
+- Runtime/store/dataset/candidate/previous artifact changes 0. No Planner, retrieval,
+  OpenAI, embedding, ingest or extra judge call. Artifacts remain ignored, not committed.
+- Next: provider-free schema admissibility review (owner-visible choices and prose-only
+  fields), preserving legal mixed/dependency programs. This addresses structural errors,
+  not semantic direction by fiat. No more naming-only paid trials or automatic expansion.
+- [Results, raw responses and failure-layer interpretation](../../benchmarks/results/requirement_id_ablation_2026-09-15_v2/INTERPRETATION.md).
+
+## 2026-09-16 — Approved OpenAI Compiler first-response trial
+
+- User approved the prepared exact manifest
+  `8144726f02bea29f8bc0e7b8f1a8d07fcf9e8e5567969f965c535b158a6273d3`,
+  consumed once on clean `3354fbc9`; GPT-6 Astra Responses, medium reasoning,
+  5,120 inclusive output-token limit, USD 6 cap, all retries zero.
+- Six frozen anonymous synthetic questions, evidence, fixed plans and criteria
+  remain identical to the preceding Google step-formula packet. OpenAI's strict
+  schema requires explicit fields and removes default annotations; this is a
+  historical provider/transport comparison, not isolated model A/B evidence.
+- All six first responses completed; API/parsing errors 0. Strict wire/original
+  schema/runtime/ledger **6/6 each**. All 12 outputs pass each frozen source-binding,
+  finite-formula, source-display, calculated/displayed value and unit check.
+  The display/calculation pairs preserve 21%/20% then 40%, 31%/30% then 15%, and
+  -9%/-10% then 30%. No sampled reply repair or missing quantity reconstruction.
+- Provider-reported input 53,677/output 5,352 tokens; output includes 226 reasoning
+  tokens, cached input 0. Generation time 89.26999s total, 14.87833s mean,
+  12.38227–18.18899s range. Conservative input USD 12.50/M/output USD 50/M gives
+  USD 0.9385625 < 6.00; outstanding reservation 0, actual invoice unobserved.
+- All actual body hashes match the frozen SDK rehearsal in order. Original clean
+  build (169 runtime files), nine packet files and 67 protected predecessor files
+  verified before documentation changes. Separate offline review uses the unchanged
+  frozen assessor with sockets blocked and preserves raw JSON, criteria and history.
+- No Planner, retrieval, embedding, Google, fresh ingest, store write, judge or
+  additional provider call. Default remains Google. Artifacts stay ignored and
+  uncommitted. Prior local full unittest 1,799/1,799 remains local validation.
+- Six known cases with one response each do not establish general availability,
+  unseen semantic accuracy, reverse-direction/abstention fixes or full-agent release
+  acceptance. Prior Google first-generation HTTP 400 has no response and is not an
+  accuracy failure denominator; its exact cause remains unknown. Next is bounded
+  real-question/compiler integration evaluation under a new approved manifest.
+- [Results, per-case answers and integrity receipt](../../benchmarks/results/openai_compiler_preparation_2026-09-16/RESULTS.md).
+- Post-run documentation/import/topology checks **24/24** passed (18.190s);
+  documentation changes only, no new runtime modification or additional paid run.
+
+## 2026-09-16 — Approved OpenAI Compiler full-agent integration
+
+- Exact manifest `9a85a367a80f37ffdb213afa135e2d3fbe6e7e750e8460bbdce2a15fe14f2f0d`
+  consumed once after user approval, clean `5dbcdb0c`, shared USD 6 cap. Fresh
+  routing/planning/retrieval, verified disposable store copies, OpenAI only for
+  Compiler; no prior plans, answers or source-review criteria injected.
+- **2/3 complete, 5/6 planned outputs accepted**; API/runtime errors 0, ledger
+  3/3 ok, retrieval degraded 0. Compiler responses 5, repairs 0; two questions
+  use two separate islands. NAVER B2B/AI and Celltrion risk policies complete;
+  NAVER acquisition explanation accepted but Commerce growth calculation missing.
+- All 29 accepted subject/fact support occurrences match original documents or
+  table sidecars. Separate Codex source review applies the unchanged pre-fixed
+  criteria, not human gold. Schema-parsed Compiler snapshots, source/result JSON
+  and hashes preserved; no raw HTTP-response capture or repaired numeric answer.
+- Offline reconstruction matches both fingerprints of the live 509-candidate
+  catalog. Commerce amount pairs exist there, but no Commerce numeric cell reaches
+  the first Compiler island. Each year exposes total consolidated revenue instead;
+  the recorded numeric cohorts select those bundles. Compiler declines substitution
+  and discloses missing calculation. This bounds the failure to candidate exposure;
+  the exact ranking subcause is open. Overall incomplete, appropriate local abstention.
+- Calls: GPT-6 Astra 5, Gemini 2.5 Flash 6, embeddings 22, Google counts 6, all
+  39 completed. Astra input/output 76,758/4,803; Flash 39,433/7,729; embedding
+  input 3,828. Generation/embedding estimate USD 1.23127504 plus count contingency
+  0.36 = **1.59127504 < 6.00**; peak reserved 2.27336254, pending 0, not invoice.
+  Question latencies 53.22s, 63.02s, 49.53s; no SDK/run retry or budget denial.
+- Five sent Responses hashes match authorized current question/Compiler phases;
+  six count/generation bodies and counts match. Runtime 169, packet 16, protected
+  191 and original store 23 file hashes checked before documentation edits.
+  External sockets blocked for mechanical/source-review scripts; review provider calls 0.
+- Previous Google full-agent result remains 2/3, 3/5 on `054c6b22`. Fresh plans
+  here yield a different output denominator and code has changed: no controlled
+  model-improvement, unseen accuracy, release or default-promotion claim.
+- Next: provider-free candidate/bundle exposure diagnosis with anonymous total/
+  segment and row/column controls. No fresh ingest, store mutation, artifact commit,
+  automatic paid rerun or resumed manifest. Google remains the runtime default.
+- [Results, source review and exact exposure evidence](../../benchmarks/results/openai_compiler_full_agent_2026-09-16/RESULTS.md).
+- Post-run documentation/import/topology checks **24/24** passed (17.232s),
+  `git diff --check` passed. This turn changes result documentation only.
+
+## 2026-09-16 — Approved exposure-fix OpenAI integration successor
+
+- Manifest `f9bbe243b2e6ac04306b399c847f613a65361e37610d6dc3b6f78ef58584dc41`
+  consumed once after user approval on clean `5a8fd0ad`, shared USD 7 cap.
+  Runtime source matches tested `96dcf198`; fresh plans/retrieval, original stores
+  accessed through verified copies, no prior plans/answers/sizing inputs injected.
+- **2/3 complete, 5/6 planned outputs**, API/runtime errors 0, ledger 3/3;
+  Compiler first responses 6, repairs 0. Cloud/AI and Celltrion risk questions
+  complete. Commerce calculation now succeeds but acquisition narrative is missing.
+- Same-scope segment-note inputs 2,546,648,516 / 1,801,079,126 thousand KRW,
+  exact attached current/prior contexts, independent Decimal recomputation
+  41.39570434397450231734016554%; execution 41.3957043439745%, display 41.4%.
+  Calculated display, no source-stated ratio substitution or response repair.
+- Narrative abstention is appropriate for its exposed group-wide excerpt. Direct
+  Commerce-impact evidence exists in the current 537-candidate catalog, including
+  all six previously exposed related sources, but none reaches this narrative
+  Compiler input. Previous/current plan/catalog cross-projections reproduce each
+  exposure set by plan regardless of catalog version. Exact field cause remains
+  open; this is not a model-only comparison or a new semantic success claim.
+- GPT-6 Astra 6 calls, input/output 90,479/5,006; Flash 6, 39,433/7,889;
+  embeddings 24, input 4,005; counts 6. All 42 API attempts completed.
+  Estimate USD 1.41336055 + count contingency 0.36 = **1.77336055 / 7.00**;
+  pending 0, peak reserved 2.45749805, invoice unobserved. Latencies 62.216s,
+  55.992s, 45.971s. No SDK/run retry, count failure or budget denial.
+- Runtime 169, packet 19, protected 270 and original-store 23 files verified
+  before documentation changes. Six Compiler request/phase hashes and Google
+  count/generation links match; 26 accepted subject/fact support occurrences
+  match original stored documents/sidecars. Separate unchanged-criterion source
+  review is assistant assessment, not human gold or full original XML coverage.
+- [Results and offline source inspection](../../benchmarks/results/openai_compiler_exposure_full_agent_2026-09-16_v2/RESULTS.md).
+  Frozen preparation/results/history preserved; no source code, store, dataset,
+  evaluator, default provider or artifact publication change. Next: anonymous
+  provider-free narrative exposure contracts across planner expressions.
+
+
+## 2026-09-16 — Provider-free narrative exposure correction
+
+- On clean baseline `025794cc`, reproduced the missing direct-impact paragraph
+  using the unchanged three-question source catalogs and recorded plans. An
+  eight-way subject/metric/hint substitution isolates combined expression
+  sensitivity: individual swaps fail; subject plus metric or hint succeeds.
+- `financial_candidate_matching.py` adds a diagnostic-only joint literal hint
+  when no complete subject mention is present. One explicit subject term and a
+  different owner-local search-hint term must occur in one retained partition.
+  Original/resolved metrics, concept aliases and scope cannot become subject
+  anchors. Repetition, nested/overlapping occurrences, cross-cell/context joins,
+  hidden tails, other-owner hints and unpartitioned structured bodies cannot
+  supply the signal. Targets, source authority and numeric matching are intact.
+- Final saved-input projection exposes direct Commerce/Poshmark impact evidence
+  within six narrative candidates. Five other candidate payload hashes stay
+  identical; all catalog and plan hashes are unchanged. Changed payload JSON
+  shrinks 26,096 to 25,823 UTF-8 bytes, not a provider token/cost observation.
+- Fourteen anonymous tests cover the mechanism and hard negatives, including a
+  one-call authored mock with an independently rejected unsupported full subject.
+  Full unittest **1,829/1,829**, no skips, **51.111s**; runtime audit **83**, import,
+  topology, documentation, pycompile and diff checks pass.
+- Original inputs/results **326 files** and source stores **23 files** preserved.
+  Provider calls, fresh ingest, source-store mutation and answer repair: **0**.
+  Original paid 2/3 questions and 5/6 outputs remain historical facts; no new
+  semantic/model success, default migration, paid retry or release claim.
+- [Result and final offline comparison](../../benchmarks/results/narrative_exposure_offline_2026-09-16/RESULTS.md).
+  Next provider validation requires a new manifest/cost/no-call preparation and
+  separate approval; consumed admission artifacts remain immutable.
+
+
+## OpenAI narrative integration: complete three-question successor (2026-09-16)
+
+- User explicitly delegated continuation without another approval question. Fresh
+  manifest `ec2e65e15179b1180ef5cf67176cdff68f55c04e575a3fde2d954cd1cd98892f`
+  consumed once on clean `e07b2704`, runtime SHA `d98aefaa...16b500`, USD 7 shared cap.
+  Same three questions, fixed stores and provider routes; fresh plans and retrieval,
+  verified disposable store copies. Ten admission checks and two byte-identical
+  no-call rehearsals passed; five of six reconstructed SDK first requests unchanged.
+- [Results](../../benchmarks/results/openai_compiler_narrative_full_agent_2026-09-16/RESULTS.md):
+  **3/3 complete, 6/6 outputs**, API/parsing/runtime errors 0, task ledger 3/3.
+  Six initial Compiler calls plus one in-budget feedback repair. The first B2B
+  organization program used an unauthorized context reference, was rejected, and
+  its repair passed unchanged validation. All seven responses parsed; five of six
+  initial island programs valid. Failed attempt bytes remain; no SDK/run retry.
+- Direct Commerce-impact paragraph is now exposed and cited. The narrative preserves
+  other growth factors, consolidated inclusion and post-acquisition subsidiary
+  revenue/net-loss scope. Growth remains 41.3957043439745%, displayed 41.4%, from
+  the same grounded current/prior Commerce operands with separate formula provenance.
+  Fifteen accepted narrative claims contain 35 source-supported subject/fact
+  occurrences; assistant review supports all frozen criteria for the three questions.
+- All 43 API attempts complete: Astra 7, Flash 6, embeddings 24, counts 6. Estimate
+  USD 1.67351403 + count contingency 0.36 = accounted **USD 2.03351403 / 7**,
+  pending 0, peak reserved 2.70855153, not invoice. Runtime/21 packet/335 predecessor/
+  23 original-store files verified before docs; no fresh ingest or source/result edits.
+- No new runtime changes. Existing full suite 1,829/1,829 and audit 83 remain the
+  runtime evidence. Source review is local, not human gold or unseen holdout. Fresh
+  plans/retrieval differ from prior runs; 3/3 is not causal provider/patch evidence.
+  Google remains the default/routing/planning provider. Earlier paid 2/3 runs and
+  Google HTTP 400 are unchanged. No automatic paid rerun or default/release promotion.
+
+## 2026-09-19: Native application execution preparation
+
+Provider-free successor preparation on `b09e1d35` completes with 58 tests, two native-search failure controls, 20 evidence assertions and two docs checks. Each fresh app process performs 17 native Chroma queries; exact HTTP prefixes stop on injected count/generation 503 after 24/25 mock attempts. Diagnostics retain provider 503 while the app returns 500; no retry or final answer. Generation unknown usage retains its 0.5518 simulated reserve in accounted estimates, not pending. Local logging/assertion mistakes were corrected in verification only, without production changes or repeating the native generation run. The proposal is one question, four counts, four generations, 48 embeddings and first Compiler responses only, with whole-batch funding before bootstrap and separate exact-draft single-use authorization. Current 0.77127155 cannot fund 1.70; +1 remains unapproved. New cost/calls 0; shared 15.22872845/16 and pending zero. All 9531 predecessors, 174 sources, seven owners, 24 original store files and settings remain unchanged. [Review and next step](../evaluation/native_application_admission.md).
+
+## 2026-09-19: Authorized native OpenAI full-app result
+
+User accepted +USD 1 and one prepared native app run; shared cap becomes 17. On clean `29dedb3b`, draft `79f4cb6c...5ffddd` is consumed once with whole-batch funding before bootstrap. All 27 real API attempts succeed (four generations, four counts, 19 embeddings); actual ASGI query HTTP 200, two complete outputs, ledger ok, no repair/retry/fallback. Native Chroma executes 17 queries with 32 seeds/521 candidates, without fixtures. Source review verifies exact 2023/2022 operands and 41.4% growth, two narrative claims/six support occurrences, multiple Commerce drivers and Poshmark/subsidiary post-acquisition scope. All four input counts equal generation usage; four outputs are compact JSON. 95 evidence assertions and two docs checks pass. New accounted 0.79386499 includes 0.04 count contingency; peak with reserves 0.98636499, shared 16.02259344/17, remaining 0.97740656, pending zero; not invoice. All 9635 predecessors, 174 sources, seven owners, 24 original store files and settings are preserved. Only disposable SQLite bytes changed. One known-source success does not establish general accuracy, stable ANN retrieval or causal token savings. [Result and next provider-free step](../evaluation/native_application_result.md).
+
+## 2026-09-19: Additional same-report question criteria
+
+On clean `2cb90b59`, three future questions are frozen for consolidated/separate 2023 cash flow, dividend policy/payment status and unsupported full-year 2024 actual within the selected 2023 report. Two exact source cells and five unique parent/paragraph prose spans ground separate review criteria; only question/scope/diagnostic flags belong to future API input. The bounded inventory covers 201 JSON files and 249 questions with no exact repeat, but cash-flow/dividend/consolidation topics overlap; not blind holdout or unseen accuracy. Safe scope rejection is distinct from semantic abstention, and provider/budget errors cannot count as successful missing-evidence answers. 60 provider-free checks pass, including actual API schemas, source links, budget arithmetic and preservation of 9721 predecessors, 174 sources, seven owners, 24 original store files and settings. No original Chroma open, provider attempt, new cost, runtime edit or budget increase. Shared accounting remains 16.02259344/17, remaining 0.97740656, pending zero. The previous frozen policy gives exact 1.69972608 per question, rounded 1.70; three caps total 5.10. This is a conditional envelope, not a price refresh or completion forecast; one rounded cap lacks 0.72259344. Next prepare a new single-case admission/rehearsal provider-free, with sufficient authorized funding and a price check before paid execution. [Criteria and evidence](../evaluation/independent_question_criteria.md).
+
+## 2026-09-19: Single cash-flow execution admission preparation
+
+Provider-free preparation on `bf608c0e` binds only the frozen scope_cash_flow question and unchanged review criteria. Caller/admission helpers remain byte-identical; native runner changes only its output path. 62 focused tests, three actual-app routing failure rehearsals and 40 saved-evidence checks pass. Synthetic nonzero embeddings force routing ties; count A/B send identical three-request prefixes, and the generation control stops on the fourth mock request after synthetic count 100. Upstream 503 is preserved while the app returns 500; no retry, final answer, Planner, native query or Compiler execution. Failed generation retains its full simulated 0.098554 reserve, with no outstanding reservation; mock accounting does not change the shared ledger. A saved-evidence field-name assertion was corrected without reexecution or contract change. All 9743 predecessors, 174 sources, seven owners, 24 original store files and settings remain unchanged; only disposable SQLite bytes change. Official pricing/token-count guidance was fetched; conservative rates and count contingency remain fixed. Real provider calls/new cost 0, shared 16.02259344/17, remaining 0.97740656, pending 0. The one-question cap 1.70 lacks 0.72259344; proposed +0.73 is not applied or authorized. A new exact draft stops before transport/bootstrap/consumption at current balance. Next seek acceptance of that funding and one attempt, preserving the other two questions and consumed history. [Admission and limits](../evaluation/scope_cash_flow_admission.md).
+
+## 2026-09-19: Cash-flow question stopped by unresolved section bindings
+
+User accepted +USD 0.73 and the single prepared cash-flow attempt, raising the shared cap to 17.73. On clean `83035d30`, exact draft `da4c8ed0...9a78b` was consumed once under the unchanged 1.70 run cap. All six API attempts succeeded (Terra 2, counts 2, embeddings 2), yet the app returned HTTP 200/incomplete with 0/2 requested outputs. Planner preserved source-display intent but left both source-section selections empty. Its full 52-section inventory contains parent statement sections while omitting the located cash-flow table headings retained in attached source contexts. Deterministic unresolved-restriction checks cause seven empty-scope trace records, zero native search and zero Compiler calls; valid ledger integrity is not semantic completion. Both original source cells and period/unit witnesses remain present. 56 saved-evidence checks reproduce this failure without providers and reconstruct accounting; two docs checks pass. New accounted 0.06811742 includes 0.02 count contingency; shared 16.09071086/17.73, remaining 1.63928914, pending zero, not invoice. All 9819 predecessors, 174 sources, seven owners, 24 original store files and settings remain unchanged; only disposable SQLite bytes changed. No retry, repair, fallback, ingest, other-question run or runtime edit. The next seam is provider-free characterization of generic located table-heading/parent-section exposure, preserving unresolved restriction rejection; this observation is not a verified fix or unseen-accuracy result. [Result and evidence](../evaluation/scope_cash_flow_result.md).
+
+
+## 2026-09-19: Cash-flow admission after table-heading exposure
+
+Provider-free successor preparation on corrected build `d681303c` preserves the one frozen cash-flow question and review criteria. 62 focused controls, three actual-app Planner failure rehearsals and 63 saved-evidence checks pass. Synthetic embeddings, routing and counts reach the revised Planner input; two count controls send identical five-request SDK prefixes, and the six-request generation control preserves the same prefix. Both exact source titles, 24/85 heading hints (16,070 bytes), all 52 section IDs and membership fingerprint match the correction replay; the 72,967-byte generation request is identical. Injected 503 errors immediately stop, retain sanitized diagnostics and return application 500 without native search, Compiler, retry or answer. Unknown generation usage retains simulated 0.098554 reserve with pending zero; simulation never changes real accounting. All 9885 predecessors, 174 sources, seven owners, 24 original store files and settings are unchanged; only disposable SQLite bytes change. Two documentation checks pass. Official pricing is refreshed; conservative rates, output limits, four-count/four-generation/48-embedding ceiling and first Compiler responses remain fixed. Real calls/new cost 0; shared 16.09071086/17.73, remaining 1.63928914, pending zero, not invoice. The unchanged 1.70 cap lacks 0.06071086; proposed +0.07 and one paid attempt are not yet accepted. The fresh exact draft stops before transport/bootstrap/consumption at current balance. This is input-delivery/failure evidence only; earlier 0/2 answer and consumed admission remain unchanged. [Proposal and limits](../evaluation/scope_cash_flow_heading_admission.md).
+
+
+## 2026-09-19: Authorized cash-flow successor after heading exposure
+
+User accepted +USD 0.07 and one exact prepared attempt, raising the shared cap to 17.80. On clean `41841917`, draft `6b54767a...afb47be` was consumed once under the unchanged 1.70 run cap. All 17 API attempts succeeded (four generations, four counts, nine embeddings), actual API HTTP 200/ok, 2/2 complete and source-reviewed outputs, ledger ok. The 72,967-byte Planner input exactly matches its corrected rehearsal; fresh choices resolve both existing statement parents while preserving the full request and source-display intent. Seven native Chroma searches yield 12 seeds, eight visible docs and 928 candidates. Two Compiler first responses select the correct full-statement cells and exact 2023 period contexts without repair. Consolidated 2,002,233,273,518원 and separate 1,627,845,864,966원 retain source precision, scope labels and citations. Four input counts match generation usage; all response texts are compact JSON. 92 saved-evidence checks and two docs checks pass. New accounted estimate 0.47512445 includes 0.04 count contingency; peak with reservations 0.70347445, shared 16.56583531/17.80, remaining 1.23416469, pending zero, not invoice. All 9975 predecessors, 174 sources, seven owners, 24 original store files and settings remain unchanged; only disposable-copy SQLite bytes change. No retry, provider fallback, fresh ingest, runtime edit or other-question run. One known-source success is not general accuracy or a causal A/B result; the preceding 0/2 result remains unchanged. Next prepare the frozen dividend-policy question admission/rehearsal provider-free; unsupported-2024 also remains unexecuted. [Result and evidence](../evaluation/scope_cash_flow_heading_result.md).
+
+
+## 2026-09-19: Dividend-policy execution admission preparation
+
+Provider-free preparation on `20d03bd7` binds only the frozen dividend_policy_status question and unchanged three-meaning policy/period/payment criteria. 62 focused tests, three actual-app Planner failure rehearsals and 91 saved-evidence checks pass. Five prose witnesses preserve unique parent/node spans and source identity. Synthetic qa/paragraph routing and counts reach Planner dispatch; the exact 110-character request and existing dividend section remain visible under all 52 unchanged section IDs. Repeated five-request SDK prefixes match; generation is 72,014 SDK bytes, not measured provider tokens. Injected count/generation 503 stops without retry, preserves sanitized diagnostics and returns app 500; no native query, Compiler or answer. Review-harness syntax/dictionary-access mistakes were corrected from saved evidence without repeating app rehearsals. All 10040 predecessors, 174 sources, seven owners, 24 original store files and settings are unchanged; only disposable SQLite bytes change. Two documentation checks pass. Official pricing is fetched; conservative rates, full output limits and the four-count/four-generation/48-embedding envelope stay unchanged. Real calls/new cost 0; shared 16.56583531/17.80, remaining 1.23416469, pending zero. The 1.70 cap lacks 0.46583531; proposed +0.47 and one attempt are unaccepted. Fresh exact draft rejects current funding before transport/bootstrap/consumption. No fixed Planner obligation count or semantic merging is imposed; more than two Compiler groups must stop. No dividend answer or paid authorization is created, and unsupported-2024 remains unexecuted. Preceding cash-flow success stays 2/2. [Admission and limits](../evaluation/dividend_policy_admission.md).
+
+
+## 2026-09-19: Dividend-policy attempt blocked after invalid payment-status binding
+
+User accepted +USD 0.47 and one exact attempt, raising the shared cap to 18.27. On clean `526965ca`, draft `8e4db03c...da22ee` was consumed under the unchanged 1.70 run cap. All 23 external calls returned 200 (four generations, four counts, fifteen embeddings), but the application returned 500 with no final answer or ledger. Planner input equals the 72,014-byte rehearsal; both fresh owners select the dividend section, with policy/period narrative and payment status direct_value. Thirteen native searches yield three seeds, three visible docs and 66 candidates, including the future-approval/payment source. The first Compiler island validates two source-supported partial claims; the second interprets pending payment in prose but selects planned 1,190억원 as a numeric direct result. Its quote includes the bundle leading space absent from selected source_text; period is unresolved, and the rejected binding leaves an unselected source assertion. All three recorded errors reproduce offline. Runtime prepares attempt 2 for ob_002; the caller denies a third Compiler request before any count or transport. BudgetStop/unapproved_runtime_request is not a provider outage or monetary exhaustion. Four generation counts match usage and all response texts are compact JSON. 113 saved-evidence checks and two docs checks pass; the offline review canonical-ID/alias mistake was corrected from saved artifacts without an app rerun. Five original prose witnesses and six partial-claim support occurrences retain exact links. Full frozen acceptance fails; partial drafts are not delivered answers or successful abstention. New accounted estimate 0.55124148 includes 0.04 count contingency; peak reserved/accounted 0.78169148. Shared 17.11707679/18.27, remaining 1.15292321, pending zero, not invoice. All 10132 predecessors, 174 sources, seven owners, 24 original store files and settings are preserved; only disposable SQLite bytes change. No provider retry, fallback, fresh ingest, runtime edit or other-question execution. Next characterize nonnumeric-status versus scalar-lookup planning provider-free, retaining strict source validation and the separate quote-source mismatch. No tested fix, dividend-specific rule, consumed-draft reuse or automatic paid run; unsupported-2024 remains unexecuted. [Result and evidence](../evaluation/dividend_policy_result.md).
+
+
+## 2026-09-21: Provider-free dividend successor application admission
+
+- Start on clean `72a2b1ef`, unchanged 174-source digest `93e45d569a675738a183268e106e8909de8b155a86b39a04c50615e2aff37178`. Preserve the original dividend question, NAVER 2023 receipt scope, five exact prose witnesses and three separately reviewed meanings. Criteria and expected answers remain outside runtime inputs; neither old plan nor output count is repaired.
+- Two actual-app/native-Chroma replays use preloaded original model, embedding and count replies. Both have identical 23 SDK requests and 13 local searches; plan, 66-candidate catalog, visibility and sampled programs stay fixed. Current Planner instructions/schema reach the SDK at 73,295 count / 73,374 generation bytes. The quote error alone clears; missing period and unselected assertion remain invalid, and the first-response-only caller blocks the fifth count. No final answer or fresh model quality claim.
+- One six-request synthetic Planner generation-503 control stops without retry/downstream work and retains sanitized first cause plus full unknown-use reservation. All 52 HTTP requests across three rehearsals are mocks; no external attempt or real accounting change. Sixty-two contract tests and 91 saved-evidence checks pass; two documentation checks pass separately. Fixture counts are not current provider token measurements.
+- Official pricing was searched/fetched on 2026-09-21; conservative rates and all prior model/output/call bounds remain unchanged. Shared accounting stays 17.11707679/18.27, remaining 1.15292321, pending zero. The fresh exact envelope is 1.69972608 under a 1.70 cap; proposed cent-rounded +0.55 is not applied. Current-balance entrypoint stops before transport/bootstrap/consumption. No authorization or consumed marker is created.
+- All 10250 predecessor files, 174 source files, seven protected owners, 24 original store files and settings preserve hashes. Only disposable SQLite bytes change. Tracked changes are documentation; local admission/rehearsal artifacts remain excluded. The original paid HTTP 500 and every consumed draft remain immutable. Next paid work requires sufficient accepted funding and this fresh exact draft; no automatic retry, feedback repair, cap increase or unsupported-2024 execution. [Details](../evaluation/dividend_policy_successor_admission.md).
+
+
+## 2026-09-21 — Dividend successor stops at caller capacity after correct narrative planning
+
+- Accepted USD 0.55 increase, shared cap 18.27 → 18.82, and consumed fresh draft
+  `0b3ef8ec...c108cc` once on clean `1e781f45`; unchanged 174-source digest `93e45d56`.
+- Actual application path: 24/24 successful external requests (four generations,
+  four counts, 16 embeddings), 14 native queries, three seed/visible documents and
+  66 candidates. No SDK/HTTP/whole-query retry, feedback repair, fallback or ingest.
+- Planner now produces three narrative owners, including payment status. Two first
+  Compiler responses validate with no errors. The third disjoint owner's first
+  request is blocked before count/generation by the frozen two-response caller.
+  Application HTTP 500, zero delivered outputs, no final ledger; no 503 or monetary
+  exhaustion. Numeric quote fix is not exercised live by these narrative outputs.
+- Separate source review: three partial claims across two ready islands, six exact
+  subject/fact support occurrences; all five original witnesses retain unique spans.
+  Payment-source paragraph is visible, but payment interpretation remains unsampled.
+  Full frozen acceptance fails for lack of a delivered answer. Known-source assistant
+  review is not human gold, general accuracy or an isolated causal patch comparison.
+- Usage estimate 0.55826243 plus 0.04 count contingency = **0.59826243** accounted;
+  shared **17.71533922 / 18.82**, remaining **1.10466078**, pending zero, peak with
+  reservations 0.82256243 < 1.70. Experiment accounting, not an observed invoice.
+- 118 saved-evidence checks pass with network blocked. Review initially omitted
+  child requirement visibility; the existing cohort builder reconstructs the exact
+  window and validates both saved programs without changing source or live evidence.
+  Reused unchanged 62 admission contracts/91 preparation checks; two docs gates pass.
+  All 10421 predecessors, 174 sources, seven owners, 24 original store files and
+  settings retain hashes; only disposable SQLite bytes change. Artifacts stay local.
+- Next: characterize plan-cardinality-aware caller admission before paid compilation,
+  with coherent first-response, count and funding limits; do not force plan merging,
+  resume consumed drafts or execute unsupported-2024.
+- [Result](../evaluation/dividend_policy_successor_result.md);
+  [local review](../../benchmarks/results/dividend_policy_successor_execution_2026-09-21/live_review.json).
+
+
+## 2026-09-21 — Actual-plan compilation admission, provider-free
+
+- On `84184294`, added opt-in `src.ops.compilation_plan_admission`: inspect the
+  actual runtime island-builder result after physical-bundle discovery before
+  any Compiler call. Dependencies/relationships/bundles retain membership; valid
+  groups need coherent first-response, remaining generation/count and full
+  input/output/count funding bounds. Each complete group is admitted once;
+  subset repair/regrouping/repeats fail before counting. No product default change.
+- 14 new contracts and combined 86 focused/import/topology tests pass. Real SDK
+  mocked transport covers three first count/generation pairs and a terminal third
+  count fault. Two documentation authority gates pass separately.
+- Actual application replay on disposable native stores: two-slot mode stops
+  before every Compiler prompt/count/generation after 20 recorded-response mocks;
+  three-slot mode retains 24 original SDK bodies/two sampled Compiler programs,
+  then reaches an injected third-count 503 as request 25 and stops without retry.
+  Each retains the complete saved requirements/catalog and 14 native query results.
+  No new answer or live token/model-quality result is inferred from the fixtures.
+- 115 saved-evidence checks pass. All 10499 predecessors, 174 preexisting sources,
+  seven protected owners, 24 original store files and settings retain hashes;
+  only disposable SQLite bytes change. One new ops module and one test module;
+  experimental caller/replay artifacts stay local and their live entrypoint is disabled.
+- Real API calls/cost 0; accounting stays 17.71533922/18.82, remaining 1.10466078,
+  pending zero. Historical paid HTTP 500 and zero delivered outputs are unchanged.
+  Unchanged three-slot limits imply a hypothetical full ceiling of 2.34072608,
+  rounded 2.35; current funds cannot cover it. No real increase or paid manifest.
+- Next: a fresh fully funded one-use validation packet using the new gate;
+  never resume consumed history or force fewer Planner outputs. Unsupported-2024
+  remains unexecuted. [Contract/evidence](../evaluation/compilation_plan_admission.md).
+
+## 2026-09-21 — Three-slot dividend execution packet, provider-free
+
+- On unchanged `14ede748` runtime, prepared a fresh one-use application caller
+  with the actual-plan admission gate: routing/Planner once each and up to three
+  complete first Compiler groups, five final-input counts, no feedback repair.
+  Question/scope and three independent review meanings remain frozen; all five
+  original source witnesses retain exact unique spans. No forced plan cardinality.
+- 78 focused contracts pass. Two actual-app/native-store replays use 25/26 mock
+  HTTP requests and 14 native queries each. Both retain the first 24 SDK inputs,
+  recorded responses and two Compiler programs. Third-count and third-generation
+  injected 503 faults stop without retry; unknown generation usage keeps its full
+  reservation. The new live transport class is exercised with all 26 sends mocked.
+  Its third input count is an explicit synthetic 17,000 fixture, not measurement.
+- 111 saved-evidence checks and two documentation authority gates pass. All
+  10635 predecessors, 175 sources, seven owners, 24 original store files/settings
+  retain hashes. Only disposable SQLite copies change; artifacts stay local.
+- Real provider calls/added expense 0. Shared 17.71533922/18.82, remaining
+  1.10466078, pending zero. Full ceiling 2.34072608, rounded cap 2.35, proposed
+  +1.25 would leave 2.35466078 available; no increase or paid authority applied.
+  Current funds stop before transport/bootstrap/consumption. Fresh draft remains
+  unconsumed; old paid HTTP 500/zero-output result remains unchanged.
+- Next: separately accepted funding and one execution bound to the exact new
+  draft, then review all three meanings. No sampled third answer, fresh-token or
+  semantic-success claim; no consumed-draft resume or unsupported-2024 run.
+  [Prepared scope and evidence](../evaluation/dividend_policy_three_slot_admission.md).
+
+## 2026-09-21 — Three-slot dividend paid completion
+
+- The user accepted +USD 1.25 and one prepared execution. On clean `c06b7704`,
+  draft `7cd3dd18...5116692` consumed once under a USD 2.35 run cap; shared cap
+  18.82 to 20.07. All original preparation bytes and earlier failures stay intact.
+- App HTTP 200, 3/3 narrative outputs, all three pre-frozen meanings accepted in
+  known-source assistant review; ledger ok, two tasks/five artifacts, zero issues.
+  Three actual compilation groups admitted once; 26/26 HTTP 200 (five generations,
+  five counts, 16 embeddings), 14 native queries, 66 candidates, no parsing,
+  validation or runtime error, feedback repair or SDK/HTTP/whole-query retry.
+- Five delivered claims have 10 exact subject/fact support occurrences. Nine
+  link to original prose parent/node text; one matches the exact original attached
+  table note, with source-document hash/table locator verified. Payment is explicitly
+  pending approval and future payment. Frozen witnesses preserved; source linkage
+  and separate semantic review are not independent human gold or general accuracy.
+- Planner body remains 73,374 bytes, input 19,210; Compiler inputs measure
+  15,446 / 16,773 / 15,504. Counts equal usage; JSON compact outside strings.
+  Prior synthetic third-count fixture remains labeled synthetic. Fresh plans and
+  prompts prevent an isolated causal comparison; numeric quote fix unexercised.
+- Estimate 0.77976513 + count contingency 0.05 = added 0.82976513. Shared
+  18.54510435/20.07, remaining 1.52489565, pending zero; peak with reservations
+  1.04081513. Decimal recomputation matches raw float receipt at eight decimal
+  places; not invoice or billing top-up. 135 saved checks/two docs gates pass;
+  unchanged 78 prior contracts/111 preparation checks reused. All 10791 predecessors,
+  175 sources, seven owners, 24 original store files/settings preserve hashes;
+  only disposable SQLite changed. Experimental artifacts remain local.
+- Next: provider-free preparation for the unexecuted 2024 actual-value question
+  restricted to the 2023 report. Repeated subject prefixes/policy conditions are
+  a separate presentation issue. No additional paid run, fresh ingest or resume.
+  [Observed result](../evaluation/dividend_policy_three_slot_result.md).
+
+## 2026-09-21 — Unsupported-2024 provider-free boundary characterization
+
+- On clean source base `e5edaab2`, preserved the original question asking for
+  2024 actual consolidated cash flow using only the selected 2023 report.
+  Rechecked the original 2023 cell, unit, attached period, table/document identity;
+  staged only its existing 2021–2023 row. No original Chroma open or fresh retrieval.
+- 47 assertions and 70 focused contracts pass. The authored 2024 Planner target
+  survives phase inputs; receipt filtering excludes other filings. Direct 2023
+  selection and relabeled context declarations fail source/scope validation.
+  The real graph/API returns HTTP 200 / incomplete with no scalar or citations,
+  one missing output, zero Compiler calls, ledger ok with zero issues. Only the
+  authored Planner response is consumed; no sampled semantic PASS is claimed.
+- Blank numeric Planner periods still default to 2023. A deliberately wrong
+  2023 output scope accepts the source despite the original 2024 request, showing
+  that source linkage is not requested-period correctness. Admission/timeout/
+  runtime errors remain 500 and readiness remains 503, without an answer.
+- Initial harness expectations were corrected after observing receipt priority,
+  the precise rejection code and zero-Compiler empty-cohort behavior. A fixture
+  exception constructor was corrected. Windows asyncio loopback was exempted
+  from the external-network guard; the initial 14 harness failures and all
+  corrections remain in the local packet. No runtime contract was weakened.
+- All 10875 predecessor artifacts, 175 sources, seven owners, 24 original store
+  files/settings retain hashes. External attempts/provider calls/new cost zero;
+  accounting unchanged at 18.54510435/20.07, remaining 1.52489565, pending zero.
+  Next prepare a fully funded fresh single-question admission with actual-plan
+  capacity checks; no paid call, ingest, consumed-draft resume or general/release
+  claim. [Boundary report](../evaluation/unavailable_2024_boundary.md).
+
+## 2026-09-21 — Unsupported-2024 funded single-question preparation
+
+- On `3aa23243`, prepared a fresh native runner for the unchanged negative question.
+  Full envelope 1.05872608, rounded cap 1.06, existing available 1.52489565;
+  additional funding zero, full-cap residual 0.46489565. Official pricing fetched;
+  conservative input rates and unverified count contingency retained.
+- One complete first Compiler group, with two routing/Planner first responses,
+  three counts and 48 embeddings. Full token limits unchanged; larger actual
+  plans stop before Compiler dispatch, never forced together to fit this budget.
+- 53 focused controls and 67 evidence assertions pass. Real app/SDK/native ANN
+  wiring uses authored responses and synthetic vectors/counts: success has 10
+  mock HTTP requests, two ANN searches, one Compiler call, HTTP 200/incomplete,
+  no scalar and ledger ok. First-count mock 503 has three requests, no generation,
+  application HTTP 500 and no retry. Neither is sampled semantic/retrieval evidence.
+- All 10910 predecessors, 175 sources, seven owners, 24 original store files and
+  settings preserve hashes; only disposable SQLite copies change. Runtime and
+  18.54510435/20.07 accounting remain unchanged; new cost/provider calls zero.
+  Preparation alone creates no paid authority. The fresh exact draft supports
+  one separately bound dispatch, not a consumed-manifest resume.
+  [Admission scope and cost](../evaluation/unavailable_2024_admission.md).
+
+## 2026-09-21 — Unsupported-2024 live missing-evidence diagnostic
+
+- On clean `0a77fcdd`, consumed fresh `c1083801...cc37` once after accepted
+  continuation, within the existing USD 20.07 cap and USD 1.06 run limit.
+  No budget increase, second question, repair, retry, ingest or Google fallback.
+- HTTP 200/incomplete, one missing obligation, ledger integrity ok. Planner
+  preserves actual consolidated 2024-01-01 through 2024-12-31 and both request
+  units. Eight native queries yield 32 seed/eight final documents and 696
+  candidates. The 2023 cash-flow witness is in the catalog but excluded from
+  Compiler visibility; two unrelated unresolved-period change cells are visible.
+  One Compiler response appropriately leaves the amount missing.
+- All 16 external requests succeed: Terra 2, Astra 1, counts 3, embeddings 10.
+  Exact input counts match usage; compact JSON holds. No malformed/validation
+  error. Missing-only validation status remains invalid with no errors.
+- Final answer is a generic insufficient-evidence sentence with eight retrieval
+  citations. It omits the selected-report/full-year explanation required by the
+  frozen criterion. Record appropriate sampled abstention but partial semantic
+  acceptance; do not count diagnostic rationale as delivered explanation.
+- 70 offline evidence assertions pass; 10996 predecessors, 175 sources, seven
+  protected owners, 24 original store files/settings preserve hashes. Only the
+  disposable SQLite copy changes. Prior 53/67 preparation checks remain separate.
+- Estimate 0.17457258 plus count contingency 0.03 = 0.20457258 added accounting;
+  shared 18.74967693/20.07, remaining 1.32032307, pending zero, peak run reserve
+  0.44457258. Not invoice. Next characterize a generic request/source-grounded
+  missing-evidence explanation and citation contract provider-free, preserving
+  diagnostic rationale boundaries and the original partial result.
+  [Live result and limitations](../evaluation/unavailable_2024_result.md).
+
+## 2026-09-21 — Exact saved-result replay of missing-evidence presentation
+
+- 23 provider-free assertions over three preserved paid inputs pass: exact
+  program/catalog/obligations revalidate, V2 execution and all ledgers remain ok.
+  The missing-evidence answer gains selected-report/full-period explanation and
+  drops eight retrieval-only citations. Cash-flow and dividend answers, accepted
+  rows and ten/four citations remain identical. No new model sample, ANN query
+  or store opening; the original negative live result stays partial.
+- All 11061 predecessor artifacts, 24 original store files and settings preserve
+  hashes. Added cost zero, accounting 18.74967693/20.07, remaining 1.32032307,
+  pending zero. [Local correction](../evaluation/missing_evidence_presentation.md).
+
+
+## 2026-09-21 — Saved Planner-response replay after period-default removal
+
+- 24 provider-free assertions replay three original Planner response bodies with
+  saved source inventories. Normalized obligations/errors remain identical for
+  missing-evidence, cash-flow and dividend cases; exact programs/catalogs revalidate
+  and run through V2 execution/final assembly/ledger. Entire final projections equal
+  the prior presentation replay; no fresh response or causal/accuracy claim.
+- All 11087 predecessor files, 24 original store files and local settings retain
+  hashes. No native query, Chroma open, provider call or added cost. Shared accounting
+  stays 18.74967693/20.07 USD, remaining 1.32032307, pending zero. Prior paid partial
+  and consumed manifests remain unchanged. Next semantic evaluation distinguishes
+  report-only years from requested/relative/comparison periods, retaining wrong or
+  omitted period controls as semantic failures.
+  [Replay and limits](../evaluation/planner_measurement_period.md).

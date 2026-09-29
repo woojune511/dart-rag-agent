@@ -89,15 +89,7 @@ class PortfolioDemoTests(unittest.TestCase):
         )
         self.assertEqual(demo["task_artifact_integrity"]["integrity_status"], "ok")
         self.assertEqual(demo["critic_acceptance"]["status"], "accepted")
-        self.assertIsNone(demo["cache_reviewer_handoff"])
 
-    def test_build_demo_can_include_optional_cache_review(self) -> None:
-        demo = build_demo(include_cache_review=True)
-
-        self.assertEqual(demo["cache_reviewer_handoff"]["status"], "ready")
-        self.assertFalse(demo["cache_reviewer_handoff"]["retrieval_bypass_enabled"])
-        self.assertFalse(demo["cache_reviewer_handoff"]["write_enabled"])
-        self.assertFalse(demo["cache_reviewer_handoff"]["serving_enabled"])
 
     def test_demo_critic_acceptance_uses_runtime_contract_not_score(self) -> None:
         payload = self._load_payload()
@@ -116,7 +108,7 @@ class PortfolioDemoTests(unittest.TestCase):
             demo = build_demo(
                 demo_payload_path=payload_path,
                 evidence_manifest_path=manifest_path,
-                include_cache_review=False,
+
             )
 
         self.assertEqual(demo["critic_acceptance"]["status"], "blocked")
@@ -366,7 +358,7 @@ class PortfolioDemoTests(unittest.TestCase):
         self.assertEqual(demo["readiness"]["status"], "needs_review")
 
     def test_render_text_includes_portfolio_sections(self) -> None:
-        text = render_text(build_demo(include_cache_review=False))
+        text = render_text(build_demo())
 
         self.assertIn("# Portfolio Runtime Demo", text)
         self.assertIn("Fixture Contract Readiness: fixture_contract_ready", text)
@@ -381,14 +373,7 @@ class PortfolioDemoTests(unittest.TestCase):
         self.assertIn("Task/Artifact Integrity:", text)
         self.assertIn("Critic Acceptance:", text)
         self.assertIn("Cross-Surface Contract Checks:", text)
-        self.assertNotIn("Cache Reviewer Handoff:", text)
 
-    def test_render_text_can_include_optional_cache_review(self) -> None:
-        text = render_text(build_demo(include_cache_review=True))
-
-        self.assertIn("Cache Reviewer Handoff:", text)
-        self.assertIn("retrieval_bypass_enabled:", text)
-        self.assertIn("write_enabled:", text)
 
     def test_cli_writes_json_output(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -422,7 +407,6 @@ class PortfolioDemoTests(unittest.TestCase):
             self.assertEqual(payload["fixture_evidence"]["status"], "verified")
             self.assertEqual(payload["semantic_plan"]["tasks"][0]["operation_family"], "ratio")
             self.assertEqual(payload["retrieval_debug_trace"]["selected_count"], 1)
-            self.assertIsNone(payload["cache_reviewer_handoff"])
 
 
 if __name__ == "__main__":

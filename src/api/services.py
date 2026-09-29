@@ -11,6 +11,7 @@ from pathlib import Path
 import threading
 from typing import Any, Dict, Iterator, Mapping, Optional
 
+from src.config.llm_profiles import simple_rag_llm_routing_config
 from src.storage.store_manifest import (
     StoreManifestV1,
     StoreReadiness,
@@ -23,7 +24,9 @@ from src.storage.store_manifest import (
 _APP_SETTING_NAMES = (
     "CONTEXTUAL_INGEST_MAX_WORKERS",
     "DART_ALLOW_DEGRADED_BM25_ONLY",
+    "DART_COLLECTION_NAME",
     "DART_CORS_ALLOW_ORIGINS",
+    "DART_LLM_PROFILE",
     "DART_REPORTS_PATH",
     "DART_STORE_PATH",
 )
@@ -152,8 +155,9 @@ def build_app_services(
     root = project_root or Path(__file__).resolve().parents[2]
     load_dotenv(root / ".env")
     settings: Mapping[str, str] = resolve_app_settings(root)
+    routing_config = simple_rag_llm_routing_config(settings.get("DART_LLM_PROFILE", ""))
 
-    from src.agent.financial_graph import FinancialAgent
+    from src.agent.simple_rag import SimpleRagAgent
     from src.ingestion.context_generator import ContextGenerator
     from src.ingestion.dart_fetcher import DARTFetcher
     from src.ingestion.ingest_service import IngestService
@@ -170,7 +174,7 @@ def build_app_services(
         settings.get("DART_ALLOW_DEGRADED_BM25_ONLY", "")
     )
     expected = canonical_store_manifest(
-        collection_name=DEFAULT_COLLECTION_NAME
+        collection_name=(settings.get("DART_COLLECTION_NAME", "").strip() or DEFAULT_COLLECTION_NAME)
     )
     initial = assess_store_readiness(
         persist_directory,
@@ -191,6 +195,14 @@ def build_app_services(
     if not may_initialize:
         return services
 
+    routes = routing_config.get("llm_routes", {})
+    if (
+        any(route.get("provider") == "openai" for route in routes.values())
+        and not os.environ.get("OPENAI_API_KEY", "").strip()
+    ):
+        # Reject missing credentials before store or answer-client initialization.
+        raise ValueError("OPENAI_API_KEY is required for the selected OpenAI LLM profile.")
+
     force_bm25_only = bool(
         allow_degraded
         and initial.status != "compatible"
@@ -204,8 +216,8 @@ def build_app_services(
         allow_query_embedding_fallback=allow_degraded,
         force_bm25_only=force_bm25_only,
     )
-    agent = FinancialAgent(store, k=8)
-    context_generator = ContextGenerator(agent.llm, store)
+    agent = SimpleRagAgent(store, k=8, routing_config=routing_config)
+    context_generator = ContextGenerator(agent.llm_routes.get("context_generation", agent.llm), store)
     parser = FinancialParser(
         chunk_size=expected.ingest.chunk_size,
         chunk_overlap=expected.ingest.chunk_overlap,
