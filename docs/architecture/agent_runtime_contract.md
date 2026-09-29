@@ -20,7 +20,8 @@ purpose. Retrieved text is evidence, never a source of execution instructions.
 1. Preserve the exact original question. Reject an empty question or invalid scope.
 2. Search the existing store once with `k=8` and exact caller metadata constraints.
 3. Form a bounded packet of whole retrieved text, original source identity and
-   stored context. No Planner queries, semantic candidate catalog or graph expansion.
+   stored context. Default application construction does not load experimental
+   caption sidecars. No Planner queries, semantic catalog or general graph expansion.
 4. If no addressable source fits, return an explicit abstention without generation.
 5. Otherwise invoke one structured answer generation, with transport retries zero.
 6. Validate response shape and cited-source membership. Return answer, citations,
@@ -61,6 +62,37 @@ The serialized question/scope/documents packet is bounded to 65,536 UTF-8 bytes.
 Oversized documents are omitted whole and reported; source text is not truncated.
 An oversized question/scope fails before search. This byte bound is not a tokenizer,
 provider context-window check, billing estimate or total experiment budget.
+
+### Experimental physical caption attachments
+
+The optional `table_caption_links.json` is built offline from original XML and
+the existing graph/table payloads by `src.ops.build_table_caption_links`.
+It is not auto-created by ingest or query execution. The default API/Streamlit
+does not load this file, even when present. Experimental callers must supply
+`VectorStoreManager(experimental_caption_links_path=...)` explicitly; this is
+not an API request field, environment switch or application setting. The path
+must name an existing valid sidecar; invalid opt-ins fail before provider/store
+construction. File installation alone does not activate the feature.
+The extractor admits only isolated explicit date/unit captions immediately
+before a unique whole data table in XML and stored order. Both source locators,
+raw-document SHA256, scope and source-content/metadata/adjacency fingerprints are persisted.
+No original source text, metadata, index, parser schema or embedding is rewritten.
+
+`VectorStoreManager.get_table_caption_doc` revalidates those bindings on every
+lookup, including cached retrieval. Missing, altered or stale bound sources fail
+before generation; there is no heuristic predecessor/description fallback.
+`SimpleRagAgent` retains every initial hit and places whole captions before their
+tables, deduplicating identical sources and rechecking caller scope. Physical
+source count is bounded by `k` (default8), including attached captions. With any
+active caption bundle, a count/byte overflow fails before the answer call rather
+than evicting a seed, trimming a source or sending an incomplete bundle. Without
+caption attachments, existing whole-source omission behavior remains unchanged.
+No extra search, embedding or model call occurs. Successful traces include
+`caption_bundles`; attached caption scores are null because lookup is not ranking.
+This physical association does not prove semantic ownership or answer correctness.
+The caption-aware capacity selector remains an experiment artifact, not the
+default search implementation. Its answer comparison did not meet the strict
+adoption gate; the explicit attachment implementation is retained for comparisons.
 
 The response schema is `answer`, `cited_source_ids`, `abstained`. Empty/malformed
 answers and unknown citations fail without another model call. A non-abstained

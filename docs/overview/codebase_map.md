@@ -79,6 +79,7 @@
 
 | Path | Responsibility |
 | --- | --- |
+| `src/processing/table_caption_links.py`, `src/storage/table_caption_links.py`, `src/ops/build_table_caption_links.py` | Experimental XML-to-stored-source caption bindings and lookup revalidation; requires explicit `VectorStoreManager(experimental_caption_links_path=...)`. Default app ignores sidecar presence; no adopted caption-aware selector. |
 | `src/ops/evaluator.py` | evaluator-only numeric variants; canonical identity separate from answer labels; interrupted-run observations exported separately, never scoring input |
 | `src/ops/benchmark_runner.py` | explicit benchmark, store-only, and store-fixed eval-only modes |
 | `src/ops/application_diagnostics.py` | explicit caller persistence of opt-in run snapshots on return or exception; exclusive files, safe persistence-error reporting, no runtime-default import or provider dispatch |

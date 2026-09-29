@@ -22,6 +22,43 @@ def _encoded(value) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, allow_nan=False, separators=(",", ":"))
 
 
+def _caption_bundles(hits, store, limit):
+    """Attach only explicitly validated stored sources, preserving all seed hits."""
+    lookup = getattr(store, "get_table_caption_doc", None)
+    if not callable(lookup):
+        return hits, []
+    expanded, bindings = [], []
+    for doc, score in hits:
+        caption = lookup(doc)
+        if caption is not None:
+            if (not caption.metadata.get("chunk_uid")
+                    or caption.metadata.get("chunk_uid") == doc.metadata.get("chunk_uid")
+                    or caption.metadata.get("rcept_no") != doc.metadata.get("rcept_no")
+                    or not caption.page_content.strip()):
+                raise ValueError("Invalid bound caption source")
+            # Attachment lookup is not a relevance ranking. Public observations
+            # render this score as None, rather than inventing a search score.
+            expanded.append((caption, math.nan))
+            bindings.append({"document_id": doc.metadata.get("rcept_no"),
+                             "table_chunk_id": doc.metadata.get("chunk_uid"),
+                             "caption_chunk_id": caption.metadata["chunk_uid"]})
+        expanded.append((doc, score))
+    if bindings:
+        identities = set()
+        for doc, _ in expanded:
+            meta = doc.metadata
+            document = next((meta[k] for k in ("rcept_no", "document_id", "source_document_id")
+                             if isinstance(meta.get(k), str) and meta[k].strip()), "")
+            chunk = next((meta[k] for k in ("chunk_uid", "id")
+                          if isinstance(meta.get(k), str) and meta[k].strip()), "")
+            if document and chunk and doc.page_content.strip():
+                identities.add((document, chunk))
+        if len(identities) > limit:
+            record_diagnostic("caption_bundle_rejected", {"reason": "source_count_limit", "limit": limit})
+            raise ValueError("Whole caption bundle exceeds source count limit")
+    return expanded, bindings
+
+
 class SimpleRagAgent(ChatModelRoutes):
     """Application QA entry point. The compiled workflow is an explicit comparison."""
 
@@ -61,8 +98,9 @@ class SimpleRagAgent(ChatModelRoutes):
         with diagnostic_location(phase="retrieval"):
             record_diagnostic("phase_started", {})
             hits = self.vsm.search(query, k=self.k, where_filter=deepcopy(where))
+            hits, caption_bindings = _caption_bundles(hits[:self.k], self.vsm, self.k)
             sources, seen, omitted = [], {}, []
-            for doc, score in hits[:self.k]:
+            for doc, score in hits:
                 meta = deepcopy(doc.metadata)
                 if not metadata_matches_filter(meta, where):
                     raise ValueError("Search returned a source outside the caller scope")
@@ -84,6 +122,10 @@ class SimpleRagAgent(ChatModelRoutes):
                 seen[source_id] = source
                 proposed = {**packet, "documents": [*packet["documents"], source]}
                 if len(_encoded(proposed).encode("utf-8")) > self.max_context_bytes:
+                    if caption_bindings:
+                        record_diagnostic("caption_bundle_rejected", {"reason": "context_byte_limit",
+                                                                      "limit": self.max_context_bytes})
+                        raise ValueError("Whole caption bundle exceeds context byte limit")
                     omitted.append({"source_id": source_id, "reason": "context_byte_limit"})
                     continue
                 packet = proposed
@@ -93,6 +135,8 @@ class SimpleRagAgent(ChatModelRoutes):
                                "selected_source_ids": [row["source_id"] for row in sources],
                                "omitted": omitted, "context_bytes": len(_encoded(packet).encode("utf-8")),
                                "context_byte_limit": self.max_context_bytes, "search": telemetry}
+            if caption_bindings:
+                retrieval_trace["caption_bundles"] = caption_bindings
             record_diagnostic("phase_completed", {"retrieval_debug_trace": retrieval_trace})
         retrieval_seconds = perf_counter() - start
         answer_started = perf_counter()

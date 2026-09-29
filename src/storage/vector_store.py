@@ -36,6 +36,7 @@ from src.storage.metadata_payloads import (
 )
 from src.storage import parent_store
 from src.storage import search_merge
+from src.storage.table_caption_links import get_caption_doc, load_caption_links
 from src.storage.search_scope import filter_selects_nothing
 from src.storage.structure_graph import (
     empty_structure_graph,
@@ -146,7 +147,20 @@ class VectorStoreManager:
         allow_query_embedding_fallback: bool = True,
         force_bm25_only: bool = False,
         skip_vector_add: bool = False,
+        *,
+        experimental_caption_links_path: str | Path | None = None,
     ):
+        # An experiment artifact's presence must not activate an unadopted
+        # retrieval feature in the default API/Streamlit construction path.
+        caption_links = {}
+        if experimental_caption_links_path is not None:
+            if (not isinstance(experimental_caption_links_path, (str, Path))
+                    or not str(experimental_caption_links_path).strip()):
+                raise ValueError("Experimental caption links require an explicit file path")
+            caption_path = Path(experimental_caption_links_path)
+            if not caption_path.is_file():
+                raise ValueError("Experimental caption links file does not exist")
+            caption_links = load_caption_links(caption_path)
         self.persist_directory = persist_directory
         os.makedirs(self.persist_directory, exist_ok=True)
         self.collection_name = collection_name
@@ -206,6 +220,7 @@ class VectorStoreManager:
         self._table_payloads_path = Path(self.persist_directory) / "table_payloads.json"
         self._structure_graph: Dict[str, Any] = self._load_structure_graph()
         self._table_payloads: Dict[str, Dict[str, str]] = self._load_table_payloads()
+        self._caption_links = caption_links
 
         self.bm25 = None
         self.bm25_docs: List[str] = []
@@ -870,6 +885,12 @@ class VectorStoreManager:
         return structure_graph_node(
             self._structure_graph,
             chunk_uid,
+            self._metadata_with_table_payload,
+        )
+
+    def get_table_caption_doc(self, table_doc: Document) -> Optional[Document]:
+        return get_caption_doc(
+            self._structure_graph, getattr(self, "_caption_links", {}), table_doc,
             self._metadata_with_table_payload,
         )
 

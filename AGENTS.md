@@ -5,6 +5,7 @@
 구현 단위의 세부 계약은 `docs/architecture/agent_runtime_contract.md`를 따른다. 이 문서와 충돌하면 더 구체적인 runtime contract를 우선하고, 원칙 변경이 필요하면 두 문서를 함께 갱신한다.
 
 기본 제품은 `SimpleRagAgent`의 검색 → 답변 생성 1회 → 출처 ID 검사 경로다. Planner·Compiler는 명시적 비교·replay 전용이며 아래의 해당 단계 계약은 `docs/architecture/compiled_workflow_contract.md`와 함께 그 경로에만 적용한다. 단순 RAG의 산술·의미·요청 누락 검증 미수행을 응답에 표시하고, 기존 계산 검증을 수행했다고 주장하지 않는다.
+캡션 첨부는 실험 호출자가 `VectorStoreManager(experimental_caption_links_path=...)`로 검증된 파일 경로를 명시할 때만 활성화한다. 기본 API·Streamlit은 저장소에 캡션 파일이 있어도 읽지 않는다. 실험 경로는 원문 연결·검색 근거·청크 수·바이트 한도를 검증하며, 일반 인접 문맥 확장이나 의미 검증으로 해석하지 않는다.
 
 구조 리팩터링, 파일 이동, public API surface 축소, MAS/eval/ops 분리 작업을 시작하기 전에는 `docs/architecture/agent_runtime_contract.md`와 `docs/overview/codebase_map.md`를 먼저 확인한다. 과거 단계별 근거가 필요할 때만 historical `docs/architecture/core_runtime_surface_refactoring_plan.md`를 참고한다.
 
