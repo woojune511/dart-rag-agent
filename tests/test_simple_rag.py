@@ -190,6 +190,7 @@ class SimpleRagTests(unittest.TestCase):
                 app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py")).run()
                 self.assertEqual(len(app.exception), 0)
                 self.assertEqual(len(app.tabs), 2)
+                app.radio(key="query_scope_mode").set_value("조건 직접 입력").run()
                 app.text_area(key="custom_question").set_value("Quantity?")
                 app.text_input(key="query_scope_company").set_value("Issuer")
                 app.text_input(key="query_scope_year").set_value("2040")
