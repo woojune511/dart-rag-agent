@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-30
+Last updated: 2026-09-30. [Readiness diagnostics and restart verification](docs/operations/readiness_diagnostics_2026-10-17.md)
 
 ## Product boundary
 
