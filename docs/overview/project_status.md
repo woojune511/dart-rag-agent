@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-10-17. [Readiness diagnostics and restart verification](../operations/readiness_diagnostics_2026-10-17.md). [PR #103](https://github.com/woojune511/dart-rag-agent/pull/103) merged documentation-only commit `4ed602f8` into `main` as `d708a09d2c0dd416804389356641e6fe152a0bff` on 2026-10-17; [main CI](https://github.com/woojune511/dart-rag-agent/actions/runs/39018150824) passed both `Reviewer contracts (Python 3.13)` and `Full unittest suite (Python 3.13)`. Local uncommitted changes, `.env`, stores and raw experiment artifacts were excluded.
+Last updated: 2026-10-17. [Readiness diagnostics and restart verification](../operations/readiness_diagnostics_2026-10-17.md). [PR #104](https://github.com/woojune511/dart-rag-agent/pull/104) merged documentation-only commit `36a3fb88` into `main` as `423f3773bbf4e2ad0f8f0a31e41aa5cc5cb0d673` on 2026-10-17; [main CI](https://github.com/woojune511/dart-rag-agent/actions/runs/39020734758) passed both `Reviewer contracts (Python 3.13)` and `Full unittest suite (Python 3.13)`. Local uncommitted changes, `.env`, stores and raw experiment artifacts were excluded.
 
 ## Current implementation
 
