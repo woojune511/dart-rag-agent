@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-30. [Readiness diagnostics and restart verification](docs/operations/readiness_diagnostics_2026-10-17.md)
+Last updated: 2026-10-17. [Readiness diagnostics and restart verification](docs/operations/readiness_diagnostics_2026-10-17.md). [PR #100](https://github.com/woojune511/dart-rag-agent/pull/100) merged readiness commit `1f186fca` into `main` as `358f763deb8c03515e84bbb329924c4fd929af32` on 2026-10-17; [main CI](https://github.com/woojune511/dart-rag-agent/actions/runs/39002096822) passed both `Reviewer contracts (Python 3.13)` and `Full unittest suite (Python 3.13)`. Local uncommitted changes, `.env`, stores and raw experiment artifacts were excluded.
 
 ## Product boundary
 
