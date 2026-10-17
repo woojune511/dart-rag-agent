@@ -6,6 +6,7 @@ import asyncio
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 import json
+import logging
 import os
 from pathlib import Path
 import threading
@@ -19,6 +20,27 @@ from src.storage.store_manifest import (
     canonical_store_manifest,
     is_empty_chroma_store,
 )
+
+
+logger = logging.getLogger(__name__)
+
+
+def _log_readiness(
+    readiness: StoreReadiness,
+    *,
+    stage: str,
+    source_integrity: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Record the existing result; null integrity means the check was not run."""
+    logger.log(
+        logging.INFO if readiness.ready and not readiness.degraded else logging.WARNING,
+        "Store readiness: %s",
+        json.dumps({
+            "stage": stage,
+            **readiness.to_projection(),
+            "source_integrity": source_integrity,
+        }, ensure_ascii=False),
+    )
 
 
 _APP_SETTING_NAMES = (
@@ -128,6 +150,7 @@ class AppServices:
                 and list(getattr(self.store, "bm25_docs", []) or [])
             ),
         )
+        integrity = None
         validate_sources = getattr(self.store, "validate_source_integrity", None)
         if self.readiness.ready and callable(validate_sources):
             integrity = validate_sources()
@@ -136,6 +159,7 @@ class AppServices:
                     self.readiness, status="incomplete", ready=False,
                     reason=integrity["reason"],
                 )
+        _log_readiness(self.readiness, stage="refresh", source_integrity=integrity)
         if self.agent is not None:
             self.agent.retrieval_degraded_reason = (
                 self.readiness.reason if self.readiness.degraded else ""
@@ -180,6 +204,7 @@ def build_app_services(
         persist_directory,
         expected=expected,
     )
+    _log_readiness(initial, stage="manifest")
     may_initialize = _store_may_initialize(
         persist_directory,
         readiness=initial,

@@ -1,6 +1,7 @@
 """Fault injection at real sidecar persistence and resume boundaries."""
 
 from copy import deepcopy
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -179,10 +180,29 @@ class SourcePersistenceContractTests(unittest.TestCase):
             chunk = _chunk("chunk1")
             manager.vector_store.add_texts(["stored context"], [chunk.metadata])
             services = AppServices(manifest, assess_store_readiness(root, expected=manifest), store=manager)
-            self.assertEqual(services.refresh_readiness().status, "incomplete")
+            with self.assertLogs("src.api.services", level="WARNING") as logs, \
+                    patch.object(manager, "validate_source_integrity", wraps=manager.validate_source_integrity) as validate:
+                self.assertEqual(services.refresh_readiness().status, "incomplete")
+            validate.assert_called_once_with()
+            self.assertEqual(len(logs.records), 1)
+            diagnostic = json.loads(logs.records[0].getMessage().split(": ", 1)[1])
+            self.assertEqual(diagnostic["stage"], "refresh")
+            self.assertEqual(diagnostic["status"], "incomplete")
+            self.assertEqual(diagnostic["reason"], "source snapshot is incomplete")
+            self.assertEqual(diagnostic["source_integrity"], {
+                "ready": False, "reason": "source snapshot is incomplete",
+                "missing_source_ids": ["chunk1"], "missing_payload_ids": [],
+                "unidentified_vector_ids": [],
+            })
             self.assertFalse(services.readiness.ready)
             manager.repair_indexed_sources([chunk])
-            self.assertTrue(services.refresh_readiness().ready)
+            with self.assertLogs("src.api.services", level="INFO") as logs:
+                self.assertTrue(services.refresh_readiness().ready)
+            diagnostic = json.loads(logs.records[0].getMessage().split(": ", 1)[1])
+            self.assertEqual(diagnostic["status"], "compatible")
+            self.assertFalse(diagnostic["degraded"])
+            self.assertTrue(diagnostic["source_integrity"]["ready"])
+            self.assertEqual(diagnostic["source_integrity"]["missing_source_ids"], [])
 
     def test_missing_payload_and_unreadable_index_are_not_ready(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -191,8 +211,19 @@ class SourcePersistenceContractTests(unittest.TestCase):
             manager.add_documents([chunk.content], [chunk.metadata])
             atomic_write_json(manager._table_payloads_path, {"version": 1, "payloads": {}})
             self.assertFalse(manager.validate_source_integrity()["ready"])
-            with patch.object(manager.vector_store, "get", side_effect=OSError("index unavailable")):
-                self.assertFalse(manager.validate_source_integrity()["ready"])
+            manifest = canonical_store_manifest(collection_name="runtime")
+            write_store_manifest(Path(directory), manifest)
+            services = AppServices(manifest, assess_store_readiness(directory, expected=manifest), store=manager)
+            with patch.object(manager.vector_store, "get", side_effect=OSError("index unavailable")) as get:
+                with self.assertLogs("src.api.services", level="WARNING") as logs:
+                    self.assertFalse(services.refresh_readiness().ready)
+                get.assert_called_once_with()
+                diagnostic = json.loads(logs.records[0].getMessage().split(": ", 1)[1])
+                self.assertEqual(diagnostic["status"], "incomplete")
+                self.assertEqual(diagnostic["reason"], "source snapshot cannot be verified: index unavailable")
+                self.assertEqual(diagnostic["source_integrity"], {
+                    "ready": False, "reason": diagnostic["reason"],
+                })
                 with self.assertRaises(OSError):
                     manager.list_indexed_chunk_uids()
 

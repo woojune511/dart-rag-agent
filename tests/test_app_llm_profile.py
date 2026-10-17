@@ -116,7 +116,15 @@ class AppLLMProfileTests(unittest.TestCase):
     def test_openai_selection_does_not_bypass_store_readiness(self):
         self.prepare_services(ready=False)
         os.environ["DART_LLM_PROFILE"] = "openai"
-        services = build_app_services(project_root=self.root)
+        with self.assertLogs("src.api.services", level="WARNING") as logs:
+            services = build_app_services(project_root=self.root)
+        self.assertEqual(len(logs.records), 1)
+        diagnostic = json.loads(logs.records[0].getMessage().split(": ", 1)[1])
+        self.assertEqual(diagnostic["stage"], "manifest")
+        self.assertEqual(diagnostic["status"], self.readiness.status)
+        self.assertEqual(diagnostic["reason"], self.readiness.reason)
+        self.assertFalse(diagnostic["ready"])
+        self.assertIsNone(diagnostic["source_integrity"])
         self.assertFalse(services.readiness.ready)
         self.assertIsNone(services.agent)
         self.store_factory.assert_not_called()
