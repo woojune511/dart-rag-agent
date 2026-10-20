@@ -1,251 +1,100 @@
 # DART Filing RAG
 
-**[웹 데모 바로 보기 · 설치 없이 사례 체험](https://woojune511.github.io/dart-rag-agent/)**
+**DART 공시의 표와 본문을 검색하고, 답변과 인용 원문을 함께 확인하는 문서 질의응답 시스템입니다.**
 
-저장된 질문 5개를 선택해 실제 답변과 인용 원문을 비교할 수 있습니다.
-조회·계산·답변 보류·실패 사례를 포함하며, 직접 질문 입력이나 API 호출은 없습니다.
-[데모 안내](demo/README.md) · [평가 보고서](docs/evaluation/simple_rag_final_result.md)
+문서 구조를 보존하는 파서와 하이브리드 검색을 구현하고, 직접 구축·검수한
+**11개 기업·77문항**의 공시 QA 데이터셋으로 검색 누락·표 해석·답변 오류를 분석했습니다.
 
-A document QA application for Korean DART filings. It preserves source structure,
-uses hybrid retrieval, and generates an answer with inspectable source text.
-The default application is **simple RAG**: one scoped search and at most one
-answer-generation call. Empty evidence returns an abstention without generation.
+**[웹 데모 보기](https://woojune511.github.io/dart-rag-agent/)** ·
+[아키텍처와 설계 판단](docs/overview/project_overview.md) ·
+[평가 결과와 한계](docs/evaluation/README.md) ·
+[로컬 실행](docs/operations/quickstart.md)
 
-The user adopted this smaller product after a
-[four-case development comparison](docs/evaluation/portfolio_workflow_comparison_successor.md)
-found no clear Planner/Compiler quality advantage at 3.47x estimated cost and
-4.79x measured time. These exposed cases do not establish general superiority.
-The subsequent [12-question application evaluation](docs/evaluation/simple_rag_final_result.md)
-completed once: 9/9 answerable cases met the source-review criteria, while 2/3
-insufficient-evidence cases abstained safely. The report retains a daily-revenue
-failure and an ancillary wording caveat. This familiar-corpus assistant review
-is not independent gold or evidence of unseen-company performance.
+[![저장된 NAVER 질문의 답변, 실행 후 검토, 앱의 검증 범위를 보여주는 데모 화면](docs/assets/saved-demo-f02.png)](https://woojune511.github.io/dart-rag-agent/)
 
-A subsequent [paired vanilla-dense baseline](docs/evaluation/vanilla_dense_comparison.md)
-kept the same questions, answer model, prompt, schema and top-8 limit. Hybrid
-retrieval supplied complete required evidence for 9/9 answerable cases versus
-5/9 for dense-only; fully correct, complete and source-supported answers were
-also 9/9 versus 5/9. This development-exposed comparison supports the retrieval
-choice, not a general accuracy claim.
+*2026-09-22 실행에서 선정한 F02의 저장 화면입니다. 데모에서 조회·계산·보류·실패
+5개 사례와 인용 원문을 살펴볼 수 있습니다. 새 질문 입력이나 모델 호출은 없습니다.*
 
-The separate [table-structure answer comparison](docs/evaluation/structure_answer_result.md)
-sampled all four flat/structured × dense/RRF conditions once. On eight primary
-questions, flat+RRF had5/8 fully supported answers versus structured+RRF4/8.
-It identifies a specific table-boundary recovery, but no aggregate structure
-advantage; rubric sensitivities and development exposure are disclosed.
+## 주요 구현
+
+- **공시 구조를 보존하는 ingest:** 절 제목, 표의 행·열·단위, 공시 식별자를
+  검색 문맥에 남깁니다. [파서](src/processing/financial_parser.py) ·
+  [표 레코드](src/processing/table_records.py)
+- **보고서 범위를 지키는 하이브리드 검색:** Chroma dense와 BM25에 같은 명시적
+  필터를 적용하고 RRF로 순위를 결합합니다. [검색 구현](src/storage/vector_store.py) ·
+  [범위 필터](src/storage/report_scope_filter.py)
+- **답변에서 근거까지 이어지는 실행 경로:** 검색 1회, 답변 생성 최대 1회 후
+  응답 형식·출처 ID를 검사하고 답변·인용 원문·검증 한계를 함께 반환합니다.
+  [SimpleRagAgent](src/agent/simple_rag.py) · [API 서비스](src/api/services.py)
+- **데이터셋 구축과 실패 분석:** 수치 22개, 요약·혼합 36개, 거절 19개 문항을
+  구성하고 실제 전달 근거와 답변을 대조했습니다. 평가 기준 자체의 대상·범위
+  오류도 별도로 기록했습니다. [데이터셋](benchmarks/datasets/single_doc_eval_full.curated.json) ·
+  [설계 근거](docs/evaluation/benchmark_dataset_design.md)
+
+## 동작 구조
 
 ```mermaid
 flowchart LR
-    Q[Question and explicit report scope] --> R[Hybrid retrieval]
-    R --> E[Bounded source text and context]
-    E --> A[One structured answer call]
-    A --> V[Response and source ID checks]
-    V --> O[Answer, cited sources and validation limits]
+    I["공시 파싱·색인<br/>Chroma + BM25"] --> R["범위 내 검색<br/>RRF · top-8"]
+    Q["질문 + 보고서 범위"] --> R
+    R --> A["답변 생성<br/>최대 1회"]
+    A --> V["형식·출처 ID 검사<br/>답변 + 인용 원문"]
 ```
 
-## Core engineering
+FastAPI와 Streamlit은 같은 `SimpleRagAgent` 서비스를 사용합니다. 근거가 비어
+있으면 답변 생성 없이 보류합니다. 산술·의미적 근거·요청 항목의 완전성은 자동
+검증하지 않으며 응답에 이를 표시합니다. [실행 계약](docs/architecture/agent_runtime_contract.md)
 
-- Structure-aware ingest preserves paragraphs, tables, headers, units and filing
-  identity. Existing stores and canonical embedding/parser settings are reused.
-- Dense Chroma and BM25 search use the same caller filter and reciprocal-rank
-  fusion. The question is not parsed into guessed company/year filters.
-- Whole-source context selection has a visible byte bound and omission reasons.
-  Unknown citations, scope leaks and conflicting source identities fail closed.
-- The API exposes actual cited text, abstention and validation limits. Optional
-  review/debug bundles contain retrieval traces, usage and timings.
-- Default queries do not invoke Planner/Compiler, a tool loop, or arithmetic code.
-  Arithmetic, semantic support and requested-output completeness are **not
-  automatically verified**. A valid source ID does not prove a claim is supported.
+**기술 구성:** Python 3.13 · FastAPI · Streamlit · LangChain · Chroma · BM25/RRF
 
-`SimpleRagAgent.run()` is the application entry point. `FinancialRunResultV1`
-retains answer/review/debug projections; `workflow`, `abstained`, `cited_sources`
-and `validation` make the reduced guarantees explicit. Compiler-specific result
-fields are empty, not success claims. See the [runtime contract](docs/architecture/agent_runtime_contract.md).
+## 공개 전체 평가 · 2026-09-28
 
-The old `FinancialAgent` and its source/calculation contracts remain available
-only through explicit comparison/replay callers. They are not an automatic query
-fallback. Its [contract](docs/architecture/compiled_workflow_contract.md) and
-historical results remain separate from product acceptance.
+자체 구축한 11개 기업·77문항에서 저장된 답변과 실제 전달·인용 근거를
+assistant가 원문 대조했습니다. 통과는 정확성·필수 항목 충족·출처 지지를 모두
+만족한 경우입니다.
 
-## Current result and five-minute review
+| 항목 | 결과 |
+| --- | --- |
+| 실행 완료 / 오류 | 77/77 완료 · 오류 0건 |
+| 답변 가능 문항 | 30/55 통과 |
+| 거절 문항 | 18/19 통과 |
+| 평가 기준 충돌 | 최초 3문항 제외 · 후속 검토에서 1문항 추가 확인 |
 
-The actual application service path used scoped hybrid retrieval and one answer
-call per nonempty case. Mean question time was **4.02 s**, with an estimated
-**USD0.208** total cost for 12 questions. This is one instrumented local run, not
-production HTTP latency or a paired comparison.
+추가 충돌 문항까지 제외하면 답변 통과는 **30/54**입니다. 과거 30/55 기록을
+덮어쓰지 않습니다. 개발에 노출된 자체 데이터셋의 사후 검토이며, 독립 사람 평가나
+새 회사에 대한 일반화 정확도는 아닙니다. 77/77은 실행 완료 수입니다.
 
-Download or clone the repository and open **[demo/index.html](demo/index.html)**
-in your browser. No install, API key, server or source store is needed. The viewer
-includes five selected actual answers and all their cited source text. F02 opens
-first; the case buttons also expose the F12 failure, where an annual-revenue
-average substitutes for an unavailable daily fact. GitHub's source preview does
-not run HTML; use the hosted demo or open the downloaded file.
+[전체 결과·문항별 실패 분석](docs/evaluation/simple_rag_full77_result.md) ·
+[평가별 조건과 분모](docs/evaluation/README.md)
 
-```powershell
-Start-Process (Resolve-Path 'demo/index.html').Path
-```
+## 실험에서 내린 설계 판단
 
-Read the [one-page introduction](docs/overview/project_overview.md),
-[walkthrough](docs/overview/simple_rag_demo.md) and
-[full result report](docs/evaluation/simple_rag_final_result.md). The
-[vanilla-dense comparison](docs/evaluation/vanilla_dense_comparison.md) explains
-why the product keeps hybrid retrieval.
-The five examples illustrate success, abstention and failure; the metrics above
-describe the full 12-case run. Full raw logs/stores remain local. This is saved
-output inspection, not a live RAG query or independent reproduction of the run.
-An optional standard-library check verifies the packaged data:
+| 판단 | 관측한 근거 |
+| --- | --- |
+| 기본 경로를 Simple RAG로 단순화 | 4문항 비교에서 Planner/Compiler의 명확한 품질 우위 없이 추정 비용 3.47배·측정 시간 4.79배. [비교 보고서](docs/evaluation/portfolio_workflow_comparison_successor.md) |
+| Dense와 BM25를 결합 | 별도 12문항 비교의 답변형 9개에서 완전·정확·원문 지지 답변은 hybrid 9/9, dense-only 5/9. [비교 조건](docs/evaluation/vanilla_dense_comparison.md) |
+| 표 구조의 효과를 사례별로 분석 | 77문항 3조건 비교에서 일부 표 경계를 복구했지만 전체 답변 통과는 일반 텍스트가 더 높았습니다. [구조 비교](docs/evaluation/structure_full77_result.md) |
+
+서로 다른 개발 노출 실험입니다. 결과를 합산하거나 구조·검색 방식의 일반적 우위로
+해석하지 않습니다. Planner/Compiler는 명시적 비교·replay 경로에 남아 있습니다.
+
+## 직접 확인하기
+
+- **설치 없이 보기:** [웹 데모](https://woojune511.github.io/dart-rag-agent/)에서
+  `조회 성공 → 인용 원문 → 실패 사례` 순서로 살펴보세요.
+- **오프라인으로 보기:** 저장소를 내려받아 [demo/index.html](demo/index.html)을
+  브라우저로 엽니다. [데모 안내](demo/README.md)
+- **앱 실행:** Python·API 키·호환 store를 준비하는 [로컬 실행 안내](docs/operations/quickstart.md)를 따릅니다.
+
+데모 데이터의 무결성은 Python 표준 라이브러리만으로 확인할 수 있습니다.
 
 ```bash
 python -I -S demo/verify.py
 ```
 
-## Historical comparison and fixture evidence
+이 검사는 저장된 사례의 파일 무결성을 확인합니다. 검색·생성 재실행이나 답변 품질
+검증은 아닙니다.
 
-| Signal | Result | Interpretation |
-| --- | ---: | --- |
-| Expanded structural numeric set | recorded 9 / 9 PASS | Latest recorded store-fixed close; raw artifacts are not published with the repository |
-| Vanilla dense baseline | 5 / 9 fully supported positive answers | Same exposed 12-case panel, answer model, prompt/schema and top-8 limit; saved-vector replay, not live retrieval latency |
-| Demo fixture contract | `fixture_contract_ready` | SHA-256-bound curated contract fixture passes internal cross-surface invariants; upstream lineage is not provided |
-| Review surface aggregate | `review_surface_ready` | Reviewer fixtures and optional capability handoffs pass; publication checks are separate |
-| Full unit test discovery | [current status](docs/overview/project_status.md) | The Python 3.13 workflow definition and latest local validation are tracked in one place |
-
-The older structural result is a retained engineering record, not a synchronized
-leaderboard result. The newer vanilla baseline is paired with the final simple-RAG
-panel but remains development-exposed and its raw artifacts are not checked in.
-The checked-in demo fixture is a separate evidence surface; it does not reproduce
-or independently verify either benchmark. See the
-[vanilla comparison](docs/evaluation/vanilla_dense_comparison.md) and historical
-[experiment report](docs/overview/experiment_report.md) for their
-different methods and limits.
-
-## Historical compiled fixture review
-
-The lightweight profile runs without the full ingest, ML, benchmark, and app
-stack. Start with one command:
-
-```bash
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_demo
-```
-
-This command reviews the older compiled-workflow contract. It does not exercise
-the default simple-RAG application. For that historical surface:
-
-1. Read the problem and core pipeline above.
-2. Run the demo and inspect `Semantic Plan`, `Retrieval Trace`, `Calculation
-   Trace`, citations, and critic acceptance.
-3. Inspect the historical scope and claim boundaries in the
-   [compiled fixture walkthrough](docs/overview/demo_walkthrough.md).
-
-The fixture-backed demo is a checked-in curated contract example, not a live
-DART ingest or provider call. Its
-[evidence manifest](tests/fixtures/portfolio_demo/evidence_manifest.json) binds
-the fixture bytes, declares upstream lineage as `not_provided`, and scopes what
-the command can establish. The hash proves fixture integrity, not runtime
-provenance or authenticity. For deeper review-surface validation, run:
-
-```bash
-uv run --with-requirements requirements-review.txt python -m src.ops.portfolio_review_gates
-uv run --with-requirements requirements-review.txt python -m src.ops.audit_runtime_domain_terms
-```
-
-`portfolio_review_gates` deliberately reports only
-`review_surface_ready`; it does not run the unit suite or domain audit. The
-[CI workflow](.github/workflows/validation.yml) is configured to combine those
-checks for publication validation. A workflow definition is not a remote PASS;
-observed status belongs in
-[project_status.md](docs/overview/project_status.md).
-
-Historical compiled-workflow deep dives:
-
-| Question | Document |
-| --- | --- |
-| How does one question move through the code? | [Question trace walkthrough](docs/overview/question_trace_walkthrough.md) |
-| What evidence supports the result claims? | [Experiment report](docs/overview/experiment_report.md) |
-| What are the main implementation techniques? | [Technical highlights](docs/overview/technical_highlights.md) |
-| How is the fixture-backed demo assembled? | [Demo walkthrough](docs/overview/demo_walkthrough.md) |
-
-## Run the API
-
-The full profile is needed for ingest, Chroma, the API, benchmarks, and the full
-test suite. Application LLM routing is selected by `DART_LLM_PROFILE`; API keys
-provide credentials rather than selecting a model automatically.
-`.python-version` declares Python 3.13 as the repository reference line, and a
-contract test keeps the workflow's Python literals aligned with it. Python 3.14
-is not the publication gate and the current
-LangChain stack may emit its Pydantic-v1 compatibility warning there.
-
-```bash
-uv run --with-requirements requirements.txt uvicorn main:app --reload --port 8000
-uv run --with-requirements requirements.txt python -m unittest discover -s tests
-```
-
-Swagger UI is available at `http://localhost:8000/docs`.
-
-To use OpenAI for application LLM calls, add this setting to the project `.env`
-or process environment, then restart FastAPI or Streamlit:
-
-```dotenv
-DART_LLM_PROFILE=openai
-```
-
-Both entrypoints share these Responses routes; only `OPENAI_API_KEY` is needed
-for LLM calls (DART data fetching still needs its own credential):
-
-| Phase | Model | Reasoning | Output-token ceiling |
-| --- | --- | --- | --- |
-| Answer generation | `gpt-5.6-terra` | low | 8,192 |
-| Ingest context sentence | `gpt-5.6-luna` | none | 512 |
-
-Both use a 90-second timeout, `store=false`, standard service tier and zero
-SDK retries. `openai_compiler` is now comparison-only; application startup rejects
-it with a migration message. Select `openai` or `google`. Unset/blank preserves
-Google selection, with zero answer-generation retries. Process settings override `.env`.
-The profile sets per-request options, not a total spending cap, and does not
-rebuild existing stores or change canonical embedding/parser identity.
-See [application migration validation](docs/evaluation/openai_application_migration.md)
-and the separate [Compiler evidence](docs/evaluation/openai_compiler_probe.md).
-
-The API requires an exact `StoreManifestV1` match before serving queries.
-Use `DART_STORE_PATH` to select an existing store directory and
-`DART_COLLECTION_NAME` to select its collection. An unset/blank collection uses
-`dart_reports_v2`. Both settings accept `.env` or process values; the selected
-collection must still match the manifest and canonical embedding/parser settings.
-Selecting a store does not rename a collection, rewrite its manifest or re-index it.
-Missing or mismatched stores return 503 and are never adopted automatically;
-use the separate manifest-adoption CLI in dry-run mode before requesting any
-write approval.
-
-## Scope boundary
-
-| Surface | Role | Project role |
-| --- | --- | --- |
-| Core runtime | parser, hybrid retrieval, source-ID checks, answer projection | Main product story |
-| Evaluation | evaluator, benchmarks, gates, regression fixtures | Supporting proof, never imported by the default runtime |
-| Optional client | Streamlit over the same API-owned services | Uses the same simple-RAG product boundary |
-| Legacy compatibility | historical artifacts and superseded docs | Kept outside the runtime result and linked through history |
-
-Current runtime ownership and deletion boundaries are documented in the
-[runtime contract](docs/architecture/agent_runtime_contract.md) and
-[codebase map](docs/overview/codebase_map.md). The earlier phased cleanup plan is
-retained as historical rationale, not as the current work queue.
-
-## Repository map
-
-```text
-main.py                    FastAPI entry point
-src/api/                   HTTP boundary
-src/agent/                 SimpleRagAgent plus explicit compiled comparison
-src/processing/            DART parsing and chunk preparation
-src/ingestion/             fetch and ingest service ownership
-src/storage/               embeddings, Chroma, BM25, and structure storage
-src/config/                ontology, retrieval policy, and runtime config
-src/ops/                   evaluation, benchmark, and reviewer commands
-tests/                     contract and regression tests
-docs/                      reviewer guides and internal history
-demo/                      standalone saved-answer viewer; no API or dependencies
-```
-
-Internal status and experiment logs remain available for audit and historical
-context, but they are not the recommended first-read path. Start with the
-five-minute review above and open a deep dive only for the question you want to
-inspect.
+[문서 지도](docs/README.md) · [코드 탐색](docs/overview/codebase_map.md) ·
+[검증 상태](docs/overview/project_status.md) ·
+[과거 Compiler 자료](docs/overview/demo_walkthrough.md)
