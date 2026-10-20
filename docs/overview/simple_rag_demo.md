@@ -32,22 +32,26 @@ This is not a hosted live RAG service.
 
 ## Five-minute route
 
-1. **F12, select the failure case:** read the daily-revenue request and model answer,
+1. **F02:** compare issued, authorized and circulating shares with the cited table.
+   This shows why full source context and explicit filing scope matter.
+2. **F05:** inspect the employee counts, inclusion/exclusion conditions and 40.5%
+   answer. The calculation is correct on source review, while the app truthfully
+   labels arithmetic execution and semantic validation as absent.
+3. **F10, then F11:** distinguish empty-scope abstention without generation from
+   model abstention after retrieval. F11's period explanation has a separate
+   faithfulness caveat; successful abstention does not erase it.
+4. **F12, select the failure case:** read the daily-revenue request and model answer,
    then expand the annual revenue source. The formula is correct but the requested
    daily fact is unavailable. The reviewer marks failure even though the source
    ID passes and the model adds an average-value caveat.
-2. **F02:** compare issued, authorized and circulating shares with the cited table.
-   This shows why full source context and explicit filing scope matter.
-3. **F05:** inspect the employee counts, inclusion/exclusion conditions and 40.5%
-   answer. The calculation is correct on source review, while the app truthfully
-   labels arithmetic execution and semantic validation as absent.
-4. **F10, then F11:** distinguish empty-scope abstention without generation from
-   model abstention after retrieval. F11's period explanation has a separate
-   faithfulness caveat; successful abstention does not erase it.
 5. Read the [result table and limits](../evaluation/simple_rag_final_result.md):
    positives 9/9, safe abstention 2/3, 4.02 s per question and approximately
    USD0.208 for the run. The questions use two familiar NAVER filings and assistant
    review, not independent gold or unseen-company validation.
+
+For the separate 77-question run and other comparisons, use the
+[evaluation index](../evaluation/README.md). The viewer remains tied to its
+original 12-question run; it does not display the 77-question evaluation.
 
 Answer text is shown literally, including model Markdown, to keep inspection
 faithful to the saved response. Source sections expand without changing the

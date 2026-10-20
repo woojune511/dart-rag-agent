@@ -1,105 +1,71 @@
-# DART Filing RAG
+# 아키텍처와 설계 판단
 
-DART 공시의 표와 문맥을 검색하고, 답변과 인용 원문을 함께 제공하는 문서 QA
-애플리케이션이다. 구조를 보존하는 전처리, 범위가 명확한 하이브리드 검색,
-검토 가능한 출처, 비용·지연시간 측정과 평가에 기반한 설계 판단을 보여준다.
+DART 공시의 표와 본문에서 근거를 검색하고, 답변과 인용 원문을 함께 제공하는
+문서 QA 애플리케이션입니다. 기본 제품은 `SimpleRagAgent`이며 FastAPI와
+Streamlit이 같은 서비스를 사용합니다.
 
-[설치 없는 데모](../../demo/README.md) ·
-[평가 보고서](../evaluation/simple_rag_final_result.md) ·
-[vanilla 비교](../evaluation/vanilla_dense_comparison.md) ·
-[표 검색 2×2 비교](../evaluation/structure_retrieval_factorial.md) ·
-[코드 탐색](codebase_map.md)
+[프로젝트 홈](../../README.md) · [저장 사례 데모](https://woojune511.github.io/dart-rag-agent/) ·
+[평가와 한계](../evaluation/README.md) · [로컬 실행](../operations/quickstart.md)
 
 ## 해결하려는 문제
 
-공시에는 이름이 비슷한 항목과 여러 기간·단위·연결/별도 수치가 함께 등장한다.
-검색된 숫자가 맞더라도 질문의 대상이나 기간에 맞는 답변이라는 보장은 없다.
-이 프로젝트는 원문 구조와 검색 범위를 보존하고, 답변을 출처와 대조할 수 있게
-만든다. 출처 ID 검사와 의미 정확성 검증은 서로 다른 보장으로 취급한다.
+공시에는 비슷한 항목 이름과 여러 기간·단위·연결/별도 수치가 함께 등장합니다.
+검색한 숫자가 원문에 존재해도 질문의 대상과 기간에 맞는 값이라는 보장은 없습니다.
+문서 구조와 보고서 범위를 보존하고, 어떤 근거로 답했는지 직접 확인할 수 있게 합니다.
 
-## 현재 구조
+## 수집에서 답변까지
 
-```text
-질문 + 사용자가 지정한 공시 범위
-  → Chroma dense 검색 + BM25 검색, RRF 결합
-  → 크기가 제한된 원문·문맥 묶음
-  → 답변 생성 1회
-  → 응답 형식·출처 ID·지정 범위 검사
-  → 답변 + 인용 원문 + 보류 여부 + 검증 한계
+```mermaid
+flowchart TD
+    D["DART 원본 공시"] --> P["절·표 파싱 및 청킹"]
+    P --> I["공시 ID · 제목 · 행/열 · 단위 보존"]
+    I --> S["임베딩 · Chroma / BM25"]
+    Q["질문 + caller의 보고서 범위"] --> R["같은 필터로 dense / BM25 검색"]
+    S --> R
+    R --> F["RRF 결합 · top-8"]
+    F --> C["원문 단위 문맥 선택 · 65,536 bytes 상한"]
+    C --> E{"사용할 근거가 있는가?"}
+    E -->|"없음"| N["생성 없이 보류"]
+    E -->|"있음"| A["구조화 답변 생성 1회"]
+    A --> V["응답 형식 · 출처 ID 검사"]
+    V --> O["답변 · 인용 원문 · 검증 한계"]
 ```
 
-FastAPI와 Streamlit은 같은 `SimpleRagAgent` 서비스를 사용한다. 질문에서 회사나
-연도를 추정해 검색 범위를 덮어쓰지 않는다. 근거가 비어 있으면 답변 생성 없이
-보류한다. 계산은 모델 답변에 포함될 수 있지만 산술·의미·요청 누락을 코드로
-검증하지 않으며, 응답에 이를 표시한다.
+질문에 적힌 회사·연도를 코드가 추정해 검색 범위를 바꾸지 않습니다. 명시적 범위를
+검색 전과 검색 결과에 적용하며, 다른 보고서의 근거가 섞이면 실패 처리합니다.
+문맥은 원문 청크 전체 단위로 선택하고 제외 이유를 남깁니다. 검색의 query embedding과
+수집 단계의 호출은 답변 생성 1회와 별개입니다.
 
-## 주요 구현과 설계 판단
+## 구현을 읽는 순서
 
-- **원문 구조 보존:** 절 제목, 표의 행·열·단위와 공시 식별자를 검색 문맥에 남긴다.
-- **검색과 출처 추적:** dense/BM25에 동일한 명시적 범위를 적용하고, 검색·선택·
-  제외 기록을 남긴다. 중복과 충돌하는 출처 식별자를 처리한다.
-- **관측과 비용 통제:** 실행의 호출 수·토큰·시간을 기록하고, 유료 평가는 질문·
-  기준·예산을 먼저 고정한다. 모의 검증과 실제 모델 결과를 구분한다.
-- **실험에 따른 단순화:** Planner·Compiler 비교에서 확인한 비용과 복잡성에 비해
-  품질 이점이 명확하지 않아 기본 경로를 단순 RAG로 바꿨다. 사용하지 않는 기능을
-  제거했고 Compiler는 명시적인 비교·replay에만 남겼다.
+| 관심사 | 구현 | 확인할 점 |
+| --- | --- | --- |
+| 문서·표 파싱 | [financial_parser.py](../../src/processing/financial_parser.py), [table_records.py](../../src/processing/table_records.py) | 절·표·행/열·단위와 공시 식별자 보존 |
+| 근거 검색 | [vector_store.py](../../src/storage/vector_store.py), [report_scope_filter.py](../../src/storage/report_scope_filter.py) | 동일 scope의 dense/BM25, RRF, 중복·출처 처리 |
+| 답변 실행 | [simple_rag.py](../../src/agent/simple_rag.py), [응답 schema](../../src/config/simple_rag.py) | 한 번의 답변 생성, 인용 검사, 보류·검증 한계 |
+| 앱 연결 | [services.py](../../src/api/services.py), [financial_router.py](../../src/api/financial_router.py), [app.py](../../app.py) | 공통 서비스와 API·Streamlit 경계 |
+| 평가 설계 | [데이터셋](../../benchmarks/datasets/single_doc_eval_full.curated.json), [설계 근거](../evaluation/benchmark_dataset_design.md) | 수치·요약/혼합·거절 구성, 정답·근거·평가 기준 |
 
-이전 네 문항 개발 비교에서 복잡한 경로는 추정 비용 3.47배, 측정 시간 4.79배였다.
-익숙한 문항·고정 근거·서로 다른 표현 방식의 비교이므로 일반적인 RAG 우열이나
-특정 구성요소의 인과 효과를 주장하지 않는다.
-[비교 방법과 한계](../evaluation/portfolio_workflow_comparison_successor.md).
+세부 책임은 [코드 지도](codebase_map.md), 동작 규칙은
+[runtime contract](../architecture/agent_runtime_contract.md)가 정의합니다.
 
-## 실제 앱 평가
+## 왜 이렇게 설계했는가
 
-2026-09-22, NAVER 2022·2023년 공시 두 건으로 만든 고정 12문항을 한 번 실행했다.
-
-| 측정 | 결과 |
+| 선택 | 근거와 한계 |
 | --- | --- |
-| 답변 가능한 질문의 정확성·완전성·원문 지지 | 9/9 기준 충족 |
-| 근거 부족 질문의 답변 보류 | 2/3 성공 |
-| 질문당 평균 시간 | 4.02초, 초기화 제외·기록 저장 포함 |
-| 전체 추정 비용 | 약 USD0.208, 실제 청구서 대조는 미수행 |
+| 기본 경로를 단순 RAG로 축소 | 4문항의 고정 근거 비교에서 Planner/Compiler는 추정 비용 3.47배·측정 시간 4.79배였지만 품질 우위가 명확하지 않았습니다. [채택 결정](../architecture/simple_rag_adoption.md) |
+| Hybrid retrieval 유지 | 같은 모델·prompt/schema·top-8의 12문항 비교에서 답변형 통과는 hybrid 9/9, dense-only 5/9였습니다. Dense arm은 저장 vector replay이므로 live 지연시간 비교는 아닙니다. [보고서](../evaluation/vanilla_dense_comparison.md) |
+| 구조 보존 효과를 따로 검토 | 77문항 비교에서 표 경계·범위 복구 사례가 있었지만 일반 텍스트 조건의 전체 통과가 더 높았습니다. 추출·청킹·문맥량도 달라 구조만의 인과 효과로 해석하지 않습니다. [보고서](../evaluation/structure_full77_result.md) |
 
-에이전트가 사전 기준과 원문을 대조한 소규모 결과다. 독립 정답 평가나 새로운
-회사에 대한 정확도를 의미하지 않는다. 일별 매출 대신 연간 매출의 평균을 제시한
-실패와, 보류 답변의 과도한 기간 설명을 그대로 기록했다. 이 문항들에 맞춘 추가
-규칙은 넣지 않았다. 산술이 맞는 답변도 코드 실행으로 검증한 결과는 아니다.
+이 선택들은 개발에 노출된 제한된 실험의 결과입니다. 실패 문항마다 개별 규칙을
+추가하는 대신 원문 보존, 검색 누락, 대상·기간 해석, 근거 없는 부가 설명을 나눠
+분석했습니다. [전체 평가와 실패 경계](../evaluation/README.md)
 
-## 왜 hybrid retrieval인가
+## 보장하는 범위
 
-같은 12문항, 답변 모델, prompt/schema, top-8 조건에서 BM25/RRF를 제거한
-dense-only baseline도 한 번 실행했다. 답변 가능한 9문항 중 필요한 근거를
-완전히 제공하고 정확·완전·원문 지지 답변까지 만든 경우는 hybrid 9/9,
-dense-only 5/9였다. Dense-only는 F04·F06·F09에서 근거가 부족해 안전하게
-보류했고, F05는 값과 계산은 맞았지만 별도 기준일 근거가 빠졌다.
+앱은 명시적 보고서 범위, 응답 형식, 인용한 출처 ID를 검사합니다. 출처 ID가
+맞아도 답변의 의미·기간·대상이 맞는다는 뜻은 아닙니다. 산술을 코드로 실행하지
+않고, 의미적 근거와 요청 항목의 완전성도 자동 검증하지 않습니다.
 
-이는 이미 개발에 노출된 NAVER 두 공시의 소규모 결과다. Dense arm은 저장된
-query vector와 고정 문서를 replay했으므로 live 검색 지연시간 비교가 아니며,
-새 회사나 일반 질의에 대한 우월성을 뜻하지 않는다.
-
-## 표 구조가 실제로 기여하는가
-
-별도의 표 중심 9문항·6개 공시에서 flat/structured 표현과 dense/RRF를 2×2로
-비교했다. 핵심 근거 top-8 coverage는 flat dense 13/26, flat RRF 18/26,
-structured dense 12/26, structured RRF 19/26이었다. Structured+RRF가 가장
-높았지만 구조 표현만 적용한 dense 결과는 flat dense보다 낮았다.
-
-후속 원문 검토에서 KB NIM 기준이 그룹 질문에 은행 값을 연결한 오류를 발견했다.
-위 수치는 원래 annotation 일치 기록으로만 보존하며, 이 문항을 제외하면
-각각13/24,16/24,10/24,17/24다. 검색 숫자 일치만으로 구조 보존의 의미적 이득을
-주장할 수 없다. [실제 답변 비교](../evaluation/structure_answer_result.md)는
-8개 주 평가 문항과1개 진단 문항으로36개 답변을 한 번씩 생성했다. 정확·완전·
-인용 지지 답변은 flat dense2/8, flat RRF5/8, structured dense3/8, structured
-RRF4/8이었다. 외화환산손익에서는 표 경계 보존이 정답으로 이어졌지만 전체
-정답률 우위는 확인되지 않았다. 문항 해석·서술형 판정의 민감도는 보고서에
-별도로 공개했으며, 이 소규모 개발 노출 결과를 일반 정확도로 주장하지 않는다.
-
-## 직접 확인하기
-
-저장소를 내려받아 `demo/index.html`을 브라우저로 열면 된다. API 키와 설치 없이
-성공·보류·실패 5개 사례의 실제 답변과 인용 원문을 확인할 수 있다. 전체 12문항의
-원본 실행 로그는 공개 샘플에 포함하지 않는다. 데모 열기는 저장된 기록의 재현이며
-새로운 검색이나 모델 실행이 아니다.
-
-구현 세부 계약은 [application runtime contract](../architecture/agent_runtime_contract.md),
-검증 현황은 [project status](project_status.md)에 정리되어 있다.
+`FinancialAgent`의 Planner/Compiler와 계산 검증은 명시적 비교·replay 전용입니다.
+기본 앱의 자동 fallback이 아니며 해당 보장은 [별도 계약](../architecture/compiled_workflow_contract.md)에 있습니다.

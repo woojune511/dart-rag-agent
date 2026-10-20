@@ -46,6 +46,10 @@ estimate from this selection. Both the final panel and review use two familiar
 NAVER filings; this is not independent human gold or unseen-company validation.
 No new model call occurs when opening or selecting a case.
 
+The separate [77-question evaluation and comparison index](../docs/evaluation/README.md)
+describes the broader public results. Its questions and denominators are not the
+12-question run shown in this viewer.
+
 Raw provider logs, uncited retrieval contexts, local stores, credentials and
 budget history are excluded. The full local evaluation bundle remains separate.
 

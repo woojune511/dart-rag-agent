@@ -1,8 +1,19 @@
-# Documentation Map
+# 문서 지도
 
-현재 규칙과 상태를 먼저 읽고, 과거 계획과 실행 로그는 필요한 근거를 찾을 때만
-연다. 파일이 오래됐다는 이유만으로 삭제하지 않지만 historical 문서를 현재
-work queue나 release evidence로 사용하지 않는다.
+[프로젝트 홈](../README.md)에서 시작하고, 아래 네 경로 중 필요한 내용을 확인하세요.
+
+## 처음 읽는 순서
+
+| 경로 | 읽을 내용 |
+| --- | --- |
+| [사용 예시](overview/simple_rag_demo.md) | 설치 없이 저장된 질문·답변·인용 원문 확인 |
+| [아키텍처와 설계 판단](overview/project_overview.md) | 파서·검색·답변 경로와 구현 파일, 선택의 근거 |
+| [평가 결과와 한계](evaluation/README.md) | 77문항 전체 결과, 별도 비교 실험, 실패와 분모 구분 |
+| [로컬 실행](operations/quickstart.md) | 오프라인 데모와 실제 API·Streamlit의 준비 조건 |
+
+짧은 한·영 소개는 [Project Summary](overview/project_summary.md)에 있습니다.
+개발 작업은 아래 authority 문서부터 확인합니다. 과거 계획과 실행 로그는 필요한
+근거를 찾을 때 열며, historical 문서를 현재 작업 목록이나 release 근거로 쓰지 않습니다.
 
 ## Current Authority
 
@@ -33,30 +44,18 @@ runtime contract와 source/tests를, 현재 상태와 다음 작업은 `project_
 단계별 실행 기록을 current 문서에 누적하지 않는다. 검증된 현재 상태만 handoff와
 status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 
-## Reviewer Path
+## 상세 검토
 
-| 순서 | 문서 | 역할 |
-| --- | --- | --- |
-| 1 | [../README.md](../README.md) | 프로젝트 요약, 실행 명령, claim boundary |
-| 2 | [overview/project_overview.md](overview/project_overview.md) | 현재 단순 RAG 구조와 비교 실험에 따른 설계 판단 |
-| 3 | [overview/project_summary.md](overview/project_summary.md) | 현재 구현·설계 판단·비교 결과와 한계 |
-| 4 | [overview/simple_rag_demo.md](overview/simple_rag_demo.md) | Git에 포함된 5개 실제 답변·원문의 오프라인 데모 |
-| 5 | [evaluation/simple_rag_final_result.md](evaluation/simple_rag_final_result.md) | 전체 12문항 평가, 실패·비용·시간과 근거 한계 |
-| 6 | [evaluation/vanilla_dense_comparison.md](evaluation/vanilla_dense_comparison.md) | 동일 답변 경로에서 hybrid와 dense-only 근거 선택 비교 |
-| 7 | [evaluation/structure_retrieval_factorial.md](evaluation/structure_retrieval_factorial.md) | flat/structured × dense/RRF 표 중심 검색 비교 |
-| 8 | [evaluation/structure_answer_result.md](evaluation/structure_answer_result.md) | 같은 네 조건의 실제 정답·인용 지지 비교와 실패 분석 |
-| 9 | [overview/portfolio_scope.md](overview/portfolio_scope.md) | 완료된 범위와 남은 제품 한계 |
-| 10 | [overview/codebase_map.md](overview/codebase_map.md) | 현재 구현 ownership과 비교 경로의 구분 |
+전체 결과는 [77문항 평가](evaluation/simple_rag_full77_result.md),
+구조 효과는 [77문항 3조건 비교](evaluation/structure_full77_result.md),
+제품 범위는 [portfolio scope](overview/portfolio_scope.md)에서 확인합니다.
+각 보고서의 실행 시점·조건을 유지하며, 현재 소스에 대한 새 성능 측정으로 읽지 않습니다.
 
 이전 [experiment report](overview/experiment_report.md),
 [technical highlights](overview/technical_highlights.md),
 [compiled fixture walkthrough](overview/demo_walkthrough.md)는 과거
-Planner/Compiler checkpoint 자료다. 현재 앱 데모나 품질 결과로 읽지 않는다.
-
-소개 문서의 수치와 상태는 checkpoint-specific이다. 현재 release 상태는 항상
-`project_status.md`에서 확인한다. 용어와 claim 수준은
-[documentation_claim_boundaries.md](overview/documentation_claim_boundaries.md)를
-따른다.
+Planner/Compiler 자료입니다. 현재 앱의 데모·품질 결과와 별개입니다.
+[표현과 근거의 경계](overview/documentation_claim_boundaries.md)를 따릅니다.
 
 ## Contract And Operations Reference
 
