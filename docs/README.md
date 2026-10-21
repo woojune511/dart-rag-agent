@@ -46,7 +46,9 @@ status에 반영하고, chronology는 Git 또는 history 문서에서 찾는다.
 
 ## 상세 검토
 
-전체 결과는 [77문항 평가](evaluation/simple_rag_full77_result.md),
+최신 비교는 [검색 범위·생성 모델과 답변 품질](evaluation/rag_quality_progress_2026-10-21.md),
+평가 정의는 [서술형 필수·선택 기준](evaluation/narrative_rubric_v1_2026-10-20.md),
+초기 전체 결과는 [77문항 평가](evaluation/simple_rag_full77_result.md),
 구조 효과는 [77문항 3조건 비교](evaluation/structure_full77_result.md),
 제품 범위는 [portfolio scope](overview/portfolio_scope.md)에서 확인합니다.
 각 보고서의 실행 시점·조건을 유지하며, 현재 소스에 대한 새 성능 측정으로 읽지 않습니다.

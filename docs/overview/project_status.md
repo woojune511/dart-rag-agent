@@ -1,12 +1,18 @@
 # Project Status
 
-Last updated: 2026-09-30. [Readiness diagnostics and restart verification](../operations/readiness_diagnostics_2026-10-17.md)
+Last updated: 2026-10-21. [Historical readiness diagnostics](../operations/readiness_diagnostics_2026-10-17.md)
+
+## Latest evaluation record
+
+The [October comparison](../evaluation/rag_quality_progress_2026-10-21.md) publishes the local v12 experiments and frozen narrative rubric separately from product code. On the same revised 46-answerable denominator, complete answers are Terra top-8 34, Terra top-12 36, Sol top-8 38 and Sol top-12 42; cited support is 42, 39, 44 and 45. Sol top-12 adds four complete answers without a regression versus its saved top-8, at 32.7% more answer-generation cost. Same-assistant review on exposed data; not independent accuracy.
+
+Automated decomposition/per-facet selection did not improve this run: 41/46 complete, about 4.8x cost, one pre-generation contract failure. The report retains the unplanned completion of 11 unattempted cases and does not hide the original stop. The runtime remains Simple RAG; publishing reports does not adopt Sol/top-12, local parser changes or the experimental selector. Raw runs/stores remain local. Earlier verification below is dated evidence, not a fresh readiness check.
 
 ## Current implementation
 
-The default API and Streamlit runtime is `SimpleRagAgent`, on
-`codex/reviewed-compiler-selection-gate`, adopted by explicit user direction from
-`2a926a6e`. [Decision and compatibility](../architecture/simple_rag_adoption.md).
+The published API and Streamlit runtime is `SimpleRagAgent`, adopted by explicit
+user direction from `2a926a6e` and retained in main.
+[Decision and compatibility](../architecture/simple_rag_adoption.md).
 `FinancialAgent` is now an explicitly invoked compiled comparison/replay path.
 
 | Boundary | Application behavior |
@@ -20,7 +26,7 @@ The default API and Streamlit runtime is `SimpleRagAgent`, on
 | Response | Answer, cited source text, abstention and validation labels; empty compiler result/trace fields |
 | Observation | Optional JSON-native retrieval/review data, usage, timing and interrupted diagnostics |
 
-Parser schema is v5; the local full11 successor store is compatible/ready=true. Embedding model identity is preserved. Application model construction
+The published parser schema is v5; compatible/ready=true describes the historical full11 v5 checkpoint, not current local store readiness. Embedding model identity is preserved. Application model construction
 uses only answer and ingest-context routes; compiler-only profile selection is
 rejected. The old Streamlit compiled-evaluation tab is removed. Comparisons remain
 separate; their [contract](../architecture/compiled_workflow_contract.md) is preserved.
