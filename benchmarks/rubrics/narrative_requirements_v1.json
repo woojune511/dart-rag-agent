@@ -1,0 +1,4908 @@
+{
+  "schema_version": "1",
+  "rubric_version": "narrative-v1-draft-2026-10-20",
+  "status": "DRAFT_NOT_APPLIED",
+  "created_date": "2026-10-20",
+  "purpose": "서술·설명 요구가 포함된 문항의 필수·선택·오류 경계를 고정하기 위한 검토 가능한 평가 정의안.",
+  "authoring_method": {
+    "author": "assistant",
+    "independent_human_review": false,
+    "development_exposed": true,
+    "preregistered_for_historical_runs": false,
+    "new_model_calls": 0,
+    "new_scores": false,
+    "source_review_scope": "기존 질문·참고답안·보류 처분·저장된 원문 packet 일부를 대조했다. 전체 원문 재감사 또는 모든 항목의 독립 검증은 수행하지 않았다.",
+    "reference_quote_warning": "reference_quotes는 기존 큐레이션을 보존한 검색용 자료다. 잘못된 gold 가능성을 포함하며 원문 인용 지지의 자동 증명이 아니다.",
+    "anti_outcome_tuning": "특정 모델이 맞히는 항목을 골라 과거 결과를 개선한 것으로 보고하지 않는다. 새 기준 적용은 별도 평가 버전으로 양쪽 동일하게 수행해야 한다."
+  },
+  "required_basis": {
+    "explicit_request": "질문이 요구한 내용 또는 그 내용을 정확하게 답하기 위한 대상·범위 조건.",
+    "proposed_summary_minimum": "열린 요약 질문을 일관되게 채점하기 위해 제안한 최소 사례·요인 수 또는 구체성. 질문에 명시된 수량이 아니며 별도 표시한다.",
+    "pending_question_interpretation": "질문 해석이 먼저 확정돼야 하는 조건부 기준. 현재 문항 전체의 완전 정답을 확정하는 데 사용하지 않는다."
+  },
+  "global_rules": [
+    "문장·키워드 일치가 아니라 의미와 원문 지지를 평가한다. required_entities/required_keywords를 정답 판정 규칙으로 사용하지 않는다.",
+    "required의 모든 R 항목을 충족해야 완전성이 PASS다. 각 항목의 choice는 any_of 또는 at_least로 처리한다.",
+    "any_of는 한 경로를 완결하면 된다. 경로 사이의 숫자·대상·기간·단위를 섞지 않는다.",
+    "at_least의 수는 서로 다른 원인·사례 수다. 같은 사실의 반복·재진술을 중복 세지 않는다.",
+    "선택 항목 생략은 감점하지 않는다. 답변에 선택 사항을 추가하면 그 실질적 사실 주장도 정확성과 인용 지지를 평가한다.",
+    "숫자의 검산 기준을 적었다고 해서 답변에 모든 피연산자·중간 계산을 출력해야 한다는 뜻은 아니다. 질문이 각각의 값을 요구하면 예외다.",
+    "표시 정밀도에서 맞는 반올림과 단위 변환을 허용한다. source-supported 대체 정밀도도 허용하며 수치 차이의 원인을 근거 없이 발명하지 않는다.",
+    "요청의 대상·기간·연결/별도·제품/부문·단위를 보존한다. 공시서류 제출일 현재 정보와 2023년 실제 발생 사실을 구분한다.",
+    "인용 ID가 존재한다는 사실만으로 의미적 지지 PASS가 되지 않는다. 인용 문장과 표의 축·주체·범위를 대조한다.",
+    "검색된 packet에 없다는 이유로 전체 보고서에 없다고 단정하지 않는다. 근거 부족을 솔직히 표시한 답변은 support가 PASS여도 요청 누락이면 completeness는 PASS가 아니다.",
+    "단, R 자체가 공개 범위를 설명하도록 요구한 경우에는 정확히 확인된 공시 한계를 설명하는 것이 해당 요구의 답일 수 있다. 검색 누락을 공시 부재로 바꾸어 이 예외를 사용하지 않는다.",
+    "HOLD 또는 QUESTION_CLARIFICATION은 문항 전체의 complete를 UNDETERMINED로 둔다. 판단 가능한 개별 주장 지지는 별도로 기록할 수 있다.",
+    "기존 gold와 충돌하는 원문을 발견하면 원문을 숨기거나 기준을 낮추지 않고 conflict로 남긴다. 후속 질문은 새 ID와 supersedes를 사용한다.",
+    "대체 근거는 의미·범위가 같은 경우 허용한다. 새로운 필수 개념·최소 개수·허용 해석은 평가 중 바꾸지 않고 새 rubric 버전에 기록한다."
+  ],
+  "rating_axes": {
+    "input_evidence_coverage": [
+      "SUFFICIENT",
+      "PARTIAL",
+      "INSUFFICIENT",
+      "UNDETERMINED"
+    ],
+    "correctness": [
+      "PASS",
+      "PARTIAL",
+      "FAIL",
+      "UNDETERMINED"
+    ],
+    "completeness": [
+      "PASS",
+      "FAIL",
+      "UNDETERMINED"
+    ],
+    "required_claim_support": [
+      "PASS",
+      "PARTIAL",
+      "FAIL",
+      "UNDETERMINED"
+    ],
+    "additional_claim_support": [
+      "PASS",
+      "PARTIAL",
+      "FAIL",
+      "NOT_APPLICABLE",
+      "UNDETERMINED"
+    ],
+    "execution": [
+      "COMPLETED",
+      "ERROR",
+      "NOT_RUN"
+    ]
+  },
+  "complete_success_definition": {
+    "eligible": "기준 검토·고정 후 사용하며 unresolved HOLD/QUESTION_CLARIFICATION이 없어야 함.",
+    "conjunction": [
+      "execution == COMPLETED",
+      "correctness == PASS",
+      "completeness == PASS",
+      "required_claim_support == PASS",
+      "additional_claim_support in {PASS, NOT_APPLICABLE}"
+    ],
+    "unresolved": "UNDETERMINED이며 성공/실패 분모에 임의 편입하지 않는다.",
+    "note": "source ID 검사만으로 이 평가를 수행했다고 주장하지 않는다. 제품 기본 실행 경로의 검증 기능을 바꾸지 않는다."
+  },
+  "review_template": {
+    "case_id": null,
+    "rubric_version": "narrative-v1-draft-2026-10-20",
+    "reviewer": null,
+    "answer_artifact_sha256": null,
+    "packet_sha256": null,
+    "required_item_rows": [
+      {
+        "requirement_id": "R1",
+        "answer_quote": null,
+        "coverage": "NOT_REVIEWED",
+        "correctness": "NOT_REVIEWED",
+        "cited_source_id": null,
+        "source_quote": null,
+        "structural_context": null,
+        "support": "NOT_REVIEWED",
+        "reason": null
+      }
+    ],
+    "additional_claim_rows": [],
+    "input_evidence_coverage": "NOT_REVIEWED",
+    "axes": {},
+    "complete": "NOT_REVIEWED",
+    "unresolved_conflicts": []
+  },
+  "scope": {
+    "total_legacy_cases": 77,
+    "counts": {
+      "narrative_or_mixed": 33,
+      "refusal": 19,
+      "numeric": 21,
+      "structured_fact": 4
+    },
+    "main_status_counts": {
+      "DRAFT": 24,
+      "QUESTION_CLARIFICATION": 2,
+      "HOLD": 7
+    },
+    "selection_basis": "answer_type 라벨만 사용하지 않고 질문의 실제 요청을 검토했다. 설명이 붙은 numeric 문항도 포함한다.",
+    "legacy_refusal_caveat": "MIX_T4_062의 명시적 가정 계산 등은 기존 거절 정책의 별도 쟁점이다. 이번 작업으로 그 정책이나 점수를 수정하지 않는다.",
+    "structured_fact_items": [
+      {
+        "case_id": "NAV_T3_007",
+        "boundary": "영업권 총액과 손상 발생 여부가 필수. 손상액 상세는 질문상 선택. 기존 조회 계약 유지."
+      },
+      {
+        "case_id": "HYU_T3_072",
+        "boundary": "모셔널의 지분율·장부금액·2023년 실적이라는 정해진 사실 묶음. 영업수익과 손익 등 항목별 숫자 계약의 별도 정리가 필요."
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "boundary": "상위 2개 기업의 이름·영업수익과 전체 비교집합의 순위 증명이 필요. 기존 HOLD_COMPARISON_UNIVERSE 유지."
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "boundary": "평가손실·환입·폐기손실 각각이 필수. 순액만으로 세 금액을 대체하지 않는다."
+      }
+    ],
+    "all_cases": [
+      {
+        "case_id": "KBF_T2_018",
+        "question": "2023년 연결 포괄손익계산서 상의 '신용손실충당금전입액' 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "POS_T4_059",
+        "question": "포스코홀딩스의 2025년 아르헨티나 염수 리튬 생산량 목표치를 달성했을 때 예상되는 영업이익을 계산해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "SKH_T3_080",
+        "question": "2023년 주석에서 외화환산이익과 외화환산손실 금액을 각각 찾고, 해당 연도의 환율 변동이 영업외수지에 미친 순효과(이익-손실)를 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "MIX_T1_046",
+        "question": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "NAV_T3_007",
+        "question": "2023년 연결재무제표 주석에서 인식된 '영업권(Goodwill)'의 총액을 찾고, 손상차손 발생 여부를 확인해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "structured_fact",
+        "reason": "상태·회사명 등이 포함되지만 주요 요구는 정해진 사실·수치의 조회 또는 순위다."
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "question": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "SAM_T2_078",
+        "question": "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "CEL_T1_013",
+        "question": "2023년 전체 연구개발비용 중 무형자산(개발비)으로 자본화된 금액의 비율(%)을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "CEL_T4_016",
+        "question": "셀트리온의 2023년 스마트폰 판매 실적과 전년 대비 증감률을 계산해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "KAK_T3_076",
+        "question": "2023년 사업보고서 중 '그 밖의 투자자 보호를 위하여 필요한 사항' 등에서 데이터센터 화재(서비스 장애)와 관련된 보상 진행 현황 또는 관련 충당부채 내역을 찾아 요약해.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "HYU_T2_010",
+        "question": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "HYU_T3_011",
+        "question": "사업보고서의 MD&A를 바탕으로 2023년 수익성 개선의 주요 요인을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "MIX_T2_047",
+        "question": "사업보고서를 바탕으로 2023년 제네시스 브랜드의 고급화 전략 성과를 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "MIX_T4_049",
+        "question": "KB금융의 2023년 반도체 파운드리 시장 점유율을 알려줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "LGE_T4_053",
+        "question": "LG에너지솔루션의 2023년 수소연료전지 차량(FCEV) 판매량을 알려줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "POS_T1_057",
+        "question": "2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "question": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "NAV_T1_030",
+        "question": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "NAV_T4_008",
+        "question": "네이버의 2023년 '선박 건조' 부문 수주 잔고를 알려줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "NAV_T4_033",
+        "question": "네이버의 2023년 자체 보유 화물 트럭 대수와 물류 배송 건수를 알려줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "SAM_T3_028",
+        "question": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "SAM_T4_070",
+        "question": "삼성전자의 2023년 사업보고서에 나타난 2026년 파운드리 3나노 공정의 예상 수율을 알려줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "CEL_T2_039",
+        "question": "2023년 셀트리온이 북미 지역에서 직접판매 체제를 어떻게 확대했는지 설명하고, 짐펜트라(Zymfentra)의 미국 시장 진출 의미를 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "CEL_T4_041",
+        "question": "셀트리온의 2023년 5G 통신망 설비투자(CAPEX) 금액을 알려줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "MIX_T4_024",
+        "question": "셀트리온의 2023년 배터리 셀 제조 수율을 알려줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "KAK_T3_055",
+        "question": "재무제표 주석을 참조하여, 종속기업(SM엔터테인먼트 등) 편입이 2023년 연결 매출액 및 무형자산 증가에 미친 영향을 요약해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "HYU_T3_072",
+        "question": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "structured_fact",
+        "reason": "상태·회사명 등이 포함되지만 주요 요구는 정해진 사실·수치의 조회 또는 순위다."
+      },
+      {
+        "case_id": "HYU_T4_012",
+        "question": "2026년 1분기 현대자동차의 예상 영업이익과 전기차 판매량을 예측해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "HYU_T4_037",
+        "question": "현대자동차의 2023년 'LNG 선박 건조' 부문 매출액을 계산해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "KBF_T1_017",
+        "question": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "KBF_T2_043",
+        "question": "2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "KBF_T3_019",
+        "question": "사업보고서를 참조하여 부동산 PF(프로젝트파이낸싱) 대출과 관련된 회사의 잠재적 리스크 및 대응 방안을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "KBF_T3_044",
+        "question": "2023년 사업보고서에서 BIS자기자본비율을 찾고, 해당 지표가 금융당국의 규제 기준 대비 어느 정도 수준인지 리스크 관점에서 설명해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "KBF_T4_020",
+        "question": "2023년 KB데이타시스템의 매출원가율을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "KBF_T4_045",
+        "question": "KB금융의 2023년 공장 가동률과 생산 실적을 요약해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "MIX_T3_025",
+        "question": "2023년 연결 포괄손익계산서에서 지배기업주주지분순이익(주주 귀속 순이익)을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증가의 주요 원인을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "LGE_T1_051",
+        "question": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "LGE_T2_052",
+        "question": "2023년 사업보고서에서 주요 원재료(양극재, 음극재 등)의 가격 변동 추이를 요약하고, 이것이 배터리 판가(ASP)에 미친 영향을 설명해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "LGE_T4_077",
+        "question": "LG에너지솔루션의 2023년 '가입자당 평균 매출(ARPU)'을 계산해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "POS_T1_075",
+        "question": "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "POS_T2_058",
+        "question": "2023년 사업보고서를 바탕으로 친환경 미래소재(이차전지소재 등) 부문의 투자 성과와 수익성 변동 요인을 요약해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "SKI_T1_068",
+        "question": "2023년 배터리 사업 부문(SK온)의 영업손실(적자) 규모를 확인하고, 이것이 전체 연결 영업이익의 몇 % 수준에 해당하는지 절대값으로 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "SKI_T2_069",
+        "question": "2023년 정유 부문의 영업이익 전년 대비 증감률을 계산하고, 이사의 경영진단(MD&A)에서 정제마진 하락 추이가 실적에 미친 영향을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "MIX_T4_065",
+        "question": "2023년 SK하이닉스의 '영화 배급 수익' 및 '방송 프로그램 제작비'를 차감한 영업이익을 계산해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "SKH_T2_061",
+        "question": "2023년 전체 매출 중 DRAM 제품군이 차지하는 비중을 계산하고, 사업의 내용에서 AI 서버 수요 확대(HBM 등)로 인한 향후 실적 개선 전망을 요약해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "MIX_T2_022",
+        "question": "2023년 핀테크 부문의 전년 대비 결제액 또는 영업수익 증가율을 계산하고, 성장의 핵심 원동력을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "question": "사업보고서 주석에서 관계기업 및 공동기업 투자 내역 중 장부금액이 큰 상위 2개 기업의 이름과 당기순손익을 요약해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "structured_fact",
+        "reason": "상태·회사명 등이 포함되지만 주요 요구는 정해진 사실·수치의 조회 또는 순위다."
+      },
+      {
+        "case_id": "NAV_T1_005",
+        "question": "2023년 네이버의 영업수익 대비 연구개발비용 비중(%)을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "NAV_T1_071",
+        "question": "2023년 연결 손익계산서에서 '법인세비용차감전순이익'을 추출하고, 전년 대비 증감액을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "NAV_T2_006",
+        "question": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "NAV_T2_031",
+        "question": "2023년 서치플랫폼 매출 대비 클라우드 부문 매출의 비율을 계산하고, 클라우드 부문의 주요 기술(AI 등) 적용 사례를 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "NAV_T3_032",
+        "question": "2023년 사업보고서에서 데이터센터(각 세종 등) 인프라 투자와 관련된 자본적 지출(CAPEX) 규모나 관련 주석 내용을 요약해.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "MIX_T1_021",
+        "question": "2023년 연결기준 부채비율(부채총계/자본총계)과 유동비율(유동자산/유동부채)을 각각 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "MIX_T4_062",
+        "question": "삼성전자의 2023년 연구개발비용을 무조건 100조 원이라고 가정하고, 매출액 대비 연구개발비 비중을 계산해.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "question": "2023년 연결기준 삼성전자의 영업이익률을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "SAM_T1_026",
+        "question": "2023년 연결기준 자기자본이익률(ROE)을 계산해 줘. (당기순이익 / 평균 자본총계)",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "SAM_T2_027",
+        "question": "2023년 DX부문과 DS부문의 매출액 비중을 각각 계산하고, DS부문의 실적 하락을 방어하기 위한 향후 사업 전략을 요약해.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "SAM_T3_003",
+        "question": "2023년 사업보고서 주석을 참조하여, 우발부채 및 주요 소송사건이 재무에 미칠 잠재적 영향을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "SAM_T4_004",
+        "question": "삼성전자의 2023년 영업이익률을 계산하고, 사업보고서에서 Apple이 어떤 맥락으로 언급되는지 설명해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "SAM_T4_029",
+        "question": "삼성전자의 2023년 '생명보험' 부문 수입보험료를 계산해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "CEL_T1_038",
+        "question": "2023년 무형자산상각비 총액을 포괄손익계산서 또는 주석에서 찾고, 이것이 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "CEL_T2_014",
+        "question": "2023년 셀트리온의 주요 바이오시밀러(램시마, 트룩시마 등) 파이프라인의 연구개발 진행 현황을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "CEL_T2_073",
+        "question": "2023년 수출(해외매출) 비중을 전체 매출액 대비로 계산하고, 유럽 시장에서의 직판 체제 전환이 영업이익률 개선에 미친 영향을 설명해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "CEL_T3_015",
+        "question": "셀트리온헬스케어와의 합병과 관련하여 재무제표 주석에 기재된 내용과 합병의 주요 목적을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "question": "2023년 사업보고서에서 재고자산평가손실, 재고자산평가손실환입, 재고자산폐기손실 규모를 찾아 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "structured_fact",
+        "reason": "상태·회사명 등이 포함되지만 주요 요구는 정해진 사실·수치의 조회 또는 순위다."
+      },
+      {
+        "case_id": "MIX_T3_050",
+        "question": "2023년 재무제표 주석 상 특수관계자(셀트리온제약 등)와의 매출 거래 규모를 합산하고, 내부거래가 실적에 미치는 영향을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "KAK_T1_054",
+        "question": "2023년 카카오의 당기순손실에 영업권손상 및 PPA무형자산 손상차손이 미친 영향을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "KAK_T4_056",
+        "question": "카카오의 2023년 1주당 순자산가치(BPS)를 '매출액 나누기 발행주식총수'로 계산해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "KAB_T1_066",
+        "question": "2023년 카카오뱅크의 CIR을 계산해 줘. 여기서 CIR은 수익성 표의 '경비차감전영업이익(A)' 대비 '판매비와관리비(E)' 비율을 의미한다.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "KAB_T3_067",
+        "question": "2023년 주석 20 '순수수료손익'에서 연계대출수입수수료와 연계계좌수입수수료 금액을 찾고, 사업보고서에서 플랫폼 비즈니스의 주요 서비스와 2023년 확장 방향을 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "HYU_T1_009",
+        "question": "2023년 연결기준 전체 매출액 중 '금융 부문' 매출이 차지하는 비중(%)을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "HYU_T1_034",
+        "question": "2023년 차량 부문 영업이익과 금융 부문 영업이익을 각각 추출하고, 전체 영업이익에서 차량 부문이 차지하는 비중을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "HYU_T2_035",
+        "question": "2023년 현대자동차 사업보고서를 바탕으로 E-GMP 기반 전동화 모델의 주요 성과를 요약해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "HYU_T3_036",
+        "question": "2023년 연결재무제표 주석 17. 충당부채(연결)에서 '판매보증충당부채'의 기존 충당부채 증가액을 찾고, 이것이 리스크 관리 차원에서 의미하는 바를 설명해 줘.",
+        "legacy_panel_group": "diagnostic_or_hold",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      },
+      {
+        "case_id": "HYU_T4_079",
+        "question": "2023년 사업보고서(연간 보고서) 데이터만을 사용하여 2023년 4분기만의 단일 영업이익을 계산할 수 있는지 논리적으로 검증하고, 불가능하다면 사유를 설명해 줘.",
+        "legacy_panel_group": "refusal",
+        "rubric_scope": "refusal",
+        "reason": "기존 거절 평가 계약을 보존한다. 이번 서술형 필수·선택 재정의에 포함하지 않는다."
+      },
+      {
+        "case_id": "MIX_T1_064",
+        "question": "2023년 손익계산서에서 '매출원가'와 '판매비와관리비'를 합산하여 '총 영업비용'을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "numeric",
+        "reason": "주요 요구가 수치 조회·계산이며 이번 서술형 분해 대상에서 제외한다."
+      },
+      {
+        "case_id": "MIX_T3_023",
+        "question": "사업보고서 내 '환경 및 안전' 섹션(또는 주석)에서 탄소 배출권 관련 의무나 충당부채가 언급된 내용을 찾아 요약해 줘.",
+        "legacy_panel_group": "common_answerable",
+        "rubric_scope": "narrative_or_mixed",
+        "reason": "설명·요약·영향·전략 등의 의미 평가를 포함한다."
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+      "sha256": "7eedddedd3c413f62088dd6b0beff2ba705adb87b26382f6d711cfcb98e3fad7"
+    },
+    {
+      "path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+      "sha256": "97cc30da91771b3218a0a6f87fbd6498a1622009820e5ddb8aaa517c8a0e5ecf"
+    },
+    {
+      "path": "benchmarks/results/full77_sol_top8_20261020/protocol.json",
+      "sha256": "8cf77ccdca9817b37c7ef407e7339147102dd7c7335302371b793ef0be4213ca"
+    },
+    {
+      "path": "docs/evaluation/evaluation_contract_disposition_v1.md",
+      "sha256": "11b1f5b04bbb2c14b6d59d1adc8cd942edeadc69828e539265c2c4a6e99ce05b"
+    },
+    {
+      "path": "docs/evaluation/full77_sol_top8_result_2026-10-20.md",
+      "sha256": "5f8473eda3a3d54fcff30b055cb08ad31736829ba1fc11919ec235ceb9937e79"
+    }
+  ],
+  "cases": [
+    {
+      "rubric_entry_id": "KBF_T2_018::narrative-v1-draft",
+      "case_id": "KBF_T2_018",
+      "title": "KB금융 충당금 증가와 리스크 관리",
+      "question": "2023년 연결 포괄손익계산서 상의 '신용손실충당금전입액' 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+      "question_sha256": "a2e266f5c91addb9e58b8e7c87e95850393afe413ebb8cd828ac311ca1ad7f1d",
+      "company": "KB금융",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 KB금융 연결 포괄손익계산서의 신용손실충당금전입액. 특정 대출채권 충당금만의 변동과 구별한다.",
+      "required": [
+        {
+          "label": "전년 대비 증가율",
+          "basis": "explicit_request",
+          "acceptance": "전입액 증가율을 맞게 계산한다. 검산 기준은 3,146,409 / 1,847,775백만원으로 약 70.28% 증가.",
+          "evidence": "동일 범위의 당기·전기 전입액 및 두 값으로 계산한 증가율.",
+          "id": "R1"
+        },
+        {
+          "label": "리스크 관리 측면의 원인",
+          "basis": "explicit_request",
+          "acceptance": "미래 경기 악화 가능성을 반영한 보수적·선제적 충당금 적립이라는 핵심을 설명한다.",
+          "evidence": "추가 전입의 사유를 직접 설명하는 MD&A 또는 리스크 관리 문단.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "전입액의 절대 증가액."
+        },
+        {
+          "id": "O2",
+          "content": "경기 전망·시나리오 변경 등 원문에 있는 구체적 적립 요인."
+        }
+      ],
+      "error_boundaries": [
+        "전입액 증가 전부를 이미 발생한 부실·현금손실로 단정하지 않는다.",
+        "대출채권 충당금 전입액을 연결 전체 신용손실충당금전입액으로 바꾸지 않는다."
+      ],
+      "decision_note": "원인 1개의 핵심 설명이면 충분하다. 참고답안의 모든 위험 요인 나열은 요구하지 않는다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "KBF_T2_018"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결 포괄손익계산서",
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "신용손실충당금전입액 (3,146,409) (1,847,775) (1,185,133)",
+          "신용손실충당금전입액은 미래경기 불확실성에 대비한 보수적인 충당금적립으로 전년대비 1,299십억원 증가한 3조 146십억원 입니다.",
+          "경기악화(worse) 시나리오와 위기상황(crisis) 시나리오 반영"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "KBF_T2_018"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240326000894:20240326000894%3A847%3A204",
+            "chunk_id": "20240326000894:847:204",
+            "document_id": "20240326000894",
+            "text_sha256": "b276eadedc149d3d0f245b25f9c59799b45907e35475b053c1212081ac0c056c"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A659%3A16",
+            "chunk_id": "20240326000894:659:16",
+            "document_id": "20240326000894",
+            "text_sha256": "1dc3b5233b9282693a20ddea90bd403e32da4ebe9ca2ad4d33ce6fa87790ca61"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A685%3A42",
+            "chunk_id": "20240326000894:685:42",
+            "document_id": "20240326000894",
+            "text_sha256": "cd222fa4334630b2d044513d476d08acf4e8452b991ad070e61f8b6cbb1858c8"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A662%3A19",
+            "chunk_id": "20240326000894:662:19",
+            "document_id": "20240326000894",
+            "text_sha256": "4eb331d4fbce708f89e17950089ae2d874b72b611e046915be43bc4e9171c96c"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A629%3A6",
+            "chunk_id": "20240326000894:629:6",
+            "document_id": "20240326000894",
+            "text_sha256": "d21263a88a61fc7eb72f7f78b839a3b77a59aa867aa1f43b010c091acb124668"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A625%3A2",
+            "chunk_id": "20240326000894:625:2",
+            "document_id": "20240326000894",
+            "text_sha256": "ff639f9c3eac0b91c385222d734f3200db701d2e25e2c40c154101f1724171b6"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A660%3A17",
+            "chunk_id": "20240326000894:660:17",
+            "document_id": "20240326000894",
+            "text_sha256": "9bb8697faad9e2402c7b77c45fc84f680922c7a4d7369cc04d5798fd5adcea51"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1846%3A5",
+            "chunk_id": "20240326000894:1846:5",
+            "document_id": "20240326000894",
+            "text_sha256": "6ee672a88816aa1f461471dadef6e9ac87f364ebc8124c233ad70623ee292751"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "MIX_T3_048::narrative-v1-draft",
+      "case_id": "MIX_T3_048",
+      "title": "삼성전자 배당 현금유출과 주주환원",
+      "question": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+      "question_sha256": "665405aae8e4759fe1e37c4db8ee33c0640d2b7c189c4feb0aa1888a5847d574",
+      "company": "삼성전자",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 연결 현금흐름표의 실제 지급액과 2024~2026년 정책을 별개로 답한다.",
+      "required": [
+        {
+          "label": "배당금 지급 현금유출",
+          "basis": "explicit_request",
+          "acceptance": "현금흐름표 배당금 지급 9,864,474백만원을 제시한다.",
+          "evidence": "연결 현금흐름표 배당금 지급 행.",
+          "id": "R1"
+        },
+        {
+          "label": "정책 기간과 기본 환원 구조",
+          "basis": "explicit_request",
+          "acceptance": "2024~2026년 정책임을 밝히고, FCF 50% 환원과 연간 정규배당 9.8조원을 설명한다.",
+          "evidence": "배당에 관한 사항의 해당 3개년 정책.",
+          "id": "R2"
+        },
+        {
+          "label": "추가 환원의 조건",
+          "basis": "explicit_request",
+          "acceptance": "정규배당 후 잔여 재원이 있으면 추가 환원한다는 조건을 보존한다.",
+          "evidence": "정규배당·잔여 재원·추가 환원의 관계를 서술한 문단.",
+          "id": "R3"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2",
+          "R3"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "분기·주당 배당 세부 내역."
+        },
+        {
+          "id": "O2",
+          "content": "2023년 결의·배당 총액과 현금 지급액의 차이."
+        }
+      ],
+      "error_boundaries": [
+        "배당 결정액 9,809,438백만원을 현금 유출액으로 대체하지 않는다.",
+        "FCF 50% 전부를 매년 현금배당한다고 하거나 추가 환원을 무조건 확정하지 않는다."
+      ],
+      "decision_note": "정책의 조건은 의미를 바꾸므로 필수다. 주당·분기별 세부사항은 선택이다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "MIX_T3_048"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견 > 유동성 및 자금조달",
+          "III. 재무에 관한 사항 > 6. 배당에 관한 사항"
+        ],
+        "reference_quotes": [
+          "배당금 지급 9조 8,645억원",
+          "2024년 1월 2024~2026년의 주주환원 정책을 발표",
+          "잉여현금흐름의 50%를 재원으로 활용하여 연간 9.8조원 수준의 정규배당을 유지",
+          "정규배당 이후에도 잔여 재원이 발생하는 경우에 추가로 환원할 계획"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "MIX_T3_048"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240312000736:20240312000736%3A590%3A0",
+            "chunk_id": "20240312000736:590:0",
+            "document_id": "20240312000736",
+            "text_sha256": "d2a2ae366fecfe5b585270ad60e2715cd7c40d90bd335f81763a1e34ba428392"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A593%3A3",
+            "chunk_id": "20240312000736:593:3",
+            "document_id": "20240312000736",
+            "text_sha256": "2c2f352f6683977ee5358bb35326ecd204f490a5b1b7a0df72511b93b09e8792"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A592%3A2",
+            "chunk_id": "20240312000736:592:2",
+            "document_id": "20240312000736",
+            "text_sha256": "679931ad3b13783324e8b749bad06268baeb9092c52d8cea8172ac09ffc55f06"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A595%3A5",
+            "chunk_id": "20240312000736:595:5",
+            "document_id": "20240312000736",
+            "text_sha256": "a72ea0d7c0c406d4c03c4d4f8202c2edc7f30a1f355fbd58467d98022958ba56"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A591%3A1",
+            "chunk_id": "20240312000736:591:1",
+            "document_id": "20240312000736",
+            "text_sha256": "6bc9da80e4ab50c698f7446cf8b6bc688a1581617a5284307e0be359985bda7c"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A594%3A4",
+            "chunk_id": "20240312000736:594:4",
+            "document_id": "20240312000736",
+            "text_sha256": "90f6e282a6582903cf05fd660b01caea9e2a33076e9d09e33faf73d809e6b5be"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A477%3A93",
+            "chunk_id": "20240312000736:477:93",
+            "document_id": "20240312000736",
+            "text_sha256": "e7cce9ba327a5fa9297750b208a835edde94bce31f0880b9a03c51667b40e6fe"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A698%3A25",
+            "chunk_id": "20240312000736:698:25",
+            "document_id": "20240312000736",
+            "text_sha256": "dda4b8a789277ce8392e869ee8782f97a8ad506bda54dde23caa33c24f35f6b5"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "SAM_T2_078::narrative-v1-draft",
+      "case_id": "SAM_T2_078",
+      "title": "삼성전자 연구개발비와 Harman 전장",
+      "question": "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+      "question_sha256": "75f523440ca73dd9894c76bc9c5193b0d2aa9fdacb316f26975ffd0ffe7132fa",
+      "company": "삼성전자",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "삼성전자 연결 연구개발비 총액과 Harman의 전장 사업 방향을 구별한다.",
+      "required": [
+        {
+          "label": "연구개발비 총액",
+          "basis": "explicit_request",
+          "acceptance": "정부보조금 차감 전 연구개발비 28,352,769백만원을 제시한다. 차감 후 값을 쓰면 총액과 별도로 구별한다.",
+          "evidence": "연구개발비 총액·정부보조금·차감 후 금액의 열 또는 행.",
+          "id": "R1"
+        },
+        {
+          "label": "Harman의 사업 방향",
+          "basis": "explicit_request",
+          "acceptance": "커넥티드카·차량 전자장치 분야에서 IT·모바일 기술을 자동차 경험에 결합한다는 방향을 설명한다.",
+          "evidence": "Harman 사업 개요·연구개발·주요 제품 설명.",
+          "id": "R2"
+        },
+        {
+          "label": "구체적 기술 초점",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "SDV, 디지털 콕핏, 차량 내 연결·디스플레이 등 방향을 구체화하는 기술 사례를 최소 1개 설명한다.",
+          "evidence": "기술과 Harman의 연결이 드러나는 원문. 같은 기능을 말만 바꿔 중복 세지 않는다.",
+          "id": "R3"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2",
+          "R3"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "보조금 13,045백만원, 차감 후 28,339,724백만원."
+        },
+        {
+          "id": "O2",
+          "content": "차량용 오디오 및 추가 기술 사례."
+        }
+      ],
+      "error_boundaries": [
+        "삼성전자 전체 R&D 금액을 Harman 투자액으로 귀속하지 않는다.",
+        "전자장치 기술이 언급됐다는 이유만으로 자율주행 완성차 사업을 주장하지 않는다."
+      ],
+      "decision_note": "기술명 전부를 외우게 하지 않고, 사업 방향과 그에 대응하는 실제 기술 1개를 최소 요약으로 제안한다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "SAM_T2_078"
+        },
+        "sections": [
+          "II. 사업의 내용 > 6. 주요계약 및 연구개발활동",
+          "II. 사업의 내용 > 7. 기타 참고사항 > 사업부문별 현황(Harman)",
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "연구개발비용 총계 28,352,769",
+          "Harman은 커넥티드카 제품 및 솔루션 등을 디자인하고 개발",
+          "Harman의 전장사업에 당사의 무선통신, 디스플레이 등 IT 기술을 지속 접목",
+          "SDV(Software Defined Vehicle)화 변화에 대응하기 위해 차별화된 기술 개발",
+          "인포테인먼트 분야에서는 디지털콕핏으로의 전환에 선행 대응"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "SAM_T2_078"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240312000736:20240312000736%3A8%3A8",
+            "chunk_id": "20240312000736:8:8",
+            "document_id": "20240312000736",
+            "text_sha256": "906b4e2dcac3737db9550dabab973199b4a9f9feda729627c322491e59cce125"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A91%3A2",
+            "chunk_id": "20240312000736:91:2",
+            "document_id": "20240312000736",
+            "text_sha256": "4d08107bb60e1d034b98d1dbf10e1f429aa34d8c8cfa758667004795f89b0fcf"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A93%3A4",
+            "chunk_id": "20240312000736:93:4",
+            "document_id": "20240312000736",
+            "text_sha256": "32d16542c3837393732e455c4c46561fe634cf4f9a7d250266810ac057fa1088"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A682%3A9",
+            "chunk_id": "20240312000736:682:9",
+            "document_id": "20240312000736",
+            "text_sha256": "39bcb648ba3e2eeb56bb0ffbd1931b530272f34cc6f1b1dfd2d6c4d81167522b"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A92%3A3",
+            "chunk_id": "20240312000736:92:3",
+            "document_id": "20240312000736",
+            "text_sha256": "f3808d6598fd0a05d327237df191c2d8f9b31b667095de3c0b9471e4c19744a3"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A114%3A17",
+            "chunk_id": "20240312000736:114:17",
+            "document_id": "20240312000736",
+            "text_sha256": "743355c89f7e5f6688d57be19404f8e83f085b5eff655c8482874960668f1e21"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A96%3A7",
+            "chunk_id": "20240312000736:96:7",
+            "document_id": "20240312000736",
+            "text_sha256": "c0d2c1733144fbbcd3f7ba9bf211930a6fddbbac1daae886f44bb0be9f321dab"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A681%3A8",
+            "chunk_id": "20240312000736:681:8",
+            "document_id": "20240312000736",
+            "text_sha256": "0dd73469804d8ca6446d221ea30eca70e191f950a9b795607b69e18b31660fc5"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "HYU_T2_010::narrative-v1-draft",
+      "case_id": "HYU_T2_010",
+      "title": "현대차 미국 판매와 보호무역 대응",
+      "question": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+      "question_sha256": "cf4782f6da9bbb3ae1ee6ab2bcad6da2487a60570e93cbfafc1104d34610b1d1",
+      "company": "현대자동차",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "QUESTION_CLARIFICATION",
+      "blocking_issue": "판매대수의 주체가 질문에서 생략됨.",
+      "scope": "원 질문의 '미국 시장 판매대수'는 현대차 판매와 미국 전체 시장 판매 중 어느 것인지 명시하지 않는다.",
+      "required": [
+        {
+          "label": "대상 확정 후 성장률",
+          "basis": "pending_question_interpretation",
+          "acceptance": "현대차 판매를 묻는 후속 버전이라면 87.0만 / 78.1만 대로 약 11.4% 증가. 원문 공시 11.5%도 공시 비율로 구별하면 허용한다.",
+          "evidence": "대상의 이름·두 연도 판매대수·단위가 연결된 표. 미국 전체 시장 12.3%와 혼합하지 않는다.",
+          "id": "R1"
+        },
+        {
+          "label": "보호무역 대응의 필요성",
+          "basis": "explicit_request",
+          "acceptance": "IRA 등 정책·무역환경 변화가 사업의 제약 또는 대응 필요를 만든다는 내용을 설명한다.",
+          "evidence": "IRA·CRMA 등 보호무역 정책과 대응 필요성을 연결한 사업보고서 설명.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "미국 전체 시장 성장과의 별도 비교."
+        },
+        {
+          "id": "O2",
+          "content": "원문에 명시된 구체적 대응 정책."
+        }
+      ],
+      "error_boundaries": [
+        "미국 전체 시장과 현대차 판매 수치를 섞어 증가율을 계산하지 않는다.",
+        "11.4%와 11.5% 차이의 원인을 원문 없이 반올림 탓이라고 만들지 않는다.",
+        "정책 대응 필요성이 있다는 설명을 특정 공장·투자의 확정 효과로 확대하지 않는다."
+      ],
+      "decision_note": "후속 질문에는 '현대자동차의 미국 판매대수' 또는 '미국 전체 신차시장'을 명시해야 한다.",
+      "difference_from_legacy": "기존 평가는 현대차 판매를 의도한 기준을 유지했다. 여기서는 그 해석을 질문 자체의 확정 사실로 취급하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "HYU_T2_010"
+        },
+        "sections": [
+          "II. 사업의 내용 > 해외시장",
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대",
+          "2022년에는 전년 대비 0.9% 감소한 78.1만 대",
+          "미국의 인플레이션 감축법과 유럽의 핵심원자재법 등 각국의 보호무역주의에 대한 적극적인 대응이 필요한 상황"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "HYU_T2_010"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240313001451:20240313001451%3A95%3A4",
+            "chunk_id": "20240313001451:95:4",
+            "document_id": "20240313001451",
+            "text_sha256": "501963430d29dc6c058314b2cc89578d5c0b20597bb805ace01a2afca0b6fd6d"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1058%3A14",
+            "chunk_id": "20240313001451:1058:14",
+            "document_id": "20240313001451",
+            "text_sha256": "cbc59b3595718835b8a4570888d544a6cd8d1f44a179884541403e3e61567292"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A126%3A3",
+            "chunk_id": "20240313001451:126:3",
+            "document_id": "20240313001451",
+            "text_sha256": "994339f38a76e470df034934975e06d7552bc775f29cc4156fd118b074554826"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A57%3A17",
+            "chunk_id": "20240313001451:57:17",
+            "document_id": "20240313001451",
+            "text_sha256": "7e6395239465ebcb31b7641d5b78ec7810b8f19708416de783eba7988b8bffa9"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A798%3A217",
+            "chunk_id": "20240313001451:798:217",
+            "document_id": "20240313001451",
+            "text_sha256": "c8994e752ab0fa0d32a2cdba0f613a57f8ebbef4cee1d3875db2cf254e8f4720"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A98%3A7",
+            "chunk_id": "20240313001451:98:7",
+            "document_id": "20240313001451",
+            "text_sha256": "5b253b890149a2040db764e3f6753dba10b555753ee0f8b98d75cbd0f70a5152"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A438%3A296",
+            "chunk_id": "20240313001451:438:296",
+            "document_id": "20240313001451",
+            "text_sha256": "75684ccca1489da1109d863f68732f76ab56717a2e8fdec776310fa74c73e087"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A125%3A2",
+            "chunk_id": "20240313001451:125:2",
+            "document_id": "20240313001451",
+            "text_sha256": "ee74a868d558bb592b7ee52b08c22397fa1ebba31e577270b33c71abae72926d"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      },
+      "question_clarification_proposal": {
+        "proposed_wording": "2023년 현대자동차의 미국 판매대수 전년 대비 성장률을 계산하고, 사업보고서에서 IRA 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+        "reason": "기존 평가가 의도한 현대차 판매를 질문에 직접 드러낸다."
+      }
+    },
+    {
+      "rubric_entry_id": "HYU_T3_011::narrative-v1-draft",
+      "case_id": "HYU_T3_011",
+      "title": "현대차 수익성 개선 요인",
+      "question": "사업보고서의 MD&A를 바탕으로 2023년 수익성 개선의 주요 요인을 요약해 줘.",
+      "question_sha256": "ecd4b3f9fd2cbcd0ce2f7d8686a8070b5c804973f3c2df9d0ac11967100eca9b",
+      "company": "현대자동차",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 MD&A의 수익성 개선 요인. 그룹·자동차·금융 부문을 구별한다.",
+      "required": [
+        {
+          "label": "복수의 주요 개선 요인",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "서로 독립적인 원문상 개선 요인을 최소 2개 설명하고, 각 요인이 수익성에 기여한 방향을 연결한다.",
+          "evidence": "MD&A에서 해당 요인과 수익성 개선을 직접 연결한 내용. 동일한 제품 믹스를 여러 표현으로 써도 1개다.",
+          "choice": {
+            "operator": "at_least",
+            "options": [
+              {
+                "id": "C1",
+                "acceptance": "판매 물량 증가."
+              },
+              {
+                "id": "C2",
+                "acceptance": "고급차·SUV 등 제품 믹스 개선."
+              },
+              {
+                "id": "C3",
+                "acceptance": "판매의 질 개선."
+              },
+              {
+                "id": "C4",
+                "acceptance": "원자재 비용 부담 완화."
+              }
+            ],
+            "minimum": 2
+          },
+          "id": "R1"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "선택하지 않은 나머지 개선 요인."
+        },
+        {
+          "id": "O2",
+          "content": "매출·영업이익·이익률의 구체적 수치."
+        },
+        {
+          "id": "O3",
+          "content": "부문별 상반된 실적."
+        }
+      ],
+      "error_boundaries": [
+        "원문에 없는 환율·일회성 이익을 주요 원인으로 만들어 넣지 않는다.",
+        "금융 부문 이익 감소를 그룹 모든 부문이 개선한 것으로 바꾸지 않는다."
+      ],
+      "decision_note": "'주요 요인'의 최소 범위를 2개로 제안한다. 2라는 수는 질문에 쓰인 사실이 아니라 공개된 평가 선택이다. 동일 성격의 다른 원문상 주요 요인도 항목 수준의 사전 검토를 거쳐 허용할 수 있다.",
+      "difference_from_legacy": "기존 primary는 판매의 질·원자재 요인까지 요구했다. 이 안은 4개 전부를 필수로 하지 않는다. 기존 점수는 유지하며 적용 효과는 미측정.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "HYU_T3_011"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "선진시장 중심의 물량확대와 제네시스, SUV 등 고부가가치 차종위주의 믹스 조정, 판매체질 및 재료비 개선"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "HYU_T3_011"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240313001451:20240313001451%3A1044%3A0",
+            "chunk_id": "20240313001451:1044:0",
+            "document_id": "20240313001451",
+            "text_sha256": "e865b910d3b3cb24e118d845e4bf7bddd03558c3a9d88e89e413ce5d51ce6fd1"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A65%3A0",
+            "chunk_id": "20240313001451:65:0",
+            "document_id": "20240313001451",
+            "text_sha256": "68e6524df4e81585f9291492fb14b489354a50f2c46df28f97232537dc7882b0"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1058%3A14",
+            "chunk_id": "20240313001451:1058:14",
+            "document_id": "20240313001451",
+            "text_sha256": "cbc59b3595718835b8a4570888d544a6cd8d1f44a179884541403e3e61567292"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1221%3A0",
+            "chunk_id": "20240313001451:1221:0",
+            "document_id": "20240313001451",
+            "text_sha256": "48f3ddbb8fb15d98c77bde4ae51fcb3c3883ddc98e8872945605a6098848e6e2"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A123%3A0",
+            "chunk_id": "20240313001451:123:0",
+            "document_id": "20240313001451",
+            "text_sha256": "5e9d97034d861a194bf7c6c626b5a81a7cd1a9a67a27f8be9ff9b82865eea434"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1047%3A3",
+            "chunk_id": "20240313001451:1047:3",
+            "document_id": "20240313001451",
+            "text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A99%3A8",
+            "chunk_id": "20240313001451:99:8",
+            "document_id": "20240313001451",
+            "text_sha256": "6ce5a7fd39cefa4e8a3f8bfdc9143aa9628c2ada1205c15326da639094a19dc9"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A2%3A2",
+            "chunk_id": "20240313001451:2:2",
+            "document_id": "20240313001451",
+            "text_sha256": "fc23d40d4d6e436c5eee403ef2b88c56b9014702806968a0db750770b71f9262"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "MIX_T2_047::narrative-v1-draft",
+      "case_id": "MIX_T2_047",
+      "title": "제네시스 고급화 전략 성과",
+      "question": "사업보고서를 바탕으로 2023년 제네시스 브랜드의 고급화 전략 성과를 요약해 줘.",
+      "question_sha256": "d8e4fdd7106e7ff808bd2b6bbbd4c4e80a6970cd2d0661e99715982709161023",
+      "company": "현대자동차",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "제네시스 브랜드의 2023년 성과와 현대차 전체 실적을 구별한다.",
+      "required": [
+        {
+          "label": "고급화 전략의 내용",
+          "basis": "explicit_request",
+          "acceptance": "고부가 제네시스 차종·SUV 등 판매 확대 또는 제품 믹스 고도화라는 방향을 설명한다.",
+          "evidence": "제네시스와 고급화·제품 믹스를 연결하는 사업보고서 문단.",
+          "id": "R1"
+        },
+        {
+          "label": "확인 가능한 성과",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "2023년의 구체적 브랜드 성과를 최소 1개 제시하고 전략과 연결한다. 예: 2023년 8월 글로벌 누적판매 100만 대 달성.",
+          "evidence": "성과의 주체와 발생 연도가 확인되는 문단. 그룹 수익성 기여를 사용할 때는 브랜드 단독 실적과 구별한다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "출범 후 7년 10개월이라는 소요 기간."
+        },
+        {
+          "id": "O2",
+          "content": "신차·부분변경 차종 및 수상 사례."
+        },
+        {
+          "id": "O3",
+          "content": "그룹 전체 실적 수치."
+        }
+      ],
+      "error_boundaries": [
+        "그룹 영업이익을 제네시스 단독 이익으로 기재하지 않는다.",
+        "누적판매 100만 대를 2023년 한 해 판매대수로 바꾸지 않는다."
+      ],
+      "decision_note": "누적판매 달성은 대표 허용 근거다. 질문이 특정 수치를 지정하지 않았으므로 다른 2023년 원문상 성과도 허용한다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "MIX_T2_047"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "제네시스, SUV 등 고부가가치 차종위주의 믹스 조정",
+          "제네시스는 지난 8월, 브랜드 출범 7년 10개월만에 글로벌 누적판매 100만대를 돌파"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "MIX_T2_047"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240313001451:20240313001451%3A1045%3A1",
+            "chunk_id": "20240313001451:1045:1",
+            "document_id": "20240313001451",
+            "text_sha256": "320ace60c485bde0a9c9f2f4b67f25f9200196b57ab233dc38f07a26a061ac78"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A96%3A5",
+            "chunk_id": "20240313001451:96:5",
+            "document_id": "20240313001451",
+            "text_sha256": "c8be614d73b3989fccbc8b6d610fe2ce8d8f669211e23c18e52d72ec4e36b418"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A103%3A12",
+            "chunk_id": "20240313001451:103:12",
+            "document_id": "20240313001451",
+            "text_sha256": "6a8693e919f2879d6c5444931b09785884567f0050c09befd805c0d124050e5a"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A19%3A5",
+            "chunk_id": "20240313001451:19:5",
+            "document_id": "20240313001451",
+            "text_sha256": "5440ba967bedf467f8cab2e6e010d6d734024bce87190c3084042746e3a3b071"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A95%3A4",
+            "chunk_id": "20240313001451:95:4",
+            "document_id": "20240313001451",
+            "text_sha256": "501963430d29dc6c058314b2cc89578d5c0b20597bb805ace01a2afca0b6fd6d"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A104%3A13",
+            "chunk_id": "20240313001451:104:13",
+            "document_id": "20240313001451",
+            "text_sha256": "aef901e404e3fad09464192f998312a45e425bd8ab9b311e7a75bc4333051b6b"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1260%3A2",
+            "chunk_id": "20240313001451:1260:2",
+            "document_id": "20240313001451",
+            "text_sha256": "15dec4e64a82d08e0be622a772c273ae735326ba8cf94d51b7d9c427536ab0f9"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A65%3A0",
+            "chunk_id": "20240313001451:65:0",
+            "document_id": "20240313001451",
+            "text_sha256": "68e6524df4e81585f9291492fb14b489354a50f2c46df28f97232537dc7882b0"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "SAM_T3_028::narrative-v1-draft",
+      "case_id": "SAM_T3_028",
+      "title": "삼성전자 재고평가와 매출원가",
+      "question": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+      "question_sha256": "2435374b93e40b5e54333495d3075f637193c43a80abe6bf8c09ba814bd01a34",
+      "company": "삼성전자",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "질문에 연결·별도가 명시되지 않아, 명확히 표시한 일관된 범위의 답을 허용한다.",
+      "required": [
+        {
+          "label": "평가손실·환입 규모와 항목명",
+          "basis": "explicit_request",
+          "acceptance": "연결 5,037,579백만원 등 실제 선택한 표의 항목명·금액·범위를 정확히 전달한다. 별도 3,558,358백만원을 쓰면 별도라고 밝힌다.",
+          "evidence": "재고 관련 조정액 표의 행·단위·범위. '평가손실(환입) 등'이면 그 복합 항목명을 보존한다.",
+          "id": "R1"
+        },
+        {
+          "label": "매출원가 영향",
+          "basis": "explicit_request",
+          "acceptance": "평가손실은 비용 부담, 환입은 그 부담의 감소라는 방향을 설명하고 해당 재고 비용이 매출원가에 반영되는 근거를 연결한다.",
+          "evidence": "같은 범위의 매출원가 포함 설명. 다른 범위의 정책 문단은 그 범위를 별도로 밝히며 금액과 동일 범위의 인과 금액으로 합치지 않는다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "매출원가 총액과 단순 규모 비교."
+        },
+        {
+          "id": "O2",
+          "content": "일관된 범위에서 검산할 수 있는 비율."
+        }
+      ],
+      "error_boundaries": [
+        "현금흐름 조정의 '등' 포함 금액을 순수한 신규 평가손실 총액으로 바꾸지 않는다.",
+        "매출원가 대비 금액 비율을 실제 이익 감소 기여율로 단정하지 않는다.",
+        "연결 금액과 별도 비용 설명을 같은 표의 사실인 것처럼 결합하지 않는다."
+      ],
+      "decision_note": "영향 분석은 회계상 방향과 포함 관계로 충족할 수 있다. 질문에 없는 정량적 인과효과를 강제하지 않는다.",
+      "difference_from_legacy": "기존 frozen sensitivity의 범위 구분 원칙을 명문화한다. 같은 범위의 인과 비율을 새 필수 항목으로 추가하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "SAM_T3_028"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결손익계산서",
+          "III. 재무에 관한 사항 > 연결재무제표 주석 21. 비용의 성격별 분류 (연결)",
+          "III. 재무에 관한 사항 > 연결재무제표 주석 27. 현금흐름표 (연결)"
+        ],
+        "reference_quotes": [
+          "재고자산평가손실(환입) 등 5,037,579",
+          "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
+          "매출원가 180,388,580"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "SAM_T3_028"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240312000736:20240312000736%3A447%3A63",
+            "chunk_id": "20240312000736:447:63",
+            "document_id": "20240312000736",
+            "text_sha256": "22010e6abeaf233683802f9785ded6392988ee3e9468e7f896107da0dfa152d7"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A209%3A81",
+            "chunk_id": "20240312000736:209:81",
+            "document_id": "20240312000736",
+            "text_sha256": "e73a96ce8febbdffc35a77c55035b5ce145c6624361e3f2cf97eaa3099722ac0"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A669%3A43",
+            "chunk_id": "20240312000736:669:43",
+            "document_id": "20240312000736",
+            "text_sha256": "04d2a2a6d2eb53580df7b8f613c7f81c0c805f52e41e30962ca122c28a7b8833"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A448%3A64",
+            "chunk_id": "20240312000736:448:64",
+            "document_id": "20240312000736",
+            "text_sha256": "b7865377019c268e7ba7397a7ca5f260712be5d330b38f450df59fba62a83f67"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A408%3A24",
+            "chunk_id": "20240312000736:408:24",
+            "document_id": "20240312000736",
+            "text_sha256": "acd5f938db930a5f941aaf210b0f36a0aee83da7c0e4579012d404f788303b7c"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A210%3A82",
+            "chunk_id": "20240312000736:210:82",
+            "document_id": "20240312000736",
+            "text_sha256": "aa01861a808cd1dc39bdf8c70d0a190fe0721ed5989edc1ccb911a3f60c26038"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A409%3A25",
+            "chunk_id": "20240312000736:409:25",
+            "document_id": "20240312000736",
+            "text_sha256": "268e7f51790037d27c2bc6c9979d5a031bc7902dfa7440f6ed94c49d1e3fc025"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A532%3A148",
+            "chunk_id": "20240312000736:532:148",
+            "document_id": "20240312000736",
+            "text_sha256": "021e97ba055876d021ff76ad6493c34da3f09bbd80244d240852b96883a0a6fc"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "CEL_T2_039::narrative-v1-draft",
+      "case_id": "CEL_T2_039",
+      "title": "셀트리온 북미 직판과 짐펜트라",
+      "question": "2023년 셀트리온이 북미 지역에서 직접판매 체제를 어떻게 확대했는지 설명하고, 짐펜트라(Zymfentra)의 미국 시장 진출 의미를 요약해 줘.",
+      "question_sha256": "be0b1a71482cde9dd3f8c3487d9ee97d4e03798215ae53f53435c19e859e756d",
+      "company": "셀트리온",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 직판 확대·미국 허가와 이후 상업 출시는 구별한다.",
+      "required": [
+        {
+          "label": "북미 직판 확대 방식",
+          "basis": "explicit_request",
+          "acceptance": "2023년 미국 직판 체제 전환·확대와 북미 판매 기반 확대의 내용을 설명한다. 북미 전체를 답할 때 캐나다 등 보고서상 지역 범위를 보존한다.",
+          "evidence": "북미 또는 미국·캐나다의 직판 조직·전환 시점을 직접 설명한 문단.",
+          "id": "R1"
+        },
+        {
+          "label": "짐펜트라 미국 진출의 의미",
+          "basis": "explicit_request",
+          "acceptance": "2023년 미국 품목허가와 피하주사 제형의 신약 진출 의미를 설명한다. 기존 바이오시밀러 사업과 구별한다.",
+          "evidence": "짐펜트라의 제형·허가·미국 시장 진출을 연결한 문단.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "정확한 허가일 2023-10-21."
+        },
+        {
+          "id": "O2",
+          "content": "2024년 상업 출시 계획·실적을 별도 시점으로 표시."
+        },
+        {
+          "id": "O3",
+          "content": "유통 효율·수익성 기대의 구체적 설명."
+        }
+      ],
+      "error_boundaries": [
+        "2024년 출시를 2023년 매출 실적으로 말하지 않는다.",
+        "짐펜트라의 미국 신약 허가를 단순 바이오시밀러 허가로 바꾸지 않는다.",
+        "직판 확대의 이익 증가액을 원문 없이 수치화하지 않는다."
+      ],
+      "decision_note": "날짜의 일 단위나 모든 판매국 열거는 선택이며, 전환 방식과 허가의 의미가 핵심이다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "CEL_T2_039"
+        },
+        "sections": [
+          "II. 사업의 내용 > 2. 주요 제품 및 서비스 > 나. 판매경로 및 판매방법 등",
+          "II. 사업의 내용 > 1. 사업의 개요"
+        ],
+        "reference_quotes": [
+          "당사는 유럽, 아시아, 중남미 등에서 전 제품을 안정적으로 직접판매하고 있으며, 2023년에는 글로벌 최대 의약품 시장인 미국에서 직접판매를 시작하며 캐나다를 포함한 북미 시장 전체로 직접판매 지역을 확대하였습니다. 향후 출시되는 제품에 대해서도 유통효율을 개선한 직접판매 체제를 도입해 시장지배력을 확대해 나갈 것입니다.",
+          "2023년 10월 21일, 세계 최초 인플릭시맙(Infliximab) 성분의 피하주사 제형인 짐펜트라(CT-P13 SC 미국 브랜드명)의 미국 품목허가를 획득하였습니다. 짐펜트라는 미국 FDA로부터 제형의 차별성을 인정받아 신약 허가 프로세스 진행을 권고 받았으며, 이는 당사가 미국 FDA로부터 획득한 최초의 신약 허가입니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "CEL_T2_039"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000913:20240318000913%3A49%3A1",
+            "chunk_id": "20240318000913:49:1",
+            "document_id": "20240318000913",
+            "text_sha256": "958daaa489124f169163e678e55b88d3e3316431ab9ae6edee74dd71a12d73be"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A38%3A1",
+            "chunk_id": "20240318000913:38:1",
+            "document_id": "20240318000913",
+            "text_sha256": "89122b28e381c54d3db20c119f507638d139ac45724ade9ca64741724b0d1c3a"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A84%3A25",
+            "chunk_id": "20240318000913:84:25",
+            "document_id": "20240318000913",
+            "text_sha256": "43a82801694858c2a1c413aa73da8b9d178d5ba7dfb1b5bab1d6947d28e1f674"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A9%3A9",
+            "chunk_id": "20240318000913:9:9",
+            "document_id": "20240318000913",
+            "text_sha256": "f26311cf03c3eb2f14f3e8f49191d086f2acf352cf3e0b41641619402cc0675e"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A37%3A0",
+            "chunk_id": "20240318000913:37:0",
+            "document_id": "20240318000913",
+            "text_sha256": "e488cfaf4cd5970031cd7a5dac6f3a0264f60006781999bcbfff9ee2fcbde740"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A1056%3A11",
+            "chunk_id": "20240318000913:1056:11",
+            "document_id": "20240318000913",
+            "text_sha256": "76dc4d216447bb7e5d67ad8c3be32ab4cf9a36d9030421e124cc518eec8135a5"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A85%3A26",
+            "chunk_id": "20240318000913:85:26",
+            "document_id": "20240318000913",
+            "text_sha256": "ecb6de834bc0ac33091263a8c72cbe00ff64ac69703dda266e5812bc51f59cf8"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A145%3A21",
+            "chunk_id": "20240318000913:145:21",
+            "document_id": "20240318000913",
+            "text_sha256": "bc8a95fb4089ac1d0fce60102e6ce5edd7409397705718a736a611f4fcb2dc6a"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "KAK_T3_055::narrative-v1-draft",
+      "case_id": "KAK_T3_055",
+      "title": "카카오 종속기업 편입 효과",
+      "question": "재무제표 주석을 참조하여, 종속기업(SM엔터테인먼트 등) 편입이 2023년 연결 매출액 및 무형자산 증가에 미친 영향을 요약해 줘.",
+      "question_sha256": "8fee7192bdd3bb5b36d1691628df02cdd66f9d8b246b2b09c113806af0b86691",
+      "company": "카카오",
+      "year": 2023,
+      "legacy_panel_group": "diagnostic_or_hold",
+      "status": "HOLD",
+      "blocking_issue": "HOLD_GOLD_COLUMN_AND_CAUSAL_SCOPE",
+      "scope": "2023년 연결 매출·무형자산에 대한 사업결합 효과. 잔액 순증감과 인수 증가분은 다르다.",
+      "required": [
+        {
+          "label": "매출에 대한 편입 효과",
+          "basis": "explicit_request",
+          "acceptance": "SM엔터테인먼트 등 편입 대상·시점과 연결 매출 반영을 원문으로 연결한다. 매출 증가 전부를 인수 효과로 단정하지 않는다.",
+          "evidence": "사업결합 주석의 편입 후 기여 매출 또는 명시적인 연결 효과 설명.",
+          "id": "R1"
+        },
+        {
+          "label": "무형자산에 대한 효과",
+          "basis": "explicit_request",
+          "acceptance": "취득으로 인식한 무형자산·영업권과 기말 잔액의 순증감을 구별한다. 증가라는 질문 전제가 틀리면 이를 바로잡는다.",
+          "evidence": "합계·영업권 열, 기초·기말 잔액, 사업결합 증가분을 함께 확인할 수 있는 전체 원문.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "인수 대상별 매출 기여액·식별가능 무형자산·영업권의 상세 수치."
+        },
+        {
+          "id": "O2",
+          "content": "인수 이후 손상·상각 등 상쇄 요인."
+        }
+      ],
+      "error_boundaries": [
+        "영업권 4,065,637,170천원을 전체 무형자산으로 쓰지 않는다.",
+        "기말 총잔액이 감소했는데 인수 증가분만으로 총잔액도 증가했다고 단정하지 않는다."
+      ],
+      "decision_note": "필수 개념만 분해한 보류용 초안이다. 합계 수정 후보 5,688,507,563천원은 정답으로 확정하지 않았다.",
+      "difference_from_legacy": "기존 보류를 유지한다. 잘못된 열의 정답이나 점수를 이 파일에서 교체하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "KAK_T3_055"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견 > 2. 개요 > 나. 영업성과",
+          "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적 (연결 기준)",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 무형자산 및 영업권"
+        ],
+        "reference_quotes": [
+          "뮤직 부문에서는 에스엠엔터테인먼트의 연결 편입 효과를 비롯해 제작/유통 관련 성장세가 강하게 나타났습니다.",
+          "콘텐츠 매출은 4조 26억원으로 매출비중은 53.0%이며, 전년 대비 20.0% 증가하였습니다. ... 뮤직 매출의 경우 멜론의 견조한 유료가입자 기반에 더해 소속 아티스트들의 콘서트 활동 증가, 글로벌 음원 유통 매출이 호조를 보이면서 성장했습니다.",
+          "기초의 무형자산 및 영업권 4,477,204,388; 기말의 무형자산 및 영업권 4,065,637,170"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "KAK_T3_055"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240418000375:20240418000375%3A771%3A630",
+            "chunk_id": "20240418000375:771:630",
+            "document_id": "20240418000375",
+            "text_sha256": "ff4792022490895a72e4bb8e7f84d80098336d51a54e70bc519fe38bfa42f0bd"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A772%3A631",
+            "chunk_id": "20240418000375:772:631",
+            "document_id": "20240418000375",
+            "text_sha256": "4798aaa90c779d22fcf9b1c446fbc0e4118dc5c062b94fe8ad664dbdf459b124"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A151%3A10",
+            "chunk_id": "20240418000375:151:10",
+            "document_id": "20240418000375",
+            "text_sha256": "de57dbc94035fbdddfd5aa4af1fdd4a8b3515244fc2d79565a3fb80ebdd3ee29"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A148%3A7",
+            "chunk_id": "20240418000375:148:7",
+            "document_id": "20240418000375",
+            "text_sha256": "27eba28ffc32031bc7e100f3bc61e5ee464662c036ccd3391cedad91ac414d65"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A769%3A628",
+            "chunk_id": "20240418000375:769:628",
+            "document_id": "20240418000375",
+            "text_sha256": "3e9075dc24a4f1d7dddeeb0ca045a4a83847984613a3ad7253988522ca09fa28"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A768%3A627",
+            "chunk_id": "20240418000375:768:627",
+            "document_id": "20240418000375",
+            "text_sha256": "ea8dc917f17af0e4cfec35120994635c3068c3d91f05ade863ef7f879c4a48be"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A777%3A636",
+            "chunk_id": "20240418000375:777:636",
+            "document_id": "20240418000375",
+            "text_sha256": "b1ab3e86ba3e7caf450e18e497c06ab98e66c77eb7a3b758ef9e774cc711f68d"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A733%3A592",
+            "chunk_id": "20240418000375:733:592",
+            "document_id": "20240418000375",
+            "text_sha256": "c45813b6b4e1ae5c9941cb7b8ac302a25898fe4b6556268f268d11901a7f9f92"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "KBF_T2_043::narrative-v1-draft",
+      "case_id": "KBF_T2_043",
+      "title": "KB금융 수수료·비이자이익과 WM",
+      "question": "2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+      "question_sha256": "ed7c6f4df025f381086018863253e6111b5830670671101f847fae418508fda5",
+      "company": "KB금융",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "QUESTION_CLARIFICATION",
+      "blocking_issue": "질문의 괄호가 서로 다른 지표를 등치하며 WM 범위도 불명확함.",
+      "scope": "순수수료이익과 비이자이익은 다른 지표다. 그룹 AUM도 WM 전용 실적이 아니다.",
+      "required": [
+        {
+          "label": "지표를 분리한 증가율",
+          "basis": "pending_question_interpretation",
+          "acceptance": "후속 질문에서 순수수료이익을 선택하면 3,673,524 / 3,514,902백만원으로 약 4.51% 증가. 비이자이익을 선택하면 해당 별도 값과 약 80.5% 증가를 쓴다.",
+          "evidence": "지표명·두 연도·금액·단위를 동일하게 맞춘 원문. 두 경로의 값과 비율을 혼합하지 않는다.",
+          "id": "R1"
+        },
+        {
+          "label": "WM의 성과",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "WM 또는 WM 관련 사업의 2023년 성과를 최소 1개 설명하고 해당 범위를 명시한다. 그룹 AUM만 제시했다면 WM 자체의 성과가 직접 확인된 것으로 보지 않는다.",
+          "evidence": "WM 사업 설명 또는 자산관리·관련 사업의 성과에 직접 연결되는 자료. 복합 부문·그룹 지표는 그 한계를 표시한다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "그룹 AUM 1,216.7조원 및 6.1% 성장이라는 참고 맥락."
+        },
+        {
+          "id": "O2",
+          "content": "자회사별 AUM 변화."
+        },
+        {
+          "id": "O3",
+          "content": "순수수료이익과 비이자이익을 모두 구별한 계산."
+        }
+      ],
+      "error_boundaries": [
+        "비이자이익과 순수수료이익을 동의어로 쓰지 않는다.",
+        "그룹 총 AUM이나 WM·브로커리지 합산 손익을 순수 WM 실적으로 단정하지 않는다."
+      ],
+      "decision_note": "후속 질문은 계산할 지표를 하나로 지정하고, WM 성과에 허용할 범위를 정해야 한다. 그 전에는 이 안으로 완전 정답 여부를 확정하지 않는다.",
+      "difference_from_legacy": "기존 참고답안의 그룹 AUM 세부 내역을 WM 필수 정답으로 자동 승격하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "KBF_T2_043"
+        },
+        "sections": [
+          "II. 사업의 내용 > 5. 재무건전성 등 기타 참고사항"
+        ],
+        "reference_quotes": [
+          "순수수료이익 3,673,524",
+          "순수수료이익 3,514,902",
+          "2023년말 그룹의 총관리자산은 1,216.7조원으로 2022년말 대비 70.0조원(6.1%) 증가하였습니다. 이는 은행(+15.6조원), 증권(+35.6조), 자산운용(+6.8조원), 부동산신탁(+4.1조원) 등 자산이 성장한 영향입니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "KBF_T2_043"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240326000894:20240326000894%3A1846%3A5",
+            "chunk_id": "20240326000894:1846:5",
+            "document_id": "20240326000894",
+            "text_sha256": "6ee672a88816aa1f461471dadef6e9ac87f364ebc8124c233ad70623ee292751"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A629%3A6",
+            "chunk_id": "20240326000894:629:6",
+            "document_id": "20240326000894",
+            "text_sha256": "d21263a88a61fc7eb72f7f78b839a3b77a59aa867aa1f43b010c091acb124668"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A190%3A113",
+            "chunk_id": "20240326000894:190:113",
+            "document_id": "20240326000894",
+            "text_sha256": "7a3c1bdf36ff99b9c335bc9f14c262381d99e09dbb938691c5ff9f04c2732209"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A195%3A118",
+            "chunk_id": "20240326000894:195:118",
+            "document_id": "20240326000894",
+            "text_sha256": "0ef50f9f269ebc535612c842e2bd78fa89da4b3fbe163fd5dedaf1fae6274969"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1892%3A51",
+            "chunk_id": "20240326000894:1892:51",
+            "document_id": "20240326000894",
+            "text_sha256": "84bac5a432b65e898748254e49863a95237b1e9c98057068f75f7806db31bf76"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1845%3A4",
+            "chunk_id": "20240326000894:1845:4",
+            "document_id": "20240326000894",
+            "text_sha256": "50e84eae164286800d8c059a655af3513b88eff44c737de892c2c41c0ae9c363"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A194%3A117",
+            "chunk_id": "20240326000894:194:117",
+            "document_id": "20240326000894",
+            "text_sha256": "6269ad54710fd2e14693f5f2093c1371cc3d509f8d289eeeda986123b9136e17"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1843%3A2",
+            "chunk_id": "20240326000894:1843:2",
+            "document_id": "20240326000894",
+            "text_sha256": "be0bc83b090d620ebb261e1060a2f189d1478eb94d5ba609aca21439f5ec3743"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      },
+      "question_clarification_proposal": {
+        "proposed_wording": "2023년 KB금융그룹 순수수료이익의 전년 대비 증가율을 계산하고, 사업보고서가 직접 설명한 WM 사업의 성과를 요약해 줘. 그룹 AUM이나 WM·브로커리지 합산 지표를 인용하면 그 범위를 구별해 줘.",
+        "reason": "순수수료이익/비이자이익의 등치를 제거하고 WM과 그룹 전체 지표를 구별한다."
+      }
+    },
+    {
+      "rubric_entry_id": "KBF_T3_019::narrative-v1-draft",
+      "case_id": "KBF_T3_019",
+      "title": "KB금융 부동산 PF 위험과 대응",
+      "question": "사업보고서를 참조하여 부동산 PF(프로젝트파이낸싱) 대출과 관련된 회사의 잠재적 리스크 및 대응 방안을 요약해 줘.",
+      "question_sha256": "51306e3e852bf3e5f4b3d2f2fb3d14e35f31538509abd602fc129e63b6d4f738",
+      "company": "KB금융",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "그룹과 자회사의 PF 관련 위험을 각각 귀속한다. 약정한도·실행액·손실을 구별한다.",
+      "required": [
+        {
+          "label": "잠재 위험과 손실 경로",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "사업장·시공사·분양 등 원문상 위험 요인 최소 1개와 신용·유동성·충당금 부담으로 이어질 가능성을 설명한다.",
+          "evidence": "PF 위험요인 및 잠재 채무·회수 위험에 관한 문단.",
+          "id": "R1"
+        },
+        {
+          "label": "실제 대응 방안",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "사업장 점검, 시공사·분양률 모니터링, TF, 충당금 적립 등 회사가 설명한 대응 최소 1개를 제시한다.",
+          "evidence": "회사의 관리 활동으로 명시된 내용. 일반 금융 상식을 회사의 실행 사실로 바꾸지 않는다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "자회사별 노출액·손실·대출약정 세부사항."
+        },
+        {
+          "id": "O2",
+          "content": "둘 이상의 위험과 대응 수단."
+        }
+      ],
+      "error_boundaries": [
+        "미실행 약정 전액을 이미 발생한 손실로 보지 않는다.",
+        "한도와 실행잔액을 더해 총위험액으로 중복 합산하지 않는다.",
+        "충당금 적립이나 모니터링을 모든 손실의 방지 보장으로 말하지 않는다."
+      ],
+      "decision_note": "리스크와 대응을 각각 1개 이상 설명하면 최소 범위를 충족한다. PF 위험 단어만 나열하면 설명을 충족하지 못한다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "KBF_T3_019"
+        },
+        "sections": [
+          "II. 사업의 내용 > 2. 영업의 현황",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 40. 우발 및 약정사항"
+        ],
+        "reference_quotes": [
+          "국내 부동산시장 경기침체가 지속될 것으로 전망됩니다. ... 최근 건설사 부실로 인한 불확실성 증대 및 분양시장 위축 등에 따른 리스크 확대",
+          "건설사 워크아웃, 부동산PF 부실 등의 여파로 신탁사업으로 인한 실질적인 리스크를 반영하여 충당금을 선제적으로 적립하였으며 그 결과 당기순손실 841억원을 기록하였습니다.",
+          "리츠사업부문은 부동산 PF 대출 부실 우려 및 금리 리스크에 따른 시장 상황에 대응하기 위해 자산별 매입전략을 수립하고 매입 경쟁력 강화에 힘쓰겠습니다. ... 리스크관리 측면에서는 분양성, 수익성, 시공사 등 리스크 제요인 점검 및 신탁계정대 모니터링을 강화하고 중점관리TFT를 통한 철저한 사후관리 및 부실위기 대응 방안을 마련하고자 합니다.",
+          "KB부동산신탁㈜는 당기말 현재 차입형토지신탁(정비사업 포함)계약과 관련하여 총사업비의 일부인 36,274억원을 신탁계정대여 할 수 있습니다.",
+          "책임준공관리형토지신탁사업에 대한 총 PF대출 약정한도는 56,206억원, 실행잔액은 40,020억원입니다. 손실금액을 신뢰성있게 측정할 수 없어 당기말 재무제표에는 이러한 영향을 반영하지 아니하였으며, 사업장별 공정진행을 지속적으로 모니터링 할 예정입니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "KBF_T3_019"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240326000894:20240326000894%3A108%3A31",
+            "chunk_id": "20240326000894:108:31",
+            "document_id": "20240326000894",
+            "text_sha256": "a99735927122332d52ea8e857d1fe6f24d328c8e05d6028f634ff629178385ed"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A328%3A251",
+            "chunk_id": "20240326000894:328:251",
+            "document_id": "20240326000894",
+            "text_sha256": "de65637cfd0c851c2240a463156a03aa8af1ff34c140a7d69539ca6740f76904"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A324%3A247",
+            "chunk_id": "20240326000894:324:247",
+            "document_id": "20240326000894",
+            "text_sha256": "838bdf61ac1fdea641ad2280481c6645cc06cb81106347562187aad536c7e34a"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A322%3A245",
+            "chunk_id": "20240326000894:322:245",
+            "document_id": "20240326000894",
+            "text_sha256": "b6521372749e64a9f879ab37b4abf546ee2dbb06f3df877166da57ce39244b1e"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A2140%3A45",
+            "chunk_id": "20240326000894:2140:45",
+            "document_id": "20240326000894",
+            "text_sha256": "3cdda7aaac3841e0515945a55e4533467a296792eed4ab0b49e19dcb2cdcf1c4"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1885%3A44",
+            "chunk_id": "20240326000894:1885:44",
+            "document_id": "20240326000894",
+            "text_sha256": "791bc07f0ed9ed4abcb979f9e78c87c736d216f7c8221c3ae3943fa31e6e0b37"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1111%3A468",
+            "chunk_id": "20240326000894:1111:468",
+            "document_id": "20240326000894",
+            "text_sha256": "37b8d039dd1ccf79cfa6c8ab247fe879b6c0a55935deb7c8f8dda65b65cb32e1"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A61%3A27",
+            "chunk_id": "20240326000894:61:27",
+            "document_id": "20240326000894",
+            "text_sha256": "0e6a2d71d8005d9242721b434c5b666771655b3f49d0678ed7e54942cf996d39"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "KBF_T3_044::narrative-v1-draft",
+      "case_id": "KBF_T3_044",
+      "title": "KB금융 BIS 비율과 규제 여유",
+      "question": "2023년 사업보고서에서 BIS자기자본비율을 찾고, 해당 지표가 금융당국의 규제 기준 대비 어느 정도 수준인지 리스크 관점에서 설명해 줘.",
+      "question_sha256": "ddbf086d788562ca66988a7dcf9173e83ab3868d23c973731a43362223869f4e",
+      "company": "KB금융",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년말 그룹 기준·해당 시점 규제 기준. 은행 단독 비율 및 현재 규제와 혼합하지 않는다.",
+      "required": [
+        {
+          "label": "BIS 총자본비율",
+          "basis": "explicit_request",
+          "acceptance": "그룹 총자본비율 16.73%를 정확히 제시한다.",
+          "evidence": "2023년말 그룹 자본적정성 표.",
+          "id": "R1"
+        },
+        {
+          "label": "규제 대비 수준",
+          "basis": "explicit_request",
+          "acceptance": "같은 시점·범위의 총자본 규제 기준 11.5%와 비교하여 5.23%p 상회함을 설명한다. 의미가 같은 정확한 비교도 허용한다.",
+          "evidence": "해당 시점 규제 기준과 총자본비율. 비율 차이는 %p로 구별한다.",
+          "id": "R2"
+        },
+        {
+          "label": "리스크 관점의 의미",
+          "basis": "explicit_request",
+          "acceptance": "규제 수준 이상의 자본 여유·손실흡수 여력이 있음을 설명한다.",
+          "evidence": "자본적정성 설명 또는 비교 결과에서 정당하게 도출되는 제한된 해석.",
+          "id": "R3"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2",
+          "R3"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "기본자본 15.37%, 보통주자본 13.59%와 각 규제 대비 여유."
+        },
+        {
+          "id": "O2",
+          "content": "전년·은행 단독과의 별도 비교."
+        }
+      ],
+      "error_boundaries": [
+        "은행 18.08%를 그룹 비율로 쓰지 않는다.",
+        "규제 상회를 위험 부재·부도 가능성 0으로 확대하지 않는다.",
+        "총자본 비율을 보통주자본 규제와 비교하지 않는다."
+      ],
+      "decision_note": "기본자본·CET1까지 모두 나열하지 않아도 된다. 질문이 묻는 BIS와 그 비교·해석이 필수다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "KBF_T3_044"
+        },
+        "sections": [
+          "II. 사업의 내용 > 5. 재무건전성 등 기타 참고사항 > 가. 그 밖에 투자의사결정에 필요한 사항 [지배회사에 관한 사항] > (1) 자본적정성 관련 지표 > 1) BIS기준 자기자본비율",
+          "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > (5) 자본적정성",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 4-6. 자본관리"
+        ],
+        "reference_quotes": [
+          "총자본비율(a/f) 16.73, 기본자본비율(b/f) 15.37, 보통주자본비율(c/f) 13.59",
+          "총자본비율(BIS비율)은 BASELⅢ 기준으로 16.73%, 보통주자본비율은 13.59%이며",
+          "회사는 금융지주회사법상 금융지주회사로 금융감독당국이 제시하는 연결기준의 자본적정성 기준을 준수하고 있습니다.",
+          "2023년 12월 31일 현재 이 기준에 따라 위험가중자산에 대한 자기자본비율(보통주자본비율:8.0%, 기본자본비율:9.5%, 총자본비율:11.5%)을 유지해야 합니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "KBF_T3_044"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240326000894:20240326000894%3A513%3A0",
+            "chunk_id": "20240326000894:513:0",
+            "document_id": "20240326000894",
+            "text_sha256": "73d5cecb945ef59cb9b0d96020a454e9b75a03eec7bd7899f3f40e512e54f87b"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A519%3A6",
+            "chunk_id": "20240326000894:519:6",
+            "document_id": "20240326000894",
+            "text_sha256": "727ddf26d1ae3bae7bdb31d45fa4216b49fa2e1aee8e1afc3344a23a52cef275"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1851%3A10",
+            "chunk_id": "20240326000894:1851:10",
+            "document_id": "20240326000894",
+            "text_sha256": "380653d92220703d4aed82ef294543f534e7bd2bc36b74a432612e94eece6a12"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A583%3A70",
+            "chunk_id": "20240326000894:583:70",
+            "document_id": "20240326000894",
+            "text_sha256": "531c10c2358e3814d700b24fa2d1ad145934e787a298c06b2df239906fcf53e2"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1852%3A11",
+            "chunk_id": "20240326000894:1852:11",
+            "document_id": "20240326000894",
+            "text_sha256": "f73de3cadc59d5cca346e4145bf4c5c4fb921353fceb709b576fd36fbd94dc13"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A548%3A35",
+            "chunk_id": "20240326000894:548:35",
+            "document_id": "20240326000894",
+            "text_sha256": "29ed847dd4568e7a008acdf50618915503e6b010e2db0cc36593549e6690cce4"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1214%3A49",
+            "chunk_id": "20240326000894:1214:49",
+            "document_id": "20240326000894",
+            "text_sha256": "fe94cf0c43302bb1ed958d087df860f731e2461f03f486e8f4a27f615602fef9"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A529%3A16",
+            "chunk_id": "20240326000894:529:16",
+            "document_id": "20240326000894",
+            "text_sha256": "0b52b232fe4b12df6266f0ceb2320e0b618bf1795083770524de0211634bff25"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "MIX_T3_025::narrative-v1-draft",
+      "case_id": "MIX_T3_025",
+      "title": "KB금융 지배주주 순이익과 비이자 성장",
+      "question": "2023년 연결 포괄손익계산서에서 지배기업주주지분순이익(주주 귀속 순이익)을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증가의 주요 원인을 요약해 줘.",
+      "question_sha256": "6427c2f42965ab4cc47b013c2d61ac2da70153a020b9146fc41dc2fff6a25e5a",
+      "company": "KB금융",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "그룹 연결 지배기업 소유주 귀속 순이익과 MD&A 비이자이익을 사용한다.",
+      "required": [
+        {
+          "label": "주주 귀속 순이익",
+          "basis": "explicit_request",
+          "acceptance": "4,631,932백만원, 약 4.632조원이라는 해당 순이익을 제시한다.",
+          "evidence": "연결 포괄손익계산서의 지배기업주주지분순이익 행.",
+          "id": "R1"
+        },
+        {
+          "label": "비이자이익 증가 원인",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "MD&A의 주요 원인을 최소 1개 설명한다. 예: 시장 여건 개선에 따른 유가증권·파생·보험금융손익 개선.",
+          "evidence": "비이자이익 증가에 직접 연결된 MD&A 사유. 인과 연결 없는 시장 소식만으로 대체하지 않는다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "비이자이익 4,088십억원 및 약 80.5% 증가."
+        },
+        {
+          "id": "O2",
+          "content": "수수료·보험 등 세부 요인의 추가 설명."
+        }
+      ],
+      "error_boundaries": [
+        "국민은행 순이익을 그룹 순이익으로 바꾸지 않는다.",
+        "보험금융손익·시장손익과 WM 수수료를 서로 같은 항목으로 보지 않는다."
+      ],
+      "decision_note": "명시적으로 요구하지 않은 모든 비이자 세부 항목이나 성장률은 선택이다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "MIX_T3_025"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 연결포괄손익계산서",
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "당기순이익의 귀속 | 4,563,431 | 3,931,401 | 4,384,381\n지배기업주주지분순이익 | 4,631,932 | 4,152,992 | 4,409,543",
+          "당기순이익은 지배기업주주지분순이익 기준",
+          "비이자이익은 주가지수 상승 및 금리 변동성 완화 등 우호적인 시장 환경에 따른 자본시장부문 손익 개선 및 증권 브로커리지 수수료 증가 등의 영향으로 전년대비 1조 823십억원 증가한 4조 88십억원을 달성하였습니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "MIX_T3_025"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240326000894:20240326000894%3A1846%3A5",
+            "chunk_id": "20240326000894:1846:5",
+            "document_id": "20240326000894",
+            "text_sha256": "6ee672a88816aa1f461471dadef6e9ac87f364ebc8124c233ad70623ee292751"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1892%3A51",
+            "chunk_id": "20240326000894:1892:51",
+            "document_id": "20240326000894",
+            "text_sha256": "84bac5a432b65e898748254e49863a95237b1e9c98057068f75f7806db31bf76"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A125%3A48",
+            "chunk_id": "20240326000894:125:48",
+            "document_id": "20240326000894",
+            "text_sha256": "29393d7f9ce10a448261512029d481355e638e29076fcebb0b97eb7d9178820e"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A976%3A333",
+            "chunk_id": "20240326000894:976:333",
+            "document_id": "20240326000894",
+            "text_sha256": "740cd134cf9a92a040e57fde81f552a027f25a8fc8f40223f84f996872d28cfd"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A130%3A53",
+            "chunk_id": "20240326000894:130:53",
+            "document_id": "20240326000894",
+            "text_sha256": "48c177f49f2b8964a695d8dec16271548c067ad7fefb18062c04d326a85ea0b6"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1843%3A2",
+            "chunk_id": "20240326000894:1843:2",
+            "document_id": "20240326000894",
+            "text_sha256": "be0bc83b090d620ebb261e1060a2f189d1478eb94d5ba609aca21439f5ec3743"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A974%3A331",
+            "chunk_id": "20240326000894:974:331",
+            "document_id": "20240326000894",
+            "text_sha256": "815e27d4dd632e4d62d09f106033b923981843e344de97d07920545de259b971"
+          },
+          {
+            "source_id": "20240326000894:20240326000894%3A1890%3A49",
+            "chunk_id": "20240326000894:1890:49",
+            "document_id": "20240326000894",
+            "text_sha256": "a21f924f6a4e91ffb1fe3d196c115b50227a34282f77941560968423227a520e"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "LGE_T2_052::narrative-v1-draft",
+      "case_id": "LGE_T2_052",
+      "title": "LG에너지솔루션 원재료 가격과 ASP",
+      "question": "2023년 사업보고서에서 주요 원재료(양극재, 음극재 등)의 가격 변동 추이를 요약하고, 이것이 배터리 판가(ASP)에 미친 영향을 설명해 줘.",
+      "question_sha256": "f4f8431538327ca6c7344c06d2cefd310ae966ddbda849d7d1c24a03447dbed9",
+      "company": "LG에너지솔루션",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 보고서에 공시된 대표 구매가격과 ASP·투입원가의 관계. 특정 거래선 가격의 범위를 보존한다.",
+      "required": [
+        {
+          "label": "가격 변화의 방향과 근거",
+          "basis": "explicit_request",
+          "acceptance": "공시된 대표 원재료의 두 시점 가격 또는 변화 방향을 구체적으로 비교한다. 예: 소형 Application용 양극재 43.99→33.47 USD/kg.",
+          "evidence": "원재료 가격변동 표의 품목·단위·연도. 수치의 정밀한 제시보다 올바른 비교와 범위가 핵심.",
+          "id": "R1"
+        },
+        {
+          "label": "ASP와 비용의 관계",
+          "basis": "explicit_request",
+          "acceptance": "메탈 가격 하락 국면에서 판매가격 대비 투입 원재료비가 높게 나타나는 lagging 부담을 설명한다.",
+          "evidence": "ASP·투입 원재료비·lagging의 관계를 직접 설명한 MD&A.",
+          "id": "R2"
+        },
+        {
+          "label": "공시 범위 보존",
+          "basis": "explicit_request",
+          "acceptance": "대표 양극재의 가격을 전체 원재료 가격으로 일반화하지 않는다. 음극재 등의 별도 가격 추이를 확인하지 못했다면 그 제한을 표시한다.",
+          "evidence": "공시 가격표가 포괄하는 품목 및 단일 거래선 기준 여부.",
+          "id": "R3"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2",
+          "R3"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "양극재 가격 약 23.9% 하락 계산."
+        },
+        {
+          "id": "O2",
+          "content": "원문으로 확인되는 다른 원재료의 가격 추이."
+        },
+        {
+          "id": "O3",
+          "content": "물류·수율·IRA 세액공제 등 별도 이익 요인."
+        }
+      ],
+      "error_boundaries": [
+        "lagging을 단순히 '원재료 가격 인하가 ASP에 늦게 반영됐다'로 역전하지 않는다.",
+        "원재료 가격 하락만으로 모든 이익이 증가했다고 단정하지 않는다.",
+        "음극재 매입 항목이 있다는 사실만으로 음극재 가격 추이를 만들어내지 않는다."
+      ],
+      "decision_note": "음극재 가격이 제공되지 않으면 값을 발명하도록 요구하지 않는다. 다만 검색 packet에 없다는 것과 전체 보고서에 없다는 것은 구별한다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "LGE_T2_052"
+        },
+        "sections": [
+          "II. 사업의 내용 > 3. 원재료 및 생산설비",
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "소형 Application용 양극재 | 수 입 | 33.47/kg | 43.99/kg | 21.81/kg",
+          "영업이익은 지속적인 메탈 가격 하락으로 배터리 판매가격 대비 투입 원재료비가 높아서 발생하는 Lagging 영향이 있었으나"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "LGE_T2_052"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240314001110:20240314001110%3A22%3A0",
+            "chunk_id": "20240314001110:22:0",
+            "document_id": "20240314001110",
+            "text_sha256": "64d55135be37a6a341db6c19eb62e9f0a490adeff87c4dc47766238ad6f65b5e"
+          },
+          {
+            "source_id": "20240314001110:20240314001110%3A24%3A2",
+            "chunk_id": "20240314001110:24:2",
+            "document_id": "20240314001110",
+            "text_sha256": "2ce39e5b46089b13f7037f959a6494218e5d8f9d3d081b8318700760590be426"
+          },
+          {
+            "source_id": "20240314001110:20240314001110%3A23%3A1",
+            "chunk_id": "20240314001110:23:1",
+            "document_id": "20240314001110",
+            "text_sha256": "e7aad96e0e5f4459f171d25cc5701c330e294ed049ee8fc7c6cc4014ddb155ab"
+          },
+          {
+            "source_id": "20240314001110:20240314001110%3A21%3A2",
+            "chunk_id": "20240314001110:21:2",
+            "document_id": "20240314001110",
+            "text_sha256": "d832241ead708d40e72fd742ede9ffc0574a2713bfd86fadc8ee455aa50b0d0e"
+          },
+          {
+            "source_id": "20240314001110:20240314001110%3A897%3A3",
+            "chunk_id": "20240314001110:897:3",
+            "document_id": "20240314001110",
+            "text_sha256": "e698284ae503ab7cbb22dafe479f9abb1ee20cfd305868ed754aa52e7667797d"
+          },
+          {
+            "source_id": "20240314001110:20240314001110%3A19%3A0",
+            "chunk_id": "20240314001110:19:0",
+            "document_id": "20240314001110",
+            "text_sha256": "431361bf65d9abc19ef1b512d5bb451be56150fb39fbc29eca7b0d0747d18320"
+          },
+          {
+            "source_id": "20240314001110:20240314001110%3A18%3A0",
+            "chunk_id": "20240314001110:18:0",
+            "document_id": "20240314001110",
+            "text_sha256": "0319e2eb872c186b224ec7f4a252a2fb11ba1266c08aec14a156cf34b64c8cc2"
+          },
+          {
+            "source_id": "20240314001110:20240314001110%3A20%3A1",
+            "chunk_id": "20240314001110:20:1",
+            "document_id": "20240314001110",
+            "text_sha256": "c36103f47cc82a217c3f9c858f812f17d81b25276f8757baeae4217e924b55c4"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "POS_T2_058::narrative-v1-draft",
+      "case_id": "POS_T2_058",
+      "title": "POSCO 미래소재 투자와 수익성",
+      "question": "2023년 사업보고서를 바탕으로 친환경 미래소재(이차전지소재 등) 부문의 투자 성과와 수익성 변동 요인을 요약해 줘.",
+      "question_sha256": "e53b088d46a7f12725368c3cf504cfc164dbedcfccba20eae29013cd09843e18",
+      "company": "POSCO홀딩스",
+      "year": 2023,
+      "legacy_panel_group": "diagnostic_or_hold",
+      "status": "HOLD",
+      "blocking_issue": "기존 diagnostic: 법인 전체와 에너지소재 사업부의 손익 범위 충돌.",
+      "scope": "POSCO홀딩스·포스코퓨처엠 법인·에너지소재 사업부의 경계를 유지한다.",
+      "required": [
+        {
+          "label": "투자 성과",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "생산능력 확대·수주·밸류체인 투자 중 확인되는 성과 최소 1개를 해당 주체에 연결한다.",
+          "evidence": "투자 주체와 성과·시점이 명시된 MD&A 또는 사업 설명.",
+          "id": "R1"
+        },
+        {
+          "label": "수익성 변동과 원인",
+          "basis": "explicit_request",
+          "acceptance": "주체가 일치하는 이익 변동을 제시하고 메탈 가격·판가·재고평가 등 원문상 원인을 설명한다.",
+          "evidence": "사업부와 법인 각각의 이익 표 및 원인 설명. 법인 감소 1,300억원과 에너지소재부문 감소 1,623억원을 혼합하지 않는다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "포스코퓨처엠 매출 4조 7,599억원·영업이익 359억원."
+        },
+        {
+          "id": "O2",
+          "content": "에너지소재 영업손실 117억원."
+        },
+        {
+          "id": "O3",
+          "content": "수주잔고·설비별 투자 수치."
+        }
+      ],
+      "error_boundaries": [
+        "법인 전체 영업이익 감소액을 에너지소재 사업부 감소액으로 바꾸지 않는다.",
+        "수주잔고를 당기 매출 또는 확정 이익으로 보지 않는다."
+      ],
+      "decision_note": "기존 참고답안은 에너지소재 감소액을 법인 감소액과 혼합했다. 주체별 원문 묶음과 후속 정답 확정 전에는 보류한다.",
+      "difference_from_legacy": "기존 diagnostic 제외 상태를 유지한다. 범위에 맞는 숫자 후보를 제시했어도 기존 정답을 덮어쓰지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "POS_T2_058"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "2023년은 ... 미래성장을 위한 에너지소재분야 증설에 집중 ... 3년 연속 창사 최대매출을 경신하고 누적수주 100조원을 달성",
+          "영업이익은 에너지소재부문에서 리튬 등 주요 메탈가격 약세로 판매가격 하락한데다 재고자산 평가손실 계상하게 되면서 전년대비 1,300억원이 감소"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "POS_T2_058"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240322000986:20240322000986%3A1476%3A314",
+            "chunk_id": "20240322000986:1476:314",
+            "document_id": "20240322000986",
+            "text_sha256": "3698c3383dd6b3b211694d4111afd84f21ee6232e0cb6b9866622aa8421726a0"
+          },
+          {
+            "source_id": "20240322000986:20240322000986%3A1163%3A1",
+            "chunk_id": "20240322000986:1163:1",
+            "document_id": "20240322000986",
+            "text_sha256": "dc75835107c3644ef6fb880bd3046360925b32a9adf538d63dfbc90f3f427c05"
+          },
+          {
+            "source_id": "20240322000986:20240322000986%3A311%3A36",
+            "chunk_id": "20240322000986:311:36",
+            "document_id": "20240322000986",
+            "text_sha256": "0ac94d8d3a370d56608953b4908528bae2faf4e7d9fe5233344593d5c924093d"
+          },
+          {
+            "source_id": "20240322000986:20240322000986%3A1440%3A278",
+            "chunk_id": "20240322000986:1440:278",
+            "document_id": "20240322000986",
+            "text_sha256": "8f832ce7468ad76bee6adae3920cfa8ef048583ba4337348e8367bf6f4bf4d9e"
+          },
+          {
+            "source_id": "20240322000986:20240322000986%3A79%3A31",
+            "chunk_id": "20240322000986:79:31",
+            "document_id": "20240322000986",
+            "text_sha256": "cd572af20ff209c4bc9aed81904ec2754f54d4cbdc944a5bf4ad3c625acf33c8"
+          },
+          {
+            "source_id": "20240322000986:20240322000986%3A1280%3A118",
+            "chunk_id": "20240322000986:1280:118",
+            "document_id": "20240322000986",
+            "text_sha256": "97d133eadd3df91f0f766b1a90abadaea29d9f8a6946a658e3b4ff318377bab1"
+          },
+          {
+            "source_id": "20240322000986:20240322000986%3A1446%3A284",
+            "chunk_id": "20240322000986:1446:284",
+            "document_id": "20240322000986",
+            "text_sha256": "ee502c69866eef7a98c628739d8a320738b77c88bfa4775da88dddff845be4e9"
+          },
+          {
+            "source_id": "20240322000986:20240322000986%3A90%3A3",
+            "chunk_id": "20240322000986:90:3",
+            "document_id": "20240322000986",
+            "text_sha256": "f73b766d8578d0fbc478b59eea918508b0a4e5a2d6beff7251bb7156083b7b12"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "SKI_T2_069::narrative-v1-draft",
+      "case_id": "SKI_T2_069",
+      "title": "SK이노베이션 정유 이익과 마진",
+      "question": "2023년 정유 부문의 영업이익 전년 대비 증감률을 계산하고, 이사의 경영진단(MD&A)에서 정제마진 하락 추이가 실적에 미친 영향을 요약해 줘.",
+      "question_sha256": "91ddeb7536a902af6033bcf85102a6d7cc92bb253584804d1f54c20cd6a57694",
+      "company": "SK이노베이션",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 정유 부문으로 제시된 SK에너지 및 그 종속회사 기준. 그룹 전체 이익과 구별한다.",
+      "required": [
+        {
+          "label": "영업이익 증감률",
+          "basis": "explicit_request",
+          "acceptance": "409,219 / 2,600,786백만원으로 약 84.3% 감소를 계산한다.",
+          "evidence": "동일 정유 사업 범위의 당기·전기 영업이익.",
+          "id": "R1"
+        },
+        {
+          "label": "정제마진의 실적 영향",
+          "basis": "explicit_request",
+          "acceptance": "제품가격과 원유가격 간 spread 축소·정제마진 하락이 수익성을 악화시켰다는 인과 방향을 설명한다.",
+          "evidence": "MD&A에서 마진 변화와 정유 실적을 연결한 내용.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "원문에 명시된 유가 하락·재고 관련 영향."
+        },
+        {
+          "id": "O2",
+          "content": "제품별·분기별 상세 마진."
+        }
+      ],
+      "error_boundaries": [
+        "유가가 하락하면 언제나 정유 이익이 늘거나 줄어든다는 일반 법칙으로 바꾸지 않는다.",
+        "서로 다른 정유 부문·법인 범위의 분자·분모를 섞지 않는다."
+      ],
+      "decision_note": "증감률과 마진 경로가 핵심이며, 모든 비용 요인 열거는 선택이다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "SKI_T2_069"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견 > 경영진단 > 나. 영업실적(연결기준)"
+        ],
+        "reference_quotes": [
+          "영업이익 | 409,219 | 2,600,786 | 712,064 | -84.3%",
+          "유가 하락 영향으로 전년 대비 제품가와 유가와의 Spread (마진) 감소 등에 따라 영업이익 및 당기순이익은 전기대비 감소"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "SKI_T2_069"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240320000950:20240320000950%3A1825%3A118",
+            "chunk_id": "20240320000950:1825:118",
+            "document_id": "20240320000950",
+            "text_sha256": "c307541c529a66aee60552ab61d670bc381bbe1803843fdc0d86f0f8ee82f741"
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1736%3A29",
+            "chunk_id": "20240320000950:1736:29",
+            "document_id": "20240320000950",
+            "text_sha256": "fe9f8ae8fb71e38392ef6d1a5e062131f0911b084cbfcda1b796c0a8adeb95a8"
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1738%3A31",
+            "chunk_id": "20240320000950:1738:31",
+            "document_id": "20240320000950",
+            "text_sha256": "7c934e1050f3a2d93b0c5644c7f3f348c95dde0ba2842dbbedd5fd0c2fedcddf"
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1853%3A146",
+            "chunk_id": "20240320000950:1853:146",
+            "document_id": "20240320000950",
+            "text_sha256": "e0c35db0b406823ada5e7f3e9f1332b001308349139868061d2b3fc610eba29e"
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1859%3A152",
+            "chunk_id": "20240320000950:1859:152",
+            "document_id": "20240320000950",
+            "text_sha256": "8763fa8a0370bd8a14cac97f010c7ae6dff2b86fd4d59c46a39c54a1f0d8d2fb"
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1795%3A88",
+            "chunk_id": "20240320000950:1795:88",
+            "document_id": "20240320000950",
+            "text_sha256": "ce0f4edf5b7c257e045bb34b5dcdc0cc1bb10f79f4094b329afd04b943423590"
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1714%3A7",
+            "chunk_id": "20240320000950:1714:7",
+            "document_id": "20240320000950",
+            "text_sha256": "029593ad83a5dd695e82d7733848ea87b2caed5927053932c176b8686adc7c65"
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1796%3A89",
+            "chunk_id": "20240320000950:1796:89",
+            "document_id": "20240320000950",
+            "text_sha256": "94e858c3a14bc23539c244f245be793e7ecc0dea82c801ffc1f5349bd14aa5ff"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "SKH_T2_061::narrative-v1-draft",
+      "case_id": "SKH_T2_061",
+      "title": "SK하이닉스 DRAM 비중과 AI 수요",
+      "question": "2023년 전체 매출 중 DRAM 제품군이 차지하는 비중을 계산하고, 사업의 내용에서 AI 서버 수요 확대(HBM 등)로 인한 향후 실적 개선 전망을 요약해 줘.",
+      "question_sha256": "f30dadef1ed0b1986f1e8248fe9c23f4d2324e3d31dc2878540085b04f629a0a",
+      "company": "SK하이닉스",
+      "year": 2023,
+      "legacy_panel_group": "diagnostic_or_hold",
+      "status": "HOLD",
+      "blocking_issue": "HOLD_MISSING_CALCULATION_OPERANDS",
+      "scope": "DRAM 매출 / 전체 매출 계산과 향후 전망. 공시 비율 조회를 계산으로 세지 않는다.",
+      "required": [
+        {
+          "label": "DRAM 비중 계산",
+          "basis": "explicit_request",
+          "acceptance": "기간·범위·단위가 일치하는 DRAM 매출과 전체 매출을 근거로 비율을 계산한다.",
+          "evidence": "두 피연산자가 모두 확인되는 원문. 공시 63%라는 결과만으로 계산 근거를 대체하지 않는다.",
+          "id": "R1"
+        },
+        {
+          "label": "AI 수요와 전망",
+          "basis": "explicit_request",
+          "acceptance": "AI 서버 확대가 HBM 등 고부가 메모리 수요에 연결되고 회사 실적 개선을 기대하게 하는 경로를 설명한다.",
+          "evidence": "AI 서버·HBM 등 제품 수요와 향후 사업 전망을 연결한 사업 설명.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "공시 비중 63%를 '공시값'으로 별도 소개."
+        },
+        {
+          "id": "O2",
+          "content": "DDR5·HBM3 등 구체적 제품·공급 계획."
+        }
+      ],
+      "error_boundaries": [
+        "공시 비율을 역산해 DRAM 매출을 만든 뒤 독립적인 계산 검증이라고 부르지 않는다.",
+        "수요 전망을 미래 매출·이익의 확정치로 쓰지 않는다."
+      ],
+      "decision_note": "계산 피연산자가 미확정이다. 조회 문제로 바꾸려면 새 질문 버전이 필요하다.",
+      "difference_from_legacy": "기존 보류를 유지한다. 63%와 전망을 맞혀도 계산 성공으로 확정하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "SKH_T2_061"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견 > 경영진단",
+          "II. 사업의 내용 > 7. 기타 참고사항",
+          "II. 사업의 내용 > 2. 주요 제품 및 서비스"
+        ],
+        "reference_quotes": [
+          "제품군별로는 전체 매출 중 DRAM과 NAND가 각각 63%와 29% 비중을 차지하였으며",
+          "AI와 ML(Machine Learning) 등을 기반으로 한 고차원 분석 애플리케이션의 성장이 고대역폭 메모리에 대한 수요를 뒷받침하고 있습니다.",
+          "최근 GPT와 같은 대규모 언어 모델(Large Language Models, LLM)에 대한 관심 증가는 서버 메모리 시장의 중요한 성장 요소",
+          "최근 AI시장의 폭발적 성장에 따라 딥러닝 실행과 양질의 데이터를 다룰 수 있는 고성능, 저전력 반도체인 HBM(High Bandwidth Memory)의 수요가 급증하였습니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "SKH_T2_061"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240319000684:20240319000684%3A102%3A14",
+            "chunk_id": "20240319000684:102:14",
+            "document_id": "20240319000684",
+            "text_sha256": "f882da75ab08ae6566991bd51157528725d8f90295628a203924ba95829f9641"
+          },
+          {
+            "source_id": "20240319000684:20240319000684%3A54%3A2",
+            "chunk_id": "20240319000684:54:2",
+            "document_id": "20240319000684",
+            "text_sha256": "81746acbb6f4548cdb7bc1ad6f95929cd9e18e5375e895901c1e90993021b39e"
+          },
+          {
+            "source_id": "20240319000684:20240319000684%3A98%3A10",
+            "chunk_id": "20240319000684:98:10",
+            "document_id": "20240319000684",
+            "text_sha256": "109fb25410efef01f422b7579f03de439eeef0283e2f2be15e52125bdf772743"
+          },
+          {
+            "source_id": "20240319000684:20240319000684%3A92%3A4",
+            "chunk_id": "20240319000684:92:4",
+            "document_id": "20240319000684",
+            "text_sha256": "0c8bad79eba507e99306baf400a7d0249b9ba81861ce550b95430eedb62f4f0f"
+          },
+          {
+            "source_id": "20240319000684:20240319000684%3A103%3A15",
+            "chunk_id": "20240319000684:103:15",
+            "document_id": "20240319000684",
+            "text_sha256": "e85221e32acb43e38be652c032059ba8a280e45a65c432a8d3f84930b8f4ad36"
+          },
+          {
+            "source_id": "20240319000684:20240319000684%3A105%3A17",
+            "chunk_id": "20240319000684:105:17",
+            "document_id": "20240319000684",
+            "text_sha256": "84abfab4656e18e04616657ae3f2a53f2a4ea054082593b07b898e19a57ad009"
+          },
+          {
+            "source_id": "20240319000684:20240319000684%3A95%3A7",
+            "chunk_id": "20240319000684:95:7",
+            "document_id": "20240319000684",
+            "text_sha256": "ff07b5b74a130e644c8911e696c928e457099aee9dee94e52a48fe6b38019939"
+          },
+          {
+            "source_id": "20240319000684:20240319000684%3A84%3A4",
+            "chunk_id": "20240319000684:84:4",
+            "document_id": "20240319000684",
+            "text_sha256": "6674a72980918c324a9173f6f62a6e81c809256faa7352e19bffa70f7679f299"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "MIX_T2_022::narrative-v1-draft",
+      "case_id": "MIX_T2_022",
+      "title": "네이버 핀테크 성장과 원동력",
+      "question": "2023년 핀테크 부문의 전년 대비 결제액 또는 영업수익 증가율을 계산하고, 성장의 핵심 원동력을 요약해 줘.",
+      "question_sha256": "7dce5c97889a48dd6a14e19db5948dbc2955b64a2c1871729819010e88d82379",
+      "company": "네이버",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "핀테크 결제액 또는 영업수익 중 선택한 지표의 전년 대비 성장.",
+      "required": [
+        {
+          "label": "성장률: 둘 중 하나",
+          "basis": "explicit_request",
+          "acceptance": "다음 두 계산 경로 중 하나를 정확히 충족하면 된다.",
+          "evidence": "선택한 지표의 당기·전기 수치 또는 보고서에 직접 제시된 동일 기준 성장률.",
+          "choice": {
+            "operator": "any_of",
+            "options": [
+              {
+                "id": "C1",
+                "acceptance": "결제액: 2023년 59.6조원, 전년 대비 21.8% 증가를 해당 지표로 설명."
+              },
+              {
+                "id": "C2",
+                "acceptance": "핀테크 영업수익: 1,354,767 / 1,186,635백만원, 약 14.17% 또는 14.2% 증가."
+              }
+            ]
+          },
+          "id": "R1"
+        },
+        {
+          "label": "성장 원동력",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "선택한 성장과 연결되는 원문상 요인을 최소 1개 설명한다. 예: 외부 결제·현장결제·예약/주문 등 결제 생태계 확대.",
+          "evidence": "성장 요인을 핀테크·결제 실적과 연결한 사업 설명.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "선택하지 않은 다른 지표의 성장률."
+        },
+        {
+          "id": "O2",
+          "content": "세부 결제 채널과 원동력의 추가 사례."
+        }
+      ],
+      "error_boundaries": [
+        "결제액 성장률 21.8%를 영업수익 성장률로 기재하지 않는다.",
+        "결제 거래액을 회사 매출액으로 바꾸지 않는다."
+      ],
+      "decision_note": "질문의 '또는'을 그대로 any_of로 처리한다. 두 지표를 모두 쓰도록 요구하지 않는다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "MIX_T2_022"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견",
+          "II. 사업의 내용 > 7. 기타 참고사항"
+        ],
+        "reference_quotes": [
+          "핀테크 사업은 전년 대비 14.2% 성장한 1조 3,548억 원의 매출",
+          "네이버페이 결제액은 2023년 59.6조원으로 21.8% 증가",
+          "사업자와 개인 대출비교 서비스 ... 스마트스토어 보증부 대출 ... 네이버페이 앱 개편"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "MIX_T2_022"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000844:20240318000844%3A97%3A25",
+            "chunk_id": "20240318000844:97:25",
+            "document_id": "20240318000844",
+            "text_sha256": "06d9c7e1dc5d38b7107148dbd2398af8f276aec01a57c6edc1fa807082202178"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1553%3A1",
+            "chunk_id": "20240318000844:1553:1",
+            "document_id": "20240318000844",
+            "text_sha256": "89baf56fd1268bda9ef1e3c7c68e6fcb6a2970fc1b0c50897c5773f3d9bcdd5b"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1559%3A7",
+            "chunk_id": "20240318000844:1559:7",
+            "document_id": "20240318000844",
+            "text_sha256": "54bbe8af5cfc99853cade11b71a2da6cb4b7c0b315545ee1eeb5520b39750b36"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A91%3A19",
+            "chunk_id": "20240318000844:91:19",
+            "document_id": "20240318000844",
+            "text_sha256": "c74087e75e7d719392a323508f694279f0df0f63a9b863154e19c924aafb840d"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A34%3A1",
+            "chunk_id": "20240318000844:34:1",
+            "document_id": "20240318000844",
+            "text_sha256": "8939165dca02e79d5657825cb1eaeaeb06e6208114dd83cb4e4f279c92981f68"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A42%3A1",
+            "chunk_id": "20240318000844:42:1",
+            "document_id": "20240318000844",
+            "text_sha256": "7ae97c39a35f1bd8250f62cbffbda1b6841639dca89c4a118cd8cc9df0790344"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1558%3A6",
+            "chunk_id": "20240318000844:1558:6",
+            "document_id": "20240318000844",
+            "text_sha256": "5e289ef30de5a5f8e71ab10367c30916e5e7f7a9fafbbb72dcd690bb41609070"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A95%3A23",
+            "chunk_id": "20240318000844:95:23",
+            "document_id": "20240318000844",
+            "text_sha256": "965a64a198a2527a43f1a5c954f268cab4614058caed996ffeaab1ab34337979"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "NAV_T2_006::narrative-v1-draft",
+      "case_id": "NAV_T2_006",
+      "title": "네이버 커머스와 포시마크",
+      "question": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+      "question_sha256": "d2380a24a0e91ff7f4af55260045d49a7d29e97491f3a8905c3ee8677d327f25",
+      "company": "네이버",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 커머스 실적과 2023년 포시마크 연결 편입 효과.",
+      "required": [
+        {
+          "label": "커머스 성장률",
+          "basis": "explicit_request",
+          "acceptance": "25,466 / 18,011억원으로 약 41.4% 증가를 계산한다.",
+          "evidence": "동일 부문·기간의 매출액.",
+          "id": "R1"
+        },
+        {
+          "label": "인수의 실적 영향",
+          "basis": "explicit_request",
+          "acceptance": "포시마크 편입이 해외·C2C 사업 및 연결 커머스 매출 확대에 기여했다는 내용을 설명한다.",
+          "evidence": "편입 시점과 커머스 매출 기여를 설명하는 사업결합·사업 실적 자료.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "인수일 2023-01-05."
+        },
+        {
+          "id": "O2",
+          "content": "편입 후 포시마크 매출·순손익."
+        },
+        {
+          "id": "O3",
+          "content": "브랜드스토어·여행·예약 등 다른 커머스 성장 요인."
+        }
+      ],
+      "error_boundaries": [
+        "커머스 성장 전부를 포시마크 인수 효과로 단정하지 않는다.",
+        "피취득기업 순손실을 영업손실이라고 바꾸지 않는다.",
+        "부문 전체 매출과 피취득기업 기여액을 중복 합산하지 않는다."
+      ],
+      "decision_note": "정확한 인수일이나 피취득기업 손익까지 전부 맞힐 필요는 없다. 성장률과 편입 영향이 필수다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "NAV_T2_006"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적"
+        ],
+        "reference_quotes": [
+          "Poshmark의 성공적인 체질 개선 등으로 전년 대비 41.4% 성장한 2조 5,466억원",
+          "Poshmark 연결 편입효과에 따른 영업수익 증가"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "NAV_T2_006"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000844:20240318000844%3A67%3A0",
+            "chunk_id": "20240318000844:67:0",
+            "document_id": "20240318000844",
+            "text_sha256": "af25323a9305ebd302636e016b1a041f524df6ebfd9d7f97d49c33186f6aa982"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1060%3A936",
+            "chunk_id": "20240318000844:1060:936",
+            "document_id": "20240318000844",
+            "text_sha256": "3f7e5de29b49db7989132484e70fa55c5706496684772e1e20546d00730d491a"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A93%3A21",
+            "chunk_id": "20240318000844:93:21",
+            "document_id": "20240318000844",
+            "text_sha256": "a35daf437113e03a89f7ae86f4306e49f1e72c106452373490a7e40e481a5256"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A90%3A18",
+            "chunk_id": "20240318000844:90:18",
+            "document_id": "20240318000844",
+            "text_sha256": "d560b22fceb3447156be0535d5971802f64f9c78ee5819f3e4aa8eb125778682"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A91%3A19",
+            "chunk_id": "20240318000844:91:19",
+            "document_id": "20240318000844",
+            "text_sha256": "c74087e75e7d719392a323508f694279f0df0f63a9b863154e19c924aafb840d"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1559%3A7",
+            "chunk_id": "20240318000844:1559:7",
+            "document_id": "20240318000844",
+            "text_sha256": "54bbe8af5cfc99853cade11b71a2da6cb4b7c0b315545ee1eeb5520b39750b36"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A92%3A20",
+            "chunk_id": "20240318000844:92:20",
+            "document_id": "20240318000844",
+            "text_sha256": "3c6f19275204e2230b1ac3396deb411bdd3c90b28001e809b480048941a6ebf1"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1558%3A6",
+            "chunk_id": "20240318000844:1558:6",
+            "document_id": "20240318000844",
+            "text_sha256": "5e289ef30de5a5f8e71ab10367c30916e5e7f7a9fafbbb72dcd690bb41609070"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "NAV_T2_031::narrative-v1-draft",
+      "case_id": "NAV_T2_031",
+      "title": "네이버 클라우드 비율과 기술 적용",
+      "question": "2023년 서치플랫폼 매출 대비 클라우드 부문 매출의 비율을 계산하고, 클라우드 부문의 주요 기술(AI 등) 적용 사례를 요약해 줘.",
+      "question_sha256": "f0a8d7753bc782223b55b4942b59996c661701b5fc6cc774a1084cedb22e72fa",
+      "company": "네이버",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 클라우드 매출을 서치플랫폼 매출로 나눈 값. 전체 매출 대비 비중과 다르다.",
+      "required": [
+        {
+          "label": "비율",
+          "basis": "explicit_request",
+          "acceptance": "447,184 / 3,589,061백만원으로 약 12.46%를 계산한다.",
+          "evidence": "두 부문의 같은 기간 매출액.",
+          "id": "R1"
+        },
+        {
+          "label": "기술과 적용 사례",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "AI 등 기술을 실제 서비스·고객 용도에 연결한 사례를 최소 1개 설명한다. 예: HyperCLOVA X 기반 CLOVA Studio·기업용 Neurocloud 등.",
+          "evidence": "기술명과 서비스·사용처를 연결한 사업 설명. 기술명만 열거하면 적용 설명으로 충분하지 않다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "둘 이상의 적용 사례."
+        },
+        {
+          "id": "O2",
+          "content": "네이버웍스 등 관련 서비스."
+        },
+        {
+          "id": "O3",
+          "content": "보안 인증·인프라 세부사항."
+        }
+      ],
+      "error_boundaries": [
+        "서치플랫폼 대신 전체 매출을 분모로 쓰지 않는다.",
+        "보안 인증만으로 AI 적용 사례를 제시했다고 보지 않는다.",
+        "제품명만 보고 고객 도입 실적이나 매출 기여를 발명하지 않는다."
+      ],
+      "decision_note": "전체 제품명을 필수로 하지 않는다. 기술과 사용처가 연결된 한 사례를 최소 요약으로 제안한다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "NAV_T2_031"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적",
+          "II. 사업의 내용 > 7. 기타 참고사항"
+        ],
+        "reference_quotes": [
+          "2023년 서치플랫폼 매출은 전년 대비 0.6% 성장한 3조 5,891억 원",
+          "클라우드 매출은 전년 대비 11.0% 성장한 4,472억원",
+          "초대규모 AI인 HyperCLOVA X를 필두로 시장을 선점하고 있으며",
+          "AI 개발 도구인 CLOVA Studio 및 보안이 강한 하이브리드 클라우드 형태인 Neurocloud for HyperCLOVA X",
+          "네이버웍스는 연례 정기 라인웍스데이 행사를 3년만에 오프라인으로 개최"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "NAV_T2_031"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000844:20240318000844%3A1559%3A7",
+            "chunk_id": "20240318000844:1559:7",
+            "document_id": "20240318000844",
+            "text_sha256": "54bbe8af5cfc99853cade11b71a2da6cb4b7c0b315545ee1eeb5520b39750b36"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A42%3A1",
+            "chunk_id": "20240318000844:42:1",
+            "document_id": "20240318000844",
+            "text_sha256": "7ae97c39a35f1bd8250f62cbffbda1b6841639dca89c4a118cd8cc9df0790344"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A114%3A42",
+            "chunk_id": "20240318000844:114:42",
+            "document_id": "20240318000844",
+            "text_sha256": "e440e2fed47097edfd6875fe6bc92b3fcaadfcdc1fdfbe9d4f7815d45b786edf"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1498%3A397",
+            "chunk_id": "20240318000844:1498:397",
+            "document_id": "20240318000844",
+            "text_sha256": "969f50cbbfffb9f4838adf54d44819e2854d783955ecb4360a39b21d55676fad"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A34%3A1",
+            "chunk_id": "20240318000844:34:1",
+            "document_id": "20240318000844",
+            "text_sha256": "8939165dca02e79d5657825cb1eaeaeb06e6208114dd83cb4e4f279c92981f68"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1499%3A398",
+            "chunk_id": "20240318000844:1499:398",
+            "document_id": "20240318000844",
+            "text_sha256": "aeab5fe179a667cba20816ffdf7b48fd0f94ea2572b53302ab397ca65d897c4b"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A35%3A0",
+            "chunk_id": "20240318000844:35:0",
+            "document_id": "20240318000844",
+            "text_sha256": "dde77161eef02640d5090fb542d3569d91615cdba785baed385ca407cbe1a86c"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A113%3A41",
+            "chunk_id": "20240318000844:113:41",
+            "document_id": "20240318000844",
+            "text_sha256": "00058751b16b5676c58b0bf374d74bee365fe4f994f10491d3e7e970c03f2919"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "NAV_T3_032::narrative-v1-draft",
+      "case_id": "NAV_T3_032",
+      "title": "네이버 데이터센터·인프라 투자",
+      "question": "2023년 사업보고서에서 데이터센터(각 세종 등) 인프라 투자와 관련된 자본적 지출(CAPEX) 규모나 관련 주석 내용을 요약해.",
+      "question_sha256": "18ec5b4f7731220e1680dbd3f790eb38d09d2ebbe8efa704cf84b0ffb9ba49e5",
+      "company": "네이버",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "CAPEX 규모 또는 데이터센터 관련 주석 중 한 경로. 전사 CAPEX와 각 세종 단독 원가를 구별한다.",
+      "required": [
+        {
+          "label": "규모 또는 주석: 둘 중 하나",
+          "basis": "explicit_request",
+          "acceptance": "선택한 경로에서 투자 대상·금액/사실·범위를 함께 설명한다.",
+          "evidence": "CAPEX 표와 투자 설명 또는 데이터센터 관련 건설·취득 주석.",
+          "choice": {
+            "operator": "any_of",
+            "options": [
+              {
+                "id": "C1",
+                "acceptance": "규모 경로: 2023년 전사 CAPEX 6,923억원과 데이터센터·인프라 투자 맥락을 설명하되, 각 세종 단독 금액으로 취급하지 않는다."
+              },
+              {
+                "id": "C2",
+                "acceptance": "주석 경로: 특정 데이터센터의 건설·토지·취득·건설중자산 관련 원문 사항을 최소 1개 설명하고 계약총액/집행액/잔액 및 연결·별도 범위를 밝힌다."
+              }
+            ]
+          },
+          "id": "R1"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "전년 CAPEX 7,562억원 및 토지·건물/서버/무형자산 세부 구성."
+        },
+        {
+          "id": "O2",
+          "content": "해당 데이터센터의 계약금액·잔액."
+        },
+        {
+          "id": "O3",
+          "content": "관련 차입금 조달."
+        }
+      ],
+      "error_boundaries": [
+        "전사 CAPEX를 각 세종 한 곳의 투자비로 단정하지 않는다.",
+        "차입금 조달액을 건설비 집행액으로 대체하지 않는다.",
+        "건설중자산의 본계정 대체를 당기 신규 현금지출로 합산하지 않는다."
+      ],
+      "decision_note": "질문이 '규모나 관련 주석'이므로 두 경로를 동시에 요구하지 않는다.",
+      "difference_from_legacy": "CAPEX·세종 계약·차입금 등 참고답안 세부사항을 전부 필수로 올리지 않는다. 기존 판정은 재계산하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "NAV_T3_032"
+        },
+        "sections": [
+          "II. 사업의 내용 > 3. 원재료 및 생산설비",
+          "II. 사업의 내용 > 7. 기타 참고사항",
+          "III. 재무에 관한 사항 > 7. 증권의 발행을 통한 자금조달에 관한 사항 > 7-2. 증권의 발행을 통해 조달된 자금의 사용실적"
+        ],
+        "reference_quotes": [
+          "CapEx | 692.3",
+          "토지 및 건물 등 | 290.2",
+          "서버 및 비품 등 | 350.5",
+          "2023년 3분기에 오픈한 각 세종",
+          "시설자금(데이터센터 건설) 200,000",
+          "시설자금(데이터센터 건설) 300,000"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "NAV_T3_032"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000844:20240318000844%3A40%3A4",
+            "chunk_id": "20240318000844:40:4",
+            "document_id": "20240318000844",
+            "text_sha256": "83792fcc1d387193fccea8cecbd7f1a377f66d1dd50bda1855739012f1b50d9d"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1449%3A348",
+            "chunk_id": "20240318000844:1449:348",
+            "document_id": "20240318000844",
+            "text_sha256": "f700351b766b9f112bdce51f02718d1a4e0a2da718b8d658f697954183d86d03"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A91%3A19",
+            "chunk_id": "20240318000844:91:19",
+            "document_id": "20240318000844",
+            "text_sha256": "c74087e75e7d719392a323508f694279f0df0f63a9b863154e19c924aafb840d"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1237%3A136",
+            "chunk_id": "20240318000844:1237:136",
+            "document_id": "20240318000844",
+            "text_sha256": "e5de1b511e874baff1dd0df1736a85afd56a919ac2c84ac02b8b8f1f02e7f287"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1236%3A135",
+            "chunk_id": "20240318000844:1236:135",
+            "document_id": "20240318000844",
+            "text_sha256": "ce47d43d1dd176527ff209f86807f69fc0a84c313336d8844cefca6597042ccd"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1238%3A137",
+            "chunk_id": "20240318000844:1238:137",
+            "document_id": "20240318000844",
+            "text_sha256": "e0d60feb5d0b0ba0a7b9cdc8f6b198ae93919c3301ea24e034b31c7a8bbbf30f"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A111%3A39",
+            "chunk_id": "20240318000844:111:39",
+            "document_id": "20240318000844",
+            "text_sha256": "174cf0be020c10ffab2ec4804ec128eeac8e26cbd382b6534a2af81c9df5a844"
+          },
+          {
+            "source_id": "20240318000844:20240318000844%3A1531%3A1",
+            "chunk_id": "20240318000844:1531:1",
+            "document_id": "20240318000844",
+            "text_sha256": "1200442964a6fa8fd4b7b7dbc4f1871c6788018b53ff3b15a7256aab9071f308"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "SAM_T2_027::narrative-v1-draft",
+      "case_id": "SAM_T2_027",
+      "title": "삼성전자 DX·DS 비중과 DS 전략",
+      "question": "2023년 DX부문과 DS부문의 매출액 비중을 각각 계산하고, DS부문의 실적 하락을 방어하기 위한 향후 사업 전략을 요약해.",
+      "question_sha256": "568a16dabcf1eb2c26a86938b54c05182f4b0546aedc63d27b7fd1d5f72f8ac1",
+      "company": "삼성전자",
+      "year": 2023,
+      "legacy_panel_group": "diagnostic_or_hold",
+      "status": "HOLD",
+      "blocking_issue": "HOLD_SUBJECT_ATTRIBUTION",
+      "scope": "2023년 DX/DS 매출 비중의 분모와 DS 전략의 주체를 명확히 한다.",
+      "required": [
+        {
+          "label": "DX·DS 비중 각각",
+          "basis": "explicit_request",
+          "acceptance": "전체 연결 매출 258,935,494백만원 대비 DX 169,992,337, DS 66,594,471백만원으로 각각 약 65.7%, 25.7%를 계산한다.",
+          "evidence": "부문 매출·전체 매출과 내부거래 조정의 범위를 확인할 수 있는 표.",
+          "id": "R1"
+        },
+        {
+          "label": "DS의 향후 대응 전략",
+          "basis": "explicit_request",
+          "acceptance": "DS에 직접 귀속되는 전략과 수요·제품 방향을 연결한다. HBM·DDR5 등은 실제로 전략과 연결한 원문이 있어야 한다.",
+          "evidence": "DS 주체·향후 계획·제품 또는 수요를 연결한 문단. R&D 결과 목록만이면 그 한계를 표시한다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "반도체 수요 전망·개별 제품 기술."
+        },
+        {
+          "id": "O2",
+          "content": "다른 사업부의 AI 발표를 해당 주체로 구별해 소개."
+        }
+      ],
+      "error_boundaries": [
+        "삼성 가우스 공개를 근거 없이 DS의 사업 전략으로 귀속하지 않는다.",
+        "U100 등 기능을 다른 기술 용어로 확대하거나 바꾸지 않는다.",
+        "과거 개발 실적을 확정된 향후 사업전략으로 대체하지 않는다."
+      ],
+      "decision_note": "주체와 전략의 연결이 미확정이다. 비율을 맞혔다고 문항 전체를 통과시키지 않는다.",
+      "difference_from_legacy": "기존 보류를 유지한다. 가우스를 필수 키워드로 유지하거나 대체 전략을 임의 확정하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "SAM_T2_027"
+        },
+        "sections": [
+          "IV. 이사의 경영진단 및 분석의견",
+          "II. 사업의 내용 > 2. 주요 제품 및 서비스",
+          "I. 회사의 개요 > 2. 회사의 연혁"
+        ],
+        "reference_quotes": [
+          "DX 부문 | 169,992,337 | 65.7% ... DS 부문 | 66,594,471 | 25.7%",
+          "DS 부문의 제55기 매출은 66조 5,945억원 ... 영업손실은 14조 8,795억원",
+          "업계 최초 'CXL 2.0 D램' 개발",
+          "현존 최대 용량 32Gb DDR5 D램 개발",
+          "생성형 AI '삼성 가우스' 공개"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "SAM_T2_027"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240312000736:20240312000736%3A115%3A18",
+            "chunk_id": "20240312000736:115:18",
+            "document_id": "20240312000736",
+            "text_sha256": "23e84c41ab4bfdefc855842d5a82aa9e675a398bea7d036d964f331c5c98ccd9"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A563%3A179",
+            "chunk_id": "20240312000736:563:179",
+            "document_id": "20240312000736",
+            "text_sha256": "d1f63fcb9b1be49ff47f562a3418b4a6d04434ea17dc4fd1caabcf669d08b796"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A679%3A6",
+            "chunk_id": "20240312000736:679:6",
+            "document_id": "20240312000736",
+            "text_sha256": "c5c816e75d47c178f0998f8671be2cceaa39c67283664fc107247c0928718761"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A366%3A238",
+            "chunk_id": "20240312000736:366:238",
+            "document_id": "20240312000736",
+            "text_sha256": "0365edaf9b2b533c934006e4c9c101185eddca14bc05a945f81539559ac3bdc2"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A680%3A7",
+            "chunk_id": "20240312000736:680:7",
+            "document_id": "20240312000736",
+            "text_sha256": "7826242252e4f6bc5c9c27d66304e136058ce05bac1c19f46ea2c75f9bf9092b"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A64%3A1",
+            "chunk_id": "20240312000736:64:1",
+            "document_id": "20240312000736",
+            "text_sha256": "4a284c2613cd92b3f6891b65848e256278920c0b0e0c7ebf0a999c5bab387bca"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A40%3A0",
+            "chunk_id": "20240312000736:40:0",
+            "document_id": "20240312000736",
+            "text_sha256": "99d285e96f9b55485be52e34547fa824b4de52dc9845eef0b25df86a00a276b9"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A95%3A6",
+            "chunk_id": "20240312000736:95:6",
+            "document_id": "20240312000736",
+            "text_sha256": "8bfe8177373ba6389449e450c42d3c94632e4164cb67107811d888c6f73ff397"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "SAM_T3_003::narrative-v1-draft",
+      "case_id": "SAM_T3_003",
+      "title": "삼성전자 우발부채·소송의 영향",
+      "question": "2023년 사업보고서 주석을 참조하여, 우발부채 및 주요 소송사건이 재무에 미칠 잠재적 영향을 요약해 줘.",
+      "question_sha256": "3147fe4b7249910306811742b84e27c04412480cbe41ab863c0b9ef406dce352",
+      "company": "삼성전자",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 사업보고서 주석상의 법적 의무·소송. 회사·연결실체·관계사의 사건을 구별한다.",
+      "required": [
+        {
+          "label": "우발 의무와 잠재 영향",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "대표적인 우발 의무 최소 1개와 자원 유출·책임 등 잠재 영향을 설명한다. 예: 분할 전 채무에 대한 연대변제 책임.",
+          "evidence": "의무 주체와 내용이 명시된 주석.",
+          "id": "R1"
+        },
+        {
+          "label": "주요 소송과 잠재 영향",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "대표 소송 최소 1개의 쟁점·진행 상태·재무상 잠재 영향을 요약한다. 예: 웰스토리 또는 삼성바이오로직스 관련 사건.",
+          "evidence": "사건의 주체·쟁점·금액/재무제표 영향·상태를 연결한 원문. 다른 주요 사건도 같은 요건을 충족하면 가능.",
+          "id": "R2"
+        },
+        {
+          "label": "불확실성 보존",
+          "basis": "explicit_request",
+          "acceptance": "원문이 금액·시기를 불확실하다고 하면 이를 보존하고, 중요 영향이 없을 것이라는 판단은 경영진의 판단으로 귀속한다.",
+          "evidence": "소송·우발채무의 불확실성 및 경영진 판단 문단.",
+          "id": "R3"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2",
+          "R3"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "선택하지 않은 다른 주요 사건."
+        },
+        {
+          "id": "O2",
+          "content": "벌금·과징금·판결일의 정확한 세부 내역."
+        },
+        {
+          "id": "O3",
+          "content": "회계 처리에 미치는 세부 항목."
+        }
+      ],
+      "error_boundaries": [
+        "모든 사건을 최종 패소·확정 손실로 단정하지 않는다.",
+        "경영진의 중요 영향 없음 판단을 법적 위험 부재로 바꾸지 않는다.",
+        "개별 사건이 검색되지 않았다는 이유로 보고서에 소송이 없다고 하지 않는다."
+      ],
+      "decision_note": "'우발부채 및 주요 소송'을 각각 다루되, 참고답안의 모든 사건 나열은 필수로 하지 않는다. 사례 수는 각 범주 1개라는 제안이다.",
+      "difference_from_legacy": "참고답안의 사건 목록 전체를 필수로 하는 해석과 구분한다. 원문상 대표 사건을 선택하는 기준은 모델 비교 전에 고정해야 한다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "SAM_T3_003"
+        },
+        "sections": [
+          "XI. 그 밖에 투자자 보호를 위하여 필요한 사항 > 2. 우발부채 등에 관한 사항",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 16. 우발부채와 약정사항 (연결)"
+        ],
+        "reference_quotes": [
+          "당사는 다수의 회사 등과 정상적인 영업과정에서 발생한 소송, 분쟁 및 규제기관의 조사 등을 진행 중에 있습니다. 이에 따른 자원의 유출금액 및 시기는 불확실하며 당사의 경영진은 이러한 소송 등의 결과가 당사의 재무상태에 중요한 영향을 미치지 않을 것으로 판단하고 있습니다.",
+          "당사(삼성전자㈜, 삼성디스플레이㈜ 등)는 분할된 삼성디스플레이㈜ 등의 분할 전 채무에 관하여 연대하여 변제할 책임이 있습니다.",
+          "또한 당사와 삼성디스플레이㈜는 삼성웰스토리㈜와의 단체급식 거래와 관련하여 「독점규제 및 공정거래에 관한 법률」제23조 제1항 제7호 위반 혐의로 공정거래위원회로부터 2021년 8월 27일 시정조치 및 과징금(당사: 1,012억 17백만원, 삼성디스플레이㈜: 228억 5천 7백만원) 처분을 받았습니다. 동 처분에 대해 현재 행정소송이 진행 중이며, 시정조치에 대해 2022년 1월 27일 집행정지 결정이 확정되었습니다.",
+          "향후 행정소송의 결과를 예측하기 어려우나 소송 결과에 따라 삼성바이오로직스㈜가 삼성바이오에피스㈜ 지분에 관한 과거 회계처리를 수정하여 재무제표를 재작성하게 될 경우, 이로 인해 연결회사의 2015년과 그 이후 기간 지분법평가손익, 관계기업투자주식, 이익잉여금과 2016년 일부 지분 처분이익 등에 영향을 미칠 수 있습니다. 다만, 현재로서는 삼성바이오로직스㈜와 증권선물위원회 간의 행정소송에 대한 종결 시기와 그 결과를 예측할 수 없으므로, 연결회사의 당기 재무제표에 이를 반영하기 어렵습니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "SAM_T3_003"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240312000736:20240312000736%3A979%3A0",
+            "chunk_id": "20240312000736:979:0",
+            "document_id": "20240312000736",
+            "text_sha256": "cfed381bf8e404ac7b3f87741f8da76a2f4811b2f966b6b09d618b9e40a0b5ca"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A496%3A112",
+            "chunk_id": "20240312000736:496:112",
+            "document_id": "20240312000736",
+            "text_sha256": "08a2528889545b96966d804b22205e4b91b8d9209e387d3cc51281428a6bd279"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A281%3A153",
+            "chunk_id": "20240312000736:281:153",
+            "document_id": "20240312000736",
+            "text_sha256": "15511a6d51c0fa82e3c6c5c23bc781629dd2de3817a9a1673af8068dfed7b1cf"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A628%3A2",
+            "chunk_id": "20240312000736:628:2",
+            "document_id": "20240312000736",
+            "text_sha256": "4bd30b72ff5cc64c36217b28077d0eccd0d50cb21fba6c95de3e0d56d2695eae"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A408%3A24",
+            "chunk_id": "20240312000736:408:24",
+            "document_id": "20240312000736",
+            "text_sha256": "acd5f938db930a5f941aaf210b0f36a0aee83da7c0e4579012d404f788303b7c"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A229%3A101",
+            "chunk_id": "20240312000736:229:101",
+            "document_id": "20240312000736",
+            "text_sha256": "ea3e902a25923150c2cb8ded0f198468b0b7c3cdc03534a1c864839251ee2565"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A700%3A27",
+            "chunk_id": "20240312000736:700:27",
+            "document_id": "20240312000736",
+            "text_sha256": "299250044dd69d99b6b388a3c92ddcbfff83e56c9c9afb94eb859f7c00a96a08"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A171%3A43",
+            "chunk_id": "20240312000736:171:43",
+            "document_id": "20240312000736",
+            "text_sha256": "36563e7cd6d028d2f7bc875429b514c120862ffb9cddb5e55434f692959d3793"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "SAM_T4_004::narrative-v1-draft",
+      "case_id": "SAM_T4_004",
+      "title": "삼성전자 이익률과 Apple 언급",
+      "question": "삼성전자의 2023년 영업이익률을 계산하고, 사업보고서에서 Apple이 어떤 맥락으로 언급되는지 설명해 줘.",
+      "question_sha256": "df160dcbdc46b1bb241cc715d5c468aae561b2266f9881672a6d1d1b9425840f",
+      "company": "삼성전자",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 삼성전자 연결 영업이익률 및 Apple이 등장하는 사업보고서 맥락.",
+      "required": [
+        {
+          "label": "영업이익률",
+          "basis": "explicit_request",
+          "acceptance": "2023년 연결 영업이익 / 매출로 약 2.54%를 계산한다.",
+          "evidence": "같은 기간·범위의 연결 손익계산서.",
+          "id": "R1"
+        },
+        {
+          "label": "Apple의 맥락",
+          "basis": "explicit_request",
+          "acceptance": "Apple은 주요 매출처로 언급됨을 설명한다.",
+          "evidence": "주요 매출처 목록 및 그 설명.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "다른 주요 매출처의 이름."
+        },
+        {
+          "id": "O2",
+          "content": "상위 5대 매출처 합산 약 15%라는 비중."
+        }
+      ],
+      "error_boundaries": [
+        "5개사 합산 비중을 Apple 한 회사의 매출 비중으로 귀속하지 않는다.",
+        "주요 고객 언급만으로 개별 공급계약·제품별 매출을 발명하지 않는다."
+      ],
+      "decision_note": "Apple의 개별 매출 비중이나 다른 고객명은 질문에서 요구하지 않았다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "SAM_T4_004"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 1. 요약재무정보 > 가. 요약연결재무정보",
+          "II. 사업의 내용 > 1. 사업의 개요"
+        ],
+        "reference_quotes": [
+          "매출액 | 258,935,494",
+          "영업이익 | 6,566,976",
+          "2023년 당사의 매출은 258조 9,355억원으로 전년 대비 14.3% 감소하였으며, 주요 매출처로는 Apple, Best Buy, Deutsche Telekom, Qualcomm, Verizon 등(알파벳순)이 있습니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "SAM_T4_004"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240312000736:20240312000736%3A77%3A14",
+            "chunk_id": "20240312000736:77:14",
+            "document_id": "20240312000736",
+            "text_sha256": "8398910170da1d8676502864b4bd312a25bf6f5e36a9afa7fab3506da11c0c03"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A39%3A0",
+            "chunk_id": "20240312000736:39:0",
+            "document_id": "20240312000736",
+            "text_sha256": "34b7f7bb086997707ccedc99ae2c14cc62a33c4979486bd202721981bf5b94dc"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A678%3A5",
+            "chunk_id": "20240312000736:678:5",
+            "document_id": "20240312000736",
+            "text_sha256": "975321b0112539c69ac7a7ad935e74ccad9ed917cafd0c0150ea6b14875108dd"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A674%3A1",
+            "chunk_id": "20240312000736:674:1",
+            "document_id": "20240312000736",
+            "text_sha256": "884dde8489a7f18163ab6ad3567a75200b1d6036a4eae71feeffc5639c9bae5f"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A677%3A4",
+            "chunk_id": "20240312000736:677:4",
+            "document_id": "20240312000736",
+            "text_sha256": "25ecdd06b757aca86639b5622a8af8ed29f28219f4c874739bda58f06365b92c"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A248%3A120",
+            "chunk_id": "20240312000736:248:120",
+            "document_id": "20240312000736",
+            "text_sha256": "dfe5282b63b893c779d1ddbafea87f55617e84d544e1eef441e6a402974e2c17"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A380%3A1",
+            "chunk_id": "20240312000736:380:1",
+            "document_id": "20240312000736",
+            "text_sha256": "84201feb463623d223d4d0c84d3d925a6a78ae445728773b2e53ea05d9dc6d96"
+          },
+          {
+            "source_id": "20240312000736:20240312000736%3A406%3A22",
+            "chunk_id": "20240312000736:406:22",
+            "document_id": "20240312000736",
+            "text_sha256": "fe5e69b0d9c5d457f9a335324751b9bcdee50eea4f22a93707ee4aa4a23ae1a0"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "CEL_T2_014::narrative-v1-draft",
+      "case_id": "CEL_T2_014",
+      "title": "셀트리온 바이오시밀러 파이프라인",
+      "question": "2023년 셀트리온의 주요 바이오시밀러(램시마, 트룩시마 등) 파이프라인의 연구개발 진행 현황을 요약해 줘.",
+      "question_sha256": "066fe4e81ed257aac717cabb8a5d076a4f2181fd50c288c6ba90a803a8fdc5f3",
+      "company": "셀트리온",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 사업보고서의 개발 현황. 2023년 중 사건과 공시서류 제출일 현재 상태를 명확히 구별한다.",
+      "required": [
+        {
+          "label": "기존 제품군의 상태",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "램시마·트룩시마 등 기존 주요 제품 최소 1개의 개발 완료·허가/상업화 상태를 정확히 설명한다.",
+          "evidence": "제품별 개발 현황 또는 허가·판매 관련 문단.",
+          "id": "R1"
+        },
+        {
+          "label": "후속 파이프라인의 단계",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "서로 다른 후속 파이프라인 최소 2개의 개발 단계와 기준 시점을 설명한다. CT-P39/41/42/43/47 등은 대표 후보이며 이름 전부를 요구하지 않는다.",
+          "evidence": "제품별 개발·허가 신청/승인 자료. '공시서류 제출일 현재'라고 된 내용은 그 기준을 밝힌다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "나머지 후속 파이프라인."
+        },
+        {
+          "id": "O2",
+          "content": "개별 국가·월일 단위의 신청 일정."
+        },
+        {
+          "id": "O3",
+          "content": "CT-P53·CT-P55 등 추가 임상 사례."
+        },
+        {
+          "id": "O4",
+          "content": "짐펜트라 신약 허가를 바이오시밀러와 구별한 설명."
+        }
+      ],
+      "error_boundaries": [
+        "허가 신청을 허가 승인·상업 출시로 바꾸지 않는다.",
+        "2024년 신청·승인을 2023년 사건으로 기재하지 않는다.",
+        "짐펜트라의 미국 신약 허가를 바이오시밀러 허가로 분류하지 않는다."
+      ],
+      "decision_note": "기존 제품과 개발 중인 제품군을 모두 다루도록 후속 2개를 최소 요약으로 제안한다. 제출일 현재 현황을 허용하는 시점 규칙도 새 rubric에 명시하며, 2023년말만 묻는 후속 질문은 별도 버전으로 좁힌다.",
+      "difference_from_legacy": "참고답안의 후속 5개 코드·일정을 전부 필수로 삼지 않는다. 개발 노출 후 작성한 제안이며 사전 고정된 과거 기준으로 주장하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "CEL_T2_014"
+        },
+        "sections": [
+          "II. 사업의 내용 > 6. 주요계약 및 연구개발활동"
+        ],
+        "reference_quotes": [
+          "당사는 과거 항체의약품을 cGMP 위탁생산하면서 축적한 역량을 바탕으로 세계 최초의 항체 바이오시밀러 제품인 램시마 개발 및 상업화에 성공하였으며, 이후 트룩시마, 허쥬마, 유플라이마, 베그젤마를 개발하여 글로벌 시장에서 국가별 순차적으로 상업화하고 있습니다. 램시마의 투여 편의성 증진을 위해 개발한 램시마 SC는 2019년 11월 유럽연합집행위원회로부터 최종 판매허가를 획득하였습니다.",
+          "공시서류 제출일 현재 후속 바이오시밀러 CT-P39, CT-P41, CT-P42, CT-P43, CT-P47 모두 미국, 유럽, 한국 품목허가 신청을 완료하였습니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "CEL_T2_014"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000913:20240318000913%3A84%3A25",
+            "chunk_id": "20240318000913:84:25",
+            "document_id": "20240318000913",
+            "text_sha256": "43a82801694858c2a1c413aa73da8b9d178d5ba7dfb1b5bab1d6947d28e1f674"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A37%3A0",
+            "chunk_id": "20240318000913:37:0",
+            "document_id": "20240318000913",
+            "text_sha256": "e488cfaf4cd5970031cd7a5dac6f3a0264f60006781999bcbfff9ee2fcbde740"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A9%3A9",
+            "chunk_id": "20240318000913:9:9",
+            "document_id": "20240318000913",
+            "text_sha256": "f26311cf03c3eb2f14f3e8f49191d086f2acf352cf3e0b41641619402cc0675e"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A1056%3A11",
+            "chunk_id": "20240318000913:1056:11",
+            "document_id": "20240318000913",
+            "text_sha256": "76dc4d216447bb7e5d67ad8c3be32ab4cf9a36d9030421e124cc518eec8135a5"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A103%3A44",
+            "chunk_id": "20240318000913:103:44",
+            "document_id": "20240318000913",
+            "text_sha256": "388ed0e83c212e60f389072e29de652c596bbb0ac7dd0b8011ce37a69cbb9e0a"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A106%3A47",
+            "chunk_id": "20240318000913:106:47",
+            "document_id": "20240318000913",
+            "text_sha256": "0e6983316fff7c4d9954b1be61918b8349b863d1a3e0f71196801a8ae54a6563"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A108%3A49",
+            "chunk_id": "20240318000913:108:49",
+            "document_id": "20240318000913",
+            "text_sha256": "0f50da161dd57a594808b42a928e8ab2c60240d3c5cd1061cad7ce5af0aad25c"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A38%3A1",
+            "chunk_id": "20240318000913:38:1",
+            "document_id": "20240318000913",
+            "text_sha256": "89122b28e381c54d3db20c119f507638d139ac45724ade9ca64741724b0d1c3a"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "CEL_T2_073::narrative-v1-draft",
+      "case_id": "CEL_T2_073",
+      "title": "셀트리온 해외매출과 유럽 직판",
+      "question": "2023년 수출(해외매출) 비중을 전체 매출액 대비로 계산하고, 유럽 시장에서의 직판 체제 전환이 영업이익률 개선에 미친 영향을 설명해 줘.",
+      "question_sha256": "222bbfa3f13e65e64a8d4cb941f3d238c670f17f7253c0443ea2566b0697d1bf",
+      "company": "셀트리온",
+      "year": 2023,
+      "legacy_panel_group": "diagnostic_or_hold",
+      "status": "HOLD",
+      "blocking_issue": "HOLD_SCOPE_AND_CAUSAL_CRITERIA",
+      "scope": "수출과 지역별 해외매출, 연결·별도, 유럽 직판 효과를 각각 정의해야 한다.",
+      "required": [
+        {
+          "label": "정의된 해외 비중",
+          "basis": "explicit_request",
+          "acceptance": "후속 질문에서 지정한 수출 또는 해외매출의 정의에 따라 분자·분모를 맞춰 계산한다.",
+          "evidence": "매출 범위·지역 귀속 기준·연결/별도·기간이 확정된 표.",
+          "id": "R1"
+        },
+        {
+          "label": "직판과 수익성의 관계",
+          "basis": "explicit_request",
+          "acceptance": "유럽 직판 전환의 효율·이익률 영향을 직접 연결한 원문만 설명한다. 직접 근거가 없으면 인과효과는 확인 불가로 분리한다.",
+          "evidence": "유럽 직판의 시점과 이익률 효과를 명시한 문단. 단순 이익률 전후 비교만으로 인과를 증명하지 않는다.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "정의가 일치하는 해외매출 비중·이익률의 보조 수치."
+        },
+        {
+          "id": "O2",
+          "content": "국가·제품별 유통 구조."
+        }
+      ],
+      "error_boundaries": [
+        "지역별 매출을 무조건 수출액으로 대체하지 않는다.",
+        "국내 거래처를 통한 해외 판매와 국내 최종 수요를 동일시하지 않는다.",
+        "이익률 차이를 직판의 순수 기여분으로 단정하지 않는다."
+      ],
+      "decision_note": "17.31% 등의 기존 비율은 범위 확정 전 정답으로 승인하지 않는다. 직판 인과 근거도 별도 확보해야 한다.",
+      "difference_from_legacy": "기존 보류를 유지한다. 범위를 바꾸어 계산한 결과를 기존 문항의 정답으로 소급하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "CEL_T2_073"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 28. 매출액 및 매출원가 (연결)",
+          "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적 > 나. 영업실적 (연결 기준)"
+        ],
+        "reference_quotes": [
+          "국내 1,799,750,283 / 해외 376,681,248 / 지역별 합계 2,176,431,531",
+          "현지 중간유통사 수수료율 조정, 직접판매 확대 등 유통 구조 개선을 통한 비용 절감을 추진하고 있습니다. 또한, 수익성이 좋은 후속 제품 판매 증대를 통해 높은 수익성을 유지해나가고자 합니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "CEL_T2_073"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000913:20240318000913%3A1055%3A10",
+            "chunk_id": "20240318000913:1055:10",
+            "document_id": "20240318000913",
+            "text_sha256": "f3383b265db28abbbc48dbffd6016db404000a7e473b395518e1238f3ea49fbe"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A49%3A1",
+            "chunk_id": "20240318000913:49:1",
+            "document_id": "20240318000913",
+            "text_sha256": "958daaa489124f169163e678e55b88d3e3316431ab9ae6edee74dd71a12d73be"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A1048%3A3",
+            "chunk_id": "20240318000913:1048:3",
+            "document_id": "20240318000913",
+            "text_sha256": "5c8cd69f747ac1b4ad61d8526d5dbd8228dbfebf4e161fc7305804937f062561"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A143%3A19",
+            "chunk_id": "20240318000913:143:19",
+            "document_id": "20240318000913",
+            "text_sha256": "6ffa1e74291e54cad0c9e92d69ea426e14ad094c164f72ae0e27bd8ee1511af6"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A982%3A385",
+            "chunk_id": "20240318000913:982:385",
+            "document_id": "20240318000913",
+            "text_sha256": "6d8a2b69e99b5aaca9b4bfdaa375b9152122ccc357febd8070c6db53cd62d66c"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A38%3A1",
+            "chunk_id": "20240318000913:38:1",
+            "document_id": "20240318000913",
+            "text_sha256": "89122b28e381c54d3db20c119f507638d139ac45724ade9ca64741724b0d1c3a"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A1054%3A9",
+            "chunk_id": "20240318000913:1054:9",
+            "document_id": "20240318000913",
+            "text_sha256": "87217a0fc6a79d22f60836dd7d04dcd35e5038a98ebe52dce0699ae38a9878a0"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A1062%3A17",
+            "chunk_id": "20240318000913:1062:17",
+            "document_id": "20240318000913",
+            "text_sha256": "048e4f6669b35056917ca7c1a294da231ce1adbbf7c6da5c38724967826a0e3d"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "CEL_T3_015::narrative-v1-draft",
+      "case_id": "CEL_T3_015",
+      "title": "셀트리온 합병 주석과 목적",
+      "question": "셀트리온헬스케어와의 합병과 관련하여 재무제표 주석에 기재된 내용과 합병의 주요 목적을 요약해 줘.",
+      "question_sha256": "09bcfb1692d3038437786df8a2cc18f2811720bdf9ed711c484ba22344e432a1",
+      "company": "셀트리온",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "셀트리온의 셀트리온헬스케어 흡수합병. 사업결합 사실과 기대 목적을 구별한다.",
+      "required": [
+        {
+          "label": "합병의 기본 사실",
+          "basis": "explicit_request",
+          "acceptance": "당사자·흡수합병 관계·2023년 합병기일(12월 28일)을 설명한다.",
+          "evidence": "사업결합 또는 합병 관련 주석.",
+          "id": "R1"
+        },
+        {
+          "label": "주석상 구체적 내용",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "합병비율, 이전대가, 취득 회계 등 주석상 구체적 사항을 최소 1개 정확히 설명한다. 예: 헬스케어 1주당 셀트리온 0.4492620주.",
+          "evidence": "선택한 주석 사항의 대상·단위·거래 방향.",
+          "id": "R2"
+        },
+        {
+          "label": "합병의 주요 목적",
+          "basis": "explicit_request",
+          "acceptance": "개발·생산·판매 통합 또는 통합 자원 투자와 제품력·원가경쟁력 강화라는 핵심 목적을 설명한다.",
+          "evidence": "합병 목적을 직접 기술한 문단.",
+          "id": "R3"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2",
+          "R3"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "이전대가·영업권의 정확한 금액."
+        },
+        {
+          "id": "O2",
+          "content": "주주총회·등기·신주상장 날짜."
+        },
+        {
+          "id": "O3",
+          "content": "투명성·투자자 신뢰 제고라는 추가 목적."
+        }
+      ],
+      "error_boundaries": [
+        "목표 시너지를 이미 달성한 이익·원가절감 실적으로 단정하지 않는다.",
+        "합병비율의 교부 방향을 뒤집지 않는다.",
+        "별도 투자주식 회계와 연결 사업결합 영업권을 같은 수치로 취급하지 않는다."
+      ],
+      "decision_note": "금액 두 개를 모두 필수로 하는 대신 주석상 사실 1개를 선택할 수 있게 제안한다. 정밀한 금액을 묻는 후속 질문은 별도로 작성해야 한다.",
+      "difference_from_legacy": "이전대가·영업권 세부 금액을 반드시 포함해야 한다는 기존 해석을 완화하는 안이다. 과거 완전 정답 수는 변경하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "CEL_T3_015"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 40. 사업결합 (연결)",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 35. 영업으로부터 창출된 현금 (연결)"
+        ],
+        "reference_quotes": [
+          "(주)셀트리온헬스케어와 2023년 8월 17일 각 사의 이사회 승인을 거쳐 합병계약을 체결하였으며, 2023년 10월 23일 주주총회의 승인을 거쳐 2023년 12월 28일 합병을 완료하였습니다.",
+          "발행한 보통주 신주의 공정가치 13,262,925,445 / 기존거래의 정산 1,381,394,125 / 주식매수선택권(대체보상) 45,284,106 / 합계 14,689,603,676",
+          "인수에서 발생한 11,457,776백만원의 영업권은 당사와 셀트리온헬스케어의 영업을 결합하여 발생하는 개발-생산-판매 일원화를 통한 제품력 및 원가경쟁력확보와 통합된 자원의 대규모 투자 등에 따른 것입니다.",
+          "(*) 당기 중 셀트리온헬스케어를 흡수 합병함에 따라 추가 인식하였습니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "CEL_T3_015"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000913:20240318000913%3A970%3A373",
+            "chunk_id": "20240318000913:970:373",
+            "document_id": "20240318000913",
+            "text_sha256": "d8a57aa9fcbb7d98b80822addbf9e62e8967920d3a81f049fb976c538cd3a87a"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A575%3A415",
+            "chunk_id": "20240318000913:575:415",
+            "document_id": "20240318000913",
+            "text_sha256": "3b73363c3d40fe19eeeb390ccc79738561168e2a4008cf044d212301ca5b89c1"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A748%3A151",
+            "chunk_id": "20240318000913:748:151",
+            "document_id": "20240318000913",
+            "text_sha256": "28a5a8a8c3d55c8d39a0dad2c9ab3eb25910e44cfb0c377e48fe279272fdba33"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A352%3A192",
+            "chunk_id": "20240318000913:352:192",
+            "document_id": "20240318000913",
+            "text_sha256": "8a1b95d6e815f6eaedb22bd7cf6a2a4d9103acac536487a2190be8960b2ab5d3"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A804%3A207",
+            "chunk_id": "20240318000913:804:207",
+            "document_id": "20240318000913",
+            "text_sha256": "9141b221db5e922c3ee5293cf647d02e270032bc30444581f348685bc25ea0eb"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A333%3A173",
+            "chunk_id": "20240318000913:333:173",
+            "document_id": "20240318000913",
+            "text_sha256": "c53f6ea0b5377a1081c19bee04097a85c1b243d21d55dbe5da586459ece99547"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A969%3A372",
+            "chunk_id": "20240318000913:969:372",
+            "document_id": "20240318000913",
+            "text_sha256": "c67fedaf6b6c6d1dad415c78de27aa9e6fd7735a0efaa4c8e6ca073d8aec7ee8"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A951%3A354",
+            "chunk_id": "20240318000913:951:354",
+            "document_id": "20240318000913",
+            "text_sha256": "12b66a708a94c0c340e0ae083df3e7e09b28e6a06581e5645063e5564d5abd16"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "MIX_T3_050::narrative-v1-draft",
+      "case_id": "MIX_T3_050",
+      "title": "셀트리온 특수관계자 거래와 영향",
+      "question": "2023년 재무제표 주석 상 특수관계자(셀트리온제약 등)와의 매출 거래 규모를 합산하고, 내부거래가 실적에 미치는 영향을 요약해 줘.",
+      "question_sha256": "79d3999d60c41486b28041098e2e784a6c73519a555f628fe2293e89a76140d0",
+      "company": "셀트리온",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 별도 주석의 특수관계자 매출 합계와 실적·유통 구조의 의미. 연결 제거 대상과 동일하지 않다.",
+      "required": [
+        {
+          "label": "매출 거래 합계",
+          "basis": "explicit_request",
+          "acceptance": "같은 범위의 특수관계자 매출 거래를 합산한다. 기준 합계 1,731,078,694천원.",
+          "evidence": "거래상대별 매출 행 전체. 매입·채권잔액과 혼합하지 않는다.",
+          "id": "R1"
+        },
+        {
+          "label": "실적 영향과 범위",
+          "basis": "explicit_request",
+          "acceptance": "특수관계자 매출의 집중·판매 경로 등 원문으로 설명할 수 있는 영향을 제시하고, 별도 매출과 연결 내부거래 제거를 구별한다.",
+          "evidence": "상대별 매출·관계 및 연결 범위. 예: 헬스케어 거래가 합계의 대부분이라는 구성 설명.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "각 회사별 매출 거래."
+        },
+        {
+          "id": "O2",
+          "content": "헬스케어 비중 약 96.5%."
+        },
+        {
+          "id": "O3",
+          "content": "전년과의 비교."
+        },
+        {
+          "id": "O4",
+          "content": "근거가 확보된 연결조정 설명."
+        }
+      ],
+      "error_boundaries": [
+        "모든 특수관계자 거래를 연결 내부거래 제거 대상이라고 단정하지 않는다.",
+        "별도 거래 합계를 연결 매출에 다시 더하지 않는다.",
+        "거래 규모만으로 순이익 기여액을 계산하지 않는다."
+      ],
+      "decision_note": "영향 분석은 거래 집중과 보고 범위에 대한 설명으로 충족할 수 있다. 확인되지 않은 연결조정·이익 효과를 요구하지 않는다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "MIX_T3_050"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 37. 특수관계자 (연결)"
+        ],
+        "reference_quotes": [
+          "제품 및 용역매출 0 / 60,441,029 / 0 / 0 / 782,446 / 1,669,765,912 / 89,307 / 0 / 1,731,078,694",
+          "(*) 셀트리온헬스케어 및 종속기업에 대해서는 당기 합병시점까지의 거래 내역을 포함하고 있습니다."
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "MIX_T3_050"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240318000913:20240318000913%3A956%3A359",
+            "chunk_id": "20240318000913:956:359",
+            "document_id": "20240318000913",
+            "text_sha256": "dfd320c82fb7b96baf68b0cf52b2fbdcf12b53cf670f1594748822206a47ed48"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A955%3A358",
+            "chunk_id": "20240318000913:955:358",
+            "document_id": "20240318000913",
+            "text_sha256": "c640742975bd8b0b26101d0eab70447e73e6539206481359257a14b2bfb2bdd3"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A949%3A352",
+            "chunk_id": "20240318000913:949:352",
+            "document_id": "20240318000913",
+            "text_sha256": "af3b164ec73a5fd26f651503cab276c51f5e7785e177ca2368a87431be9f65a2"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A954%3A357",
+            "chunk_id": "20240318000913:954:357",
+            "document_id": "20240318000913",
+            "text_sha256": "264639aeaa3a6d82efd85f138d9eee84f99bd7d604ff96ecbb6563c6e3a56bad"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A945%3A348",
+            "chunk_id": "20240318000913:945:348",
+            "document_id": "20240318000913",
+            "text_sha256": "6172b597713c6e1039952c260109df46205dc1e977c957422c221fd6dcdc96b4"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A953%3A356",
+            "chunk_id": "20240318000913:953:356",
+            "document_id": "20240318000913",
+            "text_sha256": "ea3f4087b3a794dff81f1fe86eb54fcb2a0fa9dcdb1a5fb0e5ed262e244f62c2"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A950%3A353",
+            "chunk_id": "20240318000913:950:353",
+            "document_id": "20240318000913",
+            "text_sha256": "de8e1ce617f3ae616539cdd5a9dad4512c42c0d03eeb039621249f59da36c6be"
+          },
+          {
+            "source_id": "20240318000913:20240318000913%3A544%3A384",
+            "chunk_id": "20240318000913:544:384",
+            "document_id": "20240318000913",
+            "text_sha256": "5cb5f390c0c4bc79821494401ee8fabf40dbf97c56a95965e607f835b79d9d33"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "KAK_T1_054::narrative-v1-draft",
+      "case_id": "KAK_T1_054",
+      "title": "카카오 순손실과 손상차손",
+      "question": "2023년 카카오의 당기순손실에 영업권손상 및 PPA무형자산 손상차손이 미친 영향을 요약해 줘.",
+      "question_sha256": "d996c410eb4e9a4f3b28d6218946884d89c82cb7d794e65fbc3eeec8883edeee",
+      "company": "카카오",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 연결 당기순손실과 영업권·PPA 무형자산 손상. 손상 인식과 영업 현금유출은 다르다.",
+      "required": [
+        {
+          "label": "손상과 순손실의 연결",
+          "basis": "explicit_request",
+          "acceptance": "영업권 손상과 PPA 무형자산 손상 두 유형이 영업외 비용으로 반영되어 당기순손실에 영향을 줬음을 설명한다.",
+          "evidence": "두 손상 항목 및 순손실 원인을 연결하는 손익·MD&A 설명.",
+          "id": "R1"
+        },
+        {
+          "label": "영업성과와 구별",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "손상 영향을 영업이익 또는 현금 영업손실과 구별한다. 예: 영업이익이 있어도 손상 등으로 순손실이 발생했다는 설명.",
+          "evidence": "영업이익·영업외 손상·순손익의 관계가 드러나는 자료.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "순손실 약 1조 8,167억원."
+        },
+        {
+          "id": "O2",
+          "content": "영업이익 약 4,609억원."
+        },
+        {
+          "id": "O3",
+          "content": "회사·자산별 손상차손 상세 금액."
+        }
+      ],
+      "error_boundaries": [
+        "법인세차감전손실을 당기순손실로 기재하지 않는다.",
+        "손상차손을 그 해 같은 금액의 현금 유출이라고 말하지 않는다.",
+        "두 손상 유형 중 하나만 설명하고 전체 질문을 충족했다고 보지 않는다."
+      ],
+      "decision_note": "질문이 손상차손의 영향을 묻기 때문에 유형·방향이 필수다. 각 손상 금액까지 열거할 필요는 없다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "KAK_T1_054"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 1. 요약재무정보 > 가. 요약 연결재무정보",
+          "III. 재무에 관한 사항 > 2. 연결재무제표 > 2-2. 연결 포괄손익계산서",
+          "IV. 이사의 경영진단 및 분석의견 > 3. 재무상태 및 영업실적(연결기준) > 나. 영업실적",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 37. 영업으로부터 창출된 현금 (연결)"
+        ],
+        "reference_quotes": [
+          "당기순손실 1,816,669,011,014원",
+          "당기순손실은 1조 8,167억원으로 전년 대비 적자전환 했습니다. 이는 변화된 시장 환경과 보수적인 회계정책을 반영하여, 4분기에 영업권손상 및 PPA무형자산 손상차손을 인식함에 따라 영업외비용이 크게 증가하여 당기순손실을 기록한 영향입니다.",
+          "당기순이익(손실) (1,648,240,246)천원; 당기순이익조정을 위한 가감 중 법인세비용(수익) 168,428,765천원"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "KAK_T1_054"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240418000375:20240418000375%3A1267%3A6",
+            "chunk_id": "20240418000375:1267:6",
+            "document_id": "20240418000375",
+            "text_sha256": "56c727204a999a73d27040aa8fe75bf23a1592558a54c88efb0e208cd0cdbc5f"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A955%3A164",
+            "chunk_id": "20240418000375:955:164",
+            "document_id": "20240418000375",
+            "text_sha256": "dbe25eedc9e406c8569c6445f00ac334700f02c0dbaf83b7bd9b30bf1d252033"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A447%3A306",
+            "chunk_id": "20240418000375:447:306",
+            "document_id": "20240418000375",
+            "text_sha256": "be2ef536ce83ff1c62d4ac0e8bc91a26cbbb505407543ba69a533bbf9512d336"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A196%3A55",
+            "chunk_id": "20240418000375:196:55",
+            "document_id": "20240418000375",
+            "text_sha256": "5f57a63d244c663ddb8be47a210142c95081862de09ecf5eb12252839810da23"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A446%3A305",
+            "chunk_id": "20240418000375:446:305",
+            "document_id": "20240418000375",
+            "text_sha256": "fa942e333614759452c5395422e7c7c03401b6befd0bbdfe3d22969a700bc6a2"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A1230%3A3",
+            "chunk_id": "20240418000375:1230:3",
+            "document_id": "20240418000375",
+            "text_sha256": "8ae23d9d5f253064cf74c314ce80192d1dc5bbe518102f450359cba46889c12c"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A954%3A163",
+            "chunk_id": "20240418000375:954:163",
+            "document_id": "20240418000375",
+            "text_sha256": "75aa0f078764773ee3deec067649132bdd7a2325a5dd15b5ce51d4dd66757f15"
+          },
+          {
+            "source_id": "20240418000375:20240418000375%3A836%3A45",
+            "chunk_id": "20240418000375:836:45",
+            "document_id": "20240418000375",
+            "text_sha256": "2d7ef60e78267a97c9921a860f12a8f5308f2f3c0ab8d4d85f5d02060939f7d4"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "KAB_T3_067::narrative-v1-draft",
+      "case_id": "KAB_T3_067",
+      "title": "카카오뱅크 연계 수수료와 플랫폼",
+      "question": "2023년 주석 20 '순수수료손익'에서 연계대출수입수수료와 연계계좌수입수수료 금액을 찾고, 사업보고서에서 플랫폼 비즈니스의 주요 서비스와 2023년 확장 방향을 요약해 줘.",
+      "question_sha256": "db5ebbb132f599813392471e20dadfee47f8971b818e00923b8940af5e948ae8",
+      "company": "카카오뱅크",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "2023년 주석 20의 두 수수료와 당시 플랫폼 서비스·확장.",
+      "required": [
+        {
+          "label": "두 수수료 금액",
+          "basis": "explicit_request",
+          "acceptance": "연계대출수입수수료 17,003백만원과 연계계좌수입수수료 15,520백만원을 각각 제시한다.",
+          "evidence": "순수수료손익 표의 두 행·단위.",
+          "id": "R1"
+        },
+        {
+          "label": "주요 서비스",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "증권계좌, 대출비교, 카드, 투자 등 플랫폼 서비스를 최소 2개 범주로 설명한다.",
+          "evidence": "플랫폼 사업 소개에서 해당 서비스와 회사의 연결.",
+          "id": "R2"
+        },
+        {
+          "label": "2023년 확장 방향",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "2023년에 확인되는 대출비교·광고·개인사업자 등 확장 사례 최소 1개와 방향을 설명한다.",
+          "evidence": "2023년 도입·확장 설명. 이후 계획은 별도로 표시한다.",
+          "id": "R3"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2",
+          "R3"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "누적 계좌·대출 중개액 등 규모 지표."
+        },
+        {
+          "id": "O2",
+          "content": "모든 서비스의 목록."
+        },
+        {
+          "id": "O3",
+          "content": "2024년 펀드 등 후속 계획."
+        }
+      ],
+      "error_boundaries": [
+        "수수료 수익을 대출 취급액이나 거래액으로 바꾸지 않는다.",
+        "2024년 계획을 2023년 출시 실적으로 기재하지 않는다."
+      ],
+      "decision_note": "서비스 목록과 연도별 방향을 구별한다. 계좌 수·중개액은 질문이 직접 묻지 않아 선택이다.",
+      "difference_from_legacy": "기존 질문·참고답안을 보존한 항목 분해안이다. 기존 판정과의 동일성이나 점수 차이는 검증하지 않았다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "KAB_T3_067"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 20. 순수수료손익",
+          "II. 사업의 내용 > 2. 영업의 현황",
+          "IV. 이사의 경영진단 및 분석의견 > 2. 개요"
+        ],
+        "reference_quotes": [
+          "연계대출수입수수료 17,003",
+          "연계계좌수입수수료 15,520",
+          "플랫폼 비즈니스는 주식계좌 개설, 신용대출 비교하기, 제휴 신용카드, 국내/해외 주식 투자 등",
+          "동시에 광고 비즈니스의 본격화 ... '신용대출 비교하기'를 출시",
+          "2023년 12월말 현재 전체 누적 기준 약 651만개의 계좌가 개설되었고, 제휴사 연계대출은 누적실행액 기준 6.8조원을 돌파"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "KAB_T3_067"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240320001487:20240320001487%3A47%3A11",
+            "chunk_id": "20240320001487:47:11",
+            "document_id": "20240320001487",
+            "text_sha256": "d085d0c7a7f894a794b0a2c0a987a70d7504512212439f8f88984032ea15186d"
+          },
+          {
+            "source_id": "20240320001487:20240320001487%3A300%3A6",
+            "chunk_id": "20240320001487:300:6",
+            "document_id": "20240320001487",
+            "text_sha256": "c6de8d0950b1038fce3cbf12cf759f569559592616e853e503264bc6e9679b44"
+          },
+          {
+            "source_id": "20240320001487:20240320001487%3A54%3A18",
+            "chunk_id": "20240320001487:54:18",
+            "document_id": "20240320001487",
+            "text_sha256": "0d95136dba01fd45299b66a065ea06799dd8071606ff1617c2548f0ed7a54a21"
+          },
+          {
+            "source_id": "20240320001487:20240320001487%3A297%3A3",
+            "chunk_id": "20240320001487:297:3",
+            "document_id": "20240320001487",
+            "text_sha256": "c27a3fd71e311ceb2f5a61beb90e778e038392a2ae4e0240a8ff7efdf2dbca9e"
+          },
+          {
+            "source_id": "20240320001487:20240320001487%3A35%3A0",
+            "chunk_id": "20240320001487:35:0",
+            "document_id": "20240320001487",
+            "text_sha256": "38fdc4a7e33b8eb7a11af8744848926b8664809c5823ef23b8896b7b8c4c760f"
+          },
+          {
+            "source_id": "20240320001487:20240320001487%3A295%3A1",
+            "chunk_id": "20240320001487:295:1",
+            "document_id": "20240320001487",
+            "text_sha256": "31afc3454083d85ebdd7bc320d5ab9997c1bb91c8444d2e760b8e5bf5d1b2335"
+          },
+          {
+            "source_id": "20240320001487:20240320001487%3A82%3A21",
+            "chunk_id": "20240320001487:82:21",
+            "document_id": "20240320001487",
+            "text_sha256": "5d9d7f467c0c553bae0807720effad05611660f06956384fa524b1532b3bce33"
+          },
+          {
+            "source_id": "20240320001487:20240320001487%3A173%3A77",
+            "chunk_id": "20240320001487:173:77",
+            "document_id": "20240320001487",
+            "text_sha256": "30f019ec474c48452a4cd01ac19d8d45a2e163c61b709c69adbcca9e00a360d8"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "HYU_T2_035::narrative-v1-draft",
+      "case_id": "HYU_T2_035",
+      "title": "현대차 E-GMP 모델 성과",
+      "question": "2023년 현대자동차 사업보고서를 바탕으로 E-GMP 기반 전동화 모델의 주요 성과를 요약해 줘.",
+      "question_sha256": "b04a99938533c91e8facddd9acf5dc9c0746572aeb63fdc5ffa46f8811ae8026",
+      "company": "현대자동차",
+      "year": 2023,
+      "legacy_panel_group": "diagnostic_or_hold",
+      "status": "HOLD",
+      "blocking_issue": "HOLD_PERIOD_AND_MODEL_LINK",
+      "scope": "2023년 성과와 모델–E-GMP 관계를 모두 입증해야 한다.",
+      "required": [
+        {
+          "label": "모델–플랫폼 연결",
+          "basis": "explicit_request",
+          "acceptance": "설명할 모델이 E-GMP 기반임을 원문으로 연결한다.",
+          "evidence": "모델과 플랫폼을 명시적으로 연결하는 문단. 연결을 외부 상식으로 채우지 않는다.",
+          "id": "R1"
+        },
+        {
+          "label": "해당 모델의 2023년 성과",
+          "basis": "proposed_summary_minimum",
+          "acceptance": "그 모델의 2023년 수상·판매·시장 진출 등 확인 가능한 성과 최소 1개를 설명한다.",
+          "evidence": "모델 이름·성과·연도가 함께 확인되는 자료.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "별도 구분한 2022년 등 배경 사례."
+        },
+        {
+          "id": "O2",
+          "content": "추가 E-GMP 모델과 성과."
+        },
+        {
+          "id": "O3",
+          "content": "수상 세부 부문."
+        }
+      ],
+      "error_boundaries": [
+        "아이오닉5의 2022년 수상을 2023년 성과로 옮기지 않는다.",
+        "전기차라는 이유만으로 E-GMP 기반이라고 간주하지 않는다.",
+        "국가명이 문맥에 함께 나온다는 이유만으로 그 모델의 진출국으로 묶지 않는다."
+      ],
+      "decision_note": "아이오닉6의 2023년 수상 사실만으로 플랫폼 연결까지 확인된 것으로 처리하지 않는다.",
+      "difference_from_legacy": "기존 보류를 유지한다. 보고서 외 근거를 허용하려면 후속 질문·근거 계약에 먼저 명시해야 한다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "HYU_T2_035"
+        },
+        "sections": [
+          "II. 사업의 내용 > 7. (제조서비스업)기타 참고사항",
+          "2022 | IV. 이사의 경영진단 및 분석의견"
+        ],
+        "reference_quotes": [
+          "전기차 전용 플랫폼 E-GMP가 적용된 아이오닉5",
+          "아이오닉 5, 아이오닉 6는 고객과 언론의 호평을 받으며 두각",
+          "2023 독일 올해의 차 ... 제네시스 GV60"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "HYU_T2_035"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240313001451:20240313001451%3A65%3A0",
+            "chunk_id": "20240313001451:65:0",
+            "document_id": "20240313001451",
+            "text_sha256": "68e6524df4e81585f9291492fb14b489354a50f2c46df28f97232537dc7882b0"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1260%3A2",
+            "chunk_id": "20240313001451:1260:2",
+            "document_id": "20240313001451",
+            "text_sha256": "15dec4e64a82d08e0be622a772c273ae735326ba8cf94d51b7d9c427536ab0f9"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1056%3A12",
+            "chunk_id": "20240313001451:1056:12",
+            "document_id": "20240313001451",
+            "text_sha256": "79dc7102df302052babfc842343101de697efe34bead21159a6053d486f969ec"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1221%3A0",
+            "chunk_id": "20240313001451:1221:0",
+            "document_id": "20240313001451",
+            "text_sha256": "48f3ddbb8fb15d98c77bde4ae51fcb3c3883ddc98e8872945605a6098848e6e2"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A0%3A0",
+            "chunk_id": "20240313001451:0:0",
+            "document_id": "20240313001451",
+            "text_sha256": "110b61429c291d34dd78dfccf38621ec5444363f3f3014b582f4c8f1e65ae2a9"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1045%3A1",
+            "chunk_id": "20240313001451:1045:1",
+            "document_id": "20240313001451",
+            "text_sha256": "320ace60c485bde0a9c9f2f4b67f25f9200196b57ab233dc38f07a26a061ac78"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A23%3A9",
+            "chunk_id": "20240313001451:23:9",
+            "document_id": "20240313001451",
+            "text_sha256": "6e83ebd2825555d7de592330d776b1b98d3f4117576efc2d07af63133ebd8e08"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A22%3A8",
+            "chunk_id": "20240313001451:22:8",
+            "document_id": "20240313001451",
+            "text_sha256": "87908a31aa263fa0559e6e04b3bdc81da5f38cdd92216a149c3d9e4f47b468d1"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "HYU_T3_036::narrative-v1-draft",
+      "case_id": "HYU_T3_036",
+      "title": "현대차 판매보증충당부채와 리스크",
+      "question": "2023년 연결재무제표 주석 17. 충당부채(연결)에서 '판매보증충당부채'의 기존 충당부채 증가액을 찾고, 이것이 리스크 관리 차원에서 의미하는 바를 설명해 줘.",
+      "question_sha256": "b7a67a841aad5fe4bd03216ddb3bd3ca19d914a5ed71b5e73fc3a75aaf1b8566",
+      "company": "현대자동차",
+      "year": 2023,
+      "legacy_panel_group": "diagnostic_or_hold",
+      "status": "HOLD",
+      "blocking_issue": "CONFIRMED_GOLD_SCOPE_CONFLICT",
+      "scope": "2023년 연결 주석 17의 '기존 충당부채 증가액'. 기말 순증감·별도 금액과 다르다.",
+      "required": [
+        {
+          "label": "요청한 증가액",
+          "basis": "explicit_request",
+          "acceptance": "연결 판매보증충당부채의 기존 충당부채 증가액 행을 제시한다. 최종 기준값은 연결 전체 표 재확인 후 확정한다.",
+          "evidence": "연결 주석 17의 행·열·단위·기간. 2,175,691백만원은 기존 감사의 수정 후보다.",
+          "id": "R1"
+        },
+        {
+          "label": "리스크 관리 의미",
+          "basis": "explicit_request",
+          "acceptance": "판매보증 관련 미래 의무·예상 비용을 재추정해 충당금에 반영한다는 의미를 설명한다.",
+          "evidence": "추정·불확실성·의무 설명 및 해당 변동 항목의 회계적 의미.",
+          "id": "R2"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1",
+          "R2"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "기초·기말 잔액과 다른 변동 항목."
+        },
+        {
+          "id": "O2",
+          "content": "직접 원문으로 확인되는 추가 적립 원인."
+        }
+      ],
+      "error_boundaries": [
+        "별도 1,569,085백만원을 연결 증가액으로 제시하지 않는다.",
+        "기말 잔액의 순감소를 요청한 증가액과 혼동하지 않는다.",
+        "구체적 리콜·품질 문제를 원문 없이 실제 적립 원인이라고 단정하지 않는다."
+      ],
+      "decision_note": "금액 후보를 찾았더라도 기존 gold를 교체하지 않는다. 보류 해제에는 연결 표와 후속 버전이 필요하다.",
+      "difference_from_legacy": "기존 diagnostic과 정답 범위 충돌 상태를 유지한다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "HYU_T3_036"
+        },
+        "sections": [
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 17. 충당부채 (연결)"
+        ],
+        "reference_quotes": [
+          "판매보증충당부채 ... 기존 충당부채의 증가, 충당부채 ... 1,569,085",
+          "세타2 엔진 등 리콜 관련 새로운 정보의 획득과 추가적인 경험의 축적으로 인하여 판매보증충당부채에 해당 효과를 반영"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "HYU_T3_036"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240313001451:20240313001451%3A705%3A124",
+            "chunk_id": "20240313001451:705:124",
+            "document_id": "20240313001451",
+            "text_sha256": "7f3b27b07333d7a7297fea1d72832e242019dda7744eac1a6cc08d2b1ed832f1"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A331%3A189",
+            "chunk_id": "20240313001451:331:189",
+            "document_id": "20240313001451",
+            "text_sha256": "50ce0df85e94717672a1fb7f2691f58c8e07b2e0b2d9799ccdfdf6b83ef0e765"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A706%3A125",
+            "chunk_id": "20240313001451:706:125",
+            "document_id": "20240313001451",
+            "text_sha256": "f37b67063c6c9813f7756bd11446fc322aac8a275c49fc3f558f2f6bbfa9989d"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A199%3A57",
+            "chunk_id": "20240313001451:199:57",
+            "document_id": "20240313001451",
+            "text_sha256": "b04043494d94762c60e955de8315cb9a9337c88862979245197a0a7585bc2952"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A330%3A188",
+            "chunk_id": "20240313001451:330:188",
+            "document_id": "20240313001451",
+            "text_sha256": "c8f78a3871212a4966a7b59bc559a56f682874add8c30f528b30c9889f33dbbc"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A611%3A30",
+            "chunk_id": "20240313001451:611:30",
+            "document_id": "20240313001451",
+            "text_sha256": "da22a6794a210dcdecd42a8030d297e16b4a874b027d9edaf0e2b83360d1bd75"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A183%3A41",
+            "chunk_id": "20240313001451:183:41",
+            "document_id": "20240313001451",
+            "text_sha256": "fc53063ef4970e776c8a886341a694b4c3f8277eda498f6f104e0fd0cd62a918"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A360%3A218",
+            "chunk_id": "20240313001451:360:218",
+            "document_id": "20240313001451",
+            "text_sha256": "e90a9dff10df062b8bbfc8e5e88b749d8b42f22ae9245203cec738c9ef522f8d"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    },
+    {
+      "rubric_entry_id": "MIX_T3_023::narrative-v1-draft",
+      "case_id": "MIX_T3_023",
+      "title": "삼성전자 탄소배출권 의무·회계",
+      "question": "사업보고서 내 '환경 및 안전' 섹션(또는 주석)에서 탄소 배출권 관련 의무나 충당부채가 언급된 내용을 찾아 요약해 줘.",
+      "question_sha256": "c09b88bc2c50f645bb1d0f23f53e5e2e8052a079504fdf763772e3e545d1d285",
+      "company": "현대자동차",
+      "year": 2023,
+      "legacy_panel_group": "common_answerable",
+      "status": "DRAFT",
+      "blocking_issue": null,
+      "scope": "사업보고서의 배출권 관련 의무 또는 회계 내용. 특정 시점 법령·실제 충당부채 잔액을 임의 확장하지 않는다.",
+      "required": [
+        {
+          "label": "의무 또는 회계: 둘 중 하나",
+          "basis": "explicit_request",
+          "acceptance": "아래 한 경로의 의미를 완결되게 요약하면 된다.",
+          "evidence": "환경 및 안전 섹션 또는 배출권 회계 주석의 해당 문단.",
+          "choice": {
+            "operator": "any_of",
+            "options": [
+              {
+                "id": "C1",
+                "acceptance": "의무 경로: 배출권거래제의 적용·할당·배출량 대응 의무 등 회사에 적용되는 제도상 의무를 설명한다."
+              },
+              {
+                "id": "C2",
+                "acceptance": "회계 경로: 무상할당·매입 배출권의 자산 인식과 배출의무에 대한 부채 인식 조건을 설명한다. 무상할당 범위 내와 초과분을 구별한다."
+              }
+            ]
+          },
+          "id": "R1"
+        }
+      ],
+      "completion_rule": {
+        "all_of": [
+          "R1"
+        ]
+      },
+      "optional": [
+        {
+          "id": "O1",
+          "content": "선택하지 않은 다른 경로."
+        },
+        {
+          "id": "O2",
+          "content": "배출량·할당량·매입액·실제 충당부채 잔액을 직접 근거로 확인한 경우의 수치."
+        },
+        {
+          "id": "O3",
+          "content": "온실가스 감축 활동."
+        }
+      ],
+      "error_boundaries": [
+        "감축 활동만 나열하고 법적 의무나 회계 처리를 답했다고 보지 않는다.",
+        "회계정책 설명만으로 실제 충당부채가 0원 또는 특정 금액이라고 단정하지 않는다."
+      ],
+      "decision_note": "질문의 '의무나 충당부채'를 논리적 OR로 처리한다. 단순 환경 캠페인과 의무 설명은 구별한다.",
+      "difference_from_legacy": "기존 primary는 회계 인식 설명을 요구하고 의무만의 답을 sensitivity로 뒀다. 이 안은 의무 경로도 동등하게 허용하며 과거 점수에 소급 적용하지 않는다.",
+      "source_index": {
+        "reference_path": "benchmarks/results/full77_sol_top8_20261020/reference_questions.json",
+        "reference_selector": {
+          "id": "MIX_T3_023"
+        },
+        "sections": [
+          "II. 사업의 내용 > 7. (제조서비스업)기타 참고사항",
+          "III. 재무에 관한 사항 > 3. 연결재무제표 주석 > 2. 중요한 회계정책 및 판단"
+        ],
+        "reference_quotes": [
+          "당사는 저탄소 녹색성장 기본법 46조에 따라 2015년부터 온실가스 배출권 거래제 도입에 의한 온실가스 배출권의 할당 및 거래 대상업체에 해당",
+          "연결실체는 배출권을 무형자산으로 분류",
+          "무상으로 할당받은 배출권이 당기에 발생한 배출부채에 따른 의무를 이행하는데 충분한 경우에는 배출부채를 영(0)으로 측정",
+          "무상할당 배출권 수량을 초과하는 배출량에 대해서는 부족분에 해당하는 배출부채의 이행에 소요될 것으로 예상되는 지출에 대한 보고기간말 현재의 최선의 추정치로 배출부채를 측정"
+        ],
+        "packet_path": "benchmarks/results/full77_sol_top8_20261020/panel.json",
+        "packet_selector": {
+          "case_id": "MIX_T3_023"
+        },
+        "packet_documents": [
+          {
+            "source_id": "20240313001451:20240313001451%3A1225%3A4",
+            "chunk_id": "20240313001451:1225:4",
+            "document_id": "20240313001451",
+            "text_sha256": "6dfd05302df16ae305ac67c7c79ffa74c1e05a2461a64cb1e17f37ed8b3d2f7e"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1056%3A12",
+            "chunk_id": "20240313001451:1056:12",
+            "document_id": "20240313001451",
+            "text_sha256": "79dc7102df302052babfc842343101de697efe34bead21159a6053d486f969ec"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A101%3A10",
+            "chunk_id": "20240313001451:101:10",
+            "document_id": "20240313001451",
+            "text_sha256": "777e69dda2426d6da08976c30e3150a6ef07258e78c3120b1d4deae77de68dfb"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A595%3A14",
+            "chunk_id": "20240313001451:595:14",
+            "document_id": "20240313001451",
+            "text_sha256": "bcc68d89444035a2180ba22a9d081c8caff6863eebe6bed428bed68e284bad17"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A102%3A11",
+            "chunk_id": "20240313001451:102:11",
+            "document_id": "20240313001451",
+            "text_sha256": "0e880e58f760b1ddee3c80986b13dc2748312e20f953235963579583d443fee6"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A1226%3A5",
+            "chunk_id": "20240313001451:1226:5",
+            "document_id": "20240313001451",
+            "text_sha256": "8698f0bd0a03a89ca78c207a377ee136eba9886448d3fd0356437b1195ece9cb"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A707%3A126",
+            "chunk_id": "20240313001451:707:126",
+            "document_id": "20240313001451",
+            "text_sha256": "d6b3d1bd6c24679e9351bf09cf9047e11c22ac3b29ae5ec768640a5ef078548b"
+          },
+          {
+            "source_id": "20240313001451:20240313001451%3A710%3A129",
+            "chunk_id": "20240313001451:710:129",
+            "document_id": "20240313001451",
+            "text_sha256": "541226d326e8b9dff5bcf761d4faaadf1c98d5304f0a3e13bad0dfb86fc8bba3"
+          }
+        ],
+        "verification": "LOOKUP_INDEX_ONLY_NOT_A_CLAIM_SUPPORT_VERDICT"
+      }
+    }
+  ]
+}

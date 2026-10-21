@@ -1,6 +1,6 @@
 # Current Handoff Context
 
-Last updated: 2026-09-30. [Readiness diagnostics and restart verification](docs/operations/readiness_diagnostics_2026-10-17.md)
+Last updated: 2026-10-21. [Latest evaluation synthesis](docs/evaluation/rag_quality_progress_2026-10-21.md) · [Historical readiness diagnostics](docs/operations/readiness_diagnostics_2026-10-17.md)
 
 ## Product boundary
 
@@ -24,13 +24,13 @@ Source-ID validity is not entailment or numeric correctness. `FinancialAgent` an
 its source/calculation checks remain only for explicit comparison/replay under
 [compiled_workflow_contract.md](docs/architecture/compiled_workflow_contract.md).
 Shared model construction does not import that path into the application.
-Parser schema is v5; the local full11 successor store is compatible/ready=true. Embedding model identity is preserved. `openai` keeps
+Published parser schema is v5; ready=true belongs to the historical v5 checkpoint, not the current local v12 experiment store. Embedding model identity is preserved. `openai` keeps
 answer/ingest-context routes; `openai_compiler` is comparison-only and rejected by
 application startup. The old embedded evaluation dashboard is removed.
 
 ## Evidence and accounting
 
-The [parser v5 adoption](docs/architecture/parser_v5_adoption.md) records the user-approved parser/tests/docs commit separately from the unchanged [answer regression](docs/evaluation/paragraph_heading_v5_answer_regression.md): core14/14,strict11/14,stable4/7 (absence-wording sensitivity12/14,still gate not met). Plain and paragraph-style heading ownership, table-body preservation and bounded separator parsing are adopted. The verified local full11 v5 store has15,608 chunks; source/metadata delivery fixes do not certify all headings or general answer accuracy. Remaining added-claim citation omissions and overbroad absence wording are separate follow-up items. No new provider calls,prompt tuning,store mutation or automatic rerun is authorized by this adoption.
+The [October quality comparison](docs/evaluation/rag_quality_progress_2026-10-21.md) records local v12 experiments at `1d09627d` plus frozen local changes, not the published parser's measured performance. Under the same revised rubric, Terra top-8/top-12 and Sol top-8/top-12 complete 34/36/38/42 of 46 answerable cases; Sol top-12 improves four with no regression versus saved Sol top-8 at 32.7% more answer cost. Automated decomposition/selection completes 41/46 at about 4.8x cost and is not adopted. The original scores, source-bound review and one selection failure remain recorded; the 11-case completion was not preregistered. Reports/rubric are published separately from raw runs and uncommitted runtime work. Default model/top-k remain unchanged. Older parser adoption and experiment checkpoints below remain historical evidence.
 
 The [table-context preservation fix](docs/evaluation/table_context_hint_preservation.md) restores prose tables previously consumed as period/unit labels. Eleven original reports/473 sections preserve all19,408 prior block texts/headings and table grids;1,559 blocks are added, including four carbon-policy tables verified through chunking. Mixed captions retain their bodies and forward only explicit unit declarations.10 regression tests and full2,154 pass. At parser-fix completion, v3 store/.env were unchanged and readiness was mismatch; the subsequent v4 rebuild resolved that mismatch at its checkpoint; the v5 successor above now resolves the subsequent paragraph-style mismatch. At fix completion answer quality was NOT_RUN with no provider calls; the later v4 regression supplied bounded answer evidence for that version. Prior strict11/12 and v3 audit are historical, unchanged.
 

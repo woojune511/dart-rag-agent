@@ -1,5 +1,13 @@
 # Experiment History
 
+## 2026-10-21 — Retrieval window, reader model and explicit narrative criteria
+
+- Published the [evaluation synthesis](../evaluation/rag_quality_progress_2026-10-21.md), supporting reports and frozen rubric without changing product code or old results. Source lineage is local `1d09627d` plus frozen changes and v12 store, separate from the public parser.
+- On one common revised 46-case denominator, complete answers are Terra top-8 34, Terra top-12 36, Sol top-8 38, Sol top-12 42; support is 42/39/44/45. Terra arms were freshly interleaved; the Sol comparisons reuse historical baselines. Sol's top-12 gain is four cases with no regression and +32.7% answer cost.
+- Fixed-evidence reader comparison used six failures and three success controls, three generations per model: failure-panel complete answers 3/18 versus 16/18. These selected cases do not establish full-set or independent generalization. Narrative rescoring separately changed saved counts by +1/+2/+3; it is a criterion change, not a new system gain.
+- Four manually supplemented evidence packets yielded 4/4 complete; two manual facet/context cases yielded 2/2. Neither overwrites the full-set 42/46. Automatic decomposition/per-facet selection then yielded 41/46 at about 4.8x cost; one selection contract failure and the unplanned completion of 11 unattempted cases remain in the record. Not adopted.
+- Reports preserve the prior 48-case and historical 30/55 results, local-only raw evidence locations, single-assistant review and exposure limits. No fresh provider calls, store changes or product-default adoption were part of this documentation publication.
+
 ## 2026-09-30 — Commit packaging and Git-export verification
 
 - Prepared two ordered review patches:9 code/test/contract files for explicitly opt-in caption support,and67 Markdown record/handoff files. New caption imports travel with the existing store/agent integration;no product behavior or past experiment scores changed in this step.
