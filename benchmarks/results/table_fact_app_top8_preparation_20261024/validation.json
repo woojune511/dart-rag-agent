@@ -1,0 +1,72 @@
+{
+  "status": "PASS",
+  "preparation": {
+    "status": "PASS",
+    "cases": 95,
+    "packet_pairs": 95,
+    "native_top12_exact_replay_cases": 95,
+    "native_top8_captures": 95,
+    "fixed_candidate_rrf_exact_replays": 95,
+    "all_original_A8_evidence_preserved_in_C8": true,
+    "table_value_axis_frame_bindings_checked": 13480,
+    "original_source_files_hash_checked": 14,
+    "model_calls": 0,
+    "embedding_calls": 0,
+    "real_searches": 0,
+    "network_attempts": 0,
+    "store_clients_opened": 0,
+    "future_requests_prepared_not_executed": 36,
+    "future_schedule_length": 72,
+    "elapsed_seconds": 35.12497240002267,
+    "limits": [
+      "Stored source-validated table projections reused; physical linkage is not semantic verification.",
+      "No fresh candidate retrieval or model answers; no measured answer improvement in this phase."
+    ]
+  },
+  "request_body_schema_prompt_settings_match": 36,
+  "balanced_schedule_calls": 72,
+  "existing18_rubric_unchanged": true,
+  "bounded_reviews": {
+    "exposed18": 18,
+    "old77_focus": 12,
+    "not_full77_semantic_regrade": true
+  },
+  "18_A8_C8_actual_evidence_parity": true,
+  "all18_boosted_packets_fit64KiB": true,
+  "corruption_guards": {
+    "wrong_source_owner": "REJECTED",
+    "altered_value_literal": "REJECTED",
+    "altered_expanded_cell_position": "REJECTED",
+    "wrong_row_axis": "REJECTED",
+    "altered_context_frame": "REJECTED"
+  },
+  "preservation": {
+    "status": "PASS",
+    "protected_file_count": 864,
+    "changed_protected_files": [],
+    "head_unchanged": true,
+    "index_byte_identical": true,
+    "git_status_identical": true,
+    "git_status_command": "git status --short --untracked-files=all -z",
+    "env_byte_identical": true,
+    "active_store_files_byte_identical": [
+      "data/app_full11_2023_v12_20261017/324bf1b9-d4bf-407a-9de9-c15386ef9bbd/data_level0.bin",
+      "data/app_full11_2023_v12_20261017/324bf1b9-d4bf-407a-9de9-c15386ef9bbd/header.bin",
+      "data/app_full11_2023_v12_20261017/324bf1b9-d4bf-407a-9de9-c15386ef9bbd/index_metadata.pickle",
+      "data/app_full11_2023_v12_20261017/324bf1b9-d4bf-407a-9de9-c15386ef9bbd/length.bin",
+      "data/app_full11_2023_v12_20261017/324bf1b9-d4bf-407a-9de9-c15386ef9bbd/link_lists.bin",
+      "data/app_full11_2023_v12_20261017/build_receipt.json",
+      "data/app_full11_2023_v12_20261017/chroma.sqlite3",
+      "data/app_full11_2023_v12_20261017/document_structure_graph.json",
+      "data/app_full11_2023_v12_20261017/parents.json",
+      "data/app_full11_2023_v12_20261017/store_manifest.json",
+      "data/app_full11_2023_v12_20261017/table_payloads.json"
+    ],
+    "consumed_input_files_checked": 298,
+    "changed_consumed_inputs": [],
+    "store_clients_opened": 0,
+    "sqlite_internal_bytes": "Byte-identical; store was never opened by this task.",
+    "live_application_restart": false
+  },
+  "negative_control_scope": "Physical binding rejection only; not a semantic verifier."
+}

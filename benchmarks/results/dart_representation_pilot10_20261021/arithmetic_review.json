@@ -1,0 +1,42 @@
+[
+  {
+    "case": "N-income",
+    "numerator": 183933032,
+    "denominator": 3514315500,
+    "percent": "5.23",
+    "passed": true
+  },
+  {
+    "case": "N-inventory-generic",
+    "numerator": 353314247728,
+    "denominator": 3822122467403,
+    "percent": "9.24",
+    "passed": true
+  },
+  {
+    "case": "N-inventory-dart",
+    "numerator": 353314248000,
+    "denominator": 3822122000000,
+    "percent": "9.24",
+    "passed": true
+  },
+  {
+    "case": "S-income",
+    "numerator": 913331,
+    "denominator": 11314459,
+    "percent": "8.07",
+    "passed": true
+  },
+  {
+    "case": "S-inventory-dart",
+    "numerator": 2412996843057,
+    "denominator": 14595895255468,
+    "percent": "16.53",
+    "passed": true
+  },
+  {
+    "case": "S-capex-generic",
+    "sum_krw": 1246323544411,
+    "passed": true
+  }
+]

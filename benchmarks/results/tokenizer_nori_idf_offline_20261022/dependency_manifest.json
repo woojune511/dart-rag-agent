@@ -1,0 +1,32 @@
+{
+  "purpose": "Isolated local Nori analyzer; no document upload",
+  "files": [
+    {
+      "path": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\tokenizer_nori_idf_offline_20261022\\_deps\\lucene-core-9.12.3.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/lucene/lucene-core/9.12.3/lucene-core-9.12.3.jar",
+      "sha512": "e9236abc84e82a17cdbfb2291ec7ae16b286e62496b9922db5bbad31b1caca079a64a6edc5f002ad20a36951ddc25178d100a76d876120fcc1a28cdfc77bf8cc",
+      "sha256": "b64a3f8098a7572034fb30085cdee01b34ec81fb0e5a31b471536af58dc6c01b"
+    },
+    {
+      "path": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\tokenizer_nori_idf_offline_20261022\\_deps\\lucene-analysis-common-9.12.3.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/lucene/lucene-analysis-common/9.12.3/lucene-analysis-common-9.12.3.jar",
+      "sha512": "74d02f9e163dbf5d9487f3a8f2e0f820bab5333c5ec29dd4c76aecfca65ad4dae418256f46a19aa1ab416134c9538049a6db16c88a0ee01fb1acd493142a5538",
+      "sha256": "fa571bd7caf0f0b4faf46a72ca004a7836f348c31d92bd522dddcc3d128d287e"
+    },
+    {
+      "path": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\tokenizer_nori_idf_offline_20261022\\_deps\\lucene-analysis-nori-9.12.3.jar",
+      "url": "https://repo.maven.apache.org/maven2/org/apache/lucene/lucene-analysis-nori/9.12.3/lucene-analysis-nori-9.12.3.jar",
+      "sha512": "e3573e08d6766335820237a545cf918462d34e2bc7c96d9c6ec05a68d45a963c027f120a54aed6c05acb7f0d8490f64fede6e33b62f112a27481ad2827414c3b",
+      "sha256": "2152bf318181aec5ae16d540d0eba16371a0e641790ded19258d50760be30df4"
+    }
+  ],
+  "jdk": {
+    "asset_query": "https://learn.microsoft.com/en-us/java/openjdk/download",
+    "release": "Microsoft OpenJDK 17.0.20.1",
+    "url": "https://aka.ms/download-jdk/microsoft-jdk-17.0.20.1-windows-x64.zip",
+    "sha256": "3d9006956fc8af5601cd24ffc4f468bef48279c7ebd8171b9bdf90d0aabfbf1f",
+    "java": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\tokenizer_nori_idf_offline_20261022\\_deps\\jdk-17.0.20.1+1\\bin\\java.exe",
+    "javac": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\tokenizer_nori_idf_offline_20261022\\_deps\\jdk-17.0.20.1+1\\bin\\javac.exe"
+  },
+  "java_version": "openjdk version \"17.0.20.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Microsoft-14940689 (build 17.0.20.1+1-LTS)\nOpenJDK 64-Bit Server VM Microsoft-14940689 (build 17.0.20.1+1-LTS, mixed mode, sharing)\n"
+}

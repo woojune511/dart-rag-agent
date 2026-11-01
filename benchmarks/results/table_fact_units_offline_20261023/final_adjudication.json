@@ -1,0 +1,99 @@
+{
+  "status": "COMPLETED_OFFLINE_NOT_ADOPTED",
+  "arm": "FCT12",
+  "candidate_order_selected12_original_documents_and_cap_fixed": true,
+  "primary_numeric_recovery_gate_met": false,
+  "required_evidence_summary": {
+    "current_common_nonPASS_cases": 4,
+    "A12_to_FCT12_full_missing_requirement_recovery_cases": [
+      "SKI_T1_068"
+    ],
+    "A12_to_FCT12_partial_missing_requirement_recovery_cases": [],
+    "T12_to_FCT12_new_full_or_partial_recovery_cases": [],
+    "new_required_numeric_values_vs_A12": 0,
+    "new_required_numeric_values_vs_T12": 0,
+    "mandatory_unit_axes_recovered_vs_A12": 1,
+    "mandatory_unit_axes_recovered_vs_T12": 0,
+    "mandatory_unit_axes_lost_vs_T12_in_current4": 0,
+    "legacy26_A12_present": 24,
+    "legacy26_T12_present": 24,
+    "legacy26_FCT12_present": 24,
+    "common20_A12_T12_FCT12": [
+      18,
+      18,
+      18
+    ],
+    "HOLD6_A12_T12_FCT12": [
+      6,
+      6,
+      6
+    ],
+    "legacy26_lost_required_units_vs_T12": 0,
+    "specific_T12_enrichment_document_losses": 3,
+    "original77_packets_preserved": 77,
+    "answer_accuracy_faithfulness_refusal": "NOT_MEASURED_NO_GENERATION"
+  },
+  "all77_original_evidence_preserved": true,
+  "independent_physical_checks": {
+    "cases": 77,
+    "groups": {
+      "common_answerable": 46,
+      "refusal": 19,
+      "diagnostic_or_hold": 12
+    },
+    "actual_original_document_occurrences": 907,
+    "unique_saved_UIDs": 746,
+    "budget_proposals_checked": 18784,
+    "table_decision_case_occurrences": {
+      "no_valid_numeric_units": 224,
+      "attached": 321,
+      "no_table_payload": 248,
+      "rejected_byte_budget": 94,
+      "duplicate_table_first_owner_only": 20
+    },
+    "unit_decision_case_occurrences": {
+      "attached": 9465,
+      "rejected_byte_budget": 9319
+    },
+    "attached_unique_UIDs": 270,
+    "attached_unique_physical_tables": 270,
+    "delivered_unique_UID_unit_checks": 7714,
+    "delivered_unique_physical_units": 7714,
+    "delivered_unique_UID_pool_cell_checks": 12467,
+    "delivered_unique_physical_pool_cells": 12467,
+    "verified_literal_context_occurrences_across_unique_UIDs": 1372,
+    "independently_recomputed_saved_context_statuses_across_unique_UIDs": {
+      "VERIFIED": 1372,
+      "EXCLUDED": 379,
+      "REJECTED": 1
+    },
+    "source_documents_hashed_and_strictly_parsed": 11,
+    "max_packet_bytes": 65536,
+    "fragment_counts_not_semantic_failure_scores": {}
+  },
+  "physical_issues_observed": 0,
+  "axis_watch_cases": 19,
+  "targeted_new_semantic_axis_conflicts_observed": 0,
+  "all_semantics_or_answer_safety_certified": false,
+  "T12_enrichment_regressions_observed": true,
+  "decision": "Do not adopt numeric-cell append policy. Local validation improves failure isolation but no new required numeric facts reached the packet; narrative/axis enrichments can be lost.",
+  "next_priority_inference_not_tested": "Question-relevant fact selection and explicit budget allocation, preserving factual axes and narrative relations; source-order packing alone is insufficient on the observed Motional case.",
+  "limits": [
+    "Development-exposed cases; no held-out generalization or answer generation.",
+    "The T12/FCT12 representation also changes eligible text-row coverage and serialization overhead; this is not a pure validation-granularity-only causal isolation.",
+    "Numeric rows may include literal missing-value markers such as a dash; unit counts are not new numeric fact counts.",
+    "Original misleading scalar hints remain unchanged; correct attachments do not prove model interpretation.",
+    "Independent physical checks cover delivered units; semantic review is bounded to current4, legacy26 and axis watch19 with overlap."
+  ],
+  "artifacts": {
+    "protocol.json": "073fa958f1ea448dd633a551203f8caeef7972061a30cb6f7e9a6eb3ae9b7c8a",
+    "freeze.json": "46e9c47fc9ea62ae0d6fe1659c88d5e493ef0288b5f4bf701167cda5323655c9",
+    "results.json": "c32339fe7d602d0561223f5ca79c86b44d3190d3e79bfcbbcd8a9ed36bef887d",
+    "postrun_required_fact_review.json": "c12a2293f0610070fcbd9faa2a0f429e4c3b981d7292189978e3b9621f8820fd",
+    "postrun_axis_review.json": "b11e4c47058ffc08ec271c3faef9a2a6a98c88542d1c96834d45b5e907150528",
+    "postrun_boundary_review.json": "d1f59b42d7bd26f970b54b6c17c7b29ba6a6868a9f2c4d551eab1b5a773adc84",
+    "all77_evidence_review.json": "8a38cdc8f267f0f70fbb46efbd7d07457c4df16e4ea7dbfee982112fad824588",
+    "aggregate_summary.json": "53a1739c941e7071d46f2f6be2b1029d847d01ab6db06ed1587c3590069dd832",
+    "preservation.json": "0c670a4cec6a297e74c4e0fdbbd3616a1ddd47b00d8a74c0c1cf33425f8232ab"
+  }
+}

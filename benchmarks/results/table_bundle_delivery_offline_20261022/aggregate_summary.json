@@ -1,0 +1,78 @@
+{
+  "cases": 77,
+  "canonical_groups": {
+    "common_answerable": 46,
+    "refusal": 19,
+    "diagnostic_or_hold": 12
+  },
+  "original_packet_fields_preserved": 77,
+  "deterministic_in_process_projection_repeat": 77,
+  "cases_with_additions": 74,
+  "cases_without_additions": [
+    "MIX_T3_063",
+    "MIX_T1_021",
+    "HYU_T4_079"
+  ],
+  "attached_case_occurrences": 545,
+  "attached_unique_tables": 467,
+  "max_context_bytes": 65536,
+  "context_bytes": {
+    "baseline_bytes": {
+      "min": 20529,
+      "median": 36352,
+      "max": 64813,
+      "total": 2870041
+    },
+    "experimental_bytes": {
+      "min": 29765,
+      "median": 56706,
+      "max": 65441,
+      "total": 4212388
+    }
+  },
+  "all77_decisions": {
+    "attached": 545,
+    "rejected_byte_budget": 63,
+    "no_table_payload": 248,
+    "duplicate_table_first_owner_only": 20,
+    "rejected_structural_validation": 31
+  },
+  "cases_with_budget_skips": 18,
+  "cases_with_validation_skips": 25,
+  "baseline_whole_document_omission_cases": [
+    {
+      "case_id": "SKH_T1_060",
+      "delivered": 9,
+      "selected": 12
+    },
+    {
+      "case_id": "MIX_T3_063",
+      "delivered": 6,
+      "selected": 12
+    },
+    {
+      "case_id": "MIX_T1_021",
+      "delivered": 8,
+      "selected": 12
+    },
+    {
+      "case_id": "HYU_T3_036",
+      "delivered": 11,
+      "selected": 12
+    },
+    {
+      "case_id": "HYU_T4_079",
+      "delivered": 11,
+      "selected": 12
+    },
+    {
+      "case_id": "MIX_T3_023",
+      "delivered": 10,
+      "selected": 12
+    }
+  ],
+  "original_42_common_PASS_preserved": 42,
+  "new_answer_metrics": "NOT_MEASURED",
+  "original_nonpass_not_regraded": true,
+  "total_bytes_increase_percent": 46.771
+}

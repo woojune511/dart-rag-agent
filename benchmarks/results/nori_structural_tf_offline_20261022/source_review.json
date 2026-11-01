@@ -1,0 +1,303 @@
+{
+  "reviewer": "same assistant, unblinded; no independent reviewer or model judge",
+  "cases_reviewed": 8,
+  "method": "All seven newly lost historical-citation cases plus the prior Nori partial-gain Motional case inspected in baseline and treatment whole-source packets. Quotes verified exactly; explicit absence checks supplement semantic source review. Other69 cases receive source/citation/panel audit, not exhaustive semantic adjudication.",
+  "cases": [
+    {
+      "case_id": "KBF_T2_018",
+      "verdict": "EXACT_OPERAND_PRECISION_LOSS; rounded alternative and causal narrative retained",
+      "lost": [
+        {
+          "case_id": "KBF_T2_018",
+          "arm": "N12",
+          "uid": "20240326000894:625:2",
+          "quote": "신용손실충당금전입액 | (3,146,409) | (1,847,775) | (1,185,133)",
+          "text_sha256": "ff639f9c3eac0b91c385222d734f3200db701d2e25e2c40c154101f1724171b6"
+        }
+      ],
+      "retained": [
+        {
+          "case_id": "KBF_T2_018",
+          "arm": "F12",
+          "uid": "20240326000894:1846:5",
+          "quote": "신용손실충당금전입액 (d) | 3,146 | 1,299 | 1,848 | 1,185",
+          "text_sha256": "6ee672a88816aa1f461471dadef6e9ac87f364ebc8124c233ad70623ee292751"
+        },
+        {
+          "case_id": "KBF_T2_018",
+          "arm": "F12",
+          "uid": "20240326000894:1846:5",
+          "quote": "신용손실충당금전입액은 미래경기 불확실성에 대비한 보수적인 충당금적립으로",
+          "text_sha256": "6ee672a88816aa1f461471dadef6e9ac87f364ebc8124c233ad70623ee292751"
+        }
+      ],
+      "absent_strings_from_entire_F12_packet": [
+        "3,146,409",
+        "1,847,775"
+      ],
+      "packet_sha256": "1d3d12f26ecee0a3fc27be67f23a6e0317ad348737e104db3d7c60ea69017080",
+      "interpretation": "The frozen broad witness panel still counts this case covered through rounded MD&A values. Exact million-won operands are newly absent; the thousand-million-won alternative changes calculable precision. Do not call it a complete loss or an observed answer error.",
+      "deterministic_growth_pct": {
+        "exact_original": 70.2809595324106,
+        "rounded_retained": 70.23809523809523
+      }
+    },
+    {
+      "case_id": "SKH_T3_080",
+      "verdict": "CONSOLIDATED_BASIS_EVIDENCE_LOSS; separate-basis values remain",
+      "lost": [
+        {
+          "case_id": "SKH_T3_080",
+          "arm": "N12",
+          "uid": "20240319000684:381:252",
+          "quote": "외화환산손실 | 906,120",
+          "text_sha256": "24906d5e259c8a187bad20a720b6c0dd4beb969c3c18ae8bd217a2e94d961821"
+        },
+        {
+          "case_id": "SKH_T3_080",
+          "arm": "N12",
+          "uid": "20240319000684:381:252",
+          "quote": "외화환산이익 | (573,884)",
+          "text_sha256": "24906d5e259c8a187bad20a720b6c0dd4beb969c3c18ae8bd217a2e94d961821"
+        }
+      ],
+      "retained": [
+        {
+          "case_id": "SKH_T3_080",
+          "arm": "F12",
+          "uid": "20240319000684:633:233",
+          "quote": "외화환산손실 | 640,782",
+          "text_sha256": "c6f593b4ffa34b709bc0373c1f5d93fd03b4b9717bf1b17b1b5277f8d4a4fdb7"
+        },
+        {
+          "case_id": "SKH_T3_080",
+          "arm": "F12",
+          "uid": "20240319000684:633:233",
+          "quote": "외화환산이익 | (330,272)",
+          "text_sha256": "c6f593b4ffa34b709bc0373c1f5d93fd03b4b9717bf1b17b1b5277f8d4a4fdb7"
+        },
+        {
+          "case_id": "SKH_T3_080",
+          "arm": "F12",
+          "uid": "20240319000684:342:213",
+          "quote": "외환차이 | 1,903,535",
+          "text_sha256": "97843ca89be83d8ddc686e5f5665b165f2685f23d2cde79820d617a290588fe2"
+        }
+      ],
+      "absent_strings_from_entire_F12_packet": [
+        "573,884",
+        "906,120"
+      ],
+      "packet_sha256": "7c40787eb700b972f9f37af5feec622e97b42bc72890236f2de9d2f8883469b2",
+      "interpretation": "Original historical evaluation uses consolidated translation gain/loss. Separate values are not the same scope, and broad FX differences are not the same measure. The question does not expressly specify consolidation; a clearly labeled separate-basis answer may remain possible. This is confirmed loss of the prior basis, not measured full answer failure."
+    },
+    {
+      "case_id": "SAM_T3_028",
+      "verdict": "REQUIRED_AMOUNT_EVIDENCE_LOSS",
+      "lost": [
+        {
+          "case_id": "SAM_T3_028",
+          "arm": "N12",
+          "uid": "20240312000736:319:191",
+          "quote": "조정내역 계 | 재고자산평가손실(환입) 등 | 5,037,579",
+          "text_sha256": "945d9cf0129dba498334c0f7f092e5d6a27ba3dd62be1985789aef6074282945"
+        }
+      ],
+      "retained": [
+        {
+          "case_id": "SAM_T3_028",
+          "arm": "F12",
+          "uid": "20240312000736:210:82",
+          "quote": "동 비용에는 재고자산평가손실 금액이 포함되어 있습니다.",
+          "text_sha256": "aa01861a808cd1dc39bdf8c70d0a190fe0721ed5989edc1ccb911a3f60c26038"
+        },
+        {
+          "case_id": "SAM_T3_028",
+          "arm": "F12",
+          "uid": "20240312000736:209:81",
+          "quote": "재고자산 계 | 56,506,958 | (4,319,092) | 52,187,866",
+          "text_sha256": "e73a96ce8febbdffc35a77c55035b5ce145c6624361e3f2cf97eaa3099722ac0"
+        }
+      ],
+      "absent_strings_from_entire_F12_packet": [
+        "5,037,579",
+        "3,558,358"
+      ],
+      "packet_sha256": "ec526aad8b2ec71ea8fb1d0dd147c243a3b52211ab8db605e07245f3fca4c59b",
+      "interpretation": "The annual loss/reversal amount is newly unavailable. Retained cost-inclusion explanation and ending valuation allowance cannot replace the period expense amount. Preserve the source qualifier 등; do not infer a same-basis causal percentage."
+    },
+    {
+      "case_id": "MIX_T2_022",
+      "verdict": "REPLACEMENT_SUPPORT_PRESERVED",
+      "lost": [
+        {
+          "case_id": "MIX_T2_022",
+          "arm": "N12",
+          "uid": "20240318000844:34:1",
+          "quote": "- 핀테크 | 1,354,767 | 14.0 | 1,186,635 | 14.4",
+          "text_sha256": "8939165dca02e79d5657825cb1eaeaeb06e6208114dd83cb4e4f279c92981f68"
+        }
+      ],
+      "retained": [
+        {
+          "case_id": "MIX_T2_022",
+          "arm": "F12",
+          "uid": "20240318000844:42:1",
+          "quote": "- 핀테크 | 1,354,767 | 14.0 | 1,186,635 | 14.4",
+          "text_sha256": "7ae97c39a35f1bd8250f62cbffbda1b6841639dca89c4a118cd8cc9df0790344"
+        },
+        {
+          "case_id": "MIX_T2_022",
+          "arm": "F12",
+          "uid": "20240318000844:1559:7",
+          "quote": "네이버페이 결제액은 2023년 59.6조원으로 21.8% 증가하였는데, 이는 외부 결제액 증가에 따른 페이 생태계의 지속적 확장과, 현장결제 확대 및 예약/주문 분야의 지속성장에 따른 결과입니다.",
+          "text_sha256": "54bbe8af5cfc99853cade11b71a2da6cb4b7c0b315545ee1eeb5520b39750b36"
+        }
+      ],
+      "interpretation": "Same consolidated current/prior row survives in another source with the matching headers. Growth drivers and payment amount also survive. Source ID loss is not a required-evidence loss here."
+    },
+    {
+      "case_id": "MIX_T3_063",
+      "verdict": "HOLD_REMAINS; extra byte omission and axis context loss",
+      "lost": [
+        {
+          "case_id": "MIX_T3_063",
+          "arm": "N12",
+          "uid": "20240318000844:425:301",
+          "quote": "다. 당기말 및 전기말 현재, 당기 및 전기 중 주요 관계기업과 공동기업의 요약 재무정보 및 해당 기업으로부터 수령한 배당금은 다음과 같습니다.",
+          "text_sha256": "855846ff836a6d17d361c2ac342bb3517701009f8f5da2720042ad41bdd09286"
+        }
+      ],
+      "interpretation": "Lost source introduces the following table, but supplies no requested rank or net-income values. Historical scope/reference HOLD remains; do not score this as newly wrong. Packet shrinks from six to four whole sources because changed order and larger metadata interact with the fixed byte budget. UID gains do not establish correctly scoped ranking evidence."
+    },
+    {
+      "case_id": "CEL_T3_015",
+      "verdict": "CORE_SUPPORT_PRESERVED; optional historical detail lost",
+      "lost": [
+        {
+          "case_id": "CEL_T3_015",
+          "arm": "N12",
+          "uid": "20240318000913:691:94",
+          "quote": "파생상품자산 18백만원 및 파생상품부채 65백만원을 추가 인식하였습니다",
+          "text_sha256": "1f5df56069c309f982db3947c3e1c4211be0398142a5d01654b62107c1fb809c"
+        }
+      ],
+      "retained": [
+        {
+          "case_id": "CEL_T3_015",
+          "arm": "F12",
+          "uid": "20240318000913:575:415",
+          "quote": "합병의 목적 | 통합된 자원의 대규모 투자, 개발-생산-판매 일원화를 통한 제품력 및 원가경쟁력 확보, 투명성 제고를 통한 투자자 신뢰증진",
+          "text_sha256": "3b73363c3d40fe19eeeb390ccc79738561168e2a4008cf044d212301ca5b89c1"
+        },
+        {
+          "case_id": "CEL_T3_015",
+          "arm": "F12",
+          "uid": "20240318000913:575:415",
+          "quote": "합병기일 | 2023-12-28",
+          "text_sha256": "3b73363c3d40fe19eeeb390ccc79738561168e2a4008cf044d212301ca5b89c1"
+        },
+        {
+          "case_id": "CEL_T3_015",
+          "arm": "F12",
+          "uid": "20240318000913:575:415",
+          "quote": "합병비율 | 피합병법인 보통주식 1주당 합병기업의 보통주식 0.4492620주 교부",
+          "text_sha256": "3b73363c3d40fe19eeeb390ccc79738561168e2a4008cf044d212301ca5b89c1"
+        }
+      ],
+      "absent_strings_from_entire_F12_packet": [
+        "18백만원",
+        "65백만원"
+      ],
+      "packet_sha256": "521acb9f3454501b0ca99433ef80368abc4cdc7f3e7f076fbc1cfbd878d63c3f",
+      "interpretation": "Core merger facts and purpose stay available. The source supporting an optional derivative-recognition detail in the old answer disappears. Do not equate fewer optional facts with failure of the required summary."
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "verdict": "TARGET_NOT_RECOVERED_AND_SEPARATE_GROSS_AMOUNTS_NEWLY_LOST",
+      "lost": [
+        {
+          "case_id": "CEL_T3_040",
+          "arm": "N12",
+          "uid": "20240318000913:917:320",
+          "quote": "조정항목에 의한 합계 | 재고자산평가손실 | 1,010,161",
+          "text_sha256": "0f5e2816b47ce299c2d2fff19497ba0659f7dcbfb0722ac18fa8ab6c3069f31e"
+        },
+        {
+          "case_id": "CEL_T3_040",
+          "arm": "N12",
+          "uid": "20240318000913:917:320",
+          "quote": "조정항목에 의한 합계 | 재고자산평가손실환입 | (45,139,758)",
+          "text_sha256": "0f5e2816b47ce299c2d2fff19497ba0659f7dcbfb0722ac18fa8ab6c3069f31e"
+        },
+        {
+          "case_id": "CEL_T3_040",
+          "arm": "N12",
+          "uid": "20240318000913:917:320",
+          "quote": "조정항목에 의한 합계 | 재고자산폐기손실 | 22,312,563",
+          "text_sha256": "0f5e2816b47ce299c2d2fff19497ba0659f7dcbfb0722ac18fa8ab6c3069f31e"
+        }
+      ],
+      "retained": [
+        {
+          "case_id": "CEL_T3_040",
+          "arm": "F12",
+          "uid": "20240318000913:319:159",
+          "quote": "재고자산평가손실환입 등 | (21,196)",
+          "text_sha256": "622dbd2dc7789e7ee7b20b91231ece997dc59dc6e58129578a3f1b5264c4c334"
+        },
+        {
+          "case_id": "CEL_T3_040",
+          "arm": "F12",
+          "uid": "20240318000913:732:135",
+          "quote": "재고자산평가손실환입 등 | (21,817)",
+          "text_sha256": "18b99e80fcf159527626f554c32f93b220f84397fc86f61ddfbe25768153bcff"
+        }
+      ],
+      "absent_strings_from_entire_F12_packet": [
+        "2,526,280",
+        "48,885,812",
+        "25,163,510",
+        "1,010,161",
+        "45,139,758",
+        "22,312,563"
+      ],
+      "packet_sha256": "b50131036ea69b2191e19f603f2a1aee56e13eef31631747a54e8e5150e76b8b",
+      "interpretation": "The three consolidated amounts remain outside final12. The three separate amounts previously inside N12 are now also absent. Net cost recognition cannot reconstruct three gross components. The question does not expressly require consolidated scope, so this separate-basis loss matters and is not captured by the consolidated-only frozen 26-unit panel."
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "verdict": "SCOPE_TRADEOFF_AND_PARTIAL_GAIN; not a full recovery",
+      "lost": [
+        {
+          "case_id": "HYU_T3_072",
+          "arm": "N12",
+          "uid": "20240313001451:293:151",
+          "quote": "전체 공동기업 및 관계기업 | 공동기업 및 관계기업 | Motional AD LLC | 709,112 | 0 | (8,421) | 700,691",
+          "text_sha256": "ab20da29523d976db3d39b1acfb42685d5537bf2af0407dba2eb119cd79dc261"
+        }
+      ],
+      "retained_or_new": [
+        {
+          "case_id": "HYU_T3_072",
+          "arm": "F12",
+          "uid": "20240313001451:687:106",
+          "quote": "전체 공동기업 | Motional AD LLC (*1,11) | 자율주행 소프트웨어 개발 | 미국 | 25.81% | 1,294,367",
+          "text_sha256": "04dfaee6b09f6f4b39089645a8a7ac47e593feda0391edfff59fa475256ced4b"
+        },
+        {
+          "case_id": "HYU_T3_072",
+          "arm": "F12",
+          "uid": "20240313001451:294:152",
+          "quote": "전체 공동기업 및 관계기업 | 공동기업 및 관계기업 | Motional AD LLC | 922,942 | 0 | (15,881) | 907,061",
+          "text_sha256": "14ff1ca9ccfd3776f5565f0773227dbb6a9fb488e5e86b6a2effa67a7177de7b"
+        }
+      ],
+      "absent_strings_from_entire_F12_packet": [
+        "700,691"
+      ],
+      "packet_sha256": "4ba61e042e0858b13abe1052cd45e888ffa71d0ba223d358ddad7bdeeded9165",
+      "interpretation": "The N12 current-marked consolidated investment value 700,691 million disappears (RRF9 to13). Newly selected F12 separate/current-marked table supplies 25.81% ownership and 1,294,367 million investment. Prior-marked 907,061 is not current. The question does not require consolidation, so the separate row is a useful partial alternative; no Motional profit/loss recovery is established. These scope/period descriptions rely on saved parser markers and headers, not new original-report period validation. Keep this post-hoc partial tradeoff outside the frozen26-unit score."
+    }
+  ]
+}

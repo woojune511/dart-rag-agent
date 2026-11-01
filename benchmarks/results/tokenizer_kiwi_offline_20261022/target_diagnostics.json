@@ -1,0 +1,301 @@
+[
+  {
+    "case_id": "KBF_T2_018",
+    "uid": "20240326000894:1846:5",
+    "evidence": "충당금 증가 직접 원인",
+    "full_lexical_rank": {
+      "A12": 4,
+      "K12": 1
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 4,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": 1,
+        "rrf_rank": 5,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "NAV_T3_007",
+    "evidence": "연결 영업권 총액과 손상",
+    "uid": "20240318000844:353:229",
+    "full_lexical_rank": {
+      "A12": 174,
+      "K12": 602
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": null,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "MIX_T3_048",
+    "evidence": "실제 현금 배당 지급액",
+    "uid": "20240312000736:127:6",
+    "full_lexical_rank": {
+      "A12": 7,
+      "K12": 129
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 7,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T2_010",
+    "uid": "20240313001451:96:5",
+    "evidence": "미국 판매 당기/전기",
+    "full_lexical_rank": {
+      "A12": 7,
+      "K12": 6
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 7,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": 6,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "POS_T1_057",
+    "evidence": "연결 영업이익",
+    "uid": "20240322000986:1186:24",
+    "full_lexical_rank": {
+      "A12": 18,
+      "K12": 55
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 18,
+        "rrf_rank": 28,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "SKH_T1_060",
+    "evidence": "연결 유형·무형자산",
+    "uid": "20240319000684:123:0",
+    "full_lexical_rank": {
+      "A12": 56,
+      "K12": 37
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "evidence": "Motional 지분율·장부금액",
+    "uid": "20240313001451:275:133",
+    "full_lexical_rank": {
+      "A12": 59,
+      "K12": 58
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": 27,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": null,
+        "rrf_rank": 27,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "evidence": "Motional 요약 손익",
+    "uid": "20240313001451:285:143",
+    "full_lexical_rank": {
+      "A12": 307,
+      "K12": 450
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "uid": "20240313001451:1251:9",
+    "evidence": "타법인출자 Motional 대체 행",
+    "full_lexical_rank": {
+      "A12": 12,
+      "K12": 67
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 12,
+        "rrf_rank": 22,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "SKI_T1_068",
+    "evidence": "배터리 손실과 통화 단위",
+    "uid": "20240320000950:882:499",
+    "full_lexical_rank": {
+      "A12": 9,
+      "K12": 19
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 9,
+        "rrf_rank": 15,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": 19,
+        "rrf_rank": 32,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "NAV_T2_006",
+    "uid": "20240318000844:1559:7",
+    "evidence": "커머스 매출 비교",
+    "full_lexical_rank": {
+      "A12": 4,
+      "K12": 2
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 4,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": 2,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "CEL_T3_040",
+    "evidence": "재고 평가손실·환입·폐기손실",
+    "uid": "20240318000913:517:357",
+    "full_lexical_rank": {
+      "A12": 5,
+      "K12": 8
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 5,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": 8,
+        "rrf_rank": 15,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "MIX_T1_064",
+    "evidence": "연결 매출액·매출원가",
+    "uid": "20240313001451:1047:3",
+    "full_lexical_rank": {
+      "A12": 16,
+      "K12": 9
+    },
+    "arms": {
+      "A12": {
+        "lexical_rank": 16,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "K12": {
+        "lexical_rank": 9,
+        "rrf_rank": 5,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  }
+]

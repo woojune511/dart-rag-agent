@@ -1,0 +1,22 @@
+{
+  "status": "COMPLETE_NOT_ADOPTED",
+  "origin_skill": "experiment-agent",
+  "mode": "run",
+  "verification_status": "PARTIAL: exact baseline and offline mechanics verified; bounded same-assistant source review, no generated answers or independent holdout",
+  "model_api_calls": 0,
+  "external_model_cost_usd": 0,
+  "answers_generated": 0,
+  "cases": 77,
+  "elapsed_seconds": 112.03,
+  "preservation": {
+    "changed": [],
+    "unchanged": true,
+    "unique_protected_files": 1901,
+    "hash_entries": 1903
+  },
+  "exit_code": 0,
+  "focused_tests_passed": 7,
+  "valid_treatment_runs": 1,
+  "preflight_correction": "knlm unavailable in pinned package; cong fixed before treatment; see preflight_receipt.json",
+  "command": ".venv/Scripts/python.exe -u -B -X utf8 benchmarks/results/tokenizer_kiwi_offline_20261022/run.py run"
+}

@@ -1,0 +1,387 @@
+{
+  "reviewer": "same assistant, source-grounded but not blinded or independent",
+  "scope": "All77 mechanical source audit; all20 S12 historical citation-loss cases triaged; fixed10-answerable/26-unit panel and identified recoveries inspected. No full77 new semantic answer grading.",
+  "citation_loss_groups": {
+    "common_answerable": 11,
+    "diagnostic_or_hold": 5,
+    "refusal": 4
+  },
+  "cases": [
+    {
+      "case_id": "KBF_T2_018",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240326000894:662:19"
+      ],
+      "finding": "PRIMARY_EVIDENCE_RETAINED_SUPPORT_DETAIL_LOST",
+      "note": "전입액과 직접 원인 1846:5는 유지. worse/crisis 보충 설명 662:19는 사라짐. 주원인 전체 누락으로 세지 않음."
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240312000736:127:6"
+      ],
+      "finding": "REQUIRED_EVIDENCE_LOST",
+      "note": "연결 실제 지급액 9,864,474백만원이 빠지고 별도 지급액 9,810,119와 선언배당 등이 남음. 환원정책은 유지. 단위·범위가 다른 수치로 대체할 수 없음."
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "historical_group": "diagnostic_or_hold",
+      "lost_citations": [
+        "20240313001451:96:5"
+      ],
+      "finding": "FIXED_PANEL_EVIDENCE_LOST_BENCHMARK_HOLD",
+      "note": "현대차 2023/2022 미국 판매 87.0/78.1만대가 빠짐. IRA 대응은 유지. 질문 주체 생략에 대한 기존 benchmark HOLD와 별개로, 고정 진단 패널의 현대차 해석에 필요한 근거가 사라짐."
+    },
+    {
+      "case_id": "HYU_T3_011",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240313001451:1045:1"
+      ],
+      "finding": "PRIMARY_EVIDENCE_RETAINED",
+      "note": "1045:1의 재료비 개선 등 설명이 빠졌으나 MD&A 1047:3의 물량 증가 및 고급차/SUV 믹스 개선 두 원인은 유지."
+    },
+    {
+      "case_id": "MIX_T2_047",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240313001451:99:8"
+      ],
+      "finding": "PRIMARY_EVIDENCE_RETAINED",
+      "note": "GV60 유럽 수상·브랜드관리 상세가 줄었으나 1045:1의 고부가 믹스·누적100만대와 103:12의 브랜드 전략은 유지."
+    },
+    {
+      "case_id": "LGE_T4_053",
+      "historical_group": "refusal",
+      "lost_citations": [
+        "20240314001110:34:0"
+      ],
+      "finding": "REFUSAL_NOT_EVALUATED",
+      "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+    },
+    {
+      "case_id": "NAV_T4_008",
+      "historical_group": "refusal",
+      "lost_citations": [
+        "20240318000844:1559:7"
+      ],
+      "finding": "REFUSAL_NOT_EVALUATED",
+      "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+    },
+    {
+      "case_id": "KBF_T3_019",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240326000894:1111:468"
+      ],
+      "finding": "ALTERNATIVE_SOURCE_RETAINED",
+      "note": "1111:468의 책임준공·약정한도·실행잔액 내용은 1885:44 및 2140:45에도 남아 있음. 인용 UID 손실을 근거 전체 손실로 세지 않음."
+    },
+    {
+      "case_id": "LGE_T2_052",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240314001110:20:1"
+      ],
+      "finding": "PRODUCT_PRICE_UNIT_CONTEXT_LOST",
+      "note": "원재료 표 24:2/23:1과 Lagging 설명 897:3은 유지. 제품가격 21:2의 1.89/1.62는 남지만 그 표의 USD 표제 20:1이 빠짐. 다른 원재료 표의 USD를 자동 연결하지 않음. 답변 오류 자체는 미측정."
+    },
+    {
+      "case_id": "POS_T2_058",
+      "historical_group": "diagnostic_or_hold",
+      "lost_citations": [
+        "20240322000986:1446:284"
+      ],
+      "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+      "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+    },
+    {
+      "case_id": "MIX_T4_065",
+      "historical_group": "refusal",
+      "lost_citations": [
+        "20240319000684:723:2"
+      ],
+      "finding": "REFUSAL_NOT_EVALUATED",
+      "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+    },
+    {
+      "case_id": "SKH_T2_061",
+      "historical_group": "diagnostic_or_hold",
+      "lost_citations": [
+        "20240319000684:84:4"
+      ],
+      "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+      "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+    },
+    {
+      "case_id": "NAV_T3_032",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240318000844:1238:137"
+      ],
+      "finding": "PRIMARY_EVIDENCE_RETAINED_QUALIFIER_LOST",
+      "note": "연결 CAPEX 692.3십억원, 세종/춘천/클라우드 투자 설명은 40:4에 유지. 별도 주석의 취득·자본적지출 세부 설명 1238:137은 손실."
+    },
+    {
+      "case_id": "SAM_T2_027",
+      "historical_group": "diagnostic_or_hold",
+      "lost_citations": [
+        "20240312000736:95:6"
+      ],
+      "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+      "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+    },
+    {
+      "case_id": "SAM_T4_029",
+      "historical_group": "refusal",
+      "lost_citations": [
+        "20240312000736:804:11"
+      ],
+      "finding": "REFUSAL_NOT_EVALUATED",
+      "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+    },
+    {
+      "case_id": "CEL_T2_014",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240318000913:108:49"
+      ],
+      "finding": "PRIMARY_PIPELINE_EVIDENCE_RETAINED",
+      "note": "108:49의 개별 CT-P47 표는 사라졌지만 103:44의 품목별 심사 상태와 기준일 이후 US/EU/한국 신청 표시 및 1056:11의 파이프라인 개요는 유지. 모든 상세 표현의 동일성을 주장하지 않음."
+    },
+    {
+      "case_id": "CEL_T2_073",
+      "historical_group": "diagnostic_or_hold",
+      "lost_citations": [
+        "20240318000913:136:12"
+      ],
+      "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+      "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+    },
+    {
+      "case_id": "CEL_T3_015",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240318000913:574:414",
+        "20240318000913:691:94",
+        "20240318000913:951:354"
+      ],
+      "finding": "PRIMARY_EVIDENCE_RETAINED_EXTRA_DISCLOSURES_LOST",
+      "note": "합병일·승인 사실은 969:372/1023:5, 목적은 연결 주석 575:415에 유지. 추가 파생상품·거래주석은 감소. 주석 범위 차이를 무시한 숫자 대체는 하지 않음."
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240318000913:917:320"
+      ],
+      "finding": "PRIMARY_CONNECTED_VALUES_RETAINED",
+      "note": "연결 gross 평가손실/환입/폐기손실 517:357은 유지. 별도 상세 917:320은 빠지고 다른 표 518:358이 추가. 기본 필수 세 금액의 손실은 아님."
+    },
+    {
+      "case_id": "KAB_T3_067",
+      "historical_group": "common_answerable",
+      "lost_citations": [
+        "20240320001487:295:1"
+      ],
+      "finding": "PRIMARY_EVIDENCE_RETAINED",
+      "note": "173:77 두 수수료, 54:18 서비스, 82:21의 2023 세금신고·펀드 라이선스 및 300:6 조직개편 유지. 295:1의 경영진 서술 감소는 별도로 기록."
+    }
+  ],
+  "verified_quote_witnesses": [
+    {
+      "case_id": "HYU_T3_072",
+      "arm": "S12",
+      "uid": "20240313001451:275:133",
+      "quote": "Motional AD LLC (*1,5) | 자율주행 소프트웨어 개발 | 미국 | 26% | 700,691",
+      "offset": 857,
+      "source_text_sha256": "146ef20693a0ef37a6438017de5848b66917e3865c4dcc33b04f29acef366822"
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "arm": "S12",
+      "uid": "20240313001451:275:133",
+      "quote": "[unit_hint: 백만원]",
+      "offset": 104,
+      "source_text_sha256": "146ef20693a0ef37a6438017de5848b66917e3865c4dcc33b04f29acef366822"
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "arm": "S12",
+      "uid": "20240320000950:882:499",
+      "quote": "810,900 | 516,482 | 997,795 | (581,816)",
+      "offset": 2889,
+      "source_text_sha256": "7325f72edda49f37d33c718d6799c60a07b6e06235ecd2fc76fc25f52dc3979f"
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "arm": "S12",
+      "uid": "20240320000950:882:499",
+      "quote": "[unit_hint: 백만원]",
+      "offset": 123,
+      "source_text_sha256": "7325f72edda49f37d33c718d6799c60a07b6e06235ecd2fc76fc25f52dc3979f"
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "arm": "A12",
+      "uid": "20240312000736:127:6",
+      "quote": "배당금의 지급 | (9,864,474)",
+      "offset": 2733,
+      "source_text_sha256": "fe3433480d9f5662c06dc5500e57617f6d1d8a49130665b3f64d308dcaa695cf"
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "arm": "S12",
+      "uid": "20240312000736:383:4",
+      "quote": "배당금의 지급 | (9,810,119)",
+      "offset": 2319,
+      "source_text_sha256": "82ca7065f374a6ab06e9ae7569a444bd7859fd0f74407f8a8da51d25d43f922f"
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "arm": "S12",
+      "uid": "20240312000736:590:0",
+      "quote": "2024년부터 2026년까지 3년간 발생하는 잉여현금흐름의 50%",
+      "offset": 379,
+      "source_text_sha256": "d2a2ae366fecfe5b585270ad60e2715cd7c40d90bd335f81763a1e34ba428392"
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "arm": "A12",
+      "uid": "20240313001451:96:5",
+      "quote": "2023년 미국시장에서 현대차는 전년 대비 11.5% 증가한 87.0만 대",
+      "offset": 305,
+      "source_text_sha256": "c8be614d73b3989fccbc8b6d610fe2ce8d8f669211e23c18e52d72ec4e36b418"
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "arm": "A12",
+      "uid": "20240313001451:96:5",
+      "quote": "2022년에는 전년 대비 0.9% 감소한 78.1만 대",
+      "offset": 444,
+      "source_text_sha256": "c8be614d73b3989fccbc8b6d610fe2ce8d8f669211e23c18e52d72ec4e36b418"
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "arm": "S12",
+      "uid": "20240313001451:1058:14",
+      "quote": "미국의 인플레이션 감축법과 유럽의 핵심원자재법",
+      "offset": 395,
+      "source_text_sha256": "cbc59b3595718835b8a4570888d544a6cd8d1f44a179884541403e3e61567292"
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "arm": "S12",
+      "uid": "20240313001451:47:7",
+      "quote": "금융상품판매대리·중개업",
+      "offset": 339,
+      "source_text_sha256": "be1ba86a573fc2e7d258bac7c31e194ce39afcabe8bad4b7674756635242fe85"
+    },
+    {
+      "case_id": "KBF_T2_018",
+      "arm": "S12",
+      "uid": "20240326000894:1846:5",
+      "quote": "신용손실충당금전입액은 미래경기 불확실성에 대비한 보수적인 충당금적립으로",
+      "offset": 605,
+      "source_text_sha256": "6ee672a88816aa1f461471dadef6e9ac87f364ebc8124c233ad70623ee292751"
+    },
+    {
+      "case_id": "HYU_T3_011",
+      "arm": "S12",
+      "uid": "20240313001451:1047:3",
+      "quote": "자동차 판매물량 증가로 매출액이 전년 대비 14.8% 증가",
+      "offset": 729,
+      "source_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8"
+    },
+    {
+      "case_id": "HYU_T3_011",
+      "arm": "S12",
+      "uid": "20240313001451:1047:3",
+      "quote": "GV70, GV80 등 고급차 및 SUV 판매증가 영향 믹스개선",
+      "offset": 792,
+      "source_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8"
+    },
+    {
+      "case_id": "MIX_T2_047",
+      "arm": "S12",
+      "uid": "20240313001451:1045:1",
+      "quote": "글로벌 누적판매 100만대를 돌파",
+      "offset": 706,
+      "source_text_sha256": "320ace60c485bde0a9c9f2f4b67f25f9200196b57ab233dc38f07a26a061ac78"
+    },
+    {
+      "case_id": "KBF_T3_019",
+      "arm": "S12",
+      "uid": "20240326000894:1885:44",
+      "quote": "총 PF대출 약정한도는 56,206억원, 실행잔액은 40,020억원",
+      "offset": 386,
+      "source_text_sha256": "791bc07f0ed9ed4abcb979f9e78c87c736d216f7c8221c3ae3943fa31e6e0b37"
+    },
+    {
+      "case_id": "LGE_T2_052",
+      "arm": "A12",
+      "uid": "20240314001110:20:1",
+      "quote": "(단위 : USD)",
+      "offset": 154,
+      "source_text_sha256": "c36103f47cc82a217c3f9c858f812f17d81b25276f8757baeae4217e924b55c4"
+    },
+    {
+      "case_id": "LGE_T2_052",
+      "arm": "S12",
+      "uid": "20240314001110:21:2",
+      "quote": "전동공구용 배터리 | 1.89 | 1.62 | 1.28",
+      "offset": 450,
+      "source_text_sha256": "d832241ead708d40e72fd742ede9ffc0574a2713bfd86fadc8ee455aa50b0d0e"
+    },
+    {
+      "case_id": "LGE_T2_052",
+      "arm": "S12",
+      "uid": "20240314001110:897:3",
+      "quote": "배터리 판매가격 대비 투입 원재료비가 높아서 발생하는 Lagging 영향",
+      "offset": 508,
+      "source_text_sha256": "e698284ae503ab7cbb22dafe479f9abb1ee20cfd305868ed754aa52e7667797d"
+    },
+    {
+      "case_id": "NAV_T3_032",
+      "arm": "S12",
+      "uid": "20240318000844:40:4",
+      "quote": "CapEx | 692.3 | 756.2",
+      "offset": 693,
+      "source_text_sha256": "83792fcc1d387193fccea8cecbd7f1a377f66d1dd50bda1855739012f1b50d9d"
+    },
+    {
+      "case_id": "CEL_T2_014",
+      "arm": "S12",
+      "uid": "20240318000913:103:44",
+      "quote": "CT-P47 | Rheumatoid Arthritis",
+      "offset": 1057,
+      "source_text_sha256": "388ed0e83c212e60f389072e29de652c596bbb0ac7dd0b8011ce37a69cbb9e0a"
+    },
+    {
+      "case_id": "CEL_T3_015",
+      "arm": "S12",
+      "uid": "20240318000913:969:372",
+      "quote": "2023년 12월 28일을 합병기일로 셀트리온헬스케어를 흡수합병",
+      "offset": 215,
+      "source_text_sha256": "c67fedaf6b6c6d1dad415c78de27aa9e6fd7735a0efaa4c8e6ca073d8aec7ee8"
+    },
+    {
+      "case_id": "CEL_T3_015",
+      "arm": "S12",
+      "uid": "20240318000913:575:415",
+      "quote": "개발-생산-판매 일원화를 통한 제품력 및 원가경쟁력 확보",
+      "offset": 200,
+      "source_text_sha256": "3b73363c3d40fe19eeeb390ccc79738561168e2a4008cf044d212301ca5b89c1"
+    },
+    {
+      "case_id": "KAB_T3_067",
+      "arm": "S12",
+      "uid": "20240320001487:82:21",
+      "quote": "2023년 7월에는 펀드투자 라이선스를 획득",
+      "offset": 483,
+      "source_text_sha256": "5d9d7f467c0c553bae0807720effad05611660f06956384fa524b1532b3bce33"
+    }
+  ]
+}

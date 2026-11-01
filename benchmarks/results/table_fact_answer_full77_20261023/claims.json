@@ -1,0 +1,40 @@
+{
+  "steps": [
+    {
+      "step": "offline_preflight",
+      "status": "passed"
+    },
+    {
+      "step": "criteria_and_independent_audit",
+      "status": "passed"
+    },
+    {
+      "step": "initial_generation",
+      "status": "failed"
+    },
+    {
+      "step": "resume_offline_preflight",
+      "status": "passed"
+    },
+    {
+      "step": "resume_independent_audit",
+      "status": "passed"
+    },
+    {
+      "step": "resumed_generation_and_integrity",
+      "status": "passed"
+    },
+    {
+      "step": "masked_source_review_and_adjudication",
+      "status": "passed"
+    },
+    {
+      "step": "descriptive_paired_aggregation",
+      "status": "passed"
+    },
+    {
+      "step": "final_integrity_and_report",
+      "status": "passed"
+    }
+  ]
+}

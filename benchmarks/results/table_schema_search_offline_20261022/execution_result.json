@@ -1,0 +1,16 @@
+{
+  "status": "COMPLETE_REVIEW_PENDING",
+  "origin_skill": "experiment-agent",
+  "mode": "run",
+  "verification_status": "PARTIAL: retrieval and preservation verified; source review pending",
+  "api_calls": 0,
+  "model_cost_usd": 0,
+  "answers_generated": 0,
+  "cases": 77,
+  "elapsed_seconds": 90.43,
+  "preservation": {
+    "protected_files": 1239,
+    "changed": [],
+    "unchanged": true
+  }
+}

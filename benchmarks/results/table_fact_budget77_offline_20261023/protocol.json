@@ -1,0 +1,72 @@
+{
+  "schema_version": "saved_fact_budget77_v1",
+  "status": "FROZEN_BEFORE_FULL77_OUTPUT",
+  "classification": "isolated offline context-budget experiment; no runtime change",
+  "population": {
+    "cases": 77,
+    "common_answerable": 46,
+    "refusal": 19,
+    "HOLD": 12
+  },
+  "only_treatment": {
+    "context_cap_UTF8_bytes": [
+      65536,
+      163840
+    ],
+    "labels": [
+      "64KiB",
+      "160KiB"
+    ]
+  },
+  "source": "Existing immutable projections.json and A12 packets; reuse original project_packet with CAP changed only in memory.",
+  "fixed": [
+    "saved source-validated fact unit payloads and dependencies",
+    "Dense and BM25 candidates, scores, RRF order",
+    "selected top12",
+    "actual original document membership and omissions",
+    "first physical-table owner",
+    "original query, report_scope, source IDs, text, context and doc order",
+    "source row/column unit order",
+    "atomic unit admission, skip oversized unit and continue"
+  ],
+  "not_permitted": [
+    "new projections",
+    "unselected or originally omitted doc refill",
+    "query-specific prioritization",
+    "context rewriting",
+    "source changes",
+    "new answer generation",
+    "runtime/store/env edits"
+  ],
+  "evaluation": [
+    "64KiB exact packet and full decision replay against saved FCT12 for all77",
+    "full77 original fields and candidate/order hashes unchanged",
+    "physical unit identities and payloads added/lost/changed between caps",
+    "independent original XML and saved witness checks for delivered units",
+    "unchanged mandatory-evidence criteria, current4, legacy26 and19axis-watch",
+    "Motional closing ownership and carrying amount separate from full profit-summary requirement"
+  ],
+  "criterion_precedence": "Copied evaluation_contract/supplement govern fact requirements. Their historical 65536-byte cap is superseded only for160KiB; no other criterion changes.",
+  "limits": {
+    "external_API_calls": 0,
+    "cost_usd": 0,
+    "scored_runs": 1,
+    "run_timeout_seconds": 1800,
+    "store_or_SQLite_client": false,
+    "app_restart": false,
+    "network": "blocked by imported frozen runner"
+  },
+  "interpretation": [
+    "Development-exposed deterministic delivery comparison, not independent generalization.",
+    "Physical source linkage is not semantic entity/period/unit correctness.",
+    "No answer accuracy, faithfulness, refusal or model latency/cost measurement.",
+    "Larger budget is not assumed to retain all smaller-budget units."
+  ],
+  "preservation": {
+    "write_scope": "benchmarks\\results\\table_fact_budget77_offline_20261023",
+    "protected_files": 5626,
+    "prior_artifacts_immutable": true,
+    "HEAD_index_status_unchanged": true
+  },
+  "stop_after": "Two fixed caps, review and report only. No production adoption or further variant."
+}

@@ -1,0 +1,7 @@
+{
+  "cases": 77,
+  "BM25_rank_parity": true,
+  "BM25_max_score_error": 0.0,
+  "A8_saved_packet_exact": true,
+  "A12_saved_packet_exact": true
+}

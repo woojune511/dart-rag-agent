@@ -1,0 +1,4228 @@
+[
+  {
+    "case_id": "KBF_T2_018",
+    "question": "2023년 연결 포괄손익계산서 상의 '신용손실충당금전입액' 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "전입액70.28%와 보수적 기대신용손실 적립을 설명. 625:2/1846:5/662:19/1842:1이 금액·원인·고정이하여신비율1.01%(+0.31%p)를 지지.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A625%3A2",
+          "20240326000894:20240326000894%3A1846%3A5",
+          "20240326000894:20240326000894%3A662%3A19",
+          "20240326000894:20240326000894%3A1842%3A1"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "625:2의 연결 전입액 3146409/1847775백만원과 1846:5의 보수적 적립,662:19의 worse/crisis,1842:1의 NPL1.01%(+0.31%p)가 요구 및 부가 설명을 지지한다.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A625%3A2",
+          "20240326000894:20240326000894%3A1846%3A5",
+          "20240326000894:20240326000894%3A662%3A19",
+          "20240326000894:20240326000894%3A1842%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "EXACT_OPERAND_PRECISION_LOSS; rounded alternative and causal narrative retained",
+        "note": "The frozen broad witness panel still counts this case covered through rounded MD&A values. Exact million-won operands are newly absent; the thousand-million-won alternative changes calculable precision. Do not call it a complete loss or an observed answer error."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_EVIDENCE_RETAINED_SUPPORT_DETAIL_LOST",
+        "note": "전입액과 직접 원인 1846:5는 유지. worse/crisis 보충 설명 662:19는 사라짐. 주원인 전체 누락으로 세지 않음."
+      },
+      {
+        "artifact": "table_row_search_offline_20261022/review.json",
+        "arm": "row_B8",
+        "finding": "CONFIRMED_DIRECT_CAUSAL_LINK_LOSS_PARTIAL_TOPIC_RETAINED",
+        "note": "금액은 유지. 보수적 충당금 적립 언급은 B에도 있으나, 증가 원인을 미래경기 불확실성과 직접 연결한 문장이 빠짐. 질문 전체가 불가능하거나 금액까지 누락됐다는 뜻은 아님."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "KBF_T2_018",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery"
+      ],
+      "literal_facts": "625:2 전입액(3,146,409)/(1,847,775)백만원; source_context 요약연결포괄손익계산서;1846:5는3,146/1,848십억원",
+      "binding_flags": [
+        "scope scalar unknown although bound connected heading exists",
+        "제16/15기 axis survives; flat current is not per-cell year"
+      ],
+      "saved_condition_boundary": "Exact625:2 A12 RRF6,N12 RRF8,F12 RRF13. Rounded1846:5 and direct cause stay inF12; row_B8 previously lost causal paragraph",
+      "interpretation": "정밀도 손실과 완전 부재를 구분. 금액은 표로 식별 가능하나 원인 설명은 서술 필요.",
+      "evidence": [
+        "root_source_witnesses.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "POS_T4_059",
+    "question": "포스코홀딩스의 2025년 아르헨티나 염수 리튬 생산량 목표치를 달성했을 때 예상되는 영업이익을 계산해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "145:51 생산능력25/23천톤 및 투자기간을 실제2025생산량·이익으로 전용하지 않고 판매단가/원가 부재로 거절.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A145%3A51"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "145:51 연25/23천톤생산능력·2025.06투자기간을실제목표생산/이익으로전용하지않고필요가격/원가부족으로거절.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A145%3A51"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "SKH_T3_080",
+    "question": "2023년 주석에서 외화환산이익과 외화환산손실 금액을 각각 찾고, 해당 연도의 환율 변동이 영업외수지에 미친 순효과(이익-손실)를 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "381:252 연결 환산손익573884-906120=-332236백만원. 다른 환율 관련 손익을 제외하는 범위를 보존.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A381%3A252"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "381:252 연결573884-906120=-332236백만원. 추가 별도330272-640782=-310510도633:233으로 지지하며 범위를 구별했다.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A381%3A252",
+          "20240319000684:20240319000684%3A633%3A233"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "CORE_EVIDENCE_LOSS",
+        "note": "기준선에 있던 당기 연결 외화환산이익 573,884 및 손실 906,120백만원이 NL12 전체 패킷에서 사라졌다. 남은 별도 당기 330,272/640,782 및 연결 전기 868,767/1,925,382는 동일 범위·기간의 대체 근거가 아니다. 기존 연결 범위 순효과를 계산할 두 피연산자의 검색 근거 회귀로 판단한다."
+      },
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "CONSOLIDATED_BASIS_EVIDENCE_LOSS; separate-basis values remain",
+        "note": "Original historical evaluation uses consolidated translation gain/loss. Separate values are not the same scope, and broad FX differences are not the same measure. The question does not expressly specify consolidation; a clearly labeled separate-basis answer may remain possible. This is confirmed loss of the prior basis, not measured full answer failure."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "SKH_T3_080",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery"
+      ],
+      "literal_facts": "381:252 당기 연결 외화환산손실906,120/이익(573,884)백만원;633:233 별도640,782/(330,272)",
+      "binding_flags": [
+        "question does not expressly fix consolidation",
+        "cashflow adjustment sign is not automatically income-effect arithmetic"
+      ],
+      "saved_condition_boundary": "Connected381:252 N12 RRF11→F12 RRF15; separate633:233 remainsF12 RRF11",
+      "interpretation": "이전 연결 기준 근거의 손실. 범위를 밝힌 별도 답변까지 불가능하다고 세지 않음.",
+      "evidence": [
+        "root_source_witnesses.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "MIX_T1_046",
+    "question": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "937:813 종업원급여1701418940/영업비용8181823307천원=20.80%; 별도 인건비 항목을 합산하지 않음.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A937%3A813"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "937:813 연결 종업원급여1701418940/8181823307천원=20.80%. 주식보상·복리후생 별도 행을 제외했다는 범위도 정확하다.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A937%3A813"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_row_search_offline_20261022/review.json",
+        "arm": "row_B8",
+        "finding": "ESSENTIAL_VALUES_RETAINED_IN_ALTERNATIVE_SOURCE",
+        "note": "인용했던 MD&A 출처는 빠졌지만 원래 함께 있었던 당기 연결 비용 표가 유지되어 종업원급여와 비용 총액을 직접 제공. 천원/당기/연결 표시 있음. 실제 답변 회귀 여부는 미평가."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_VALUES_PRESERVED_ALTERNATIVE_SOURCE",
+      "table_identifiability": "TABLE_FACTS_IDENTIFIABLE",
+      "finding": "MD&A 인용이 빠져도937:813에 연결·당기·천원과 종업원급여1,701,418,940 및 합계8,181,823,307이 있다. 별도 주식보상/복리후생 행을 임의로 분자에 합산하지 않으면20.80% 계산 근거가 보존된다. 인용UID교체는 실패가 아니다."
+    }
+  },
+  {
+    "case_id": "NAV_T3_007",
+    "question": "2023년 연결재무제표 주석에서 인식된 '영업권(Goodwill)'의 총액을 찾고, 손상차손 발생 여부를 확인해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "PARTIAL",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "추가된353:229 영업권 열의 기말2578089956천원과 손상19630042천원을 정확히 추출.1563:11의196억원 설명과 일치.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A353%3A229",
+          "20240318000844:20240318000844%3A1563%3A11"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "363:239의 영업권 합계와353:229의 영업권 열 손상/기말액을 정확히 전달. 천원-억원 환산도 맞다.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A363%3A239",
+          "20240318000844:20240318000844%3A353%3A229"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "NAV_T3_007",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery"
+      ],
+      "literal_facts": "353:229 영업권 열×기말금액2,578,089,956/손상 및 환입(19,630,042)천원",
+      "binding_flags": [
+        "relative current period retained"
+      ],
+      "saved_condition_boundary": "A8 RRF11 omitted; A12 kept; N12/F12 RRF9 kept",
+      "interpretation": "과거top8의 선택 누락은 현재 저장top12에서 해결돼 있음. reference의 오래된 발췌 숫자보다 원문 셀과 수정 answer_key를 우선.",
+      "evidence": [
+        "numeric_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "MIX_T3_048",
+    "question": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "PARTIAL",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "추가된127:6 현금배당9864474백만원과590:0의2024~2026 FCF50%·정규9.8조·조건부추가환원을 모두 충족. 정책 조정 가능성도 원문 지지.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A127%3A6",
+          "20240312000736:20240312000736%3A590%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "127:6 현금배당9864474백만원과590:0의2024~2026 FCF50%·9.8조 정규배당·조건부 추가환원 모두 충족. M&A/현금규모에 따른 정책변경도 지지.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A127%3A6",
+          "20240312000736:20240312000736%3A590%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "N12",
+        "finding": "required_evidence_loss",
+        "note": "연결 실제 현금 지급9,864,474백만원이 빠졌다. 남은9,809,438 선언배당 및연9.8조원 정책은 실제 지급의 대체 근거가 아니다. RRF14로 최종12 밖이며 바이트 생략은 아니다."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "REQUIRED_EVIDENCE_LOST",
+        "note": "연결 실제 지급액 9,864,474백만원이 빠지고 별도 지급액 9,810,119와 선언배당 등이 남음. 환원정책은 유지. 단위·범위가 다른 수치로 대체할 수 없음."
+      }
+    ],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "MIX_T3_048",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery"
+      ],
+      "literal_facts": "배당금의 지급×제55기=(9,864,474)백만원; source_context에2023.01.01~12.31",
+      "binding_flags": [
+        "value period field unpopulated; explicit period is recoverable from bound caption"
+      ],
+      "saved_condition_boundary": "A8 omitted; A12 RRF10 kept; N12/F12 RRF14 omitted",
+      "interpretation": "수치와 기간·연결·단위 모두 보존. 주주환원정책은 별도 서술 근거가 필요.",
+      "evidence": [
+        "numeric_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "SAM_T2_078",
+    "question": "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "92:3/93:4 연결R&D 총액·보조금 전후를 구분.114:17/682:9의 IT 접목·SDV·콕핏·5G TCU 기술과 성과를 보존.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A92%3A3",
+          "20240312000736:20240312000736%3A93%3A4",
+          "20240312000736:20240312000736%3A114%3A17",
+          "20240312000736:20240312000736%3A682%3A9"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "92:3/93:4에서 연결 R&D 총액·정부보조금 차감 전후를 구별했다.114:17/682:9/112:15가 IT접목·SDV·콕핏·텔레매틱스·5G TCU 및 차량 내 경험을 지지.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A92%3A3",
+          "20240312000736:20240312000736%3A93%3A4",
+          "20240312000736:20240312000736%3A114%3A17",
+          "20240312000736:20240312000736%3A682%3A9",
+          "20240312000736:20240312000736%3A112%3A15"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "CEL_T1_013",
+    "question": "2023년 전체 연구개발비용 중 무형자산(개발비)으로 자본화된 금액의 비율(%)을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "101:42 연결R&D 자본화 비율52.99%, 정부보조금 없음 및 차감 전후 동일도 지지.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A101%3A42"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "101:42 연결 연구개발비와 자본화 금액으로52.99%를 정확히 계산했다.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A101%3A42"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "CEL_T4_016",
+    "question": "셀트리온의 2023년 스마트폰 판매 실적과 전년 대비 증감률을 계산해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1055:10 의약품 부문 실적을 스마트폰 실적으로 대체하지 않고 두연도 자료부족을 설명.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A1055%3A10"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1055:10 의약품매출구분을스마트폰으로대체하지않고제공자료두연도수치부족설명.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A1055%3A10"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KAK_T3_076",
+    "question": "2023년 사업보고서 중 '그 밖의 투자자 보호를 위하여 필요한 사항' 등에서 데이터센터 화재(서비스 장애)와 관련된 보상 진행 현황 또는 관련 충당부채 내역을 찾아 요약해.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1412:0 소송54건106101백만원은 맞고 화재사건으로 특정하지 않음.1421:9 주석38 안내 및 발췌 한계 명시.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A1412%3A0",
+          "20240418000375:20240418000375%3A1421%3A9"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1412:0 54건/106101백만원일반소송과부채인식은지지;화재사건으로귀속하지않고1421:9의주석38안내와제공발췌한계를명시.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A1412%3A0",
+          "20240418000375:20240418000375%3A1421%3A9"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "HYU_T2_010",
+    "question": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "질문 주체 생략 HOLD 유지. 96:5의 현대차 미국 78.1/87.0만대로 11.4% 계산; 보고율11.5% 및 전체시장12.3%와 분리하고 차이의 정확한 원인을 단정하지 않는다. 1058:14 IRA/핵심원자재법, 생산물량 유연화 및 EV원가경쟁 방향 모두 지지.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A96%3A5",
+          "20240313001451:20240313001451%3A95%3A4",
+          "20240313001451:20240313001451%3A1058%3A14"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PARTIAL",
+        "note": "주체누락HOLD유지.96:5의87.0/78.1계산11.4와공시11.5구분,95:4 전체시장1560.8만/12.3%,1058:14 대응정책은지지.그러나 차이를 '반올림된 수치이므로'라고 원인단정했고원문에정확미반올림값/설명없음.기존원문/계산차이원인발명금지기준으로support PARTIAL회귀.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A96%3A5",
+          "20240313001451:20240313001451%3A95%3A4",
+          "20240313001451:20240313001451%3A1058%3A14"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "FIXED_PANEL_EVIDENCE_LOST_BENCHMARK_HOLD",
+        "note": "현대차 2023/2022 미국 판매 87.0/78.1만대가 빠짐. IRA 대응은 유지. 질문 주체 생략에 대한 기존 benchmark HOLD와 별개로, 고정 진단 패널의 현대차 해석에 필요한 근거가 사라짐."
+      }
+    ],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "HYU_T2_010",
+      "identifiability": "NOT_TABLE",
+      "failure_layers": [
+        "selection_delivery",
+        "other"
+      ],
+      "literal_facts": "96:5 본문 현대차 미국87.0/78.1만대·보고증가율11.5%;95:4 전체시장과 별도",
+      "binding_flags": [
+        "question subject unspecified; HOLD",
+        "cause of reported vs calculated growth difference not established"
+      ],
+      "saved_condition_boundary": "A12 keeps required prose; S12 RRF23 loses96:5; facets keeps it but invents rounding explanation",
+      "interpretation": "선택 누락과 생성 추정이 조건별로 다름. 원자료는 문단이므로 표 전용 검색만으로 해결할 대상이 아님.",
+      "evidence": [
+        "boundaries_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "diagnostic_or_hold"
+    }
+  },
+  {
+    "case_id": "HYU_T3_011",
+    "question": "사업보고서의 MD&A를 바탕으로 2023년 수익성 개선의 주요 요인을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "물량·고부가 믹스·판매체질/재료비 개선을 최소2개 이상 설명.1045:1/1047:3이 부문별 증감 및 연결9.3%·+2.4%p까지 지지.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1045%3A1",
+          "20240313001451:20240313001451%3A1047%3A3"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1045:1의 선진시장·고부가 믹스·판매체질/재료비 개선과1047:3의 부문별 및 연결 실적 수치를 모두 보존했다. 모든 추가 증감률은 인용 원문 공시값이다.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1045%3A1",
+          "20240313001451:20240313001451%3A1047%3A3"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_EVIDENCE_RETAINED",
+        "note": "1045:1의 재료비 개선 등 설명이 빠졌으나 MD&A 1047:3의 물량 증가 및 고급차/SUV 믹스 개선 두 원인은 유지."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_NARRATIVE_PRESERVED_OPTIONAL_DETAIL_LOST",
+      "table_identifiability": "NOT_TABLE_ONLY_NARRATIVE_REQUIRED",
+      "finding": "schema에서1045:1의 판매체질·재료비 상세가 빠져도1047:3에 물량증가와 고급차/SUV 믹스개선 두 원인이 남는다. 기존 요약 최소2개 기준에 따르면 전체 핵심 누락이 아니다. 테이블 수치만으로 인과 설명을 대신할 수 없다."
+    }
+  },
+  {
+    "case_id": "MIX_T2_047",
+    "question": "사업보고서를 바탕으로 2023년 제네시스 브랜드의 고급화 전략 성과를 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "고급차 믹스와2023년8월 누적100만대 성과 충족. GV60수상·2023연식/GV80쿠페 출시·4대권역 전략을 각각99:8/19:5/103:12가 지지. 차량부문과 제네시스 단독실적 구분.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1045%3A1",
+          "20240313001451:20240313001451%3A1047%3A3",
+          "20240313001451:20240313001451%3A99%3A8",
+          "20240313001451:20240313001451%3A19%3A5",
+          "20240313001451:20240313001451%3A103%3A12"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1045:1 누적100만대와1047:3 고부가 믹스 성과를 연결. 차량부문과 브랜드 단독 실적을 구별했고,19:5의2023년 연혁에 해당 모델 출시가 실제 들어있다.99:8 GV60 프리미엄 수상도 지지.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1045%3A1",
+          "20240313001451:20240313001451%3A1047%3A3",
+          "20240313001451:20240313001451%3A19%3A5",
+          "20240313001451:20240313001451%3A99%3A8"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "CORE_PRESERVED_DETAIL_LOSS",
+        "note": "1047:3의 차량부문 이익 71.3% 증가·GV70/GV80별 설명은 빠졌지만, 1045:1에 제네시스/SUV 고부가 차종 믹스 개선과 누적판매 100만대 성과가 함께 남는다. 전략 성과의 핵심 정성 설명은 보존되어 인용 교체 자체를 필수 근거 회귀로 세지 않는다. 차량부문 세부 수치의 동일 대체는 확인하지 못했다."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_EVIDENCE_RETAINED",
+        "note": "GV60 유럽 수상·브랜드관리 상세가 줄었으나 1045:1의 고부가 믹스·누적100만대와 103:12의 브랜드 전략은 유지."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_NARRATIVE_PRESERVED_OPTIONAL_DETAIL_LOST",
+      "table_identifiability": "NOT_TABLE_ONLY_NARRATIVE_REQUIRED",
+      "finding": "제네시스/SUV 고부가 믹스와2023년8월 누적100만대의 핵심은1045:1에 남는다. NL12에서1047:3 차량부문 이익71.3%와 schema에서GV60수상 등이 빠진 것은 선택 세부사항 감소이며 필수 성과 전체 상실이 아니다. 누적판매를 연간판매로 바꾸지 않는다."
+    }
+  },
+  {
+    "case_id": "MIX_T4_049",
+    "question": "KB금융의 2023년 반도체 파운드리 시장 점유율을 알려줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "122:45/312:235 금융시장점유율을 파운드리 점유율로 바꾸지 않고 거절.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A122%3A45",
+          "20240326000894:20240326000894%3A312%3A235"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "122:45/312:235 금융시장점유율을파운드리점유율로전용하지않음.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A122%3A45",
+          "20240326000894:20240326000894%3A312%3A235"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "LGE_T4_053",
+    "question": "LG에너지솔루션의 2023년 수소연료전지 차량(FCEV) 판매량을 알려줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "18:0/34:0 전지사업 자료와FCEV 차량판매를 구분하여 수치 유보.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A18%3A0",
+          "20240314001110:20240314001110%3A34%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "18:0/34:0 전지사업과FCEV차량판매대수를구별,0대가정없음.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A18%3A0",
+          "20240314001110:20240314001110%3A34%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "REFUSAL_NOT_EVALUATED",
+        "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REFUSAL_SOURCE_CHANGE_NOT_RETRIEVAL_FAILURE",
+      "table_identifiability": "NOT_APPLICABLE_REFUSAL",
+      "finding": "전지사업 문서에서FCEV차량 판매량을 요청하는 거절 문항. schema의 과거 인용교체만으로 거절성공/실패를 알 수 없다. 요청금액/대수가검색안된것을 정상필수근거 누락으로 세지 않는다. 원문전체 부재증명도 아님."
+    }
+  },
+  {
+    "case_id": "POS_T1_057",
+    "question": "2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "PARTIAL",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PARTIAL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "692:331 이자비용1001290백만원은 정확하지만 연결영업이익이 제공되지 않아 비율을 유보. top8과 같은 미완료.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A692%3A331"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "새355:2 연결 영업이익3531422506439원과692:331 이자비용1001290백만원을 동일 단위로 변환해3.53배. 원 단위 정확값이 기준답안의 반올림 값과 양립한다.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A355%3A2",
+          "20240322000986:20240322000986%3A692%3A331"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "POS_T1_057",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery",
+        "candidate_absence"
+      ],
+      "literal_facts": "355:2 영업이익3,531,422,506,439원;1186:24 동일 연결 범위3,531,423백만원;692:331 이자비용1,001,290백만원",
+      "binding_flags": [
+        "source display precision differs",
+        "interest current period retained"
+      ],
+      "saved_condition_boundary": "1186:24 A12 BM2518/RRF28; N12 absent candidate; F12 BM2513/RRF20.355:2 absent original candidates",
+      "interpretation": "원 단위 값의 후보 부재만으로 문항 전체를 후보 실패로 분류하지 않음. 요약 대안이 있는 A12/F12는 선택 누락.",
+      "evidence": [
+        "numeric_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "SKH_T1_060",
+    "question": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "PARTIAL",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PARTIAL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "277:148 차입금29468632백만원은 유동성 대체분 포함이라고 명시. 분모 유무형자산이 없어 비율 유보; top8과 같은 미완료.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A277%3A148"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PARTIAL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "246:117 유형자산52704853백만원과277:148 유동성 포함 차입금29468632백만원은 정확하다. 무형자산이 입력에 없어 비율을 유보했으므로 완전 정답은 아니다. 제공된 자료의 한계로 한정했다.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A246%3A117",
+          "20240319000684:20240319000684%3A277%3A148"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "SKH_T1_060",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "candidate_absence"
+      ],
+      "literal_facts": "123:0 유형52,704,853+무형3,834,567백만원;277:148 차입금 행;246:117/262:133 대체 자산 주석",
+      "binding_flags": [
+        "column-window indices differ from full original axes",
+        "loan maturity reclassification is a scope choice, not lost data"
+      ],
+      "saved_condition_boundary": "123:0/246:117/262:133 absent A12/N12/F12 candidates; saved facets recovered PPE only",
+      "interpretation": "원문과 구조에 자산이 있음. 담보자산·취득현금흐름은 총 장부금액 대안이 아님.",
+      "evidence": [
+        "numeric_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "NAV_T1_030",
+    "question": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "122:5 영업현금흐름과 유형자산취득 원 단위를 보존하여 FCF1361609576268원을 정확히 계산.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A122%3A5"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "122:5의 연결 원 단위 OCF와 유형자산 취득을 차감해1361609576268원을 정확히 계산.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A122%3A5"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "NAV_T4_008",
+    "question": "네이버의 2023년 '선박 건조' 부문 수주 잔고를 알려줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1559:7 ICT사업 구분을 선박건조 수주잔고로 전용하지 않고 현재발췌 부족만 진술.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A1559%3A7"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1559:7 사업부문과선박건조부문을구별하며제공자료부족한정.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A1559%3A7"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "REFUSAL_NOT_EVALUATED",
+        "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REFUSAL_SOURCE_CHANGE_NOT_RETRIEVAL_FAILURE",
+      "table_identifiability": "NOT_APPLICABLE_REFUSAL",
+      "finding": "네이버 선박건조 수주잔고 거절 문항. ICT사업을 선박건조로 대체하지 않는 것이 기준. schema source교체는 새답변없이거절실패로판정불가."
+    }
+  },
+  {
+    "case_id": "NAV_T4_033",
+    "question": "네이버의 2023년 자체 보유 화물 트럭 대수와 물류 배송 건수를 알려줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1559:7 도착보장 이용자성장을 화물트럭·배송건수로 바꾸지 않음.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A1559%3A7"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1559:7 도착보장성장을화물트럭/배송건수로바꾸지않고0으로가정안함.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A1559%3A7"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "SAM_T3_028",
+    "question": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "319:191/532:148 연결5037579·별도3558358백만원을 구분.210:82/448:64 비용 포함 및 환입 반대방향 설명.533:149 전기 대비40.7%와 등 포함 한계를 보존.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A319%3A191",
+          "20240312000736:20240312000736%3A532%3A148",
+          "20240312000736:20240312000736%3A210%3A82",
+          "20240312000736:20240312000736%3A448%3A64",
+          "20240312000736:20240312000736%3A533%3A149"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "319:191/532:148 연결·별도 평가손실(환입) 등을 구별하고210:82/448:64 비용 포함·환입 반대방향을 보존.208:80/209:81의 재고원가와 충당금 잔액 비교도 지지하며 기여율·당기손실로 동일시하지 않았다.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A319%3A191",
+          "20240312000736:20240312000736%3A532%3A148",
+          "20240312000736:20240312000736%3A210%3A82",
+          "20240312000736:20240312000736%3A448%3A64",
+          "20240312000736:20240312000736%3A208%3A80",
+          "20240312000736:20240312000736%3A209%3A81"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "N12",
+        "finding": "CORE_PRESERVED_DETAIL_LOSS",
+        "note": "연결 당기 규모 5,037,579백만원과 평가손실의 비용 포함 설명은 유지된다. 별도 당기 3,558,358백만원과 전기 2,529,351백만원은 전체 N12 패킷에 없으므로 과거 답변의 별도 범위·증감 비교를 그대로 재현할 수 없다. 질문이 연결·별도 모두와 전년 비교를 요구하지 않으므로 해당 인용 손실만으로 질문의 핵심 규모·비용 영향 근거 회귀로 단정하지 않는다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "CORE_EVIDENCE_LOSS",
+        "note": "연결 당기 5,037,579 및 별도 당기 3,558,358백만원이 모두 NL12 전체 패킷에서 사라졌다. 남은 재고자산 평가충당금 잔액표는 당기 손실/환입 흐름의 대체가 아니다. 별도 비용 포함 문장은 남지만 요청한 당기 규모를 뒷받침하는 기존 근거가 유실되었다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "L12",
+        "finding": "connected_amount_support_lost",
+        "note": "연결당기 재고평가5,037,579백만원이 없어지고 별도3,558,358 및비용 포함 설명은 남는다. 연결금액을 대신할 출처는 이번 문맥에서 확인하지 못했다. 고정26항목 외 추가 회귀 사례다."
+      },
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "REQUIRED_AMOUNT_EVIDENCE_LOSS",
+        "note": "The annual loss/reversal amount is newly unavailable. Retained cost-inclusion explanation and ending valuation allowance cannot replace the period expense amount. Preserve the source qualifier 등; do not infer a same-basis causal percentage."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "SAM_T3_028",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "candidate_absence"
+      ],
+      "literal_facts": "319:191 조정내역 계/재고자산평가손실(환입) 등5,037,579백만원; 당기·연결 보존",
+      "binding_flags": [
+        "period expense differs from ending reserve",
+        "qualifier 등 must remain"
+      ],
+      "saved_condition_boundary": "A12/N12 RRF12 kept; F12 BM25 and Dense candidates both absent;210:82 cost-inclusion explanation remains",
+      "interpretation": "F12는 RRF 이전 후보 손실. 비용 포함 설명이나 기말충당금은 기간 손실 금액을 대체하지 못함.",
+      "evidence": [
+        "root_source_witnesses.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "SAM_T4_070",
+    "question": "삼성전자의 2023년 사업보고서에 나타난 2026년 파운드리 3나노 공정의 예상 수율을 알려줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1074:23 2022.06 3나노GAA 양산·PPA개선과2026 예상수율을 구분하며 거절.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A1074%3A23"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1074:23 2022.06 3나노양산/PPA개선은지지하며2026수율로바꾸지않음.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A1074%3A23"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "CEL_T2_039",
+    "question": "2023년 셀트리온이 북미 지역에서 직접판매 체제를 어떻게 확대했는지 설명하고, 짐펜트라(Zymfentra)의 미국 시장 진출 의미를 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "49:1 미국2023직판·캐나다 확대,37:0 짐펜트라2023.10.21 신약허가 충족.145:21 라이선스·38:1 합병일원화·134:10 가격/판매 전망을 실제2023출시성과와 구분.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A49%3A1",
+          "20240318000913:20240318000913%3A145%3A21",
+          "20240318000913:20240318000913%3A38%3A1",
+          "20240318000913:20240318000913%3A37%3A0",
+          "20240318000913:20240318000913%3A134%3A10"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "49:1 미국2023직판·캐나다 확대,134:10 피하주사 제형 FDA신약허가·TNF시장·가격/출시 전망과38:1 합병일원화를 지지.2023허가와 향후출시 계획을 구별.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A49%3A1",
+          "20240318000913:20240318000913%3A38%3A1",
+          "20240318000913:20240318000913%3A134%3A10"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "N12",
+        "finding": "CORE_PRESERVED_DETAIL_LOSS",
+        "note": "2023년 미국 직판 개시·캐나다 포함 북미 확대 및 짐펜트라의 최초 FDA 신약 허가 의미는 49:1/37:0에 남아 핵심 요청 근거가 유지된다. 134:10의 신약 가격 프리미엄·출시 직후 직판망 침투 전망은 유실되었고 동일 문구/내용의 대체를 확인하지 못했다. 핵심 보존과 확장 설명의 손실을 구분한다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "CORE_PRESERVED_DETAIL_LOSS",
+        "note": "2023년 미국 직판 개시·캐나다 포함 북미 확대 및 짐펜트라의 최초 FDA 신약 허가 의미는 49:1/37:0에 남아 핵심 요청 근거가 유지된다. 134:10의 신약 가격 프리미엄·출시 직후 직판망 침투 전망은 유실되었고 동일 문구/내용의 대체를 확인하지 못했다. 핵심 보존과 확장 설명의 손실을 구분한다."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_NARRATIVE_PRESERVED_OPTIONAL_DETAIL_LOST",
+      "table_identifiability": "NOT_TABLE_ONLY_NARRATIVE_REQUIRED",
+      "finding": "N12/NL12의49:1 미국2023직판·캐나다 포함 확대와37:0 짐펜트라 신약허가의 의미는 보존.134:10 신약가격 프리미엄과 출시후 침투 전망은 없어졌지만 기존 rubric에서 후속 전망은 선택사항이다."
+    }
+  },
+  {
+    "case_id": "CEL_T4_041",
+    "question": "셀트리온의 2023년 5G 통신망 설비투자(CAPEX) 금액을 알려줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "985:0 배당재원 CAPEX 언급을 5G망 투자금액으로 전용하지 않음.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A985%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "985:0 제품개발/설비CAPEX배당정책을5G투자로취급하지않음.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A985%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "MIX_T4_024",
+    "question": "셀트리온의 2023년 배터리 셀 제조 수율을 알려줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1099:12 바이오시밀러 공정수율 개선을 배터리셀 수율로 바꾸지 않고 거절.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A1099%3A12"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1099:12 바이오시밀러공정수율개선을배터리셀수율로바꾸지않음.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A1099%3A12"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KAK_T3_055",
+    "question": "재무제표 주석을 참조하여, 종속기업(SM엔터테인먼트 등) 편입이 2023년 연결 매출액 및 무형자산 증가에 미친 영향을 요약해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "인수 매출 기여도/무형자산 범위 HOLD 유지. SM매출756076432천원과 취득영업권846169079천원, SM브랜드98600836천원, 오션드라이브67681335천원이 인용표의 해당 열 및 단위와 일치. 내부거래 조정 후 순기여나 연결 무형자산 증가 전체로 단정하지 않는다.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A771%3A630",
+          "20240418000375:20240418000375%3A733%3A592"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "인수기여범위HOLD유지.154:13 편입,730:589 SM외29개40.5%·846169079천원영업권/전체1060750085·잠정,732:591 무형608409502천원,771:630 매출756076432,455:314 손상1483303740천원및SM포함을지지.순기여/연말총액증가단정없이환산정확.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A154%3A13",
+          "20240418000375:20240418000375%3A730%3A589",
+          "20240418000375:20240418000375%3A771%3A630",
+          "20240418000375:20240418000375%3A732%3A591",
+          "20240418000375:20240418000375%3A455%3A314"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "question": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "FAIL",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "FAIL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "Motional 관련 행이 실제top12에도 없어 요청3항목 유보.1192:18의 상세표 안내만 사용하고 보고서 전체 부재라고 하지 않음.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1192%3A18"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PARTIAL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "1251:9/1243:1/1256:14 타법인출자 표의25.81%·1294367백만원·당기순손실803742백만원과 원가법/작성기준 제한은 근거 충실하다. 고정 평가가 요구하는 현재 연결26%·700691와 영업수익/계속손익/OCI/총포괄손익 전체는 제시하지 못해 완전 정답 아님. 참고답안과 표 범위 차이를 구분한다.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1251%3A9",
+          "20240313001451:20240313001451%3A1243%3A1",
+          "20240313001451:20240313001451%3A1256%3A14"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "N12",
+        "finding": "BASELINE_GAP_PARTIAL_RECOVERY",
+        "note": "유실된 과거 인용 1192:18은 상세표 안내일 뿐 지분율·장부금액·손익 값이 없었다. 새 293:151은 current로 표시된 연결 표에서 Motional의 투자자산 700,691백만원을 보존하므로 장부금액의 부분 복구 후보이다. 지분율과 요약 손익은 여전히 확인하지 못했으며, 순자산 지분금액·미실현손익을 지분율/당기손익으로 대체하지 않는다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "BASELINE_GAP_REMAINS",
+        "note": "빠진 인용은 값 없는 상세표 안내다. 새 294:152에 Motional 행이 있지만 prior 표시이며 투자자산 907,061백만원은 당기 장부금액의 대체가 아니다. 당기 지분율·장부금액·요약 손익의 기존 누락이 해소되었다고 판단하지 않으며, 안내 인용 손실을 새로운 핵심 근거 회귀로 세지 않는다."
+      },
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "SCOPE_TRADEOFF_AND_PARTIAL_GAIN; not a full recovery",
+        "note": "The N12 current-marked consolidated investment value 700,691 million disappears (RRF9 to13). Newly selected F12 separate/current-marked table supplies 25.81% ownership and 1,294,367 million investment. Prior-marked 907,061 is not current. The question does not require consolidation, so the separate row is a useful partial alternative; no Motional profit/loss recovery is established. These scope/period descriptions rely on saved parser markers and headers, not new original-report period validation. Keep this post-hoc partial tradeoff outside the frozen26-unit score."
+      }
+    ],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "HYU_T3_072",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery",
+        "candidate_absence",
+        "axis_binding"
+      ],
+      "literal_facts": "275:133 연결26%/700,691백만원;285:143 영업수익1,775/계속손익(803,742)/OCI12,115/총포괄(791,627)",
+      "binding_flags": [
+        "275 ownership percent inherits monetary unit_hint",
+        "1251:9 acquisition2020.03.01 propagates2020 to closing amounts despite2023.12.31 caption",
+        "relative current retained for consolidated notes"
+      ],
+      "saved_condition_boundary": "275:133 A12 RRF27,N12 RRF9,F12 RRF13;285:143 absent A12/N12/F12. Separate1251:9 F12 RRF4 is partial alternative",
+      "interpretation": "투자표 선택과 손익표 후보 부족이 겹침. 연결/별도 대안은 명시해야 하고 취득일은 회계기간이 아님.",
+      "evidence": [
+        "axes_review.json",
+        "numeric_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "HYU_T4_012",
+    "question": "2026년 1분기 현대자동차의 예상 영업이익과 전기차 판매량을 예측해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1047:3 2023연간이익과1058:14 2024 EV전략은 지지.2026Q1 수치 생성 없이 필요한 가정·자료 설명.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1047%3A3",
+          "20240313001451:20240313001451%3A1058%3A14"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1047:3 2023영업이익및103:12 2030연187만대목표지지.2026Q1예측수치산출거절.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1047%3A3",
+          "20240313001451:20240313001451%3A103%3A12"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "HYU_T4_037",
+    "question": "현대자동차의 2023년 'LNG 선박 건조' 부문 매출액을 계산해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "64:0/76:0 차량·금융·기타부문 및기타매출10112502백만원을 LNG건조매출로 전용하지 않음.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A64%3A0",
+          "20240313001451:20240313001451%3A76%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "64:0/76:0/113:0 차량·기타·금융부문을LNG건조매출로전용안함.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A64%3A0",
+          "20240313001451:20240313001451%3A76%3A0",
+          "20240313001451:20240313001451%3A113%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KBF_T1_017",
+    "question": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "은행/그룹 NIM 범위 및 표시값 차이 HOLD 유지. 은행+카드2.44/2.30%로0.14%p 계산, 보고된0.13%p를 별도 제시. 가맹점수수료 포함 범위 명시. 1842:1에 지지되며 불일치 원인을 만들어내지 않음.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A1842%3A1"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "NIM범위HOLD유지.1842:1 은행+카드2.44/2.30 및표시차0.14를공시0.13과구별,차이원인단정없음.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A1842%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KBF_T2_043",
+    "question": "2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "비이자이익 정의/WM 범위 HOLD 유지. 순수수료이익3673524/3514902백만원으로4.51%; 이는 비이자 전체가 아닌 일부임을 명시. KB증권 위탁자산관리영업이익265445/149275백만원(+77.82%)과 순손익245434/125859백만원, 리테일/기관 범위를 정확히 분리.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A625%3A2",
+          "20240326000894:20240326000894%3A1846%3A5",
+          "20240326000894:20240326000894%3A194%3A117",
+          "20240326000894:20240326000894%3A195%3A118",
+          "20240326000894:20240326000894%3A190%3A113"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "비이자정의/WM범위HOLD유지.981:338 table_context단위백만원으로순수수료증가158622/4.51%;1843:2 비이자4088십억원/증가1823;190:113 KB증권2654억/증가1162 및78:1 연금40조지원.각각범위명시.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A981%3A338",
+          "20240326000894:20240326000894%3A1846%3A5",
+          "20240326000894:20240326000894%3A1843%3A2",
+          "20240326000894:20240326000894%3A190%3A113",
+          "20240326000894:20240326000894%3A78%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KBF_T3_019",
+    "question": "사업보고서를 참조하여 부동산 PF(프로젝트파이낸싱) 대출과 관련된 회사의 잠재적 리스크 및 대응 방안을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "KB부동산신탁 범위를 명시하며 충당금·책임준공손해배상·자금조달 위험 및 대응 설명.1111:468 한도/실행액/대여가능액을 손실액으로 오인하거나 합산하지 않음.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A322%3A245",
+          "20240326000894:20240326000894%3A1111%3A468",
+          "20240326000894:20240326000894%3A324%3A247",
+          "20240326000894:20240326000894%3A108%3A31"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "322:245/108:31의 PF위험·선제충당금·841억원 손실 및 대응을 보존.1111:468의 한도56206/실행40020/대여가능36274억원·72건·손실측정 제한과324:247 차입형 리스크를 정확히 구별했다.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A322%3A245",
+          "20240326000894:20240326000894%3A1111%3A468",
+          "20240326000894:20240326000894%3A324%3A247",
+          "20240326000894:20240326000894%3A108%3A31"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "ALTERNATIVE_SOURCE_RETAINED",
+        "note": "1111:468의 책임준공·약정한도·실행잔액 내용은 1885:44 및 2140:45에도 남아 있음. 인용 UID 손실을 근거 전체 손실로 세지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_NARRATIVE_AND_VALUES_PRESERVED_ALTERNATIVE_SOURCE",
+      "table_identifiability": "MIXED_TABLE_AND_NARRATIVE_REQUIRED",
+      "finding": "schema가1111:468을 놓쳐도1885:44/2140:45가 책임준공/약정한도/실행잔액을 보존한다는 저장검증이 있다. 위험과 대응은322:245/324:247/108:31 등 본문이 필요하다. UID 손실을 필수사실 손실로 세지 않는다. 이번에 대체출처 원본을 새로 독립 검증하지 않았고 기존 verified_quote_witnesses로 한정한다."
+    }
+  },
+  {
+    "case_id": "KBF_T3_044",
+    "question": "2023년 사업보고서에서 BIS자기자본비율을 찾고, 해당 지표가 금융당국의 규제 기준 대비 어느 정도 수준인지 리스크 관점에서 설명해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "513:0/1851:10 그룹16.73%와1214:49 규제11.5%의5.23%p 여유 정확. 기본/보통주비율·손실흡수 설명과1852:11 은행18.08%도 원문 지지.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A513%3A0",
+          "20240326000894:20240326000894%3A1214%3A49",
+          "20240326000894:20240326000894%3A1851%3A10",
+          "20240326000894:20240326000894%3A1852%3A11"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "748:105에서16.73/15.37/13.59와 규제11.5/9.5/8.0를 같은 기준으로 비교.1358:0의 내부CET1목표13%·규제10.5+2.5 설명은 주석 규제와 명시적으로 분리.1852:11 국민은행18.08%도 별도대상으로 구별.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A748%3A105",
+          "20240326000894:20240326000894%3A1358%3A0",
+          "20240326000894:20240326000894%3A1852%3A11"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KBF_T4_020",
+    "question": "2023년 KB데이타시스템의 매출원가율을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "362:285 K-IFRS 연결매출원가218394/매출230825=94.61%. 역사적으로 정정된 answerable 분류 유지.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A362%3A285"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "362:285의 K-IFRS 연결 매출원가218394/매출230825백만원=94.61% 정확.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A362%3A285"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KBF_T4_045",
+    "question": "KB금융의 2023년 공장 가동률과 생산 실적을 요약해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "76:0 금융그룹 설명 및1842:1 자산715조7380억·순이익4조6320억은 정확하며 공장지표로 혼동하지 않음.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A76%3A0",
+          "20240326000894:20240326000894%3A1842%3A1"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "76:0 금융그룹및1842:1 총자산715조7380억·순이익4조6320억정확.공장지표는제공근거부족한정.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A76%3A0",
+          "20240326000894:20240326000894%3A1842%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "MIX_T3_025",
+    "question": "2023년 연결 포괄손익계산서에서 지배기업주주지분순이익(주주 귀속 순이익)을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증가의 주요 원인을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "625:2 지배주주4631932백만원과 전체4563431백만원 구분.1843:2 자본시장 손익·증권브로커리지 증가를 MD&A와 연결.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A625%3A2",
+          "20240326000894:20240326000894%3A1843%3A2"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "633:2 지배주주4631932와 전체4563431백만원을 구별.1843:2 주가지수/금리변동성·자본시장 손익·브로커리지 및4088십억원/1823십억원 증가를 정확히 요약.",
+        "cited_source_ids": [
+          "20240326000894:20240326000894%3A633%3A2",
+          "20240326000894:20240326000894%3A1843%3A2"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "LGE_T1_051",
+    "question": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "383:300 연결2163234-676874=1486360백만원. 정확한 값의 억원 반올림14864는 동결된 허용 기준 충족.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A383%3A300"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "383:300 연결2163234-676874=1486360백만원과억원표시14864 정확. 요청상 계산지표임을 명시.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A383%3A300"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "LGE_T2_052",
+    "question": "2023년 사업보고서에서 주요 원재료(양극재, 음극재 등)의 가격 변동 추이를 요약하고, 이것이 배터리 판가(ASP)에 미친 영향을 설명해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "24:2/23:1 소형양극재 가격23.9%하락과897:3 판가 대비 투입원가 lagging을 정확히 설명.21:2/20:1 개별제품16.7%상승은 전체ASP와 구분하고 음극재 추이는 유보.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A24%3A2",
+          "20240314001110:20240314001110%3A23%3A1",
+          "20240314001110:20240314001110%3A897%3A3",
+          "20240314001110:20240314001110%3A21%3A2",
+          "20240314001110:20240314001110%3A20%3A1"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "24:2/23:1 양극재 가격 및USD와21:2/20:1 제품가격/USD를 구별.897:3 lagging·원가절감·IRA수익·영업이익78%증가가 부가설명까지 지지. 음극재와전체ASP의 추이는 유보.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A24%3A2",
+          "20240314001110:20240314001110%3A23%3A1",
+          "20240314001110:20240314001110%3A897%3A3",
+          "20240314001110:20240314001110%3A21%3A2",
+          "20240314001110:20240314001110%3A20%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "L12",
+        "finding": "product_unit_context_lost_primary_trend_retained",
+        "note": "제품가격1.89/1.62표는 남고 그USD표제가 빠졌다. 원재료표23:1의USD를 제품표에 빌려 쓰면 안 된다. 주요 원재료 및lagging 근거는 남으므로 질문전체 실패로 판정하지 않는다."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRODUCT_PRICE_UNIT_CONTEXT_LOST",
+        "note": "원재료 표 24:2/23:1과 Lagging 설명 897:3은 유지. 제품가격 21:2의 1.89/1.62는 남지만 그 표의 USD 표제 20:1이 빠짐. 다른 원재료 표의 USD를 자동 연결하지 않음. 답변 오류 자체는 미측정."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "LGE_T2_052",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery",
+        "axis_binding"
+      ],
+      "literal_facts": "21:2 제품1.89/1.62; 앞 TABLE3 USD source_context.24:2 양극재33.47/kg/43.99/kg과USD 표제 보존",
+      "binding_flags": [
+        "product unit_hint empty despite boundUSD",
+        "raw material numeric-plus-unit strings survive but rows/values empty",
+        "제4/3기 retained; calendar not resolved in these objects"
+      ],
+      "saved_condition_boundary": "S12 keeps21:2 values but drops20:1 unit caption atRRF14; A12/N12/F12 keep both. Raw material and lagging prose remain",
+      "interpretation": "표 구조의 원문 보존과 정형 fact 레코드 완성은 다름. 별도 표의 USD를 빌리지 말고 해당 table source_context를 사용해야 함.",
+      "evidence": [
+        "root_source_witnesses.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "LGE_T4_077",
+    "question": "LG에너지솔루션의 2023년 '가입자당 평균 매출(ARPU)'을 계산해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "383:300 연결매출33745470백만원은 정확하나 가입자관련매출·평균가입자수가 없어 ARPU를 거절.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A383%3A300"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "453:370 연결매출33745470백만원및전지주요사업지지.가입자관련매출과가입자수없음으로ARPU거절.",
+        "cited_source_ids": [
+          "20240314001110:20240314001110%3A453%3A370"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "POS_T1_075",
+    "question": "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PARTIAL"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PARTIAL",
+        "note": "EBITDA 법인 주체 HOLD 유지. 1241:79에43248백만원과 연결재무제표 기준 표시는 있지만 이 표의 운영주체를 POSCO홀딩스 전체에 연결할 근거가 없음. 질문의 회사 EBITDA로 무조건 답한 주체 귀속은 미지지. 표 내 숫자/단위/연결 표시 자체는 지지.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A1241%3A79"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PARTIAL",
+        "note": "법인주체HOLD유지.1241:79의43248백만원은그표값으로지지되지만운영법인연결이없는데질문대상회사의EBITDA로응답.기존과동일한주체귀속support PARTIAL.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A1241%3A79"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "POS_T1_075",
+      "identifiability": "INCOMPLETE",
+      "failure_layers": [
+        "axis_binding",
+        "other"
+      ],
+      "literal_facts": "1241:79 EBITDA43,248백만원=포스코스틸리온;1283:121/1285:123 1,701,152백만원=포스코인터내셔널",
+      "binding_flags": [
+        "operating-company headings exist in original P158/P253 but not stored table source_contexts",
+        "filing company metadata is not table subject"
+      ],
+      "saved_condition_boundary": "Wrong subject claim persists in saved answers; no top-k inference resolves missing stored subject link",
+      "interpretation": "원문 부족 아님. 표의 저장 주체 연결 부족이며 참고답안/질문도 HOLD. 어느 값도 곧바로 POSCO홀딩스 전체 EBITDA로 확정하지 않음.",
+      "evidence": [
+        "axes_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "diagnostic_or_hold"
+    }
+  },
+  {
+    "case_id": "POS_T2_058",
+    "question": "2023년 사업보고서를 바탕으로 친환경 미래소재(이차전지소재 등) 부문의 투자 성과와 수익성 변동 요인을 요약해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "법인/사업부 범위 HOLD 유지. 그룹 리튬/니켈/재활용 투자, 양극재20/30/162천톤 및 수주계약은1163:1/311:36에 지지. 포스코퓨처엠 매출47599억원·영업이익359억원과 에너지소재33618억원·손실117억원을 구분. 메탈가격/래깅/평가손실, 감가1376(+453),EBITDA1735(-847),라임259/내화물64억원 증가는1440:278/1446:284에 지지.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A1163%3A1",
+          "20240322000986:20240322000986%3A311%3A36",
+          "20240322000986:20240322000986%3A1446%3A284",
+          "20240322000986:20240322000986%3A1440%3A278"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "사업범위HOLD유지.1163:1 투자·생산일정·양극재20/30/162천톤,311:36 단결정/수주100조,1446:284 에너지소재와퓨처엠연결실적분리,1440:278 감가/EBITDA금액모두지지.사업부감소1623억과전사감소1300억을혼동하지않음.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A1163%3A1",
+          "20240322000986:20240322000986%3A311%3A36",
+          "20240322000986:20240322000986%3A1446%3A284",
+          "20240322000986:20240322000986%3A1440%3A278"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+        "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "EVALUATION_HOLD_SOURCE_CHANGE",
+      "table_identifiability": "MIXED_TABLE_NARRATIVE_WITH_SCOPE_DECISION",
+      "finding": "친환경미래소재 사업부 vs 포스코퓨처엠 전사의 범위 HOLD 유지. 저장 답변의 전사47,599억/359억과에너지소재33,618억/-117억은 범위가 달라 서로 대체하면 안 된다. source UID 감소만으로 새 오류 또는 원문 부족을 확정하지 않는다."
+    }
+  },
+  {
+    "case_id": "SKI_T1_068",
+    "question": "2023년 배터리 사업 부문(SK온)의 영업손실(적자) 규모를 확인하고, 이것이 전체 연결 영업이익의 몇 % 수준에 해당하는지 절대값으로 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PARTIAL"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PARTIAL",
+        "note": "1713:6 배터리581816/전체1903886=30.6%는 정확. 하지만 유일한 인용에 금액 화폐단위가 없는데 백만원/억원을 단정하여 top8과 동일하게 근거 PARTIAL.",
+        "cited_source_ids": [
+          "20240320000950:20240320000950%3A1713%3A6"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "새882:499 연결 부문표에 단위백만원과 배터리손실581816/전체1903886이 함께 전달되어30.56% 및억원환산이 모두 근거 충실. 고정허용 부문기준 적용.",
+        "cited_source_ids": [
+          "20240320000950:20240320000950%3A882%3A499"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "SKI_T1_068",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery",
+        "axis_binding",
+        "other"
+      ],
+      "literal_facts": "1713:6 배터리(581,816)/전체1,903,886,2023열; 앞 표 백만원도 source_context에 보존;882:499 완전 대안",
+      "binding_flags": [
+        "money cells incorrectly inherit percent unit_hint",
+        "bound monetary caption absent generation packet"
+      ],
+      "saved_condition_boundary": "Original complete alternate882:499 RRF15 outside12; numeric ratio already supported by1713:6",
+      "interpretation": "원문 단위 부재가 아니라 저장된 단위 문맥의 전달 및 셀별 단위 연결 문제. 과거 답변의 단위 단정은 별도 생성 문제.",
+      "evidence": [
+        "axes_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "SKI_T2_069",
+    "question": "2023년 정유 부문의 영업이익 전년 대비 증감률을 계산하고, 이사의 경영진단(MD&A)에서 정제마진 하락 추이가 실적에 미친 영향을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1738:31 SK에너지 연결영업이익84.3%감소와 스프레드 축소를 정확히 연결.1825:118의 상하반기 시장환경 설명은 개별회사의 손익수치로 전용하지 않음.",
+        "cited_source_ids": [
+          "20240320000950:20240320000950%3A1738%3A31",
+          "20240320000950:20240320000950%3A1736%3A29",
+          "20240320000950:20240320000950%3A1825%3A118"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PARTIAL",
+        "note": "정유 전체76.1%와SK에너지84.3%를 별도 범위로 제시하고1738:31/1825:118의 정제마진 방향도 충족. 그러나1713:6에는 화폐단위가 없고unit_hint는%인데810900/3390092를백만원으로 단정했다. 다른 자회사 표1738:31의 백만원은 이 부문표 금액 단위의 연결근거가 아니다. 기존SKI_T1_068와 같은 기준으로 support PARTIAL.",
+        "cited_source_ids": [
+          "20240320000950:20240320000950%3A1713%3A6",
+          "20240320000950:20240320000950%3A1738%3A31",
+          "20240320000950:20240320000950%3A1825%3A118"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "SKI_T2_069",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "axis_binding",
+        "other"
+      ],
+      "literal_facts": "1738:31 SK에너지409,219/2,600,786 및2023/2022;1713:6 석유사업810,900/3,390,092는 다른 범위",
+      "binding_flags": [
+        "operating subsidiary identified in adjoining prose",
+        "1713:6 incorrect percent unit_hint for money"
+      ],
+      "saved_condition_boundary": "Main requested SK-energy facts remain; facets answer adds unsupported currency to sector amounts",
+      "interpretation": "필수 근거 전체 누락이 아니라 추가 설명의 단위·주체 해석 문제. 마진 원인은 서술 근거 필요.",
+      "evidence": [
+        "axes_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "MIX_T4_065",
+    "question": "2023년 SK하이닉스의 '영화 배급 수익' 및 '방송 프로그램 제작비'를 차감한 영업이익을 계산해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "723:2 영업손실7730313백만원은 지지. 미제공영화·방송 항목을0으로 가정하거나 임의차감하지 않음.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A723%3A2"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "98:10 연결영업손실7730313백만원은지지.영화/방송항목미확인으로가정차감거절.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A98%3A10"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "REFUSAL_NOT_EVALUATED",
+        "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REFUSAL_SOURCE_CHANGE_NOT_RETRIEVAL_FAILURE",
+      "table_identifiability": "NOT_APPLICABLE_REFUSAL",
+      "finding": "SK하이닉스 영화배급/방송제작비를 임의0처리하지 않는 거절문항. 실제연결영업손실7,730,313백만원의대체출처98:10도있다. source교체를 필수검색실패로 세지 않는다."
+    }
+  },
+  {
+    "case_id": "SKH_T2_061",
+    "question": "2023년 전체 매출 중 DRAM 제품군이 차지하는 비중을 계산하고, 사업의 내용에서 AI 서버 수요 확대(HBM 등)로 인한 향후 실적 개선 전망을 요약해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "DRAM 비중 기준답안 불충분 HOLD 유지. 전체32.8조원과 세계 메모리시장 DRAM54%를 회사 DRAM매출로 대체하지 않음. DDR5 4배/HBM3 5배 성장,AI향 수요 전망,12단24GB HBM3/HBM3E 성능 개선 및 전사7.7조원 손실은98:10/88:0/102:14/103:15/84:4에 지지.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A98%3A10",
+          "20240319000684:20240319000684%3A88%3A0",
+          "20240319000684:20240319000684%3A102%3A14",
+          "20240319000684:20240319000684%3A103%3A15",
+          "20240319000684:20240319000684%3A84%3A4"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "DRAM기준HOLD유지(실험후정답군승격안함).새331:202가DRAM20768662/전체32765719백만원을지지,63.39%정확.98:10 AI향4배/5배와전사손실,102:14/103:15 전망및84:4 제품개발지지,전망을확정이익으로바꾸지않음.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A331%3A202",
+          "20240319000684:20240319000684%3A98%3A10",
+          "20240319000684:20240319000684%3A102%3A14",
+          "20240319000684:20240319000684%3A103%3A15",
+          "20240319000684:20240319000684%3A84%3A4"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+        "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "EVALUATION_HOLD_WITH_OBSERVED_NEW_NUMERIC_WITNESS",
+      "table_identifiability": "CONDITIONAL_NUMERIC_FACTS_IDENTIFIABLE_IN_SAVED_FACETS_PACKET",
+      "finding": "기존DRAM 비중 기준답안 불충분 HOLD 유지. 저장 facets packet331:202는DRAM20,768,662/전체32,765,719백만원(63.39%)을 제공한다. 이 근거 발견은 세상/원문에 분자가 없다는 설명을 반증하지만 과거 후보부족과 평가HOLD를 자동해결하거나 점수군을 승격하지 않는다. AI향 전망은별도본문이다."
+    }
+  },
+  {
+    "case_id": "MIX_T2_022",
+    "question": "2023년 핀테크 부문의 전년 대비 결제액 또는 영업수익 증가율을 계산하고, 성장의 핵심 원동력을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "34:1 영업수익14.17% 및1559:7 결제액21.8%를 구분. 외부결제·현장결제·예약/주문 및 금융상품/앱 개편을 원문과 연결.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A34%3A1",
+          "20240318000844:20240318000844%3A1559%3A7"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "42:1/1559:7의 영업수익14.2%와 결제액21.8%를 구별.99:27 상반기삼성페이·하반기해외제휴 및 성장원인 지지.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A42%3A1",
+          "20240318000844:20240318000844%3A1559%3A7",
+          "20240318000844:20240318000844%3A99%3A27"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "REPLACEMENT_SUPPORT_PRESERVED",
+        "note": "Same consolidated current/prior row survives in another source with the matching headers. Growth drivers and payment amount also survive. Source ID loss is not a required-evidence loss here."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_VALUES_PRESERVED_ALTERNATIVE_SOURCE",
+      "table_identifiability": "NUMERIC_PART_IDENTIFIABLE",
+      "finding": "원 인용34:1이 TF분리에서 빠져도42:1에 같은 핀테크 당기1,354,767/전기1,186,635백만원이 남는다. 결제액 증가율 또는 영업수익 증가율이라는 선택 요청이므로 둘을 모두 필수로 만들지 않는다. 성장동력은1559:7 등 본문이 별도로 필요하다. 비중 열의 typed unit은 금액단위를 그대로 상속하는 한계가 있다."
+    }
+  },
+  {
+    "case_id": "MIX_T3_063",
+    "question": "사업보고서 주석에서 관계기업 및 공동기업 투자 내역 중 장부금액이 큰 상위 2개 기업의 이름과 당기순손익을 요약해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "순위대상/기준답안 HOLD 유지. top8과 동일6개 packet에서2023 장부액 및 지분법손익 표 부재를 인정.396:272는전기,425:301은주석도입이므로 2023순위/손익을 꾸며내지 않음.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A396%3A272",
+          "20240318000844:20240318000844%3A425%3A301"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "순위기준HOLD유지.현재packet의392:268은공동기업부분으로전체현재장부순위불충분;396:272 전기와구별.426:302의A Holdings450253285천원및지배주주순익정의는정확.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A396%3A272",
+          "20240318000844:20240318000844%3A426%3A302"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "HOLD_REMAINS; extra byte omission and axis context loss",
+        "note": "Lost source introduces the following table, but supplies no requested rank or net-income values. Historical scope/reference HOLD remains; do not score this as newly wrong. Packet shrinks from six to four whole sources because changed order and larger metadata interact with the fixed byte budget. UID gains do not establish correctly scoped ranking evidence."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "MIX_T3_063",
+      "identifiability": "CONDITIONAL_BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery",
+        "candidate_absence",
+        "other"
+      ],
+      "literal_facts": "table215 당기 장부금액 A Holdings15,338,412,557/Mirae341,924,825천원;426:302 당기순이익450,253,285/79,190,655천원",
+      "binding_flags": [
+        "full table object attached to split chunks does not imply these rows appeared in generated text",
+        "aggregate headers must be excluded to define entity ranking",
+        "profit footnote limits to controlling shareholders"
+      ],
+      "saved_condition_boundary": "Original selected chunks carry full book-value table structure but actual packet lacks values; profit426 absent original A12/N12 pool; historical byte omissions and HOLD remain",
+      "interpretation": "기준을 명시하면 두 표를 회사 열로 연결 가능. 기존 질문/정답의 순위대상 모호성은 HOLD 유지; 자동 top2 해결이라고 주장하지 않음.",
+      "evidence": [
+        "boundaries_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "diagnostic_or_hold"
+    }
+  },
+  {
+    "case_id": "NAV_T1_005",
+    "question": "2023년 네이버의 영업수익 대비 연구개발비용 비중(%)을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "69:2 연구개발비와1558:6 영업수익의 백만원/십억원 단위를 맞춰20.6% 검산.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A69%3A2",
+          "20240318000844:20240318000844%3A1558%3A6"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "69:2 연결연구개발비와1558:6 십억원매출을 같은단위로 변환,20.61%/보고20.6% 정확.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A69%3A2",
+          "20240318000844:20240318000844%3A1558%3A6"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "NAV_T1_071",
+    "question": "2023년 연결 손익계산서에서 '법인세비용차감전순이익'을 추출하고, 전년 대비 증감액을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "956:832/957:833 현재·전기 세전순손익 차이397679227천원 정확.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A956%3A832",
+          "20240318000844:20240318000844%3A957%3A833"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "119:2 연결손익계산서의 원 단위 정확값으로397679226399원 증가. 천원반올림 참조와의 정밀도차이는 기존기준상 허용.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A119%3A2"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "NAV_T2_006",
+    "question": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1559:7 커머스성장41.4%,1058:934 취득시점·100%,1060:936 매출4738.49억/순손실190.63억을 정확히 분리. 순손실을 영업손실로 바꾸지 않음.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A1559%3A7",
+          "20240318000844:20240318000844%3A1058%3A934",
+          "20240318000844:20240318000844%3A1060%3A936"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "42:1 커머스41.4%,1058:934/1060:936의 취득시점·100%·편입후매출473849/순손실19063백만원 및1559:7 다른성장원인 정확.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A42%3A1",
+          "20240318000844:20240318000844%3A1058%3A934",
+          "20240318000844:20240318000844%3A1060%3A936",
+          "20240318000844:20240318000844%3A1559%3A7"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_row_search_offline_20261022/review.json",
+        "arm": "row_B8",
+        "finding": "CONFIRMED_REQUIRED_NUMERIC_EVIDENCE_LOSS",
+        "note": "커머스 매출 2023/2022 및 41.4% 성장 표가 RRF 6위에서 9위로 밀림. B에는 산업 시장 규모 표와 Poshmark 개별 취득 효과가 남지만 NAVER 커머스 전체 비교값을 대체하지 못함."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "NAV_T2_006",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery"
+      ],
+      "literal_facts": "1559:7 연결 커머스2,546.6/1,801.1십억원·41.4%·26.4%",
+      "binding_flags": [
+        "percent cells also inherit monetary unit_hint",
+        "제25/24기 retained; normalized fields not complete"
+      ],
+      "saved_condition_boundary": "Earlier row_B8 RRF6→9 caused loss; current A12/N12/F12 RRF6/5/5 all retained",
+      "interpretation": "과거 회귀 사례이며 현재12개 누락으로 세지 않음. 포시마크 기여는 같은 청크의 본문 필요.",
+      "evidence": [
+        "root_source_witnesses.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "NAV_T2_031",
+    "question": "2023년 서치플랫폼 매출 대비 클라우드 부문 매출의 비율을 계산하고, 클라우드 부문의 주요 기술(AI 등) 적용 사례를 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "42:1 비율12.46% 검산.114:42/113:41 HyperCLOVA X·CLOVA Studio·Neurocloud·산업전용·CSA·1784/네이버웍스 사례가 지지.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A42%3A1",
+          "20240318000844:20240318000844%3A114%3A42",
+          "20240318000844:20240318000844%3A113%3A41"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "42:1 비율12.46%,113:41/114:42/1559:7의 AI서비스·기업데이터·금융공공의료·1784·2023상반기조직통합 모두 지지.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A42%3A1",
+          "20240318000844:20240318000844%3A113%3A41",
+          "20240318000844:20240318000844%3A114%3A42",
+          "20240318000844:20240318000844%3A1559%3A7"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "NAV_T3_032",
+    "question": "2023년 사업보고서에서 데이터센터(각 세종 등) 인프라 투자와 관련된 자본적 지출(CAPEX) 규모나 관련 주석 내용을 요약해.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "40:4 연결CAPEX6923억·8.5%감소를 데이터센터전용과 구분.37:1/38:2 세종장부금액·건설중자산,75:3 개장시점,1449:348/1236:135/1238:137 별도약정·취득·자본화 및 단위환산을 지지.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A40%3A4",
+          "20240318000844:20240318000844%3A37%3A1",
+          "20240318000844:20240318000844%3A38%3A2",
+          "20240318000844:20240318000844%3A75%3A3",
+          "20240318000844:20240318000844%3A1449%3A348",
+          "20240318000844:20240318000844%3A1236%3A135",
+          "20240318000844:20240318000844%3A1238%3A137"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PARTIAL",
+        "completeness": "PASS",
+        "support": "PARTIAL",
+        "note": "필수CAPEX6923억원과 범위/약정·자산·가동시점은 충족. 그러나 추가주장 '전기7562억원보다약8.4%감소'는 639/7562*100=8.450145...로1자리반올림8.5%이며 원문40:4는8.4%를 제시하지 않는다. 요청결과에 사용된 중간근삿값이 아닌 별도증감률 주장 오류로 correctness/support PARTIAL. 다른금액단위와현금지출구분은 정확.",
+        "cited_source_ids": [
+          "20240318000844:20240318000844%3A40%3A4",
+          "20240318000844:20240318000844%3A1011%3A887",
+          "20240318000844:20240318000844%3A1449%3A348",
+          "20240318000844:20240318000844%3A37%3A1",
+          "20240318000844:20240318000844%3A38%3A2",
+          "20240318000844:20240318000844%3A75%3A3"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "N12",
+        "finding": "CORE_PRESERVED_PARTIAL_ALTERNATIVE",
+        "note": "1238:137의 취득액에 차입원가 자본화와 사업양수도 금액이 포함된다는 설명 문장은 유실되었다. 다만 1236:135에 자본화 차입원가 4,418,000 및 사업양수도 취득 93,000(표 단위 천원)이 남아 관련 수치는 대체 확인된다. 40:4의 연결 CapEx 692.3 및 세종 투자 대상, 37:1/38:2 시설별 표가 남아 질문의 핵심 투자 규모·시설 근거 회귀로 판단하지 않는다. 포함 관계를 설명한 문장까지 완전히 대체했다고 주장하지 않는다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "CORE_PRESERVED_PARTIAL_ALTERNATIVE",
+        "note": "1238:137의 취득액에 차입원가 자본화와 사업양수도 금액이 포함된다는 설명 문장은 유실되었다. 다만 1236:135에 자본화 차입원가 4,418,000 및 사업양수도 취득 93,000(표 단위 천원)이 남아 관련 수치는 대체 확인된다. 40:4의 연결 CapEx 692.3 및 세종 투자 대상, 37:1/38:2 시설별 표가 남아 질문의 핵심 투자 규모·시설 근거 회귀로 판단하지 않는다. 포함 관계를 설명한 문장까지 완전히 대체했다고 주장하지 않는다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "L12",
+        "finding": "primary_evidence_preserved_secondary_note_lost",
+        "note": "1238:137의93백만원 사업양수도 포함 각주는 빠졌지만 연결CapEx692.3십억원과시설 범위·세종 자산·차입원가 자본화 자료는 남는다. 부수 인용의 손실을 핵심 근거 회귀로 세지 않는다."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_EVIDENCE_RETAINED_QUALIFIER_LOST",
+        "note": "연결 CAPEX 692.3십억원, 세종/춘천/클라우드 투자 설명은 40:4에 유지. 별도 주석의 취득·자본적지출 세부 설명 1238:137은 손실."
+      }
+    ],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "GENERATION_ONLY_WITH_OPTIONAL_CITATION_LOSS",
+      "table_identifiability": "NUMERIC_PART_IDENTIFIABLE_WITH_TABLE_HEADERS",
+      "finding": "필수 CAPEX 692.3십억원과 투자대상 근거는 보존. facets 답변의 8.4% 감소는 주어진 692.3/756.2에서 계산되는 8.450145...%를 잘못 반올림한 생성 오류. Nori/스키마에서 사라진 1238:137은 추가 자본화/양수도 포함관계 각주이고 필수 투자규모의 상실이 아니다. CAPEX를 데이터센터 전용으로 단정할 수 없다는 범위는 주변 설명과 함께 유지해야 한다."
+    }
+  },
+  {
+    "case_id": "MIX_T1_021",
+    "question": "2023년 연결기준 부채비율(부채총계/자본총계)과 유동비율(유동자산/유동부채)을 각각 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "117:0 요약연결금액으로 부채25.36%·유동258.77% 정확. 이 문항은 top8과 실제 제공 packet 동일하나 인용 선택이 달라진 경우.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A117%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "121:0/122:1 같은연결2023백만원으로 부채25.36%·유동258.77% 정확.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A121%3A0",
+          "20240312000736:20240312000736%3A122%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "MIX_T4_062",
+    "question": "삼성전자의 2023년 연구개발비용을 무조건 100조 원이라고 가정하고, 매출액 대비 연구개발비 비중을 계산해.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "FAIL",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "FAIL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "동결된 grounded-only 거절정책을 위반해100조 가정 계산을 수행.674:1의259조 반올림 매출과38.6%산술은 지지되며 가정을 실제공시라고 주장하지 않음.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A674%3A1"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "FAIL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "동결grounded-only거절정책에따라100조가정계산수행은FAIL유지.677:4 매출258935494백만원/38.62%산술은정확하며명시적가정을실제공시로오인시키지않아support PASS.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A677%3A4"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": true,
+    "audit_depth": "saved_policy_review",
+    "current_assessment": {
+      "primary_boundary": "REFUSAL_POLICY_MISMATCH",
+      "finding": "동결 grounded-only 정책과 명시적 가정 계산의 불일치. 저장된 세 조건에서 support PASS이며 표 근거 누락으로 판정하지 않음."
+    }
+  },
+  {
+    "case_id": "SAM_T1_001",
+    "question": "2023년 연결기준 삼성전자의 영업이익률을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "123:2 연결영업이익/매출=2.54% 정확.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A123%3A2"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "677:4 연결영업이익6566976/매출258935494백만원=2.54% 정확.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A677%3A4"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "SAM_T1_026",
+    "question": "2023년 연결기준 자기자본이익률(ROE)을 계산해 줘. (당기순이익 / 평균 자본총계)",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "125:4/126:5 연결총자본의 기초·기말 평균359213734.5백만원과 당기순이익15487100백만원으로4.31% 정확.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A125%3A4",
+          "20240312000736:20240312000736%3A126%3A5"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "117:0 요약연결의 총순이익15487100과양기총자본으로 평균359213734.5·ROE4.31% 정확.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A117%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "SAM_T2_027",
+    "question": "2023년 DX부문과 DS부문의 매출액 비중을 각각 계산하고, DS부문의 실적 하락을 방어하기 위한 향후 사업 전략을 요약해.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PARTIAL"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "전략 문항 채점기준 HOLD 유지. DX169992337/DS66594471/전사258935494백만원과65.7/25.7%,부문간거래 범위 지지. DS매출-32.4%/손실148795억원, HBM/DDR5/LPDDR5x 및 샤인볼트/12나노/32GbDDR5는실제 인용문에 있음. top8의 근거 밖 U100 주장을 재생성하지 않아 support PARTIAL에서PASS.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A679%3A6",
+          "20240312000736:20240312000736%3A40%3A0",
+          "20240312000736:20240312000736%3A680%3A7",
+          "20240312000736:20240312000736%3A674%3A1",
+          "20240312000736:20240312000736%3A95%3A6"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "전략기준HOLD유지.367:239 DX/DS/전체매출과비중,41:1 내부거래범위,680:7 DS32.4%감소/손실148795억원,6:6 메모리/LSI/Foundry전략및674:1 HBM/DDR5/LPDDR5x 모두지지.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A367%3A239",
+          "20240312000736:20240312000736%3A41%3A1",
+          "20240312000736:20240312000736%3A680%3A7",
+          "20240312000736:20240312000736%3A6%3A6",
+          "20240312000736:20240312000736%3A674%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+        "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "EVALUATION_HOLD_AND_GENERATION_EXTRA_CLAIM",
+      "table_identifiability": "NUMERIC_PART_IDENTIFIABLE_WITH_UNRESOLVED_TYPED_UNIT_HINT",
+      "finding": "DX/DS/전사 금액·기간·비중의 표는 있다. 과거 top8의 U100 등 근거 밖 부가 전략 주장 문제와 향후전략 기준 HOLD는 수치 표 누락과 다르다. 전략은 본문으로 확인해야 한다. 679:6의 % 텍스트/비중 열은 보존되지만 cell unit_hint는 백만원으로 표 일괄 상속되어 완전히 정규화된 타입으로 쓸 수 없다."
+    }
+  },
+  {
+    "case_id": "SAM_T3_003",
+    "question": "2023년 사업보고서 주석을 참조하여, 우발부채 및 주요 소송사건이 재무에 미칠 잠재적 영향을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "979:0 분할채무 연대책임·229:101 바이오로직스 소송 및 잠재손익 영향·281:153/496:112 불확실성 충족.80억원 처분 대상과 경영진 판단을 정확히 귀속.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A281%3A153",
+          "20240312000736:20240312000736%3A496%3A112",
+          "20240312000736:20240312000736%3A229%3A101",
+          "20240312000736:20240312000736%3A979%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "979:0 분할채무연대책임,229:101 바이오로직스소송·영향항목·80억원의당사자,281:153/496:112 경영진판단·불확실성을보존.334:206 지급보증등유동성위험없음은 해당주석범위로한정.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A281%3A153",
+          "20240312000736:20240312000736%3A496%3A112",
+          "20240312000736:20240312000736%3A229%3A101",
+          "20240312000736:20240312000736%3A979%3A0",
+          "20240312000736:20240312000736%3A334%3A206"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "SAM_T4_004",
+    "question": "삼성전자의 2023년 영업이익률을 계산하고, 사업보고서에서 Apple이 어떤 맥락으로 언급되는지 설명해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "677:4 이익률2.54%,77:14 Apple 주요매출처·알파벳순·5개사합계15%를 구분.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A677%3A4",
+          "20240312000736:20240312000736%3A77%3A14"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "123:2 영업이익률2.54%,77:14 Apple주요매출처·5개사15%·알파벳순정확.44:1에전달된table_context가SDC FPCA/CoverGlass공급처Apple언급을지지하며개별품목배정은유보.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A123%3A2",
+          "20240312000736:20240312000736%3A77%3A14",
+          "20240312000736:20240312000736%3A44%3A1"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "SAM_T4_029",
+    "question": "삼성전자의 2023년 '생명보험' 부문 수입보험료를 계산해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "40:0 제품부문과804:11 최대주주 삼성생명 사업을 구분해 수입보험료 추정 거절.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A40%3A0",
+          "20240312000736:20240312000736%3A804%3A11"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "40:0 삼성전자사업과804:11 최대주주삼성생명사업을구별하며수입보험료거절.",
+        "cited_source_ids": [
+          "20240312000736:20240312000736%3A40%3A0",
+          "20240312000736:20240312000736%3A804%3A11"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "REFUSAL_NOT_EVALUATED",
+        "note": "인용하던 자료가 교체됨. 새 답변 없이 거절 성공/실패를 판정하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REFUSAL_SOURCE_CHANGE_NOT_RETRIEVAL_FAILURE",
+      "table_identifiability": "NOT_APPLICABLE_REFUSAL",
+      "finding": "삼성전자 제품사업과최대주주삼성생명 사업을구분하는거절문항. schema 인용교체만으로 보험료근거 누락/거절성능 회귀 판정불가."
+    }
+  },
+  {
+    "case_id": "CEL_T1_038",
+    "question": "2023년 무형자산상각비 총액을 포괄손익계산서 또는 주석에서 찾고, 이것이 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "360:200 총상각182286838천원과 당기비용182049824천원을 구분.185:25 연결매출 기준 영향8.36%p. 총액비율8.38%p는 자산배부 포함한 비교치로 제한.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A360%3A200",
+          "20240318000913:20240318000913%3A185%3A25"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "500:340/185:25 손익상각182049824천원/매출2176431531로8.36%p.360:200 총182286838과개발비209548·건설중27466배부를구별.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A500%3A340",
+          "20240318000913:20240318000913%3A185%3A25",
+          "20240318000913:20240318000913%3A360%3A200"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "L12",
+        "finding": "required_denominator_lost",
+        "note": "연결 당기 매출2,176,431,531천원 분모가 빠졌다. 상각총액182,286,838은 남지만 매출2,283,967,480은전기(period_focus: prior)로 당기 영업이익률 계산에 대신 쓸 수 없다."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "SELECTION_LOSS_IN_L12_ONLY",
+      "table_identifiability": "TABLE_FACTS_IDENTIFIABLE_WITH_FUNCTIONAL_ALLOCATION",
+      "finding": "상각표360:200은 매출원가145,878,128/판관비36,171,696/개발비209,548/건설중27,466/총액182,286,838을 구분한다. 당기비용은182,049,824이고 총액과 다르다. L12에서는 당기연결매출185:25가 BM25 9→RRF14로 탈락해 분모가 사라진다. N12/NL12는 분모를 유지하므로 현재 모든조건의 실패라고 일반화하지 않는다. 전기매출로 대체하면 안 된다."
+    }
+  },
+  {
+    "case_id": "CEL_T2_014",
+    "question": "2023년 셀트리온의 주요 바이오시밀러(램시마, 트룩시마 등) 파이프라인의 연구개발 진행 현황을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "84:25 상업화 제품과103:44/106:47/108:49/1056:11 후속 품목의 임상·심사 단계 및2023말/2024구분을 정확히 보존.37:0 짐펜트라 신약허가 구별.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A84%3A25",
+          "20240318000913:20240318000913%3A37%3A0",
+          "20240318000913:20240318000913%3A103%3A44",
+          "20240318000913:20240318000913%3A1056%3A11",
+          "20240318000913:20240318000913%3A106%3A47",
+          "20240318000913:20240318000913%3A108%3A49"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "113:54 최초승인연도/판매표,84:25 짐펜트라신약허가,103:44 후속단계,1228:0 2024신청일,106:47 CT-P42 2023진행,1056:11 CT-P53/55 임상단계까지실제인용으로지지.2023말과제출일을구별.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A113%3A54",
+          "20240318000913:20240318000913%3A84%3A25",
+          "20240318000913:20240318000913%3A103%3A44",
+          "20240318000913:20240318000913%3A1228%3A0",
+          "20240318000913:20240318000913%3A106%3A47",
+          "20240318000913:20240318000913%3A1056%3A11"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "N12",
+        "finding": "TEMPORAL_EVIDENCE_LOSS_COMPLETENESS_UNRESOLVED",
+        "note": "상업화 제품과 후속 파이프라인의 제출일 현재 허가 신청·임상 단계 개요는 84:25/1056:11에 유지된다. 그러나 공통으로 103:44의 CT-P39/CT-P41/CT-P47 기준일 이후 신청 주석이 사라지고, CT-P47의 2024년 신청 및 기준일 이후라는 구체적 구분도 유실되었다. 제출일 현재의 종합 문장은 2023년 상태를 구분하는 날짜·범위 주석의 완전한 대체가 아니다. 시간 범위 근거의 구체적 손실은 확인했으나, 사전에 필수 품목/세부사항이 모두 정의된 문항이 아니므로 새 답변의 완전성 실패로 채점하지 않는다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "TEMPORAL_EVIDENCE_LOSS_COMPLETENESS_UNRESOLVED",
+        "note": "상업화 제품과 후속 파이프라인의 제출일 현재 허가 신청·임상 단계 개요는 84:25/1056:11에 유지된다. 그러나 공통으로 103:44의 CT-P39/CT-P41/CT-P47 기준일 이후 신청 주석이 사라지고, CT-P42의 2023년 국가별 신청 경과도 유실되었다. 제출일 현재의 종합 문장은 2023년 상태를 구분하는 날짜·범위 주석의 완전한 대체가 아니다. 시간 범위 근거의 구체적 손실은 확인했으나, 사전에 필수 품목/세부사항이 모두 정의된 문항이 아니므로 새 답변의 완전성 실패로 채점하지 않는다."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_PIPELINE_EVIDENCE_RETAINED",
+        "note": "108:49의 개별 CT-P47 표는 사라졌지만 103:44의 품목별 심사 상태와 기준일 이후 US/EU/한국 신청 표시 및 1056:11의 파이프라인 개요는 유지. 모든 상세 표현의 동일성을 주장하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "CEL_T2_014",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery"
+      ],
+      "literal_facts": "103:44 품목/진행단계/연구시작일/비고와 기준일 이후 신청;108:49 CT-P47 2024 신청 및 기준일 이후",
+      "binding_flags": [
+        "numeric rows/values empty; text-row structure and provenance remain",
+        "research start year is not approval/status year"
+      ],
+      "saved_condition_boundary": "103:44 A12 RRF5→N12/F12 RRF15;108:49 A12 RRF7→26; broader filing-date summary remains",
+      "interpretation": "시간 한정 근거 유실은 확인. 세부 필수 품목이 고정되지 않아 새 완전성 실패로 채점하지 않음. 표 원문만으로 관계 판독은 가능하나 numeric-only fact index에는 미포함.",
+      "evidence": [
+        "root_source_witnesses.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "CEL_T2_073",
+    "question": "2023년 수출(해외매출) 비중을 전체 매출액 대비로 계산하고, 유럽 시장에서의 직판 체제 전환이 영업이익률 개선에 미친 영향을 설명해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "수출/해외매출 및 직판 인과 HOLD 유지. 연결매출2176431531380원은1048:3 표/주변 금액으로 지지. 연결 해외분자 부재를 인정하고 자회사 수출/매출로 대체하지 않음.2020/2022하반기 유럽직판전환,유통비절감경로,29.93/28.34%표시차1.59%p 및 고수익바이오시밀러/진단키트믹스 원인은인용문에 지지. 전부를 직판효과로 단정하지 않음.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A1048%3A3",
+          "20240318000913:20240318000913%3A38%3A1",
+          "20240318000913:20240318000913%3A1055%3A10",
+          "20240318000913:20240318000913%3A136%3A12",
+          "20240318000913:20240318000913%3A143%3A19"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "수출/해외정의와인과HOLD유지.새475:315 해외376681248/전체2176431531천원17.31%.38:1 직판시점/합병일,1055:10 수수료·비용경로및이익률믹스,1048:3 연도별이익률지지.해외범위명시하고직판효과전체귀속안함.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A475%3A315",
+          "20240318000913:20240318000913%3A38%3A1",
+          "20240318000913:20240318000913%3A1055%3A10",
+          "20240318000913:20240318000913%3A1048%3A3"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "HOLD_SOURCE_CHANGE_UNRESOLVED",
+        "note": "기존 HOLD의 범위·해석 모호성을 유지. 관련 출처 감소를 기록하되 정확도 회귀로 계산하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "EVALUATION_HOLD_WITH_SCOPE_SPECIFIC_NUMERIC_WITNESS",
+      "table_identifiability": "CONDITIONAL_NUMERIC_FACTS_IDENTIFIABLE_IN_SAVED_FACETS_PACKET",
+      "finding": "수출과해외매출의 정의, 직판효과의 인과범위 HOLD 유지. facets475:315의 해외376,681,248/전체2,176,431,531천원(17.31%)은 해당 표 범위로는 사용할 수 있지만 수출과 동일시하거나 이익률변화 전체를 직판효과로 귀속할 수 없다."
+    }
+  },
+  {
+    "case_id": "CEL_T3_015",
+    "question": "셀트리온헬스케어와의 합병과 관련하여 재무제표 주석에 기재된 내용과 합병의 주요 목적을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "574:414/575:415 합병일·승인·교부비율·목적 충족. 연결주석40/별도36·파생상품18/65백만원·합병시점까지 거래·신주2024.1.12 등 추가사실도 실제 인용이 지지.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A574%3A414",
+          "20240318000913:20240318000913%3A575%3A415",
+          "20240318000913:20240318000913%3A352%3A192",
+          "20240318000913:20240318000913%3A748%3A151",
+          "20240318000913:20240318000913%3A691%3A94",
+          "20240318000913:20240318000913%3A951%3A354"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "574:414/575:415 합병당사자·기일·비율·목적및상장일정확.981:384 영업권7441430백만원·비손금·잠정을별도기준으로한정;691:94 파생18/65백만원지지.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A574%3A414",
+          "20240318000913:20240318000913%3A575%3A415",
+          "20240318000913:20240318000913%3A981%3A384",
+          "20240318000913:20240318000913%3A691%3A94"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "N12",
+        "finding": "CORE_PRESERVED_DETAIL_LOSS",
+        "note": "합병 목적·교부비율·주주총회 승인·합병일은 575:415/970:373에 남으며 969:372는 유실된 574:414의 이사회·주총·합병일 정보를 별도 주석 문장으로 보존한다. 951:354의 특수관계자 거래 범위를 합병시점까지로 제한하는 부가 주석만 유실되었다. 파생상품 18/65백만원은 다른 기존·신규 주석에 유지된다. 질문의 합병 기본 사항·주요 목적 근거는 보존되지만 과거 답변의 모든 부가 주석까지 보존된 것은 아니다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/nori_source_review.json",
+        "arm": "NL12",
+        "finding": "CORE_PRESERVED_DETAIL_LOSS",
+        "note": "합병 목적·교부비율·주주총회 승인·합병일은 575:415/970:373에 남으며 969:372는 유실된 574:414의 이사회·주총·합병일 정보를 별도 주석 문장으로 보존한다. 951:354의 거래범위 주석과 691:94/694:97의 파생상품 18/65백만원 설명은 동일 대체를 확인하지 못했다. 질문의 합병 기본 사항·주요 목적 근거는 보존되지만 과거 답변의 모든 부가 주석까지 보존된 것은 아니다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "L12",
+        "finding": "primary_evidence_preserved_secondary_sources_changed",
+        "note": "합병일·목적·교부비율은575:415와969:372에 남는다. 기존별도 파생상품 등부수 인용 손실은 합병질문의 핵심 회귀로 보지 않는다."
+      },
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "CORE_SUPPORT_PRESERVED; optional historical detail lost",
+        "note": "Core merger facts and purpose stay available. The source supporting an optional derivative-recognition detail in the old answer disappears. Do not equate fewer optional facts with failure of the required summary."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_EVIDENCE_RETAINED_EXTRA_DISCLOSURES_LOST",
+        "note": "합병일·승인 사실은 969:372/1023:5, 목적은 연결 주석 575:415에 유지. 추가 파생상품·거래주석은 감소. 주석 범위 차이를 무시한 숫자 대체는 하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_FACTS_PRESERVED_OPTIONAL_DETAIL_LOST",
+      "table_identifiability": "TEXT_TABLE_CONTAINS_REQUIRED_FACTS_NUMERIC_RECORDS_EMPTY",
+      "finding": "575:415의 표에 합병당사자·목적·교부방향·비율·기일이 직접 있다. 하지만 numeric table_row_records_json은 빈 배열이며 사실은 텍스트 표에 보존된다. 18/65백만원 파생상품 또는 합병시점 거래 제한 부가 주석의 손실을 필수 합병 요약 손실로 세지 않는다. 비율 방향·기대목적을실제성과로 바꾸지 않는 의미 검증은 여전히 필요하다."
+    }
+  },
+  {
+    "case_id": "CEL_T3_040",
+    "question": "2023년 사업보고서에서 재고자산평가손실, 재고자산평가손실환입, 재고자산폐기손실 규모를 찾아 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "FAIL",
+        "support": "PARTIAL"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "추가된517:357 연결 gross손실2526280·환입48885812·폐기25163510천원 충족.917:320 별도도 구별; 두순합계가318:158/732:135 매출원가 순환입 등과 반올림 일치.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A517%3A357",
+          "20240318000913:20240318000913%3A917%3A320",
+          "20240318000913:20240318000913%3A318%3A158",
+          "20240318000913:20240318000913%3A732%3A135"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "517:357 연결gross손실/환입/폐기와917:320 별도3금액을구별.순액-21196022/-21817034천원및억원환산정확.318:158 연결매출원가순환입등과반올림일치.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A517%3A357",
+          "20240318000913:20240318000913%3A917%3A320",
+          "20240318000913:20240318000913%3A318%3A158"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "N12",
+        "finding": "three_required_units_lost",
+        "note": "연결 gross 평가손실·환입·폐기 세 항목이 RRF15로 빠졌다. 별도1,010,161/45,139,758/22,312,563천원과 연결 순환입21,196백만원은 세 원래 항목을 복구하지 못한다. 두 treatment 문맥 출처 집합은 동일하다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "NL12",
+        "finding": "three_required_units_lost",
+        "note": "연결 gross 평가손실·환입·폐기 세 항목이 RRF15로 빠졌다. 별도1,010,161/45,139,758/22,312,563천원과 연결 순환입21,196백만원은 세 원래 항목을 복구하지 못한다. 두 treatment 문맥 출처 집합은 동일하다."
+      },
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "L12",
+        "finding": "primary_evidence_preserved_separate_comparison_lost",
+        "note": "과거별도 비교표917:320은 빠졌지만 기존필수 연결gross 세 항목이517:357에 모두 남는다."
+      },
+      {
+        "artifact": "nori_structural_tf_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "TARGET_NOT_RECOVERED_AND_SEPARATE_GROSS_AMOUNTS_NEWLY_LOST",
+        "note": "The three consolidated amounts remain outside final12. The three separate amounts previously inside N12 are now also absent. Net cost recognition cannot reconstruct three gross components. The question does not expressly require consolidated scope, so this separate-basis loss matters and is not captured by the consolidated-only frozen 26-unit panel."
+      },
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_CONNECTED_VALUES_RETAINED",
+        "note": "연결 gross 평가손실/환입/폐기손실 517:357은 유지. 별도 상세 917:320은 빠지고 다른 표 518:358이 추가. 기본 필수 세 금액의 손실은 아님."
+      }
+    ],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "CEL_T3_040",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery",
+        "other"
+      ],
+      "literal_facts": "517:357 연결 손실2,526,280/환입(48,885,812)/폐기25,163,510천원;917:320 별도 세 항목도 보존",
+      "binding_flags": [
+        "relative current period retained",
+        "question does not expressly require consolidated scope"
+      ],
+      "saved_condition_boundary": "A12 connected RRF11/separate12; N12 connected15/separate11; F12 connected14/separate16",
+      "interpretation": "순액/등 항목을 개별 손실로 해석한 과거 답변 오류도 존재. 별도 답변 가능성과 연결 근거 보존은 별도 판정.",
+      "evidence": [
+        "numeric_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "MIX_T3_050",
+    "question": "2023년 재무제표 주석 상 특수관계자(셀트리온제약 등)와의 매출 거래 규모를 합산하고, 내부거래가 실적에 미치는 영향을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "949:352 별도제품용역매출1731078694천원 및 종속기업부분합61223475천원 정확.545:385 연결관련자합계1731945873과 구분하며 전체관련자매출을 내부거래로 제거하지 않음.",
+        "cited_source_ids": [
+          "20240318000913:20240318000913%3A949%3A352",
+          "20240318000913:20240318000913%3A545%3A385"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "ERROR",
+        "completeness": "FAIL",
+        "support": "NOT_EVALUATED",
+        "note": "F2 selected C018 that was eligible only for F1. Per-facet candidate contract rejected it before answer generation. Counts as end-to-end failure, not a hallucinated answer.",
+        "cited_source_ids": [],
+        "execution_status": "SELECTION_FAILED"
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "EXPERIMENTAL_SELECTION_CONTRACT_FAILURE",
+      "table_identifiability": "NUMERIC_AND_RELATION_PART_IDENTIFIABLE",
+      "finding": "원래 Sol12에는 별도 949:352 제품·용역매출 1,731,078,694천원과 상대기업/관계 열이 온전히 있다. facets 실험은 F2에서 F1 전용 C018을 선택해 계약검사 실패, 답변 미생성. 원문·파싱·후보 손실로 세면 안 된다. 연결 545:385 합계와 별도 합계를 구분해야 한다. 기존 참고자료 evidence.section_path는 연결로 적혔지만 rubric scope와 실제949:352는 별도여서 원문 범위가 우선한다."
+    }
+  },
+  {
+    "case_id": "KAK_T1_054",
+    "question": "2023년 카카오의 당기순손실에 영업권손상 및 PPA무형자산 손상차손이 미친 영향을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1267:6 연결영업흑자4609억과 최종순손실18167억을 구분하고 두 손상 유형의 영업외비용 영향을 설명. 각각의 금액은 유보.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A1267%3A6"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1267:6 순손실18167억과영업흑자4609억·4분기손상의영업외영향지지.추가영업권손상14833억원과게임즈/엔터PPA손상은1264:3이직접지지;PPA별도금액과세후정확영향유보.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A1267%3A6",
+          "20240418000375:20240418000375%3A1264%3A3"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KAK_T4_056",
+    "question": "카카오의 2023년 1주당 순자산가치(BPS)를 '매출액 나누기 발행주식총수'로 계산해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "25:0 주식수444849878주 지지.매출/주식수는 BPS가 아니라고 명시하고 숫자계산을 거절.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A25%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "FAIL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "기존grounded-only 잘못된BPS산식거절정책상실제주당매출계산수행은회귀.다만답변은BPS와주당매출을명확히구별하고359:218/362:221 매출과25:0 주식수에맞게16987.76원계산.사실환각이아닌평가정책불일치로support PASS.",
+        "cited_source_ids": [
+          "20240418000375:20240418000375%3A359%3A218",
+          "20240418000375:20240418000375%3A362%3A221",
+          "20240418000375:20240418000375%3A25%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": true,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REFUSAL_POLICY_MISMATCH_NOT_FACTUAL_OR_RETRIEVAL_FAILURE",
+      "table_identifiability": "NOT_APPLICABLE_REFUSAL_POLICY",
+      "finding": "비queued 경계사례. facets답변은매출/주식수가BPS가아닌주당매출임을명시하고16,987.76원을정확히계산한다. 기존grounded-only거절정책상FAIL이지만support PASS. 표검색 개선대상으로 세지 않는다."
+    }
+  },
+  {
+    "case_id": "KAB_T1_066",
+    "question": "2023년 카카오뱅크의 CIR을 계산해 줘. 여기서 CIR은 수익성 표의 '경비차감전영업이익(A)' 대비 '판매비와관리비(E)' 비율을 의미한다.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "297:3 질문정의E/A로37.47% 정확. 반올림 문구의 자리 표현은 모호하나 표시값은 둘째자리까지 정확.",
+        "cited_source_ids": [
+          "20240320001487:20240320001487%3A297%3A3"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "297:3 질문정의그대로4355/11623=37.47%.",
+        "cited_source_ids": [
+          "20240320001487:20240320001487%3A297%3A3"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "KAB_T3_067",
+    "question": "2023년 주석 20 '순수수료손익'에서 연계대출수입수수료와 연계계좌수입수수료 금액을 찾고, 사업보고서에서 플랫폼 비즈니스의 주요 서비스와 2023년 확장 방향을 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "173:77 두수수료17003/15520백만원과54:18 서비스 최소2종,295:1/82:21/300:6의2023확장 충족.2024 투자상품 계획과2023 라이선스·세금신고 및 조직개편을 구별.",
+        "cited_source_ids": [
+          "20240320001487:20240320001487%3A173%3A77",
+          "20240320001487:20240320001487%3A54%3A18",
+          "20240320001487:20240320001487%3A295%3A1",
+          "20240320001487:20240320001487%3A82%3A21",
+          "20240320001487:20240320001487%3A300%3A6"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "173:77 수수료두금액,54:18 여러서비스,295:1/82:21/300:6의2023확장및조직,36:0 651만/6.8조원누적지표까지지지.2024투자라인업은계획으로구별.",
+        "cited_source_ids": [
+          "20240320001487:20240320001487%3A173%3A77",
+          "20240320001487:20240320001487%3A54%3A18",
+          "20240320001487:20240320001487%3A295%3A1",
+          "20240320001487:20240320001487%3A82%3A21",
+          "20240320001487:20240320001487%3A300%3A6",
+          "20240320001487:20240320001487%3A36%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "table_schema_search_validated_offline_20261022/source_review.json",
+        "arm": null,
+        "finding": "PRIMARY_EVIDENCE_RETAINED",
+        "note": "173:77 두 수수료, 54:18 서비스, 82:21의 2023 세금신고·펀드 라이선스 및 300:6 조직개편 유지. 295:1의 경영진 서술 감소는 별도로 기록."
+      },
+      {
+        "artifact": "table_row_search_offline_20261022/review.json",
+        "arm": "row_B8",
+        "finding": "ESSENTIAL_CATEGORIES_RETAINED_SOME_DETAIL_LOST",
+        "note": "연계대출/계좌 수수료 표, 플랫폼 업무, 2023 조직 확장 및 세금신고 서비스 근거 유지. 빠진 MD&A의 광고 사업 본격화/신용대출 비교 출시를 동일 문장 그대로 재현할 근거는 약해지므로 모든 기존 답변 문장을 보존했다고는 하지 않음."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "REQUIRED_VALUES_AND_NARRATIVE_PRESERVED",
+      "table_identifiability": "NUMERIC_PART_IDENTIFIABLE_WITH_COLUMN_PERIODS",
+      "finding": "173:77의 연계대출17,003/연계계좌15,520백만원은 제8(당)기와제7(전)기 셀헤더를 포함해 보존. flat period_focus=unknown이어도 기간 손실로 판정하면 안 된다. 플랫폼 서비스/2023세금신고·라이선스·조직개편 근거는 남고295:1의 광고/대출비교 세부문장은 일부 감소한다."
+    }
+  },
+  {
+    "case_id": "HYU_T1_009",
+    "question": "2023년 연결기준 전체 매출액 중 '금융 부문' 매출이 차지하는 비중(%)을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "113:0/76:0 외부고객매출 부문합162663579백만원으로 금융13.77%를 재계산. top8 공시13.8% 응답과 같은 완전정답이나 계산근거가 풍부해짐.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A113%3A0",
+          "20240313001451:20240313001451%3A76%3A0"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "530:388 연결순매출금융22401156/전체162663579=13.77%;113:0 외부고객범위지지.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A530%3A388",
+          "20240313001451:20240313001451%3A113%3A0"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [
+      {
+        "artifact": "tokenizer_nori_idf_offline_20261022/root_source_review.json",
+        "arm": "L12",
+        "finding": "reported_ratio_retained_recalculation_support_reduced",
+        "note": "외부고객 부문합계표76:0과162,663,579백만원 분모는 빠졌다. 공시 금융매출22,401,156 및비중13.8%는113:0/107:0에 남아 답변 전체 회귀로 단정하지 않는다. 13.77%정밀 재계산의 근거는 약해졌다."
+      }
+    ],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "saved_boundary_review",
+    "current_assessment": {
+      "primary_boundary": "PRECISION_SUPPORT_SELECTION_LOSS_IN_L12_ONLY_WITH_UNIT_HINT_ISSUE",
+      "table_identifiability": "RAW_TABLE_FACTS_IDENTIFIABLE_TYPED_UNITS_NOT_READY",
+      "finding": "L12에서76:0 RRF15로 분모 재계산 근거가 빠져도113:0의22,401,156 및 공시13.8%는 남는다. 전체답변불가로 세지 않는다. N12/NL12는76:0을 유지한다.76:0은 금액/비중 혼합표인데 unit_hint=%가 금액셀에도 상속되어 raw본문 단위와 typed unit을 구분해야 한다."
+    }
+  },
+  {
+    "case_id": "HYU_T1_034",
+    "question": "2023년 차량 부문 영업이익과 금융 부문 영업이익을 각각 추출하고, 전체 영업이익에서 차량 부문이 차지하는 비중을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "76:0/113:0/1047:3의 차량12677300·금융1385538·전체15126901백만원과83.8% 정확; 내부거래조정 포함 표시.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A76%3A0",
+          "20240313001451:20240313001451%3A113%3A0",
+          "20240313001451:20240313001451%3A1047%3A3"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "76:0의본문및table_context에단위백만원이명시되며차량12677300·내부거래조정포함을지지.113:0 금융1385538과133:2 전체15126901로83.8%정확.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A76%3A0",
+          "20240313001451:20240313001451%3A113%3A0",
+          "20240313001451:20240313001451%3A133%3A2"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "HYU_T2_035",
+    "question": "2023년 현대자동차 사업보고서를 바탕으로 E-GMP 기반 전동화 모델의 주요 성과를 요약해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PARTIAL"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "E-GMP 및 차량별판매 기준 HOLD 유지.1045:1은IONIQ6의2023월드카3관왕/2022IONIQ5를 지지. 추가된21:7 실제 인도공장HMI 행에2023아이오닉5(NE)양산이 연결되어 top8의 끊긴국가귀속 문제가 해소. E-GMP 연결과모델별판매는근거없다고 명시.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1045%3A1",
+          "20240313001451:20240313001451%3A21%3A7"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PARTIAL",
+        "note": "E-GMP기준HOLD유지.수상·아이오닉5N·2021기술은96:5/1045:1/19:5/1262:4로지지.그러나인도아이오닉5·미국GV70 EV양산이라는국가귀속은22:8 table_row_labels에사건만있고회사/국가열이누락되어미지지.올바른21:7은후보에있어도최종packet미전달.기존top8동일경계에따라support PARTIAL회귀.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A96%3A5",
+          "20240313001451:20240313001451%3A1045%3A1",
+          "20240313001451:20240313001451%3A19%3A5",
+          "20240313001451:20240313001451%3A22%3A8",
+          "20240313001451:20240313001451%3A1262%3A4"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "HYU_T2_035",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery"
+      ],
+      "literal_facts": "연혁표 미국공장–2023 GV70 EV/인도공장–2023 아이오닉5;21:7 본문 및21:7/22:8 full source_context rows",
+      "binding_flags": [
+        "non-numeric relational rows stored as table_text_row rather than numeric rows",
+        "common row labels omit company side of relationship"
+      ],
+      "saved_condition_boundary": "A12 correct21:7 delivered; saved facets candidate contains21:7 but packet drops it;22:8 partial body remains",
+      "interpretation": "관계 원문은 보존됐으며 단편 라벨이 관계를 대신하지 못함. E-GMP 전체 문항의 HOLD 유지.",
+      "evidence": [
+        "axes_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "diagnostic_or_hold"
+    }
+  },
+  {
+    "case_id": "HYU_T3_036",
+    "question": "2023년 연결재무제표 주석 17. 충당부채(연결)에서 '판매보증충당부채'의 기존 충당부채 증가액을 찾고, 이것이 리스크 관리 차원에서 의미하는 바를 설명해 줘.",
+    "group": "diagnostic_or_hold",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": null,
+        "completeness": null,
+        "correctness": null,
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "연결/별도 기준답안 충돌 HOLD 유지. 추가된333:191 연결표의 증가2175691백만원,사용3442626,환율-11439,기초10399527,기말9121153을 정확히 연결.183:41의 최선추정 정의를 설명하고 품질악화/잔액순증으로 단정하지 않음.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A333%3A191",
+          "20240313001451:20240313001451%3A183%3A41"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": null,
+        "completeness": null,
+        "support": "PASS",
+        "note": "연결/별도답안충돌HOLD유지.333:191 연결증가2175691백만원및잔액연결정확.180:38 보증기간/경험률,335:193 세타2새정보반영을지지.추가설정액을현금지출/전액리콜/잔액순증으로단정안함.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A333%3A191",
+          "20240313001451:20240313001451%3A180%3A38",
+          "20240313001451:20240313001451%3A335%3A193"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "HYU_T4_079",
+    "question": "2023년 사업보고서(연간 보고서) 데이터만을 사용하여 2023년 4분기만의 단일 영업이익을 계산할 수 있는지 논리적으로 검증하고, 불가능하다면 사유를 설명해 줘.",
+    "group": "refusal",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1047:3 연간15126901백만원과전년도9824928백만원을 구분.동일범위9개월 실적이 필요하며 연간/4 또는연도차감을Q4로 쓰지 않음.전체보고서 부재 단정 없음.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1047%3A3"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "133:2/1047:3 2023/2022/2021연간영업이익을분기수치와구별.9개월누적필요·연간/4불가와제공근거한계정확.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A133%3A2",
+          "20240313001451:20240313001451%3A1047%3A3"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  },
+  {
+    "case_id": "MIX_T1_064",
+    "question": "2023년 손익계산서에서 '매출원가'와 '판매비와관리비'를 합산하여 '총 영업비용'을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": false,
+        "completeness": "FAIL",
+        "correctness": "PARTIAL",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "추가된1047:3에서 연결매출원가129179183·매출162663579백만원 확보.408:266 판관비18357495와 합계147536678·비용률90.70% 정확.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1047%3A3",
+          "20240313001451:20240313001451%3A408%3A266"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "133:2 연결3항목으로총영업비용147536678백만원·비율90.70%정확.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A133%3A2"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": true,
+    "detailed_review_queued": true,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "source_and_packet_focus",
+    "current_assessment": {
+      "case_id": "MIX_T1_064",
+      "identifiability": "BOUND_CONTEXT",
+      "failure_layers": [
+        "selection_delivery",
+        "axis_binding"
+      ],
+      "literal_facts": "133:2 매출162,663,579/매출원가129,179,183/판관비18,357,495백만원; 대안1047:3+408:266",
+      "binding_flags": [
+        "1047:3 body has currency but structured unit unknown",
+        "no selling expense row in1047:3 alone"
+      ],
+      "saved_condition_boundary": "Historical A8 missing revenue/cost; A12/N12/F12 retain1047:3+408:266. Direct133:2 RRF14 outside all three",
+      "interpretation": "직접 표 하나의 탈락을 전체 근거 누락으로 세면 안 됨. 현재12개에서는 대체 묶음으로 숫자 충족.",
+      "evidence": [
+        "numeric_review.json"
+      ],
+      "automatic_query_resolution_measured": false,
+      "group": "common_answerable"
+    }
+  },
+  {
+    "case_id": "MIX_T3_023",
+    "question": "사업보고서 내 '환경 및 안전' 섹션(또는 주석)에서 탄소 배출권 관련 의무나 충당부채가 언급된 내용을 찾아 요약해 줘.",
+    "group": "common_answerable",
+    "saved_judgments": {
+      "Sol8_rescored": {
+        "complete": true,
+        "completeness": "PASS",
+        "correctness": "PASS",
+        "support": "PASS"
+      },
+      "Sol12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1225:4 현대차 배출권거래제 적용 의무와595:14 별도 회계정책의 무상/유상·충분/부족 조건을 보존. 실제충당금 계상금액은 유보.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1225%3A4",
+          "20240313001451:20240313001451%3A595%3A14"
+        ],
+        "execution_status": null
+      },
+      "facets12": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PASS",
+        "note": "1225:4 배출권거래제대상,595:14 별도정책의무상/매입자산측정및충분/부족배출부채조건보존.실제계상액과분류단정없음.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A595%3A14",
+          "20240313001451:20240313001451%3A1225%3A4"
+        ],
+        "execution_status": null
+      }
+    },
+    "saved_findings": [],
+    "historical_failure_or_support_issue": false,
+    "detailed_review_queued": false,
+    "new_accuracy_grade": null,
+    "refusal_policy_failure_in_saved_results": false,
+    "audit_depth": "inventory_screen_only",
+    "current_assessment": {
+      "primary_boundary": "NO_SAVED_FAILURE_SELECTED",
+      "finding": "기존 판정과 출처 변경 검토에 이번 심층 분석 대상 신호가 없음. 새 의미 검증 PASS나 원문 완전성을 뜻하지 않음."
+    }
+  }
+]

@@ -1,0 +1,40 @@
+{
+  "classification": "separate offline experiment; existing implementation and original artifacts preserved",
+  "hypothesis": "Source-position-validated table bundles can restore missing axes or facts within existing A12 source slots and the unchanged context cap.",
+  "baseline": "full77_sol_top12_20261020/panel.json original A12, checked against saved tokenizer experiment A12 rankings and original request packets",
+  "case_count": 77,
+  "groups": {"common_answerable":46,"refusal":19,"diagnostic_or_hold":12},
+  "fixed": {
+    "candidate_pool_scores_order": "Exact saved Dense16, BM25<=24, equal RRF60; not recomputed",
+    "selected_sources": "Original top12 IDs and order",
+    "delivered_sources": "Original actual packet IDs and order, including unchanged historical whole-source byte omissions",
+    "query_scope_source_id_text_context": "Byte-identical strings and same field values; not replaced, summarized, trimmed, normalized or reinterpreted",
+    "context_limit_utf8_bytes":65536,
+    "generation": "No answer generation or model request; existing model/prompt settings unchanged"
+  },
+  "variant": {
+    "id":"T12",
+    "mechanism":"Append one complete literal table_evidence object to an already delivered original document when it fits within the existing byte cap",
+    "order":"Visit original delivered document order. Deduplicate physical tables by document SHA plus table XPath. Only the first owner's stored payload is eligible, even if rejected; no merge from later owners.",
+    "budget":"Atomic whole table plus its eligible bound contexts. If it does not fit, skip that addition and continue. Never drop or compress an original source, partially add a table, refill an omitted source, or reorder sources.",
+    "input_features":"The projector receives only one stored document metadata object and its original source tree/hash. It cannot access the query, answer key, case ID, target values, rubric, rank scores, or failure labels.",
+    "evidence":"Existing table_object.header_rows, numeric rows and source-bound table_text_row segments only; original XML is a witness, not a source of additional unstored cells.",
+    "completeness":"Every nonempty source-grid coordinate must have an exact coordinate-bound stored witness. Repeated identical strings at other positions do not qualify. Preserve blank column positions and rowspan/colspan origins. Reject the whole table on missing, ambiguous, conflicting or unverified values.",
+    "headers":"Only original THEAD/TH markers establish declared header roles. Inferred leading rows remain literal rows without asserting their semantic header role.",
+    "context":"Validate document hash, unique XPath and exact or whitespace-normalized source span. Keep eligible ancestor/intermediate heading, caption, and preceding-block text as located literal context, not inferred axis values. Exclude following-block context to avoid asserting the next table's caption belongs to this table.",
+    "axis_interpretation":"Do not copy unit_hint, period_text, normalized_value, normalized_unit or filing company/year into new verified facts. Acquisition dates do not become report periods; filing company is not an operating entity. Literal row/column/context retains possible period/entity/unit evidence; unresolved semantic scope stays unresolved.",
+    "provenance":"Original source ID retained; attachment explicitly names original document SHA, table XPath and zero-based physical grid coordinates. Detailed cell-locator/span mapping retained in the experiment receipt. A fact in an attachment is not claimed to occur in the old chunk text."
+  },
+  "evaluation": {
+    "predeclared_file":"evaluation_contract.json",
+    "all77":"Exact original required-evidence text/context retention and candidate/selection/delivery parity; inspect additions for positional mistakes and source/axis conflicts",
+    "recovery":"A required fact or required axis missing from baseline must become visibly source-supported in T12. Mere duplication, metadata presence, correct UID, or a numeric substring is not recovery.",
+    "units":"Freeze historical criteria and canonical groups. Use source-visible values, exact axes and applicable unit/period/entity relations; alternatives and rounded source displays remain allowed when question-compatible.",
+    "new_answers":"None; no accuracy, refusal-success, semantic-robustness, or model-reading regression score is claimed",
+    "success_gate":"At least one previously missing required fact/axis visibly restored, no original required evidence lost, and no confirmed wrong new structural or semantic link in audited additions. Passing an offline gate never activates runtime automatically.",
+    "stop":"One scored variant/run only. No rules/weights/query matching/selection changes after observing benchmark outcomes. Failed synthetic/identity gate stops scoring; a non-beneficial or budget-limited variant is reported without retuning."
+  },
+  "limits":{"new_model_api_calls":0,"external_cost_usd":0,"new_search_calls":0,"new_answers":0,"scored_runs":1,"process_timeout_seconds":1800},
+  "authorization":"Current explicit user request authorizes new run-local experiment scripts and execution; existing source, .env, stores and previous outputs remain read-only.",
+  "limitations":"Development-exposed questions; shared-context source review; structural correspondence is not semantic interpretation; append-only text retention does not establish absence of answer regression or attention interference."
+}

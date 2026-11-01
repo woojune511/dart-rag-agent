@@ -1,0 +1,37 @@
+{
+  "mode": "offline_saved_failure_audit",
+  "new_model_calls": 0,
+  "new_retrieval_runs": 0,
+  "new_answers": 0,
+  "cost_usd": 0,
+  "scope": "All77 inventory; source-level analysis of saved failures and previously reviewed evidence losses. Existing judgments remain unchanged.",
+  "canonical_disposition": "full77_sol_top12_20261020/historical_baseline_grades.json:new_group; 46 common answerable,19 refusal,12 diagnostic_or_hold",
+  "historical_answers": ["Sol top8 rescored", "Sol top12", "auto facets completion"],
+  "retrieval_contexts": ["saved original A8/A12", "saved Nori N12", "saved structural TF F12", "other already-reviewed row/schema losses"],
+  "selection_boundary": "Use failure union and existing source-review cases, not every changed citation as a failure. Preserve alternatives, optional-detail distinctions and HOLD.",
+  "structure_levels": {
+    "DIRECT": "Required value/relationship is in row/cell axes with correct period, scope, unit and source binding in the existing artifact.",
+    "BOUND_CONTEXT": "Literal row/cell is available; an existing source-bound table caption/period context is necessary to complete interpretation. Coarse scalar hints may be inaccurate.",
+    "CONDITIONAL_BOUND_CONTEXT": "Descriptive audit subtype added at synthesis, not a new scoring gate: literal facts and bound context exist, but a pre-existing HOLD about ranking universe or scope remains. No answer grade is assigned.",
+    "INCOMPLETE": "At least one required axis/subject/unit/period link is missing or misleading and cannot be resolved from the stored table object alone.",
+    "NOT_TABLE": "The missing requirement is narrative, reasoning, contract compliance or request ambiguity; not solved by table structure alone.",
+    "UNRESOLVED": "Stored evidence does not justify a conclusive classification; never equated with original source absence."
+  },
+  "failure_layers": {
+    "selection_delivery": "A required source exists in the saved candidate pool but is outside selected k or actually omitted from packet.",
+    "axis_binding": "Period, subject/scope, or unit relation is missing, wrong or not represented at the needed granularity.",
+    "candidate_absence": "Verified source exists in corpus but is absent from that arm's saved candidates.",
+    "source_absence_unproven": "No verified supporting source established; not proof the full filing lacks it.",
+    "other": "Generation, refusal policy, execution contract, narrative requirement or benchmark ambiguity."
+  },
+  "causal_limits": [
+    "Failure layers may overlap; do not sum them as mutually exclusive causes.",
+    "Gold/reference values may locate diagnostic witnesses but are never inputs to a proposed runtime retriever.",
+    "Source-ID or numeric-string match alone is insufficient.",
+    "Scalar period_focus/year/unit_hint/row_label cannot override physical table axes.",
+    "Stored metadata availability does not imply it appeared in model input.",
+    "Identifiability is source inspection with the target known, not demonstrated query-to-fact mapping.",
+    "No fresh accuracy, inference significance, heldout generalization or treatment effect is measured."
+  ],
+  "output_boundary": "Write only in this new audit directory; no source/docs/config/store mutation, no restart, no commit."
+}

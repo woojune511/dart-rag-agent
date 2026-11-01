@@ -1,0 +1,17 @@
+{
+  "status": "COMPLETE_NOT_ADOPTED_STOP_THIS_VARIANT",
+  "cases": 77,
+  "row_views": 63367,
+  "source_sets_changed_vs_A": 11,
+  "api_calls": 0,
+  "model_cost_usd": 0,
+  "answers_generated": 0,
+  "new_treatments": 1,
+  "protected_files": 1136,
+  "review": "review.json",
+  "review_sha256": "f75a4d0bf7cd01f29c49aabfe7760e1de02bc577f8ddec2189d13cf7b725db5f",
+  "original_scores_unchanged": 1235927,
+  "focused_tests_passed": 9,
+  "answer_accuracy_measured": false,
+  "runtime_adopted": false
+}

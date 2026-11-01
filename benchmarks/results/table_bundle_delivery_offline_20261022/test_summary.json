@@ -1,0 +1,14 @@
+{
+  "status": "PASS",
+  "suite": "provider-free synthetic projector contracts",
+  "test_count": 22,
+  "failed": 0,
+  "errors": 0,
+  "elapsed_seconds_observed": 0.007,
+  "command": ".\\.venv\\Scripts\\python.exe -B -X utf8 benchmarks/results/table_bundle_delivery_offline_20261022/test_projector.py",
+  "scope": "Source binding/admission contracts only; no retrieval, generation, semantic answer quality, or model regression measurement.",
+  "source_sha256": "72470814e769f6a03b8ee072d2fd8e2e204f4ed742c7411dac466a7971514ba0",
+  "test_sha256": "00fbb98625a7d51c123c289aea7ced50ea9b335c58d6aecfa2940ddcaf680d68",
+  "code_changed_after_synthetic_pass": false,
+  "pre_freeze_probe": "11-source-object compatibility probe started before root requested no real-source probe; no code changes based on its results. Separate receipt projector_source_probe.json."
+}

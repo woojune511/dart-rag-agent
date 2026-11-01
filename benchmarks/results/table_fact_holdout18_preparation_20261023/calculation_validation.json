@@ -1,0 +1,65 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "case_id": "H03",
+      "operands": [
+        {
+          "name": "rd_2025",
+          "value": "3712383",
+          "evidence_id": "rd_2025"
+        },
+        {
+          "name": "rd_2024",
+          "value": "3247305",
+          "evidence_id": "rd_2024"
+        }
+      ],
+      "calculated": {
+        "difference_million_krw": "465078"
+      },
+      "status": "PASS"
+    },
+    {
+      "case_id": "H09",
+      "operands": [
+        {
+          "name": "revenue_2025_million_krw",
+          "value": "2680239",
+          "evidence_id": "cloud_2025_cell"
+        },
+        {
+          "name": "revenue_2024_million_krw",
+          "value": "2323476",
+          "evidence_id": "cloud_2024_cell"
+        }
+      ],
+      "calculated": {
+        "difference_million_krw": "356763",
+        "growth_percent": "15.3547099259901974455514065994225892585075120207826549531822",
+        "rounded_percent": "15.35"
+      },
+      "status": "PASS"
+    },
+    {
+      "case_id": "H15",
+      "operands": [
+        {
+          "name": "production_investment",
+          "value": "21870",
+          "evidence_id": "E4"
+        },
+        {
+          "name": "total_investment",
+          "value": "91560",
+          "evidence_id": "E5"
+        }
+      ],
+      "calculated": {
+        "share_percent": "23.8859764089121887287024901703800786369593709043250327653997",
+        "rounded_percent": "23.9"
+      },
+      "status": "PASS"
+    }
+  ]
+}

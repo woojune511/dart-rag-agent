@@ -1,0 +1,18 @@
+{
+  "status": "ANALYZED_OFFLINE",
+  "verification_status": "ANALYZED",
+  "report": "report.md",
+  "all77_disposition": "all77_disposition.json",
+  "findings": "findings.json",
+  "preservation": "final_validation.json",
+  "model_calls": 0,
+  "new_retrieval_runs": 0,
+  "new_answers": 0,
+  "cost_usd": 0,
+  "app_restarts": 0,
+  "runtime_changes": false,
+  "env_store_changes": false,
+  "adopted": false,
+  "new_answer_accuracy_claim": false,
+  "memory_used": "Diagnostic framework only; current claims verified against saved artifacts and source files."
+}

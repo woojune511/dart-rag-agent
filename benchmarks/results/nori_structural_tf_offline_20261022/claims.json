@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "step": "freeze_protocol",
+      "status": "passed"
+    },
+    {
+      "step": "synthetic_contracts",
+      "status": "passed"
+    },
+    {
+      "step": "score_all77",
+      "status": "passed"
+    },
+    {
+      "step": "analyze_all77",
+      "status": "passed"
+    },
+    {
+      "step": "inspect_sources",
+      "status": "passed"
+    },
+    {
+      "step": "verify_preservation",
+      "status": "passed"
+    }
+  ]
+}

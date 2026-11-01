@@ -1,0 +1,39 @@
+{
+  "objective": "Small paired pilot of the complete DART representation pipeline against ordinary flat-text chunking; not a structure-only causal test.",
+  "arms": {
+    "generic": "lxml HTML text extraction preserving all visible text nodes; recursive 2500 character chunks with 320 overlap; common report metadata",
+    "dart": "Current local v12 FinancialParser, canonical structural selective v2 prefix 2500/320, source context metadata; no model preprocessing"
+  },
+  "fixed": {
+    "model": "gpt-6.1-sol",
+    "reasoning": "low",
+    "max_output_tokens": 8192,
+    "embedding": "text-embedding-3-large",
+    "embedding_dimensions": 3072,
+    "retrieval": "Exact squared L2 dense top24 + BM25 positive top24; RRF60 final top12; same unmodified query; no expansion/reranker",
+    "context_max_bytes": 65536,
+    "request_local_token_cap": 12000,
+    "packet_policy": "Whole source only in ranked order; omit overflowing sources, do not truncate",
+    "generation": "Existing ANSWER_INSTRUCTIONS and RagAnswer schema, direct Responses harness, same wire for both arms"
+  },
+  "order": "Per question repeat1 generic then dart; repeat2 dart then generic. Embeddings once per corpus and shared query embeddings.",
+  "evaluation": {
+    "numeric": "Both requested operands, correct scope, unit, period and calculation; ratio tolerance 0.01 percentage point, amounts within half last displayed unit only; no contradictory material claim",
+    "narrative": "Required source-derived business segments and representative product or service per segment, no contradiction; rubric fixed before retrieval",
+    "negative": "Explicit insufficient daily evidence and abstained true; no fabricated daily amount",
+    "faithfulness": "All material answer claims supported by visible supplied documents and cited sources; citation membership alone is not semantic support",
+    "denominators": "8 answerable questions x2 repeats per arm, 2 negative controls x2 separately. Repeats are not independent questions."
+  },
+  "stops": [
+    "First transport/HTTP/schema/identity error, no retry or model fallback",
+    "Budget admission exceeds $3 including embedding",
+    "Frozen source/code/questions/rubric drift",
+    "No post-result tuning, question replacement or adoption"
+  ],
+  "limits": [
+    "New project evaluation reports, not guaranteed absent from model training",
+    "Same assistant authors rubric and reviews answers; no independent blind judge",
+    "Pipeline comparison includes extraction, boundaries and context metadata jointly",
+    "Small two-company sample is descriptive only"
+  ]
+}

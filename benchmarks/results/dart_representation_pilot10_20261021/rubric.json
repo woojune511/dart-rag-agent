@@ -1,0 +1,243 @@
+{
+  "created_at": "2026-10-21T04:30:18.853015+00:00",
+  "authored_before_retrieval_and_any_provider_calls": true,
+  "reviewer": "Same assistant; no independent blind judge",
+  "numeric_policy": "Accept equivalent unit conversions and rounding consistent with the displayed precision; all requested components mandatory. Ratio tolerance 0.01 percentage point. Additional material errors invalidate full correctness.",
+  "faithfulness_policy": "Score separately from correctness. All material claims must be supported by supplied evidence with compatible period, scope and units. Selected IDs only are insufficient. Pure evidence-relative refusal has no unsupported claim; negative controls reported separately.",
+  "questions": [
+    {
+      "id": "01_income",
+      "company": "농심",
+      "kind": "income",
+      "type": "numeric",
+      "query": "농심의 2025년 연결 기준 매출액과 영업이익을 제시하고, 영업이익률(영업이익 ÷ 매출액 × 100)을 소수 둘째 자리까지 계산해 줘. 금액 단위를 명시해 줘.",
+      "source_receipt": "20260311003892",
+      "scope": "2025 consolidated",
+      "required": [
+        "Correct revenue (not gross sales before discounts), operating profit, units and period",
+        "Correct operating margin to two decimals or equivalent precision"
+      ],
+      "optional": [],
+      "gold": {
+        "revenue_krw": 3514315500097,
+        "operating_profit_krw": 183933032197,
+        "margin_percent": "5.23"
+      },
+      "source_text_lines": [
+        3249,
+        3290
+      ]
+    },
+    {
+      "id": "01_inventory",
+      "company": "농심",
+      "kind": "inventory",
+      "type": "numeric",
+      "query": "농심의 2025년 말 연결 재무상태표 기준 재고자산 장부금액과 자산총계를 제시하고, 재고자산이 자산총계에서 차지하는 비율을 소수 둘째 자리까지 계산해 줘. 금액 단위를 명시해 줘.",
+      "source_receipt": "20260311003892",
+      "scope": "2025 consolidated",
+      "required": [
+        "Net carrying inventory and total assets as of 2025-12-31, consolidated, with units",
+        "Correct inventory/assets ratio to two decimals or equivalent precision"
+      ],
+      "optional": [],
+      "gold": {
+        "inventory_krw": 353314247728,
+        "assets_krw": 3822122467403,
+        "ratio_percent": "9.24"
+      },
+      "source_text_lines": [
+        3029,
+        3130
+      ]
+    },
+    {
+      "id": "01_capex",
+      "company": "농심",
+      "kind": "capex",
+      "type": "numeric",
+      "query": "농심의 2025년 연결 현금흐름표에 표시된 유형자산 취득 현금지출과 무형자산 취득 현금지출을 각각 제시하고 합계를 계산해 줘. 두 취득액은 지출 규모를 양수로 표시하고, 금액 단위를 명시해 줘.",
+      "source_receipt": "20260311003892",
+      "scope": "2025 consolidated",
+      "required": [
+        "Both acquisition cash payments from the consolidated 2025 cash-flow statement, positive expenditure amounts",
+        "Correct sum and monetary unit; additions in asset movement notes are not substitutes"
+      ],
+      "optional": [],
+      "gold": {
+        "ppe_cash_krw": 67592589702,
+        "intangible_cash_krw": 262618117,
+        "sum_krw": 67855207819
+      },
+      "source_text_lines": [
+        3735,
+        3831
+      ]
+    },
+    {
+      "id": "01_business",
+      "company": "농심",
+      "kind": "business",
+      "type": "narrative",
+      "query": "농심의 2025년 사업보고서에서 회사가 구분한 주요 사업부문과 각 부문의 대표 제품 또는 서비스를 요약해 줘.",
+      "source_receipt": "20260311003892",
+      "scope": "2025 consolidated",
+      "required": [
+        "Food manufacturing/sales as principal business, covering noodles, snacks and beverages",
+        "At least one source-supported representative product/brand per noodles, snacks and beverages category"
+      ],
+      "optional": [
+        "Other merchandise such as Kellogg/Chupa Chups",
+        "Hotel/other subsidiaries",
+        "Geographic reportable segments; do not require geographic taxonomy because query does not specify accounting segments",
+        "Segment revenue and shares"
+      ],
+      "examples": {
+        "noodles": [
+          "신라면",
+          "안성탕면",
+          "짜파게티"
+        ],
+        "snacks": [
+          "새우깡",
+          "포테토칩",
+          "양파링"
+        ],
+        "beverages": [
+          "백산수",
+          "카프리썬",
+          "웰치스"
+        ]
+      },
+      "ambiguity_note": "The company presents food manufacturing/sales product categories and also geographic financial segments. Do not label food product categories as separate IFRS reportable segments. Accept grouped food-business description if required products are covered.",
+      "source_text_lines": [
+        931,
+        1145
+      ]
+    },
+    {
+      "id": "01_unanswerable",
+      "company": "농심",
+      "kind": "unanswerable",
+      "type": "negative",
+      "query": "농심의 2025년 12월 31일 하루 동안 발생한 연결 매출액은 얼마야? 연간 매출이나 일평균 매출로 대신하지 말고 그 날짜 하루의 실적을 알려줘.",
+      "source_receipt": "20260311003892",
+      "scope": "2025 consolidated",
+      "required": [
+        "Abstained true and explicitly says supplied evidence does not establish sales for the single requested day",
+        "No invented daily sales or annual-average proxy presented as that day actual sales"
+      ],
+      "optional": [
+        "Supported annual figures as contrast clearly not answering the daily request"
+      ],
+      "negative_scope": "Evidence-relative refusal control. No claim that a substring scan proves absence from all possible company documents."
+    },
+    {
+      "id": "02_income",
+      "company": "삼성전기",
+      "kind": "income",
+      "type": "numeric",
+      "query": "삼성전기의 2025년 연결 기준 매출액과 영업이익을 제시하고, 영업이익률(영업이익 ÷ 매출액 × 100)을 소수 둘째 자리까지 계산해 줘. 금액 단위를 명시해 줘.",
+      "source_receipt": "20260310003071",
+      "scope": "2025 consolidated",
+      "required": [
+        "Correct revenue (not gross sales before discounts), operating profit, units and period",
+        "Correct operating margin to two decimals or equivalent precision"
+      ],
+      "optional": [],
+      "gold": {
+        "revenue_krw": 11314459238100,
+        "operating_profit_krw": 913331178557,
+        "margin_percent": "8.07"
+      },
+      "source_text_lines": [
+        2898,
+        2926
+      ]
+    },
+    {
+      "id": "02_inventory",
+      "company": "삼성전기",
+      "kind": "inventory",
+      "type": "numeric",
+      "query": "삼성전기의 2025년 말 연결 재무상태표 기준 재고자산 장부금액과 자산총계를 제시하고, 재고자산이 자산총계에서 차지하는 비율을 소수 둘째 자리까지 계산해 줘. 금액 단위를 명시해 줘.",
+      "source_receipt": "20260310003071",
+      "scope": "2025 consolidated",
+      "required": [
+        "Net carrying inventory and total assets as of 2025-12-31, consolidated, with units",
+        "Correct inventory/assets ratio to two decimals or equivalent precision"
+      ],
+      "optional": [],
+      "gold": {
+        "inventory_krw": 2412996843057,
+        "assets_krw": 14595895255468,
+        "ratio_percent": "16.53"
+      },
+      "source_text_lines": [
+        2686,
+        2781
+      ]
+    },
+    {
+      "id": "02_capex",
+      "company": "삼성전기",
+      "kind": "capex",
+      "type": "numeric",
+      "query": "삼성전기의 2025년 연결 현금흐름표에 표시된 유형자산 취득 현금지출과 무형자산 취득 현금지출을 각각 제시하고 합계를 계산해 줘. 두 취득액은 지출 규모를 양수로 표시하고, 금액 단위를 명시해 줘.",
+      "source_receipt": "20260310003071",
+      "scope": "2025 consolidated",
+      "required": [
+        "Both acquisition cash payments from the consolidated 2025 cash-flow statement, positive expenditure amounts",
+        "Correct sum and monetary unit; additions in asset movement notes are not substitutes"
+      ],
+      "optional": [],
+      "gold": {
+        "ppe_cash_krw": 1192112995578,
+        "intangible_cash_krw": 54210548833,
+        "sum_krw": 1246323544411
+      },
+      "source_text_lines": [
+        3436,
+        3505
+      ]
+    },
+    {
+      "id": "02_business",
+      "company": "삼성전기",
+      "kind": "business",
+      "type": "narrative",
+      "query": "삼성전기의 2025년 사업보고서에서 회사가 구분한 주요 사업부문과 각 부문의 대표 제품 또는 서비스를 요약해 줘.",
+      "source_receipt": "20260310003071",
+      "scope": "2025 consolidated",
+      "required": [
+        "Component segment and passive components, e.g. MLCC/inductor/chip resistor",
+        "Package solution segment and semiconductor package substrates",
+        "Optical solution segment and camera modules"
+      ],
+      "optional": [
+        "Sales, shares, customers, applications, market trends; any supplied extras still require support"
+      ],
+      "source_text_lines": [
+        2207,
+        2216
+      ]
+    },
+    {
+      "id": "02_unanswerable",
+      "company": "삼성전기",
+      "kind": "unanswerable",
+      "type": "negative",
+      "query": "삼성전기의 2025년 12월 31일 하루 동안 발생한 연결 매출액은 얼마야? 연간 매출이나 일평균 매출로 대신하지 말고 그 날짜 하루의 실적을 알려줘.",
+      "source_receipt": "20260310003071",
+      "scope": "2025 consolidated",
+      "required": [
+        "Abstained true and explicitly says supplied evidence does not establish sales for the single requested day",
+        "No invented daily sales or annual-average proxy presented as that day actual sales"
+      ],
+      "optional": [
+        "Supported annual figures as contrast clearly not answering the daily request"
+      ],
+      "negative_scope": "Evidence-relative refusal control. No claim that a substring scan proves absence from all possible company documents."
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "cases": 77,
+  "arms": {
+    "N12": {
+      "known_witness_panel": {
+        "candidate": {
+          "unit_hits": 24,
+          "all_unit_cases": 9
+        },
+        "selected": {
+          "unit_hits": 20,
+          "all_unit_cases": 7
+        },
+        "packet": {
+          "unit_hits": 20,
+          "all_unit_cases": 7
+        }
+      },
+      "packet_mean_bytes": 38114.0,
+      "packet_median_bytes": 36731,
+      "packet_max_bytes": 65454,
+      "cases_with_byte_omissions": 5,
+      "omitted_sources": 16,
+      "cases_missing_historical_citations": 18
+    },
+    "F12": {
+      "known_witness_panel": {
+        "candidate": {
+          "unit_hits": 24,
+          "all_unit_cases": 9
+        },
+        "selected": {
+          "unit_hits": 20,
+          "all_unit_cases": 7
+        },
+        "packet": {
+          "unit_hits": 20,
+          "all_unit_cases": 7
+        }
+      },
+      "packet_mean_bytes": 37896.5,
+      "packet_median_bytes": 36845,
+      "packet_max_bytes": 65454,
+      "cases_with_byte_omissions": 6,
+      "omitted_sources": 19,
+      "cases_missing_historical_citations": 20
+    }
+  },
+  "bm25_order_changed_cases": 77,
+  "candidate_set_changed_cases": 74,
+  "final12_set_changed_cases": 49,
+  "packet_set_changed_cases": 49,
+  "packet_order_changed_cases": 63,
+  "new_citation_loss_cases_vs_N12": 7,
+  "new_citation_loss_group_counts": {
+    "common_answerable": 6,
+    "diagnostic_or_hold": 1
+  },
+  "historical_all_three_PASS_new_citation_loss_cases": 6,
+  "panel_changes": []
+}

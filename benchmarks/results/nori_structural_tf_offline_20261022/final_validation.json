@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "cases": 77,
+  "packets_checked": 154,
+  "frozen_inputs_unchanged": true,
+  "baseline_exact": true,
+  "dense_exact": true,
+  "required_unit_panel": "20/26 -> 20/26",
+  "requested_targets_restored": 0,
+  "new_historical_citation_loss_cases": 7,
+  "bounded_source_review_cases": 8,
+  "verified_quotes": 27,
+  "preservation": {
+    "protected_files": 3024,
+    "changed": [],
+    "git_status_equal": true,
+    "active_store_files": 11,
+    "active_store_file_set_equal": true,
+    "env_unchanged": true
+  },
+  "external_model_calls": 0,
+  "cost_usd": 0,
+  "runtime_edits": 0,
+  "app_restarts": 0,
+  "limits": "Consistency/physical-source checks are not semantic acceptance or whole77 answer evaluation."
+}

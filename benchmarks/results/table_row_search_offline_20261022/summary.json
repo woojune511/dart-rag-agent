@@ -1,0 +1,16 @@
+{
+  "status": "COMPLETE_REVIEWED_NOT_ADOPTED",
+  "cases": 77,
+  "row_views": 63367,
+  "changed_packets": 60,
+  "source_slots_lost": 85,
+  "api_calls": 0,
+  "model_cost_usd": 0,
+  "answers_generated": 0,
+  "protocol_sha256": "671069645e4e649eba16db26146c1970b1da0c5ed71886feb455f07b17c1d73d",
+  "review": "review.json",
+  "review_sha256": "899ef87c0d675d2a8acc4cab6495958cf1069013ba4b2d8652ffafb546eac83b",
+  "protected_files_unchanged": 956,
+  "answer_accuracy_measured": false,
+  "additional_retrieval_runs": 0
+}

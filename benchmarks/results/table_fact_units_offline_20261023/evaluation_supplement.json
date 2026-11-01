@@ -1,0 +1,1884 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_PRE_EXECUTION_EVALUATION_SUPPLEMENT",
+  "created_utc": "2026-10-22T15:24:26.036479+00:00",
+  "title": "FCT12 fact-unit delivery: frozen A12/T12 comparison criteria",
+  "authorship": "Factual/source audit worker in the same parent context; not a blind or independent-model review.",
+  "supplement_role": "Extends delivery-stage bookkeeping for FCT12; does not modify any old question, evidence requirement, grade, scope choice, denominator, or semantic acceptance criterion.",
+  "authority": {
+    "copied_contract_path": "benchmarks\\results\\table_fact_units_offline_20261023\\evaluation_contract.json",
+    "copied_contract_sha256": "6df6519b4ac617579d1d9cdf92589dfbcc7de013d493f869115427b75f7ecee6",
+    "original_contract_path": "benchmarks\\results\\table_bundle_delivery_offline_20261022\\evaluation_contract.json",
+    "original_contract_sha256": "6df6519b4ac617579d1d9cdf92589dfbcc7de013d493f869115427b75f7ecee6",
+    "copy_byte_identical": true,
+    "prior_T12_review_path": "benchmarks\\results\\table_bundle_delivery_offline_20261022\\postrun_required_fact_review.json",
+    "prior_T12_review_sha256": "3e676ce4aa520f8c2aa1f6b74ec0c85188c8ecb9e3140c835181cf32b8607d7b",
+    "precedence": "Unchanged evaluation_contract.json governs required facts, HOLD/refusal treatment and semantic admissions. This supplement adds explicit three-stage validation/delivery/completion accounting and pairedT12 retention."
+  },
+  "preexecution_access_record": {
+    "future_FCT12_outputs_read": false,
+    "future_FCT12_outputs_scored": false,
+    "model_API_calls": 0,
+    "retrieval_calls": 0,
+    "answer_generations": 0,
+    "experiment_reruns": 0,
+    "previous_artifacts_modified": false,
+    "new_write_allowlist": [
+      "benchmarks\\results\\table_fact_units_offline_20261023\\evaluation_supplement.json"
+    ],
+    "inputs_read": [
+      "unchanged old evaluation_contract.json",
+      "byte-identical copied evaluation_contract.json",
+      "own prior T12 postrun_required_fact_review.json"
+    ]
+  },
+  "arms": {
+    "A12": "Previously saved baseline packet: original candidate union, ranks, scores, selected12, actual delivered document membership/order and text.",
+    "T12": "Previously executed whole physical-table attachment arm, immutable reference; old packet/receipt used as is.",
+    "FCT12": "New source-verified fact-unit projection over the same selected physical tables, original packet retained. No search or answer call."
+  },
+  "fixed_invariants": {
+    "cases": 77,
+    "baseline_groups": {
+      "common_answerable": 46,
+      "refusal": 19,
+      "diagnostic_or_hold": 12,
+      "total": 77,
+      "sol12_common_all_axes_pass": 42,
+      "sol12_common_incomplete": 3,
+      "sol12_common_support_partial_only": 1,
+      "sol12_refusal_all_axes_pass": 18,
+      "sol12_refusal_policy_fail": 1,
+      "sol12_hold_support_pass": 11,
+      "sol12_hold_support_partial": 1,
+      "historical_nonpass_union_focus": 15,
+      "additional_policy_focus": 2
+    },
+    "original_selected_window": 12,
+    "actual_delivered_document_membership": "Exactly saved A12; actual delivered count may be below12 due to earlier packet cap. Never restore omitted source documents by new UID injection.",
+    "packet_byte_cap_UTF8": 65536,
+    "query_scores_candidates_rank_order": "Unchanged saved A12",
+    "original_fields": "All existing text/context/document_id/source_id/chunk_id strings and document order byte-identical. Added fields may only carry validated fact units.",
+    "fact_order": "Physical source row/column order under fixed selected-document order; no question, gold value, benchmark ID, evaluator unit or prior result used for selection, priority or budget reservation.",
+    "source_gate": "Facts and dependencies must map to saved structure and unchanged source. A failed aggregate row may be rejected independently only under the generic declared unit validator; no case-specific exception.",
+    "budget_gate": "Count the actual serialized final packet bytes; no truncating original source, silent row/header clipping, reordering, or output-size tuning after results.",
+    "immutability": "All prior artifacts, runtime code, .env and v12 store remain unchanged. No model/provider/retrieval/answer calls."
+  },
+  "hypothesis_and_falsification": {
+    "primary_hypothesis": "A valid fact unit can survive unrelated whole-table structural failure while retaining enough literal axes to be useful in the final fixed-budget packet.",
+    "positive_signal": "At least one predeclared missing required fact or mandatory axis is actually serialized with verified source relations, while prior required evidence remains present and no attachment introduces false binding.",
+    "falsification_or_null": [
+      "Validated facts remain outside the packet because physical order or byte cap excludes them.",
+      "Projection adds only duplicates of already present facts or richer context without closing a predeclared gap.",
+      "Valid investment facts lack additional required profit-summary evidence.",
+      "The smaller granularity drops mandatory row/column/period/unit/entity dependencies, creates false relations or loses a T12 recovered axis."
+    ],
+    "interpretation": "A null or mixed outcome ends this frozen comparison; do not add retries, tune selection or weaken validation to obtain a recovery."
+  },
+  "three_stage_unit_status": {
+    "source_validation": [
+      "SOURCE_VALIDATED",
+      "SOURCE_REJECTED",
+      "SOURCE_UNRESOLVED",
+      "NOT_IN_SELECTED_PHYSICAL_TABLES"
+    ],
+    "delivery": [
+      "DELIVERED",
+      "VALID_BUT_NOT_DELIVERED_BUDGET",
+      "VALID_BUT_NOT_DELIVERED_FIXED_ORDER",
+      "NOT_DELIVERED_VALIDATION_REJECTION",
+      "NOT_ELIGIBLE_UNSELECTED_TABLE",
+      "UNRESOLVED"
+    ],
+    "requirement": [
+      "ALREADY_AVAILABLE",
+      "NEW_REQUIRED_VALUE_OR_RELATION",
+      "NEW_MANDATORY_AXIS",
+      "BOUND_CONTEXT_ENRICHMENT",
+      "PARTIAL_REQUIREMENT_ONLY",
+      "NO_RECOVERY",
+      "UNRESOLVED",
+      "INVALID_ATTACHMENT"
+    ],
+    "separation_rule": "Source validation pass is never delivery pass; delivery pass is never full question completion. Record all three independently with original locators, serialized packet positions and rejection reasons."
+  },
+  "required_review_record_fields": [
+    "case_id",
+    "unit_id",
+    "unchanged criterion",
+    "value/relation/sign/source precision",
+    "physical source document hash/table/row/cell/context locators",
+    "literal row and column header paths",
+    "literal period and any explicitcalendar mapping",
+    "subject and consolidation scope supported by source",
+    "unit and mixed-unit dependencies",
+    "A12 actually delivered presence",
+    "T12 actually delivered presence",
+    "FCT12 source validation outcome",
+    "FCT12 actual delivery outcome and packet location",
+    "FCT12 mandatory axes complete or unresolved",
+    "A12 to FCT12 change",
+    "T12 to FCT12 change",
+    "new value versus new axis versus duplication",
+    "budget/validation/candidate boundary",
+    "no generated-answer claim"
+  ],
+  "paired_scoring": {
+    "A12_to_FCT12": "Use unchanged original requirements. New fact/axis recovery only if missing in actual A12 and actually delivered/source-supported in FCT12.",
+    "T12_to_FCT12": "Check retention as well as gains. A fact/mandatoryaxis appended in T12 but absent in FCT12 is a delivery regression relative to T12, even though A12 original strings are preserved.",
+    "numeric_values": "Do not count repeated amount, a source UID, scalar hint or metadata-only value as new recovery. Alternative UIDs are allowed only through source-equivalent facts.",
+    "unit_retention": "A caption copied elsewhere in packet does not preserve a unit unless it is traceably linked to the retained amount columns.",
+    "dependency_closure": "For each transmitted fact, check the row subject, all required stacked headers, scope/period/unit captions and explicit signs/qualifiers. A valid bare value with missing dependencies is incomplete evidence, not complete fact recovery.",
+    "cell_vs_row_count": "Internal cell counts do not change frozen evaluator-unit denominator. Splitting one required relation into several fact units cannot inflate recoveries.",
+    "relative_period": "Literal 당기/전기/제N기 axes are retained evidence. A missing absolute calendar mapping is not parserloss and is not silently supplied from reportyear.",
+    "prose": "Policy/causal/strategy and temporal-limit prose remains mandatory where frozen contract requires it. Tablecell delivery is not a substitute.",
+    "raw_and_semantic": "Original string equality proves deterministic nonloss only. No inference about model reading, answer accuracy/completeness/faithfulness or refusal performance."
+  },
+  "current_nonPASS_case_criteria": [
+    {
+      "case_id": "POS_T1_057",
+      "group": "common_answerable",
+      "inherited_grade": {
+        "correctness": "PARTIAL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "692:331 이자비용1001290백만원은 정확하지만 연결영업이익이 제공되지 않아 비율을 유보. top8과 같은 미완료.",
+        "cited_source_ids": [
+          "20240322000986:20240322000986%3A692%3A331"
+        ]
+      },
+      "A12_required_evidence_complete": false,
+      "T12_required_evidence_complete": false,
+      "units": [
+        {
+          "unit_id": "operating_income",
+          "unchanged_criterion": "동일2023연결 범위 영업이익3,531,422,506,439원 또는 원문 요약3,531,423백만원; 원/백만원과 표시정밀도를 구별.",
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "prior_value_or_relation": "3,531,422,506,439원 또는3,531,423백만원",
+          "prior_axes": {
+            "scope": "2023연결"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "interest_cost",
+          "unchanged_criterion": "같은 연결당기의 이자비용1,001,290백만원. 금융비용총계나 이자지급현금흐름은 대체 불가.",
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "prior_value_or_relation": "1,001,290",
+          "prior_axes": {
+            "scope": "연결",
+            "period": "당기",
+            "unit": "백만원"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "FCT12_case_verdict": "PENDING_EXECUTION",
+      "predeclared_case_control": {
+        "role": "Selection/candidate boundary control",
+        "facts": "Connected operatingincome direct355:2 absent original candidate union; same-scope rounded alternative1186:24 has savedA12 BM2518/RRF28 outside selected12. Interest692:331 already delivered.",
+        "scoring": "Inspect complete physical tables underlying selected documents for a legitimate alternative. If none contains operatingincome, projection cannot recover it without changing fixed selection; NO_RECOVERY, not parser absence or blanket candidate absence. Do not fetch/insert1186:24 based on evaluation knowledge."
+      }
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "group": "common_answerable",
+      "inherited_grade": {
+        "correctness": "PARTIAL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "277:148 차입금29468632백만원은 유동성 대체분 포함이라고 명시. 분모 유무형자산이 없어 비율 유보; top8과 같은 미완료.",
+        "cited_source_ids": [
+          "20240319000684:20240319000684%3A277%3A148"
+        ]
+      },
+      "A12_required_evidence_complete": false,
+      "T12_required_evidence_complete": false,
+      "units": [
+        {
+          "unit_id": "ppe",
+          "unchanged_criterion": "2023.12.31연결 유형자산52,704,853백만원. 담보자산/취득현금흐름은 대체불가.",
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "prior_value_or_relation": "52,704,853백만원",
+          "prior_axes": {
+            "scope": "연결",
+            "period": "2023.12.31"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "intangible",
+          "unchanged_criterion": "동일 연결기말 무형자산3,834,567백만원.",
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "prior_value_or_relation": "3,834,567백만원",
+          "prior_axes": {
+            "scope": "연결",
+            "period": "2023.12.31"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "short_borrowing",
+          "unchanged_criterion": "명명된 단기차입금4,145,647백만원.",
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "prior_value_or_relation": "4,145,647",
+          "prior_axes": {
+            "scope": "연결",
+            "period": "당기",
+            "unit": "백만원"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "long_borrowing",
+          "unchanged_criterion": "명명된 장기차입금10,121,033백만원.",
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "prior_value_or_relation": "10,121,033",
+          "prior_axes": {
+            "scope": "연결",
+            "period": "당기",
+            "unit": "백만원"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "bond",
+          "unchanged_criterion": "명명된 사채9,490,410백만원.",
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "prior_value_or_relation": "9,490,410",
+          "prior_axes": {
+            "scope": "연결",
+            "period": "당기",
+            "unit": "백만원"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "FCT12_case_verdict": "PENDING_EXECUTION",
+      "predeclared_case_control": {
+        "role": "Missing-candidate denominator control",
+        "facts": "Original selected borrowing tables contain debt operands; PPE52,704,853 and intangible3,834,567백만원 are in123:0 or alternative246:117/262:133 outside original candidate union.",
+        "scoring": "Inspect all selected physical-table alternatives. Do not count collateral, acquisitions, debt totals or another scope as the asset denominators. If absent, NO_RECOVERY. Keep named-three borrowings and explained reclassification-inclusive debt separate."
+      }
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "group": "common_answerable",
+      "inherited_grade": {
+        "correctness": "FAIL",
+        "completeness": "FAIL",
+        "support": "PASS",
+        "note": "Motional 관련 행이 실제top12에도 없어 요청3항목 유보.1192:18의 상세표 안내만 사용하고 보고서 전체 부재라고 하지 않음.",
+        "cited_source_ids": [
+          "20240313001451:20240313001451%3A1192%3A18"
+        ]
+      },
+      "A12_required_evidence_complete": false,
+      "T12_required_evidence_complete": false,
+      "units": [
+        {
+          "unit_id": "ownership",
+          "unchanged_criterion": "기업명Motional과같은행/열에연결된2023말지분율. 연결공동기업26% 또는명시적으로범위를밝힌별도25.81%를별도대안으로기록.",
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "prior_value_or_relation": "connected26% / separate25.81%",
+          "prior_axes": {
+            "scope": "alternatives must be labelled; never mix connected and separate",
+            "period": "2023end/당기; acquisition2020.03.01 is not reporting period"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "carrying",
+          "unchanged_criterion": "해당지분율과동일범위의장부금액:연결700,691백만원,별도대안1,294,367백만원. 취득금액/취득일과기말잔액을혼동하지않음.",
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "prior_value_or_relation": "connected700,691 / separate1,294,367백만원",
+          "prior_axes": {
+            "scope": "alternatives must be labelled; never mix connected and separate",
+            "period": "2023end/당기; acquisition2020.03.01 is not reporting period"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "profit_summary",
+          "unchanged_criterion": "같은Motional기업·기간의요약손익:연결원문 영업수익1,775/계속손익(803,742)/기타포괄12,115/총포괄(791,627)백만원의명명된관계. 최소영업수익과손익항목을구별가능해야하며,표에있는4개명명값을단위와함께보존.",
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "prior_value_or_relation": "영업수익1,775 / 계속손익(803,742) / OCI12,115 / 총포괄(791,627)백만원",
+          "prior_axes": {
+            "scope": "alternatives must be labelled; never mix connected and separate",
+            "period": "2023end/당기; acquisition2020.03.01 is not reporting period"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "FCT12_case_verdict": "PENDING_EXECUTION",
+      "predeclared_case_control": {
+        "hypothesis": "A source-unique Motional row in the physical table underlying selected1246:4 may pass independent fact-unit validation even though a different aggregate row made prior whole-table validation fail. This is a falsifiable hypothesis, not a promised result.",
+        "underlying_selected_uid": "20240313001451:1246:4",
+        "physical_table_locator": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[2]",
+        "known_source_row_locator": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[2]/TBODY/TR[141]",
+        "known_saved_row_id": "225:140",
+        "prior_T12_blocker": "row_axis_not_unique_or_missing for aggregate labels [합 계, -]; rejection happened before budget check.",
+        "three_independent_gates": [
+          "SOURCE_VALIDATION: Does the fact unit uniquely map its value, row/column headers and literal context to the original source? A different row failing cannot be silently used as proof this row passed.",
+          "DELIVERY: Does the actual final FCT12 packet contain that validated unit and required axes under the unchanged65536UTF8byte cap and fixed physical ordering? Receipt-only survival or a hypothetical smaller representation does not count.",
+          "REQUIREMENT_COMPLETION: Does the delivered source relation satisfy unchanged ownership/carrying/profit-summary requirements? A valid investment row or one profit cell does not imply the whole case complete."
+        ],
+        "required_distinctions": [
+          "Closing ownership25.81% and carrying1,294,367백만원 are the labelled separate/investment-table alternative; preserve source scope and distinguish acquisition2020.03.01 from ending2023.12.31.",
+          "The investment table includes latest-business-year netprofit−803,742; label exactly that row/column relation. It does not by itself supply the frozen four-cell connected profit summary with named revenue1,775,continuingprofit−803,742,OCI12,115,totalcomprehensive−791,627백만원.",
+          "If ownership and carrying are actually delivered and supported but required profit summary remains absent, judge PARTIAL_EVIDENCE_RECOVERY; no full recovery.",
+          "A valid row still excluded by fixed ordering/budget is VALID_BUT_NOT_DELIVERED and NO_RECOVERY for its required fact.",
+          "Do not relax the criterion after seeing output, move this row earlier, reserve budget for it, replace earlier units, or query/answer-select it.",
+          "Do not infer from prior failure that repairing validation would fit budget; actual serialization decides."
+        ]
+      }
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "group": "common_answerable",
+      "inherited_grade": {
+        "correctness": "PASS",
+        "completeness": "PASS",
+        "support": "PARTIAL",
+        "note": "1713:6 배터리581816/전체1903886=30.6%는 정확. 하지만 유일한 인용에 금액 화폐단위가 없는데 백만원/억원을 단정하여 top8과 동일하게 근거 PARTIAL.",
+        "cited_source_ids": [
+          "20240320000950:20240320000950%3A1713%3A6"
+        ]
+      },
+      "A12_required_evidence_complete": false,
+      "T12_required_evidence_complete": true,
+      "units": [
+        {
+          "unit_id": "battery_loss",
+          "unchanged_criterion": "2023배터리행의(581,816)과해당금액단위.유사한581,824를정답지에서주입하지않음.",
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "prior_value_or_relation": "(581,816)",
+          "prior_axes": {
+            "row": "배터리사업/영업손익",
+            "column": "제17기2023년/금액",
+            "unit": "denomination scored separately under currency_binding"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "total_operating_income",
+          "unchanged_criterion": "같은기준전체영업이익1,903,886.영업손실반복오기가있는옛expected_operands는무효.",
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "prior_value_or_relation": "1,903,886",
+          "prior_axes": {
+            "row": "계/영업손익",
+            "column": "same2023amountcolumn",
+            "unit": "denomination scored separately"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "currency_binding",
+          "unchanged_criterion": "해당표의원문연결에서백만원확인.금액셀에상속된unit_hint=%는원문단위증거가아님.백만원source_context가실제전달돼야단위증거회복.",
+          "A12_prior_presence": false,
+          "T12_prior_presence": true,
+          "prior_value_or_relation": "백만원",
+          "prior_axes": {
+            "source_caption": "same physical table preceded by TABLE[6]",
+            "period": "기준일2023.12.31 plus existing2023column",
+            "unit": "백만원; ratio columns separately labelled"
+          },
+          "FCT12_presence": "PENDING_EXECUTION",
+          "FCT12_actual_source_receipts": [],
+          "new_numeric_value_fact": "PENDING_EXECUTION",
+          "new_mandatory_axis": "PENDING_EXECUTION",
+          "relative_to_A12": "PENDING_EXECUTION",
+          "relative_to_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "FCT12_case_verdict": "PENDING_EXECUTION",
+      "predeclared_case_control": {
+        "role": "T12 mandatory-unit retention control",
+        "expected_comparison": "T12 already delivered located 백만원 captions for original1713:6 and304:4 amount rows. FCT12 must retain a source-supported monetary-unit relationship to the actual581,816 and1,903,886 amount columns to preserve that gain.",
+        "axes": [
+          "2023/제17기 amount columns must remain distinguishable from neighbouring ratio columns.",
+          "Original unit_hint=% is retained with the old body; FCT12 must not use it as the money denomination or silently correct original text.",
+          "Bare 백만원 somewhere else in the packet is insufficient; the link must be table/row/column compatible."
+        ],
+        "scoring": "If FCT12 retains the axis, report A12 improvement but T12 parity; if lost, report T12 mandatory-axis regression while separately preserving original A12 text. Numeric rows themselves were already present and never count as new values."
+      }
+    }
+  ],
+  "historical26_unit_panel": [
+    {
+      "case_id": "NAV_T3_007",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "goodwill_end",
+          "unchanged_criterion": "2023 연결 영업권 기말 총액과 천원 단위",
+          "known_witness_uids_are_examples_only": [
+            "20240318000844:349:225",
+            "20240318000844:353:229",
+            "20240318000844:363:239"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "impairment",
+          "unchanged_criterion": "2023 영업권 손상 발생 및 해당 열의 손상/환입, 다른 무형자산과 구별",
+          "known_witness_uids_are_examples_only": [
+            "20240318000844:353:229"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "cash_dividend",
+          "unchanged_criterion": "연결 현금흐름의 실제 지급액 9,864,474백만원 또는 동등한 반올림 표시; 선언배당과 구별",
+          "known_witness_uids_are_examples_only": [
+            "20240312000736:127:6"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "return_policy",
+          "unchanged_criterion": "2024~2026 기간, FCF 50%, 연간 9.8조원 정규배당, 잔여재원 추가 환원",
+          "known_witness_uids_are_examples_only": [
+            "20240312000736:590:0"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "group": "diagnostic_or_hold",
+      "units": [
+        {
+          "unit_id": "sales_current",
+          "unchanged_criterion": "현대차의 2023 미국 판매 87.0만 대; 전체 미국시장과 구별",
+          "known_witness_uids_are_examples_only": [
+            "20240313001451:96:5"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "sales_prior",
+          "unchanged_criterion": "동일 현대차 미국 판매의 2022 비교값 78.1만 대; 증가율 계산 근거",
+          "known_witness_uids_are_examples_only": [
+            "20240313001451:96:5"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "protectionism",
+          "unchanged_criterion": "IRA 등 보호무역주의에 적극 대응할 필요; 2022 판매 원인을 2023에 귀속하지 않음",
+          "known_witness_uids_are_examples_only": [
+            "20240313001451:1058:14"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "HOLD_diagnostic_only"
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "ppe",
+          "unchanged_criterion": "2023 연결 유형자산 52,704,853백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240319000684:119:0",
+            "20240319000684:123:0"
+          ],
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "intangible",
+          "unchanged_criterion": "2023 연결 무형자산 3,834,567백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240319000684:119:0",
+            "20240319000684:123:0"
+          ],
+          "A12_prior_presence": false,
+          "T12_prior_presence": false,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "borrowings",
+          "unchanged_criterion": "명시 세 항목 합계 23,757,090백만원 또는 유동성대체 포함 총액 29,468,632백만원을 범위 설명과 함께 허용; 자산 분모 일치",
+          "known_witness_uids_are_examples_only": [
+            "20240319000684:277:148"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "inventory_loss",
+          "unchanged_criterion": "2023 평가손실 2,526,280천원, 순환입과 구별",
+          "known_witness_uids_are_examples_only": [
+            "20240318000913:517:357"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "inventory_reversal",
+          "unchanged_criterion": "2023 평가손실환입 48,885,812천원, 환입 부호/의미 보존",
+          "known_witness_uids_are_examples_only": [
+            "20240318000913:517:357"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "inventory_disposal",
+          "unchanged_criterion": "2023 폐기손실 25,163,510천원",
+          "known_witness_uids_are_examples_only": [
+            "20240318000913:517:357"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    },
+    {
+      "case_id": "MIX_T1_064",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "cost_of_sales",
+          "unchanged_criterion": "2023 연결 매출원가 129,179,183백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240313001451:1047:3",
+            "20240313001451:133:2"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "selling_admin",
+          "unchanged_criterion": "2023 연결 판매비와관리비 18,357,495백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240313001451:133:2",
+            "20240313001451:408:266"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "revenue",
+          "unchanged_criterion": "동일 연결 전체 매출액 162,663,579백만원, 합산비용과 비율 계산 가능",
+          "known_witness_uids_are_examples_only": [
+            "20240313001451:1047:3",
+            "20240313001451:127:0",
+            "20240313001451:133:2"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    },
+    {
+      "case_id": "KBF_T2_043",
+      "group": "diagnostic_or_hold",
+      "units": [
+        {
+          "unit_id": "fee_current",
+          "unchanged_criterion": "2023 그룹 순수수료손익 3,673,524백만원; 반올림 원문도 허용",
+          "known_witness_uids_are_examples_only": [
+            "20240326000894:1846:5",
+            "20240326000894:625:2",
+            "20240326000894:633:2",
+            "20240326000894:88:11"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "fee_prior",
+          "unchanged_criterion": "동일 기준 2022 비교값 3,514,902백만원; 실제 표시정밀도로 계산",
+          "known_witness_uids_are_examples_only": [
+            "20240326000894:1846:5",
+            "20240326000894:625:2",
+            "20240326000894:633:2",
+            "20240326000894:88:11"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "wm_group",
+          "unchanged_criterion": "그룹 AUM 약 1216.7조원, 전년대비 70.0조원/6.1% 증가 및 원문상 자산 성장; 특정 자회사만으로 그룹 요구 대체하지 않음",
+          "known_witness_uids_are_examples_only": [
+            "20240326000894:1844:3",
+            "20240326000894:1845:4"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "HOLD_diagnostic_only"
+    },
+    {
+      "case_id": "KBF_T2_018",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "provision_current",
+          "unchanged_criterion": "2023 연결 신용손실충당금전입액 3,146,409백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240326000894:1846:5",
+            "20240326000894:625:2",
+            "20240326000894:633:2",
+            "20240326000894:641:10",
+            "20240326000894:88:11"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "provision_prior",
+          "unchanged_criterion": "동일 2022 비교값 1,847,775백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240326000894:1846:5",
+            "20240326000894:625:2",
+            "20240326000894:633:2",
+            "20240326000894:641:10",
+            "20240326000894:88:11"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "risk_cause",
+          "unchanged_criterion": "미래경기 불확실성에 대비한 보수적 적립; worse/crisis 설명은 지원되는 보충 근거",
+          "known_witness_uids_are_examples_only": [
+            "20240326000894:1846:5"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    },
+    {
+      "case_id": "SAM_T1_001",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "revenue",
+          "unchanged_criterion": "2023 연결 매출액 258,935,494백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240312000736:117:0",
+            "20240312000736:123:2",
+            "20240312000736:677:4"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "operating_income",
+          "unchanged_criterion": "동일 연결 영업이익 6,566,976백만원",
+          "known_witness_uids_are_examples_only": [
+            "20240312000736:117:0",
+            "20240312000736:123:2",
+            "20240312000736:677:4"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    },
+    {
+      "case_id": "CEL_T1_013",
+      "group": "common_answerable",
+      "units": [
+        {
+          "unit_id": "rd_total",
+          "unchanged_criterion": "2023 연결 전체 연구개발비용 342,736,271천원",
+          "known_witness_uids_are_examples_only": [
+            "20240318000913:101:42"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        },
+        {
+          "unit_id": "rd_capitalized",
+          "unchanged_criterion": "동일 기간 개발비 무형자산 181,624,107천원",
+          "known_witness_uids_are_examples_only": [
+            "20240318000913:101:42"
+          ],
+          "A12_prior_presence": true,
+          "T12_prior_presence": true,
+          "FCT12_presence": "PENDING_EXECUTION",
+          "axis_or_scope_ambiguity": "PENDING_EXECUTION",
+          "FCT12_vs_A12": "PENDING_EXECUTION",
+          "FCT12_vs_T12": "PENDING_EXECUTION"
+        }
+      ],
+      "metric_scope": "common_answerable_subpanel"
+    }
+  ],
+  "axis_binding_watch19": [
+    {
+      "case_id": "KBF_T2_018",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "R1",
+          "label": "전년 대비 증가율",
+          "acceptance": "동일 범위의 당기·전기 전입액 및 두 값으로 계산한 증가율.",
+          "answer_acceptance_reference_not_scored": "전입액 증가율을 맞게 계산한다. 검산 기준은 3,146,409 / 1,847,775백만원으로 약 70.28% 증가.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R2",
+          "label": "리스크 관리 측면의 원인",
+          "acceptance": "추가 전입의 사유를 직접 설명하는 MD&A 또는 리스크 관리 문단.",
+          "answer_acceptance_reference_not_scored": "미래 경기 악화 가능성을 반영한 보수적·선제적 충당금 적립이라는 핵심을 설명한다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        }
+      ],
+      "inherited_binding_flags": [
+        "scope scalar unknown although bound connected heading exists",
+        "제16/15기 axis survives; flat current is not per-cell year"
+      ],
+      "inherited_literal_facts_search_aid_only": "625:2 전입액(3,146,409)/(1,847,775)백만원; source_context 요약연결포괄손익계산서;1846:5는3,146/1,848십억원",
+      "inherited_semantic_boundary": "정밀도 손실과 완전 부재를 구분. 금액은 표로 식별 가능하나 원인 설명은 서술 필요.",
+      "case_prior_evidence": [
+        "root_source_witnesses.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "SKH_T3_080",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "operand_1",
+          "label": "외화환산이익",
+          "acceptance": "원문의 실제 행/열/주체/기간/단위로 이 요청 항목을 연결. 아래 예전 기대값은 검색 보조이며 독립 정답 증명이 아님.",
+          "legacy_operand_search_aid": {
+            "label": "외화환산이익",
+            "period": "2023",
+            "raw_unit": "백만원",
+            "raw_value": "573,884"
+          },
+          "kind": "source_operand"
+        },
+        {
+          "unit_id": "operand_2",
+          "label": "외화환산손실",
+          "acceptance": "원문의 실제 행/열/주체/기간/단위로 이 요청 항목을 연결. 아래 예전 기대값은 검색 보조이며 독립 정답 증명이 아님.",
+          "legacy_operand_search_aid": {
+            "label": "외화환산손실",
+            "period": "2023",
+            "raw_unit": "백만원",
+            "raw_value": "906,120"
+          },
+          "kind": "source_operand"
+        }
+      ],
+      "inherited_binding_flags": [
+        "question does not expressly fix consolidation",
+        "cashflow adjustment sign is not automatically income-effect arithmetic"
+      ],
+      "inherited_literal_facts_search_aid_only": "381:252 당기 연결 외화환산손실906,120/이익(573,884)백만원;633:233 별도640,782/(330,272)",
+      "inherited_semantic_boundary": "이전 연결 기준 근거의 손실. 범위를 밝힌 별도 답변까지 불가능하다고 세지 않음.",
+      "case_prior_evidence": [
+        "root_source_witnesses.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "NAV_T3_007",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "goodwill_end",
+          "label": "연결 영업권 기말금액",
+          "acceptance": "당기 영업권 열과 기말금액 행이 연결된2,578,089,956천원. 기초947,733,200이나 무형자산 전체 합계는 대체 불가.",
+          "known_witness_uids": [
+            "20240318000844:353:229"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "goodwill_impairment",
+          "label": "영업권 손상 발생",
+          "acceptance": "같은 영업권 열의 손상 및 환입(19,630,042)천원과 손상 발생 의미. 다른 무형자산 손상이나 손상검사 회계정책만으로 대체 불가.",
+          "known_witness_uids": [
+            "20240318000844:353:229"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "inherited_binding_flags": [
+        "relative current period retained"
+      ],
+      "inherited_literal_facts_search_aid_only": "353:229 영업권 열×기말금액2,578,089,956/손상 및 환입(19,630,042)천원",
+      "inherited_semantic_boundary": "과거top8의 선택 누락은 현재 저장top12에서 해결돼 있음. reference의 오래된 발췌 숫자보다 원문 셀과 수정 answer_key를 우선.",
+      "case_prior_evidence": [
+        "numeric_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "cash_dividend",
+          "label": "실제 현금 배당 지급",
+          "acceptance": "제55기(2023년) 연결 현금흐름의 배당금의 지급(9,864,474)백만원 또는 같은 실제 지급 규모의 원문 표시. 선언배당9,809,438/정책9.8조는 대체 불가.",
+          "known_witness_uids": [
+            "20240312000736:127:6"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "policy_period_base",
+          "label": "정책 기간·기본 구조",
+          "acceptance": "2024~2026년과FCF50% 및 연간정규배당9.8조원이 같은 정책 문단에 연결.",
+          "known_witness_uids": [
+            "20240312000736:590:0"
+          ],
+          "kind": "narrative"
+        },
+        {
+          "unit_id": "policy_condition",
+          "label": "추가 환원 조건",
+          "acceptance": "정규배당 이후 잔여재원이 발생하면 추가 환원한다는 조건부 관계.",
+          "known_witness_uids": [
+            "20240312000736:590:0"
+          ],
+          "kind": "narrative"
+        }
+      ],
+      "inherited_binding_flags": [
+        "value period field unpopulated; explicit period is recoverable from bound caption"
+      ],
+      "inherited_literal_facts_search_aid_only": "배당금의 지급×제55기=(9,864,474)백만원; source_context에2023.01.01~12.31",
+      "inherited_semantic_boundary": "수치와 기간·연결·단위 모두 보존. 주주환원정책은 별도 서술 근거가 필요.",
+      "case_prior_evidence": [
+        "numeric_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "group": "diagnostic_or_hold",
+      "unchanged_required_units": [
+        {
+          "unit_id": "us_sales_2023",
+          "label": "현대차 미국2023 판매",
+          "acceptance": "현대차 주체의87.0만대와2023년. 전체 미국시장과 구별.",
+          "known_witness_uids": [
+            "20240313001451:96:5"
+          ],
+          "kind": "narrative"
+        },
+        {
+          "unit_id": "us_sales_2022",
+          "label": "같은 주체 전년 판매",
+          "acceptance": "현대차 미국2022년78.1만대. 표시값 계산11.4%와 공시율11.5% 차이의 원인을 창작하지 않음.",
+          "known_witness_uids": [
+            "20240313001451:96:5"
+          ],
+          "kind": "narrative"
+        },
+        {
+          "unit_id": "protectionism",
+          "label": "보호무역 대응 필요",
+          "acceptance": "IRA/핵심원자재법 등 정책과 적극 대응 필요를 연결한 원문.",
+          "known_witness_uids": [
+            "20240313001451:1058:14"
+          ],
+          "kind": "narrative"
+        }
+      ],
+      "inherited_binding_flags": [
+        "question subject unspecified; HOLD",
+        "cause of reported vs calculated growth difference not established"
+      ],
+      "inherited_literal_facts_search_aid_only": "96:5 본문 현대차 미국87.0/78.1만대·보고증가율11.5%;95:4 전체시장과 별도",
+      "inherited_semantic_boundary": "선택 누락과 생성 추정이 조건별로 다름. 원자료는 문단이므로 표 전용 검색만으로 해결할 대상이 아님.",
+      "case_prior_evidence": [
+        "boundaries_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "POS_T1_057",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "operating_income",
+          "label": "연결 영업이익",
+          "acceptance": "동일2023연결 범위 영업이익3,531,422,506,439원 또는 원문 요약3,531,423백만원; 원/백만원과 표시정밀도를 구별.",
+          "known_witness_uids": [
+            "20240322000986:355:2",
+            "20240322000986:1186:24",
+            "20240322000986:350:1"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "interest_cost",
+          "label": "연결 이자비용",
+          "acceptance": "같은 연결당기의 이자비용1,001,290백만원. 금융비용총계나 이자지급현금흐름은 대체 불가.",
+          "known_witness_uids": [
+            "20240322000986:692:331"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "inherited_binding_flags": [
+        "source display precision differs",
+        "interest current period retained"
+      ],
+      "inherited_literal_facts_search_aid_only": "355:2 영업이익3,531,422,506,439원;1186:24 동일 연결 범위3,531,423백만원;692:331 이자비용1,001,290백만원",
+      "inherited_semantic_boundary": "원 단위 값의 후보 부재만으로 문항 전체를 후보 실패로 분류하지 않음. 요약 대안이 있는 A12/F12는 선택 누락.",
+      "case_prior_evidence": [
+        "numeric_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "ppe",
+          "label": "유형자산",
+          "acceptance": "2023.12.31연결 유형자산52,704,853백만원. 담보자산/취득현금흐름은 대체불가.",
+          "known_witness_uids": [
+            "20240319000684:123:0",
+            "20240319000684:246:117"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "intangible",
+          "label": "무형자산",
+          "acceptance": "동일 연결기말 무형자산3,834,567백만원.",
+          "known_witness_uids": [
+            "20240319000684:123:0",
+            "20240319000684:262:133"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "short_borrowing",
+          "label": "단기차입금",
+          "acceptance": "명명된 단기차입금4,145,647백만원.",
+          "known_witness_uids": [
+            "20240319000684:277:148"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "long_borrowing",
+          "label": "장기차입금",
+          "acceptance": "명명된 장기차입금10,121,033백만원.",
+          "known_witness_uids": [
+            "20240319000684:277:148"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "bond",
+          "label": "사채",
+          "acceptance": "명명된 사채9,490,410백만원.",
+          "known_witness_uids": [
+            "20240319000684:277:148"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "inherited_binding_flags": [
+        "column-window indices differ from full original axes",
+        "loan maturity reclassification is a scope choice, not lost data"
+      ],
+      "inherited_literal_facts_search_aid_only": "123:0 유형52,704,853+무형3,834,567백만원;277:148 차입금 행;246:117/262:133 대체 자산 주석",
+      "inherited_semantic_boundary": "원문과 구조에 자산이 있음. 담보자산·취득현금흐름은 총 장부금액 대안이 아님.",
+      "case_prior_evidence": [
+        "numeric_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "SAM_T3_028",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "R1",
+          "label": "평가손실·환입 규모와 항목명",
+          "acceptance": "재고 관련 조정액 표의 행·단위·범위. '평가손실(환입) 등'이면 그 복합 항목명을 보존한다.",
+          "answer_acceptance_reference_not_scored": "연결 5,037,579백만원 등 실제 선택한 표의 항목명·금액·범위를 정확히 전달한다. 별도 3,558,358백만원을 쓰면 별도라고 밝힌다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R2",
+          "label": "매출원가 영향",
+          "acceptance": "같은 범위의 매출원가 포함 설명. 다른 범위의 정책 문단은 그 범위를 별도로 밝히며 금액과 동일 범위의 인과 금액으로 합치지 않는다.",
+          "answer_acceptance_reference_not_scored": "평가손실은 비용 부담, 환입은 그 부담의 감소라는 방향을 설명하고 해당 재고 비용이 매출원가에 반영되는 근거를 연결한다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        }
+      ],
+      "inherited_binding_flags": [
+        "period expense differs from ending reserve",
+        "qualifier 등 must remain"
+      ],
+      "inherited_literal_facts_search_aid_only": "319:191 조정내역 계/재고자산평가손실(환입) 등5,037,579백만원; 당기·연결 보존",
+      "inherited_semantic_boundary": "F12는 RRF 이전 후보 손실. 비용 포함 설명이나 기말충당금은 기간 손실 금액을 대체하지 못함.",
+      "case_prior_evidence": [
+        "root_source_witnesses.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "ownership",
+          "label": "Motional 지분율",
+          "acceptance": "기업명Motional과같은행/열에연결된2023말지분율. 연결공동기업26% 또는명시적으로범위를밝힌별도25.81%를별도대안으로기록.",
+          "known_witness_uids": [
+            "20240313001451:275:133",
+            "20240313001451:1251:9"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "carrying",
+          "label": "투자장부금액",
+          "acceptance": "해당지분율과동일범위의장부금액:연결700,691백만원,별도대안1,294,367백만원. 취득금액/취득일과기말잔액을혼동하지않음.",
+          "known_witness_uids": [
+            "20240313001451:275:133",
+            "20240313001451:1251:9"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "profit_summary",
+          "label": "요약손익",
+          "acceptance": "같은Motional기업·기간의요약손익:연결원문 영업수익1,775/계속손익(803,742)/기타포괄12,115/총포괄(791,627)백만원의명명된관계. 최소영업수익과손익항목을구별가능해야하며,표에있는4개명명값을단위와함께보존.",
+          "known_witness_uids": [
+            "20240313001451:285:143"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "inherited_binding_flags": [
+        "275 ownership percent inherits monetary unit_hint",
+        "1251:9 acquisition2020.03.01 propagates2020 to closing amounts despite2023.12.31 caption",
+        "relative current retained for consolidated notes"
+      ],
+      "inherited_literal_facts_search_aid_only": "275:133 연결26%/700,691백만원;285:143 영업수익1,775/계속손익(803,742)/OCI12,115/총포괄(791,627)",
+      "inherited_semantic_boundary": "투자표 선택과 손익표 후보 부족이 겹침. 연결/별도 대안은 명시해야 하고 취득일은 회계기간이 아님.",
+      "case_prior_evidence": [
+        "axes_review.json",
+        "numeric_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "LGE_T2_052",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "R1",
+          "label": "가격 변화의 방향과 근거",
+          "acceptance": "원재료 가격변동 표의 품목·단위·연도. 수치의 정밀한 제시보다 올바른 비교와 범위가 핵심.",
+          "answer_acceptance_reference_not_scored": "공시된 대표 원재료의 두 시점 가격 또는 변화 방향을 구체적으로 비교한다. 예: 소형 Application용 양극재 43.99→33.47 USD/kg.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R2",
+          "label": "ASP와 비용의 관계",
+          "acceptance": "ASP·투입 원재료비·lagging의 관계를 직접 설명한 MD&A.",
+          "answer_acceptance_reference_not_scored": "메탈 가격 하락 국면에서 판매가격 대비 투입 원재료비가 높게 나타나는 lagging 부담을 설명한다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R3",
+          "label": "공시 범위 보존",
+          "acceptance": "공시 가격표가 포괄하는 품목 및 단일 거래선 기준 여부.",
+          "answer_acceptance_reference_not_scored": "대표 양극재의 가격을 전체 원재료 가격으로 일반화하지 않는다. 음극재 등의 별도 가격 추이를 확인하지 못했다면 그 제한을 표시한다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        }
+      ],
+      "inherited_binding_flags": [
+        "product unit_hint empty despite boundUSD",
+        "raw material numeric-plus-unit strings survive but rows/values empty",
+        "제4/3기 retained; calendar not resolved in these objects"
+      ],
+      "inherited_literal_facts_search_aid_only": "21:2 제품1.89/1.62; 앞 TABLE3 USD source_context.24:2 양극재33.47/kg/43.99/kg과USD 표제 보존",
+      "inherited_semantic_boundary": "표 구조의 원문 보존과 정형 fact 레코드 완성은 다름. 별도 표의 USD를 빌리지 말고 해당 table source_context를 사용해야 함.",
+      "case_prior_evidence": [
+        "root_source_witnesses.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "POS_T1_075",
+      "group": "diagnostic_or_hold",
+      "unchanged_required_units": [
+        {
+          "unit_id": "ebitda_entity",
+          "label": "EBITDA 주체",
+          "acceptance": "원문표의운영주체가회사표제와물리적으로연결되어야함.1241:79의43,248백만원은포스코스틸리온,1,701,152백만원은포스코인터내셔널;공시파일의POSCO홀딩스를대입하지않음.",
+          "known_witness_uids": [
+            "20240322000986:1241:79",
+            "20240322000986:1283:121",
+            "20240322000986:1285:123"
+          ],
+          "kind": "entity_binding"
+        },
+        {
+          "unit_id": "ebitda_value_period_unit",
+          "label": "주체에 귀속된 값·기간·단위",
+          "acceptance": "확인된운영주체별 EBITDA값·2023기간·백만원이연결된표.숫자가추가돼도주체연결이없으면필수귀속문제는미해결.",
+          "known_witness_uids": [
+            "20240322000986:1241:79",
+            "20240322000986:1283:121",
+            "20240322000986:1285:123"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "inherited_binding_flags": [
+        "operating-company headings exist in original P158/P253 but not stored table source_contexts",
+        "filing company metadata is not table subject"
+      ],
+      "inherited_literal_facts_search_aid_only": "1241:79 EBITDA43,248백만원=포스코스틸리온;1283:121/1285:123 1,701,152백만원=포스코인터내셔널",
+      "inherited_semantic_boundary": "원문 부족 아님. 표의 저장 주체 연결 부족이며 참고답안/질문도 HOLD. 어느 값도 곧바로 POSCO홀딩스 전체 EBITDA로 확정하지 않음.",
+      "case_prior_evidence": [
+        "axes_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "battery_loss",
+          "label": "배터리 영업손실",
+          "acceptance": "2023배터리행의(581,816)과해당금액단위.유사한581,824를정답지에서주입하지않음.",
+          "known_witness_uids": [
+            "20240320000950:1713:6",
+            "20240320000950:882:499"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "total_operating_income",
+          "label": "전체 연결 영업이익",
+          "acceptance": "같은기준전체영업이익1,903,886.영업손실반복오기가있는옛expected_operands는무효.",
+          "known_witness_uids": [
+            "20240320000950:1713:6",
+            "20240320000950:882:499"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "currency_binding",
+          "label": "두 금액의 화폐단위",
+          "acceptance": "해당표의원문연결에서백만원확인.금액셀에상속된unit_hint=%는원문단위증거가아님.백만원source_context가실제전달돼야단위증거회복.",
+          "known_witness_uids": [
+            "20240320000950:1713:6",
+            "20240320000950:882:499"
+          ],
+          "kind": "unit_binding"
+        }
+      ],
+      "inherited_binding_flags": [
+        "money cells incorrectly inherit percent unit_hint",
+        "bound monetary caption absent generation packet"
+      ],
+      "inherited_literal_facts_search_aid_only": "1713:6 배터리(581,816)/전체1,903,886,2023열; 앞 표 백만원도 source_context에 보존;882:499 완전 대안",
+      "inherited_semantic_boundary": "원문 단위 부재가 아니라 저장된 단위 문맥의 전달 및 셀별 단위 연결 문제. 과거 답변의 단위 단정은 별도 생성 문제.",
+      "case_prior_evidence": [
+        "axes_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "SKI_T2_069",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "refinery_current",
+          "label": "SK에너지 당기 영업이익",
+          "acceptance": "같은SK에너지및종속회사기준409,219백만원.그룹석유사업의다른범위수치와혼합불가.",
+          "known_witness_uids": [
+            "20240320000950:1738:31"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "refinery_prior",
+          "label": "같은 범위 전기 영업이익",
+          "acceptance": "2,600,786백만원,같은법인범위와전기.",
+          "known_witness_uids": [
+            "20240320000950:1738:31"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "margin_effect",
+          "label": "마진 하락의 실적 영향",
+          "acceptance": "제품가격과원유가격간spread축소/정제마진하락을실적악화와직접연결한MD&A.",
+          "known_witness_uids": [
+            "20240320000950:1738:31"
+          ],
+          "kind": "narrative"
+        }
+      ],
+      "inherited_binding_flags": [
+        "operating subsidiary identified in adjoining prose",
+        "1713:6 incorrect percent unit_hint for money"
+      ],
+      "inherited_literal_facts_search_aid_only": "1738:31 SK에너지409,219/2,600,786 및2023/2022;1713:6 석유사업810,900/3,390,092는 다른 범위",
+      "inherited_semantic_boundary": "필수 근거 전체 누락이 아니라 추가 설명의 단위·주체 해석 문제. 마진 원인은 서술 근거 필요.",
+      "case_prior_evidence": [
+        "axes_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "MIX_T3_063",
+      "group": "diagnostic_or_hold",
+      "unchanged_required_units": [
+        {
+          "unit_id": "book_entities",
+          "label": "기업별 당기 장부금액",
+          "acceptance": "선정된청크에붙은전체table215에서기업별열/행과당기장부금액을복원. A Holdings15,338,412,557및Mirae Asset-Naver341,924,825천원은평가용대조값이며projection선택에사용금지.",
+          "known_witness_uids": [],
+          "kind": "entity_numeric"
+        },
+        {
+          "unit_id": "profit_entities",
+          "label": "같은 기업의 당기순손익",
+          "acceptance": "별도요약손익표426:302의기업연결및당기순이익450,253,285/79,190,655천원과지배주주귀속한정을보존.장부금액만으로손익을추정하지않음.",
+          "known_witness_uids": [
+            "20240318000844:426:302"
+          ],
+          "kind": "entity_numeric"
+        }
+      ],
+      "inherited_binding_flags": [
+        "full table object attached to split chunks does not imply these rows appeared in generated text",
+        "aggregate headers must be excluded to define entity ranking",
+        "profit footnote limits to controlling shareholders"
+      ],
+      "inherited_literal_facts_search_aid_only": "table215 당기 장부금액 A Holdings15,338,412,557/Mirae341,924,825천원;426:302 당기순이익450,253,285/79,190,655천원",
+      "inherited_semantic_boundary": "기준을 명시하면 두 표를 회사 열로 연결 가능. 기존 질문/정답의 순위대상 모호성은 HOLD 유지; 자동 top2 해결이라고 주장하지 않음.",
+      "case_prior_evidence": [
+        "boundaries_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "NAV_T2_006",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "R1",
+          "label": "커머스 성장률",
+          "acceptance": "동일 부문·기간의 매출액.",
+          "answer_acceptance_reference_not_scored": "25,466 / 18,011억원으로 약 41.4% 증가를 계산한다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R2",
+          "label": "인수의 실적 영향",
+          "acceptance": "편입 시점과 커머스 매출 기여를 설명하는 사업결합·사업 실적 자료.",
+          "answer_acceptance_reference_not_scored": "포시마크 편입이 해외·C2C 사업 및 연결 커머스 매출 확대에 기여했다는 내용을 설명한다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        }
+      ],
+      "inherited_binding_flags": [
+        "percent cells also inherit monetary unit_hint",
+        "제25/24기 retained; normalized fields not complete"
+      ],
+      "inherited_literal_facts_search_aid_only": "1559:7 연결 커머스2,546.6/1,801.1십억원·41.4%·26.4%",
+      "inherited_semantic_boundary": "과거 회귀 사례이며 현재12개 누락으로 세지 않음. 포시마크 기여는 같은 청크의 본문 필요.",
+      "case_prior_evidence": [
+        "root_source_witnesses.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "CEL_T2_014",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "R1",
+          "label": "기존 제품군의 상태",
+          "acceptance": "제품별 개발 현황 또는 허가·판매 관련 문단.",
+          "answer_acceptance_reference_not_scored": "램시마·트룩시마 등 기존 주요 제품 최소 1개의 개발 완료·허가/상업화 상태를 정확히 설명한다.",
+          "choice": null,
+          "basis": "proposed_summary_minimum",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R2",
+          "label": "후속 파이프라인의 단계",
+          "acceptance": "제품별 개발·허가 신청/승인 자료. '공시서류 제출일 현재'라고 된 내용은 그 기준을 밝힌다.",
+          "answer_acceptance_reference_not_scored": "서로 다른 후속 파이프라인 최소 2개의 개발 단계와 기준 시점을 설명한다. CT-P39/41/42/43/47 등은 대표 후보이며 이름 전부를 요구하지 않는다.",
+          "choice": null,
+          "basis": "proposed_summary_minimum",
+          "kind": "existing_narrative_rubric"
+        }
+      ],
+      "inherited_binding_flags": [
+        "numeric rows/values empty; text-row structure and provenance remain",
+        "research start year is not approval/status year"
+      ],
+      "inherited_literal_facts_search_aid_only": "103:44 품목/진행단계/연구시작일/비고와 기준일 이후 신청;108:49 CT-P47 2024 신청 및 기준일 이후",
+      "inherited_semantic_boundary": "시간 한정 근거 유실은 확인. 세부 필수 품목이 고정되지 않아 새 완전성 실패로 채점하지 않음. 표 원문만으로 관계 판독은 가능하나 numeric-only fact index에는 미포함.",
+      "case_prior_evidence": [
+        "root_source_witnesses.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "gross_inventory_loss",
+          "label": "평가손실",
+          "acceptance": "연결당기평가손실2,526,280천원.순효과/등행의0은대체불가.",
+          "known_witness_uids": [
+            "20240318000913:517:357"
+          ],
+          "kind": "numeric_or_relation",
+          "alternatives": {
+            "separate_if_labelled": "1,010,161천원 at917:320"
+          }
+        },
+        {
+          "unit_id": "gross_inventory_reversal",
+          "label": "평가손실환입",
+          "acceptance": "연결(48,885,812)천원.환입부호/의미와총액항목보존.",
+          "known_witness_uids": [
+            "20240318000913:517:357"
+          ],
+          "kind": "numeric_or_relation",
+          "alternatives": {
+            "separate_if_labelled": "(45,139,758)천원 at917:320"
+          }
+        },
+        {
+          "unit_id": "gross_inventory_disposal",
+          "label": "폐기손실",
+          "acceptance": "연결25,163,510천원.순환입(-)21,196백만원으로대체불가.",
+          "known_witness_uids": [
+            "20240318000913:517:357"
+          ],
+          "kind": "numeric_or_relation",
+          "alternatives": {
+            "separate_if_labelled": "22,312,563천원 at917:320"
+          }
+        }
+      ],
+      "inherited_binding_flags": [
+        "relative current period retained",
+        "question does not expressly require consolidated scope"
+      ],
+      "inherited_literal_facts_search_aid_only": "517:357 연결 손실2,526,280/환입(48,885,812)/폐기25,163,510천원;917:320 별도 세 항목도 보존",
+      "inherited_semantic_boundary": "순액/등 항목을 개별 손실로 해석한 과거 답변 오류도 존재. 별도 답변 가능성과 연결 근거 보존은 별도 판정.",
+      "case_prior_evidence": [
+        "numeric_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "HYU_T2_035",
+      "group": "diagnostic_or_hold",
+      "unchanged_required_units": [
+        {
+          "unit_id": "model_platform",
+          "label": "모델–E-GMP 연결",
+          "acceptance": "모델이E-GMP기반임을직접연결한원문.전기차라는사실이나외부상식으로채우지않음.",
+          "known_witness_uids": [],
+          "kind": "relation"
+        },
+        {
+          "unit_id": "model_performance",
+          "label": "그 모델의2023 성과",
+          "acceptance": "동일모델명과2023성과(수상/판매/시장진출등)가연결.아이오닉5의2022수상을2023으로옮기지않음.",
+          "known_witness_uids": [
+            "20240313001451:1045:1",
+            "20240313001451:21:7"
+          ],
+          "kind": "relation"
+        },
+        {
+          "unit_id": "plant_vehicle_binding_watch",
+          "label": "공장–차종 연혁 연결 보조검사",
+          "acceptance": "국가/공장주체와2023차종이동일원문행·rowspan으로연결.21:7/22:8의전체table_text_row가추가되면관계보강인지신규관계복구인지실제기준본문과비교.",
+          "known_witness_uids": [
+            "20240313001451:21:7",
+            "20240313001451:22:8"
+          ],
+          "kind": "diagnostic_optional"
+        }
+      ],
+      "inherited_binding_flags": [
+        "non-numeric relational rows stored as table_text_row rather than numeric rows",
+        "common row labels omit company side of relationship"
+      ],
+      "inherited_literal_facts_search_aid_only": "연혁표 미국공장–2023 GV70 EV/인도공장–2023 아이오닉5;21:7 본문 및21:7/22:8 full source_context rows",
+      "inherited_semantic_boundary": "관계 원문은 보존됐으며 단편 라벨이 관계를 대신하지 못함. E-GMP 전체 문항의 HOLD 유지.",
+      "case_prior_evidence": [
+        "axes_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    },
+    {
+      "case_id": "MIX_T1_064",
+      "group": "common_answerable",
+      "unchanged_required_units": [
+        {
+          "unit_id": "revenue",
+          "label": "매출액",
+          "acceptance": "2023연결전체매출162,663,579백만원.",
+          "known_witness_uids": [
+            "20240313001451:133:2",
+            "20240313001451:1047:3"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "cost",
+          "label": "매출원가",
+          "acceptance": "같은범위매출원가129,179,183백만원.",
+          "known_witness_uids": [
+            "20240313001451:133:2",
+            "20240313001451:1047:3"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "sga",
+          "label": "판매비와관리비",
+          "acceptance": "같은범위판관비18,357,495백만원.",
+          "known_witness_uids": [
+            "20240313001451:133:2",
+            "20240313001451:408:266"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "inherited_binding_flags": [
+        "1047:3 body has currency but structured unit unknown",
+        "no selling expense row in1047:3 alone"
+      ],
+      "inherited_literal_facts_search_aid_only": "133:2 매출162,663,579/매출원가129,179,183/판관비18,357,495백만원; 대안1047:3+408:266",
+      "inherited_semantic_boundary": "직접 표 하나의 탈락을 전체 근거 누락으로 세면 안 됨. 현재12개에서는 대체 묶음으로 숫자 충족.",
+      "case_prior_evidence": [
+        "numeric_review.json"
+      ],
+      "FCT12_value_preservation": "PENDING_EXECUTION",
+      "FCT12_row_column_binding": "PENDING_EXECUTION",
+      "FCT12_period_binding": "PENDING_EXECUTION",
+      "FCT12_scope_entity_binding": "PENDING_EXECUTION",
+      "FCT12_unit_binding": "PENDING_EXECUTION",
+      "actual_source_receipts": [],
+      "comparison_to_A12": "PENDING_EXECUTION",
+      "comparison_to_T12": "PENDING_EXECUTION",
+      "rule": "Located original source and actual delivered unit decide. Missing explicitcalendar maps remain unresolved; metadata scalars never manufacture dates, entities or unit relations."
+    }
+  ],
+  "aggregate_reporting": {
+    "common_current_nonPASS_denominator": 4,
+    "common_full_or_partial_recovery": "Report cases and individual previously missing facts/axes separately; no aggregate answer accuracy.",
+    "legacy_panel_common_cases": 8,
+    "legacy_panel_common_units": 20,
+    "legacy_panel_HOLD_cases": 2,
+    "legacy_panel_HOLD_units": 6,
+    "prior_A12_presence": {
+      "common": 18,
+      "HOLD": 6
+    },
+    "prior_T12_presence": {
+      "common": 18,
+      "HOLD": 6
+    },
+    "axis_watch_cases": 19,
+    "axis_watch_is_not_disjoint_panel": "Many cases overlap current4 or legacy26; do not sum counts across panels.",
+    "all77": "Original packet preservation and schema/provenance integrity across77; answerable46/refusal19/HOLD12 remain unchanged.",
+    "refusal": "Preservation and falsebinding checks only; no new refusal outcome or absent-source proof.",
+    "HOLD": "Keep unresolved question/scope denominators fixed. Conditional source recovery cannot lift HOLD."
+  },
+  "stop_and_report": [
+    "Any original text/context/ID/order/membership changes.",
+    "Any packet exceeds65536UTF8bytes or selection/rank/score changes.",
+    "Any source-mismatched/invented value, relationship, axis or selective gold-directed ordering.",
+    "An unexpected source/period/scope mapping cannot be resolved without guessing: mark unresolved rather than change criteria.",
+    "No result-driven rerun, budget tuning, row priority or evaluator criterion edit."
+  ],
+  "result_status": "PENDING_EXECUTION; no FCT12 outcome inferred."
+}

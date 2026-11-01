@@ -1,0 +1,11 @@
+{
+  "status": "COMPLETE_NOT_ADOPTED",
+  "reason": "Neither requested target recovered; additional source losses. No further treatment or app change.",
+  "external_model_calls": 0,
+  "cost_usd": 0,
+  "answers_generated": 0,
+  "scored_runs": 1,
+  "scored_retries": 0,
+  "review_cases": 8,
+  "report": "report.md"
+}

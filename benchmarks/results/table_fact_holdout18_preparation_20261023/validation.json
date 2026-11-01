@@ -1,0 +1,355 @@
+{
+  "status": "PASS",
+  "at": "2026-10-23T14:20:25.462884+00:00",
+  "checks": [
+    {
+      "name": "fixed_generation_exact",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "18_unique_questions_3_reports",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H01",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H02",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H03",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H04",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H05",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H06",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H07",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H08",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H09",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H10",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H11",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H12",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H13",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H14",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H15",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H16",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H17",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "scope_H18",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "question_rubric_parity",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "15_answerable_3_refusal",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "72_balanced_scheduled_answers",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H01",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H02",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H03",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H04",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H05",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H06",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H07",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H08",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H09",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H10",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H11",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H12",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H13",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H14",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H15",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H16",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H17",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "reversed_pair_order_H18",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "no_recorded_receipt_source_overlap",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "no_exact_previous_questions",
+      "status": "PASS",
+      "detail": {
+        "prior_unique_questions": 1096
+      }
+    },
+    {
+      "name": "raw_witness_and_calculation_checks",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "all_gold_review_findings_resolved_before_answers",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "adjudication_applied_H10",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "adjudication_applied_H11",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "adjudication_applied_H17",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "adjudication_applied_H18",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "protocol_review_pass_current_hashes",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "DART_only_7_requests",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "raw_source_hash_20260312001224",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "raw_source_hash_20260310002989",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "raw_source_hash_20260318000785",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "corpus_hash",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "exact_embedding_input_map",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "all3768_uids_preserved_despite_embedding_dedup",
+      "status": "PASS",
+      "detail": {
+        "20260310002989": 1549,
+        "20260312001224": 1082,
+        "20260318000785": 1137
+      }
+    },
+    {
+      "name": "batch_partition_once",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "batch_limits_and_tokens",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "query_embedding_reservation_sufficient",
+      "status": "PASS",
+      "detail": {
+        "tokens": 1288,
+        "max": 95
+      }
+    },
+    {
+      "name": "105_complete_request_cap",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "36USD_reservation_bound",
+      "status": "PASS",
+      "detail": "35.76186478"
+    },
+    {
+      "name": "no_experiment_executed_or_store_built",
+      "status": "PASS",
+      "detail": null
+    },
+    {
+      "name": "protected_existing_file_hashes",
+      "status": "PASS",
+      "detail": {
+        "files": 870,
+        "changed": []
+      }
+    },
+    {
+      "name": "git_head_index_status_preserved",
+      "status": "PASS",
+      "detail": null
+    }
+  ],
+  "model_api_calls": 0,
+  "embedding_api_calls": 0,
+  "DART_free_requests_previously_completed": 7,
+  "execution_status": "NOT_RUN",
+  "source_overlap_files": 57308,
+  "queries_exact_tokens": 1288,
+  "protected_files": 870,
+  "active_v12_store_files": 11,
+  "env_unchanged": true,
+  "active_store_bytes_unchanged": true,
+  "git_unchanged": true,
+  "review_limit": "Physical witnesses, arithmetic and source-author cross-review passed. No retrieval, answer accuracy or future live-runner correctness measured."
+}

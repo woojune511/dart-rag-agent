@@ -1,0 +1,761 @@
+{
+  "status": "FROZEN_BEFORE_CONTRACT_TEST_AND_SCORING",
+  "date": "2026-10-22",
+  "hypothesis": "Duplicated structural row/value labels can add TF unrelated to independent source evidence; separating their aggregation may recover required evidence without losing existing evidence.",
+  "arms": {
+    "N12": "Saved Nori current-IDF baseline, exact reconstruction required",
+    "F12": "Nori field-max TF only; original IDF and original length normalization frozen"
+  },
+  "cases": [
+    {
+      "id": "KBF_T2_018",
+      "question": "2023년 연결 포괄손익계산서 상의 '신용손실충당금전입액' 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "POS_T4_059",
+      "question": "포스코홀딩스의 2025년 아르헨티나 염수 리튬 생산량 목표치를 달성했을 때 예상되는 영업이익을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240322000986"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SKH_T3_080",
+      "question": "2023년 주석에서 외화환산이익과 외화환산손실 금액을 각각 찾고, 해당 연도의 환율 변동이 영업외수지에 미친 순효과(이익-손실)를 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240319000684"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T1_046",
+      "question": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T3_007",
+      "question": "2023년 연결재무제표 주석에서 인식된 '영업권(Goodwill)'의 총액을 찾고, 손상차손 발생 여부를 확인해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T3_048",
+      "question": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T2_078",
+      "question": "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T1_013",
+      "question": "2023년 전체 연구개발비용 중 무형자산(개발비)으로 자본화된 금액의 비율(%)을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T4_016",
+      "question": "셀트리온의 2023년 스마트폰 판매 실적과 전년 대비 증감률을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KAK_T3_076",
+      "question": "2023년 사업보고서 중 '그 밖의 투자자 보호를 위하여 필요한 사항' 등에서 데이터센터 화재(서비스 장애)와 관련된 보상 진행 현황 또는 관련 충당부채 내역을 찾아 요약해.",
+      "report_scope": {
+        "rcept_no": "20240418000375"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T2_010",
+      "question": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T3_011",
+      "question": "사업보고서의 MD&A를 바탕으로 2023년 수익성 개선의 주요 요인을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T2_047",
+      "question": "사업보고서를 바탕으로 2023년 제네시스 브랜드의 고급화 전략 성과를 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T4_049",
+      "question": "KB금융의 2023년 반도체 파운드리 시장 점유율을 알려줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "LGE_T4_053",
+      "question": "LG에너지솔루션의 2023년 수소연료전지 차량(FCEV) 판매량을 알려줘.",
+      "report_scope": {
+        "rcept_no": "20240314001110"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "POS_T1_057",
+      "question": "2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240322000986"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SKH_T1_060",
+      "question": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240319000684"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T1_030",
+      "question": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T4_008",
+      "question": "네이버의 2023년 '선박 건조' 부문 수주 잔고를 알려줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T4_033",
+      "question": "네이버의 2023년 자체 보유 화물 트럭 대수와 물류 배송 건수를 알려줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T3_028",
+      "question": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T4_070",
+      "question": "삼성전자의 2023년 사업보고서에 나타난 2026년 파운드리 3나노 공정의 예상 수율을 알려줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T2_039",
+      "question": "2023년 셀트리온이 북미 지역에서 직접판매 체제를 어떻게 확대했는지 설명하고, 짐펜트라(Zymfentra)의 미국 시장 진출 의미를 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T4_041",
+      "question": "셀트리온의 2023년 5G 통신망 설비투자(CAPEX) 금액을 알려줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T4_024",
+      "question": "셀트리온의 2023년 배터리 셀 제조 수율을 알려줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KAK_T3_055",
+      "question": "재무제표 주석을 참조하여, 종속기업(SM엔터테인먼트 등) 편입이 2023년 연결 매출액 및 무형자산 증가에 미친 영향을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240418000375"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T3_072",
+      "question": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T4_012",
+      "question": "2026년 1분기 현대자동차의 예상 영업이익과 전기차 판매량을 예측해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T4_037",
+      "question": "현대자동차의 2023년 'LNG 선박 건조' 부문 매출액을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KBF_T1_017",
+      "question": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KBF_T2_043",
+      "question": "2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KBF_T3_019",
+      "question": "사업보고서를 참조하여 부동산 PF(프로젝트파이낸싱) 대출과 관련된 회사의 잠재적 리스크 및 대응 방안을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KBF_T3_044",
+      "question": "2023년 사업보고서에서 BIS자기자본비율을 찾고, 해당 지표가 금융당국의 규제 기준 대비 어느 정도 수준인지 리스크 관점에서 설명해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KBF_T4_020",
+      "question": "2023년 KB데이타시스템의 매출원가율을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KBF_T4_045",
+      "question": "KB금융의 2023년 공장 가동률과 생산 실적을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T3_025",
+      "question": "2023년 연결 포괄손익계산서에서 지배기업주주지분순이익(주주 귀속 순이익)을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증가의 주요 원인을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240326000894"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "LGE_T1_051",
+      "question": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240314001110"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "LGE_T2_052",
+      "question": "2023년 사업보고서에서 주요 원재료(양극재, 음극재 등)의 가격 변동 추이를 요약하고, 이것이 배터리 판가(ASP)에 미친 영향을 설명해 줘.",
+      "report_scope": {
+        "rcept_no": "20240314001110"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "LGE_T4_077",
+      "question": "LG에너지솔루션의 2023년 '가입자당 평균 매출(ARPU)'을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240314001110"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "POS_T1_075",
+      "question": "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘.",
+      "report_scope": {
+        "rcept_no": "20240322000986"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "POS_T2_058",
+      "question": "2023년 사업보고서를 바탕으로 친환경 미래소재(이차전지소재 등) 부문의 투자 성과와 수익성 변동 요인을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240322000986"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SKI_T1_068",
+      "question": "2023년 배터리 사업 부문(SK온)의 영업손실(적자) 규모를 확인하고, 이것이 전체 연결 영업이익의 몇 % 수준에 해당하는지 절대값으로 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240320000950"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SKI_T2_069",
+      "question": "2023년 정유 부문의 영업이익 전년 대비 증감률을 계산하고, 이사의 경영진단(MD&A)에서 정제마진 하락 추이가 실적에 미친 영향을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240320000950"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T4_065",
+      "question": "2023년 SK하이닉스의 '영화 배급 수익' 및 '방송 프로그램 제작비'를 차감한 영업이익을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240319000684"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SKH_T2_061",
+      "question": "2023년 전체 매출 중 DRAM 제품군이 차지하는 비중을 계산하고, 사업의 내용에서 AI 서버 수요 확대(HBM 등)로 인한 향후 실적 개선 전망을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240319000684"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T2_022",
+      "question": "2023년 핀테크 부문의 전년 대비 결제액 또는 영업수익 증가율을 계산하고, 성장의 핵심 원동력을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T3_063",
+      "question": "사업보고서 주석에서 관계기업 및 공동기업 투자 내역 중 장부금액이 큰 상위 2개 기업의 이름과 당기순손익을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T1_005",
+      "question": "2023년 네이버의 영업수익 대비 연구개발비용 비중(%)을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T1_071",
+      "question": "2023년 연결 손익계산서에서 '법인세비용차감전순이익'을 추출하고, 전년 대비 증감액을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T2_006",
+      "question": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T2_031",
+      "question": "2023년 서치플랫폼 매출 대비 클라우드 부문 매출의 비율을 계산하고, 클라우드 부문의 주요 기술(AI 등) 적용 사례를 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "NAV_T3_032",
+      "question": "2023년 사업보고서에서 데이터센터(각 세종 등) 인프라 투자와 관련된 자본적 지출(CAPEX) 규모나 관련 주석 내용을 요약해.",
+      "report_scope": {
+        "rcept_no": "20240318000844"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T1_021",
+      "question": "2023년 연결기준 부채비율(부채총계/자본총계)과 유동비율(유동자산/유동부채)을 각각 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T4_062",
+      "question": "삼성전자의 2023년 연구개발비용을 무조건 100조 원이라고 가정하고, 매출액 대비 연구개발비 비중을 계산해.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T1_001",
+      "question": "2023년 연결기준 삼성전자의 영업이익률을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T1_026",
+      "question": "2023년 연결기준 자기자본이익률(ROE)을 계산해 줘. (당기순이익 / 평균 자본총계)",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T2_027",
+      "question": "2023년 DX부문과 DS부문의 매출액 비중을 각각 계산하고, DS부문의 실적 하락을 방어하기 위한 향후 사업 전략을 요약해.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T3_003",
+      "question": "2023년 사업보고서 주석을 참조하여, 우발부채 및 주요 소송사건이 재무에 미칠 잠재적 영향을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T4_004",
+      "question": "삼성전자의 2023년 영업이익률을 계산하고, 사업보고서에서 Apple이 어떤 맥락으로 언급되는지 설명해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "SAM_T4_029",
+      "question": "삼성전자의 2023년 '생명보험' 부문 수입보험료를 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240312000736"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T1_038",
+      "question": "2023년 무형자산상각비 총액을 포괄손익계산서 또는 주석에서 찾고, 이것이 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T2_014",
+      "question": "2023년 셀트리온의 주요 바이오시밀러(램시마, 트룩시마 등) 파이프라인의 연구개발 진행 현황을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T2_073",
+      "question": "2023년 수출(해외매출) 비중을 전체 매출액 대비로 계산하고, 유럽 시장에서의 직판 체제 전환이 영업이익률 개선에 미친 영향을 설명해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T3_015",
+      "question": "셀트리온헬스케어와의 합병과 관련하여 재무제표 주석에 기재된 내용과 합병의 주요 목적을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "CEL_T3_040",
+      "question": "2023년 사업보고서에서 재고자산평가손실, 재고자산평가손실환입, 재고자산폐기손실 규모를 찾아 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T3_050",
+      "question": "2023년 재무제표 주석 상 특수관계자(셀트리온제약 등)와의 매출 거래 규모를 합산하고, 내부거래가 실적에 미치는 영향을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240318000913"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KAK_T1_054",
+      "question": "2023년 카카오의 당기순손실에 영업권손상 및 PPA무형자산 손상차손이 미친 영향을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240418000375"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KAK_T4_056",
+      "question": "카카오의 2023년 1주당 순자산가치(BPS)를 '매출액 나누기 발행주식총수'로 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240418000375"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KAB_T1_066",
+      "question": "2023년 카카오뱅크의 CIR을 계산해 줘. 여기서 CIR은 수익성 표의 '경비차감전영업이익(A)' 대비 '판매비와관리비(E)' 비율을 의미한다.",
+      "report_scope": {
+        "rcept_no": "20240320001487"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "KAB_T3_067",
+      "question": "2023년 주석 20 '순수수료손익'에서 연계대출수입수수료와 연계계좌수입수수료 금액을 찾고, 사업보고서에서 플랫폼 비즈니스의 주요 서비스와 2023년 확장 방향을 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240320001487"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T1_009",
+      "question": "2023년 연결기준 전체 매출액 중 '금융 부문' 매출이 차지하는 비중(%)을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T1_034",
+      "question": "2023년 차량 부문 영업이익과 금융 부문 영업이익을 각각 추출하고, 전체 영업이익에서 차량 부문이 차지하는 비중을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T2_035",
+      "question": "2023년 현대자동차 사업보고서를 바탕으로 E-GMP 기반 전동화 모델의 주요 성과를 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T3_036",
+      "question": "2023년 연결재무제표 주석 17. 충당부채(연결)에서 '판매보증충당부채'의 기존 충당부채 증가액을 찾고, 이것이 리스크 관리 차원에서 의미하는 바를 설명해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "HYU_T4_079",
+      "question": "2023년 사업보고서(연간 보고서) 데이터만을 사용하여 2023년 4분기만의 단일 영업이익을 계산할 수 있는지 논리적으로 검증하고, 불가능하다면 사유를 설명해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T1_064",
+      "question": "2023년 손익계산서에서 '매출원가'와 '판매비와관리비'를 합산하여 '총 영업비용'을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    },
+    {
+      "id": "MIX_T3_023",
+      "question": "사업보고서 내 '환경 및 안전' 섹션(또는 주석)에서 탄소 배출권 관련 의무나 충당부채가 언급된 내용을 찾아 요약해 줘.",
+      "report_scope": {
+        "rcept_no": "20240313001451"
+      },
+      "repetitions": 1
+    }
+  ],
+  "source_context_fields": [
+    "company",
+    "consolidation_scope",
+    "local_heading",
+    "rcept_no",
+    "report_type",
+    "section_path",
+    "table_context",
+    "table_header_context",
+    "year"
+  ],
+  "targets_not_ranking_features": [
+    {
+      "case_id": "NAV_T3_007",
+      "evidence": "연결 영업권 총액과 손상",
+      "uid": "20240318000844:353:229"
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "evidence": "실제 현금 배당 지급액",
+      "uid": "20240312000736:127:6"
+    },
+    {
+      "case_id": "POS_T1_057",
+      "evidence": "연결 영업이익",
+      "uid": "20240322000986:1186:24"
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "evidence": "연결 유형·무형자산",
+      "uid": "20240319000684:123:0"
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "evidence": "Motional 지분율·장부금액",
+      "uid": "20240313001451:275:133"
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "evidence": "Motional 요약 손익",
+      "uid": "20240313001451:285:143"
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "evidence": "배터리 손실과 통화 단위",
+      "uid": "20240320000950:882:499"
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "evidence": "재고 평가손실·환입·폐기손실",
+      "uid": "20240318000913:517:357"
+    },
+    {
+      "case_id": "MIX_T1_064",
+      "evidence": "연결 매출액·매출원가",
+      "uid": "20240313001451:1047:3"
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "uid": "20240313001451:96:5",
+      "evidence": "미국 판매 당기/전기"
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "uid": "20240313001451:1251:9",
+      "evidence": "타법인출자 Motional 대체 행"
+    },
+    {
+      "case_id": "NAV_T2_006",
+      "uid": "20240318000844:1559:7",
+      "evidence": "커머스 매출 비교"
+    },
+    {
+      "case_id": "KBF_T2_018",
+      "uid": "20240326000894:1846:5",
+      "evidence": "충당금 증가 직접 원인"
+    }
+  ],
+  "analyzer": {
+    "name": "Lucene Nori",
+    "version": "9.12.3",
+    "mode": "MIXED",
+    "unknown_unigrams": false,
+    "discard_punctuation": true,
+    "input": "Full original chunk or full original question, including spaces, punctuation and prefixes",
+    "drop_left_pos": [
+      "E",
+      "J",
+      "SP",
+      "SSC",
+      "SSO",
+      "SC",
+      "SE"
+    ],
+    "preserve": "All other Hangul lexical forms including MAG, MAJ, MM, XPN, XSA, XSN, XSV, verbs/adjectives and unknown words. Keep dictionary-recognized compound original and components. No guarantee of semantic disambiguation.",
+    "ascii": "Ignore Nori ASCII outputs; append original regex [a-zA-Z0-9]+ lowercase to preserve existing ASCII and number multiplicities.",
+    "length": "All emitted token occurrences counted, including mixed-mode overlaps; legacy rank_bm25 bag-of-words length, not full Lucene similarity.",
+    "user_dictionary": null,
+    "aliases": false,
+    "stopwords": false,
+    "query_expansion": false
+  },
+  "treatment": {
+    "fields": [
+      "table_row_labels",
+      "table_value_labels"
+    ],
+    "formula": "tf_F(t,d)=tf_other_prefix(t,d)+max(tf_body(t,d),tf_row_label(t,d),tf_value_label(t,d))",
+    "partition": "Only the VALUE ranges of the two named bracketed fields before the first blank line; remaining prefix tokens are O; body is after that separator. No valid prefix means unchanged. Nori runs on ORIGINAL complete text; original token offsets assign fields, UTF-16 aligned. ASCII regex tokens assigned by their original offsets. Boundary-crossing tokens kept in O.",
+    "unchanged": "Do not remove unique label terms, within-field multiplicity, mixed-mode overlaps, common keyword prefixes, captions, periods, units, source text or metadata. No new words, channels, scope preference, user dictionary or stopwords.",
+    "idf_and_length": "Reuse exact N12 IDF dictionary, original doc_len/avgdl, k1=1.5,b=.75,query tokens and multiplicity. Change doc_freqs ONLY. This is a controlled TF ablation, NOT a normally rebuilt BM25 index.",
+    "limits": "Token-level multiset union is a proxy for duplicated field representation, not verified row-identity or semantic deduplication. Equal words can be independent occurrences; separate labels absent from body retain max field count."
+  },
+  "fixed": {
+    "dense": "Exact saved Dense16; no embeddings",
+    "bm25_candidates": 24,
+    "rrf": "Equal RRF60, original stable ordering",
+    "scope": "Explicit report receipt only",
+    "final_sources": 12,
+    "packet_bytes": 65536,
+    "packet": "Original complete source chunks and original metadata; unchanged no-refill byte packing",
+    "generation": false
+  },
+  "evaluation": "All77 paired candidate/final12/packet audit; frozen10 answerable cases/26 units plus2 unscored refusal controls; historical answer-citation losses newly caused relative to N12 reviewed against exact packet sources. Rank/source preservation is not answer accuracy.",
+  "success_gate": "Both requested targets restored to final12 AND delivered packet; no baseline-covered panel unit lost and no confirmed new required-source loss in reviewed changed cases. A tie-order-only target recovery is reported separately and is not semantic scope selection.",
+  "stop": "One frozen F12 policy only. No score-driven tuning or added treatment after outcomes. Stop scoring if contract/parity fails.",
+  "limits": {
+    "external_model_api_calls": 0,
+    "cost_usd": 0,
+    "answers": 0,
+    "scored_runs": 1,
+    "timeout_seconds": 1800
+  },
+  "limitations": "Development-exposed77, incomplete known-witness annotations, unblinded assistant source review, no generated answers, no held-out generalization. Original length deliberately fixed despite lower effective TF."
+}

@@ -1,0 +1,457 @@
+[
+  {
+    "case_id": "KBF_T2_018",
+    "uid": "20240326000894:1846:5",
+    "evidence": "충당금 증가 직접 원인",
+    "physical_table_key": "20240326000894|IV. 이사의 경영진단 및 분석의견::table:4",
+    "table_schema_rank": 3,
+    "admitted_owner": true,
+    "schema_source_rank": 3,
+    "arms": {
+      "A8": {
+        "lexical_rank": 4,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 4,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 4,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 4,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "NAV_T3_007",
+    "evidence": "연결 영업권 총액과 손상",
+    "uid": "20240318000844:353:229",
+    "physical_table_key": "20240318000844|III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:187",
+    "table_schema_rank": 16,
+    "admitted_owner": true,
+    "schema_source_rank": null,
+    "arms": {
+      "A8": {
+        "lexical_rank": null,
+        "rrf_rank": 11,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": null,
+        "rrf_rank": 13,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": null,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "MIX_T3_048",
+    "evidence": "실제 현금 배당 지급액",
+    "uid": "20240312000736:127:6",
+    "physical_table_key": "20240312000736|III. 재무에 관한 사항 > 2. 연결재무제표::table:5",
+    "table_schema_rank": 4,
+    "admitted_owner": true,
+    "schema_source_rank": 4,
+    "arms": {
+      "A8": {
+        "lexical_rank": 7,
+        "rrf_rank": 10,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 7,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 7,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 8,
+        "rrf_rank": 13,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T2_010",
+    "uid": "20240313001451:96:5",
+    "evidence": "미국 판매 당기/전기",
+    "physical_table_key": "20240313001451|None",
+    "table_schema_rank": null,
+    "admitted_owner": false,
+    "schema_source_rank": null,
+    "arms": {
+      "A8": {
+        "lexical_rank": 7,
+        "rrf_rank": 11,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 7,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 7,
+        "rrf_rank": 13,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 13,
+        "rrf_rank": 23,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "POS_T1_057",
+    "evidence": "연결 영업이익",
+    "uid": "20240322000986:1186:24",
+    "physical_table_key": "20240322000986|IV. 이사의 경영진단 및 분석의견::table:12",
+    "table_schema_rank": 47,
+    "admitted_owner": true,
+    "schema_source_rank": null,
+    "arms": {
+      "A8": {
+        "lexical_rank": 18,
+        "rrf_rank": 28,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 18,
+        "rrf_rank": 28,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 18,
+        "rrf_rank": 28,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 24,
+        "rrf_rank": 34,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "SKH_T1_060",
+    "evidence": "연결 유형·무형자산",
+    "uid": "20240319000684:123:0",
+    "physical_table_key": "20240319000684|III. 재무에 관한 사항 > 2. 연결재무제표::table:1",
+    "table_schema_rank": 45,
+    "admitted_owner": true,
+    "schema_source_rank": null,
+    "arms": {
+      "A8": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "evidence": "Motional 지분율·장부금액",
+    "uid": "20240313001451:275:133",
+    "physical_table_key": "20240313001451|III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:119",
+    "table_schema_rank": 7,
+    "admitted_owner": true,
+    "schema_source_rank": 7,
+    "arms": {
+      "A8": {
+        "lexical_rank": null,
+        "rrf_rank": 27,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": 27,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": null,
+        "rrf_rank": 27,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 14,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "evidence": "Motional 요약 손익",
+    "uid": "20240313001451:285:143",
+    "physical_table_key": "20240313001451|III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:129",
+    "table_schema_rank": 108,
+    "admitted_owner": true,
+    "schema_source_rank": null,
+    "arms": {
+      "A8": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": null,
+        "rrf_rank": null,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "uid": "20240313001451:1251:9",
+    "evidence": "타법인출자 Motional 대체 행",
+    "physical_table_key": "20240313001451|XII. 상세표 > 3. 타법인출자 현황(상세)::table:3",
+    "table_schema_rank": 114,
+    "admitted_owner": true,
+    "schema_source_rank": null,
+    "arms": {
+      "A8": {
+        "lexical_rank": 12,
+        "rrf_rank": 22,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 12,
+        "rrf_rank": 22,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 12,
+        "rrf_rank": 23,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 21,
+        "rrf_rank": 29,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "SKI_T1_068",
+    "evidence": "배터리 손실과 통화 단위",
+    "uid": "20240320000950:882:499",
+    "physical_table_key": "20240320000950|III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:451",
+    "table_schema_rank": 2,
+    "admitted_owner": true,
+    "schema_source_rank": 2,
+    "arms": {
+      "A8": {
+        "lexical_rank": 9,
+        "rrf_rank": 15,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 9,
+        "rrf_rank": 15,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 9,
+        "rrf_rank": 17,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 4,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "NAV_T2_006",
+    "uid": "20240318000844:1559:7",
+    "evidence": "커머스 매출 비교",
+    "physical_table_key": "20240318000844|IV. 이사의 경영진단 및 분석의견::table:6",
+    "table_schema_rank": 14,
+    "admitted_owner": true,
+    "schema_source_rank": null,
+    "arms": {
+      "A8": {
+        "lexical_rank": 4,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 4,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 4,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 7,
+        "rrf_rank": 4,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "CEL_T3_040",
+    "evidence": "재고 평가손실·환입·폐기손실",
+    "uid": "20240318000913:517:357",
+    "physical_table_key": "20240318000913|III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:355",
+    "table_schema_rank": 5,
+    "admitted_owner": true,
+    "schema_source_rank": 5,
+    "arms": {
+      "A8": {
+        "lexical_rank": 5,
+        "rrf_rank": 11,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 5,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 5,
+        "rrf_rank": 12,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 5,
+        "rrf_rank": 11,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  },
+  {
+    "case_id": "MIX_T1_064",
+    "evidence": "연결 매출액·매출원가",
+    "uid": "20240313001451:1047:3",
+    "physical_table_key": "20240313001451|IV. 이사의 경영진단 및 분석의견::table:2",
+    "table_schema_rank": 11,
+    "admitted_owner": true,
+    "schema_source_rank": 11,
+    "arms": {
+      "A8": {
+        "lexical_rank": 16,
+        "rrf_rank": 10,
+        "in_packet": false,
+        "omitted_by_byte_limit": false
+      },
+      "A12": {
+        "lexical_rank": 16,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "D12": {
+        "lexical_rank": 16,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      },
+      "S12": {
+        "lexical_rank": 14,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "omitted_by_byte_limit": false
+      }
+    }
+  }
+]

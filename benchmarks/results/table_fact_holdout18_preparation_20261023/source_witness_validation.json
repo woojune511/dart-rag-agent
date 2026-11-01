@@ -1,0 +1,1213 @@
+{
+  "status": "PASS",
+  "witness_count": 134,
+  "witnesses": [
+    {
+      "case_id": "H01",
+      "evidence_id": "entity",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]",
+      "quote": "회 사 명 : 기아 주식회사",
+      "normalized_node_sha256": "556890d42a4c67832f127d400f1c7ae6c26e72ecb6a1bc052e2ae9a1267d9570",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "scope",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/P[6]",
+      "quote": "생산 및 설비에 관한 사항은 연결실체의 수익성에 중요한 영향이 미치는 사항을 연결기준으로 작성하였습니다. (1) 생산능력",
+      "normalized_node_sha256": "ecd2e5eb6d64ab3d7e28666efbfe20fd5e81577fcdfd1d305d50732d35fe6802",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "unit",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[6]",
+      "quote": "(단위 : 대)",
+      "normalized_node_sha256": "93fac1fa931c6ebde5bf6214c36340c1f25a330aa16ed1aaaf06e639d7777cff",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "year_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/THEAD/TR/TH[4]",
+      "quote": "제82기('25.1.1~12.31)",
+      "normalized_node_sha256": "0e4313f3eb7a99451715bfa8638a50e182b3557d0ecd58682583acc41da6e815",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "year_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/THEAD/TR/TH[5]",
+      "quote": "제81기('24.1.1~12.31)",
+      "normalized_node_sha256": "3285fc7e13168478719be9379e649baca3d6a9aabba0f54059188864ab1f9c2a",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "domestic",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/TBODY/TR[1]/TD[3]",
+      "quote": "국내공장",
+      "normalized_node_sha256": "1f823122457c298ef19ca9dd905a3427f9d88330f89e197ce7c558422c37a881",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "domestic_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/TBODY/TR[1]/TD[4]",
+      "quote": "1,596,000",
+      "normalized_node_sha256": "76ce00038ce5e66998567a7ccfe2dda7d3ac9cabc888517d5e0b5636f89325c3",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "domestic_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/TBODY/TR[1]/TD[5]",
+      "quote": "1,502,000",
+      "normalized_node_sha256": "cd8dcb734658def0279c8e2c79ecbace7140702495bfd1763c519a70e525ffb5",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "india",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/TBODY/TR[5]/TD[2]",
+      "quote": "인도공장",
+      "normalized_node_sha256": "c8deb596d7ef4fe9ae20e9cc633cee2e2b590a13445e35dc9383722657c69f13",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "india_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/TBODY/TR[5]/TD[3]",
+      "quote": "431,000",
+      "normalized_node_sha256": "8ec9d0587a472de161785b229dc84f055cf3019d1c24ec1bd63d7900c6da72c4",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "india_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[7]/TBODY/TR[5]/TD[4]",
+      "quote": "386,000",
+      "normalized_node_sha256": "a26ed17422e41e00ea07df14f9c828ef76707b86ed154a5b19c35d4e307c3129",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H01",
+      "evidence_id": "domestic_note",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[8]",
+      "quote": "* 국내공장에는 당사의 모닝 등을 위탁 생산하고 있는 동희오토 서산공장이 포함되어 있으며, 각 공장별 연간 표준작업시간 등을 기준으로 작성됨* 공장별 생산능력은 해당 기간별 기준임",
+      "normalized_node_sha256": "478063bc290f93a8f9143e68d349d708a04d81e1a9495738a62c0961ea035307",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "entity",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]",
+      "quote": "회 사 명 : 기아 주식회사",
+      "normalized_node_sha256": "556890d42a4c67832f127d400f1c7ae6c26e72ecb6a1bc052e2ae9a1267d9570",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "scope",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[6]",
+      "quote": "(2) 별도 기준 매출현황",
+      "normalized_node_sha256": "59e30dd0656c8f3ade8c363a6513c717c75ad4f9b81d4ff6aed1964facdd765f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "unit",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[3]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "header_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/THEAD/TR/TH[3]",
+      "quote": "제82기('25.1.1~12.31)",
+      "normalized_node_sha256": "0e4313f3eb7a99451715bfa8638a50e182b3557d0ecd58682583acc41da6e815",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "header_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/THEAD/TR/TH[4]",
+      "quote": "제81기('24.1.1~12.31)",
+      "normalized_node_sha256": "3285fc7e13168478719be9379e649baca3d6a9aabba0f54059188864ab1f9c2a",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "rv",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/TBODY/TR[4]/TD[1]",
+      "quote": "RV",
+      "normalized_node_sha256": "d563a8ecc8df0a9f43031f42d98a8540b4339129dd3c8114b9d62dfb3f161d25",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "domestic",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/TBODY/TR[4]/TD[2]",
+      "quote": "내수",
+      "normalized_node_sha256": "0d3c776665028a36ae92333eaea8589e5b5eb066f48e8cfcfa857e5d48d6853f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "export",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/TBODY/TR[5]/TD[1]",
+      "quote": "수출",
+      "normalized_node_sha256": "fbc626f7f124c3391b53c9c8745ec675c84051333c8484099466be0d277ac1ff",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "domestic_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/TBODY/TR[4]/TD[3]",
+      "quote": "13,609,944",
+      "normalized_node_sha256": "240fba11629989f1b94e083555ca645f2fb29aed816703271cba67ee97e256c1",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "domestic_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/TBODY/TR[4]/TD[4]",
+      "quote": "12,652,011",
+      "normalized_node_sha256": "e2f7be71e4e8aaf9ff4e52ec74ab169fa8477ca404736315ae82b8f562d6be52",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "export_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/TBODY/TR[5]/TD[2]",
+      "quote": "29,220,221",
+      "normalized_node_sha256": "cf483c7f6cdb8a449b707c2af7256fb5f7fbcf73d8ab1c1326b6735e477a435d",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H02",
+      "evidence_id": "export_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]/TBODY/TR[5]/TD[3]",
+      "quote": "26,973,985",
+      "normalized_node_sha256": "330e30e32993f5327c87fd6896de714ee484b00880c647aafc9370ef927f9171",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "entity",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]",
+      "quote": "회 사 명 : 기아 주식회사",
+      "normalized_node_sha256": "556890d42a4c67832f127d400f1c7ae6c26e72ecb6a1bc052e2ae9a1267d9570",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "scope",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/P[4]",
+      "quote": "연결실체의 연구개발비용은 다음과 같습니다.",
+      "normalized_node_sha256": "4ff38a9bf1309a7c83e09ec1792b30ddf069758589ca03eaec97b10e0fd28616",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "unit",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[1]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "header_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[2]/THEAD/TR/TH[2]",
+      "quote": "제82기('25.1.1~12.31)",
+      "normalized_node_sha256": "0e4313f3eb7a99451715bfa8638a50e182b3557d0ecd58682583acc41da6e815",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "header_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[2]/THEAD/TR/TH[3]",
+      "quote": "제81기('24.1.1~12.31)",
+      "normalized_node_sha256": "3285fc7e13168478719be9379e649baca3d6a9aabba0f54059188864ab1f9c2a",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "total_label",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[2]/TBODY/TR[1]/TD[1]",
+      "quote": "연구개발비용 계",
+      "normalized_node_sha256": "66151b36492db289ec334826cd2e320aa76b0990c9b8cc37caf930c80fc71d04",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "rd_2025",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[2]/TBODY/TR[1]/TD[2]",
+      "quote": "3,712,383",
+      "normalized_node_sha256": "e1f1fe8a74fe0e5078c8c427e27258120c4c0065ae06c1f98ab4113d9c4ea957",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H03",
+      "evidence_id": "rd_2024",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[2]/TBODY/TR[1]/TD[3]",
+      "quote": "3,247,305",
+      "normalized_node_sha256": "d27247d889bab79ae5449f53c23834c8ea4edd8576d528e4939f441f5b5b816e",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H04",
+      "evidence_id": "entity",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]",
+      "quote": "회 사 명 : 기아 주식회사",
+      "normalized_node_sha256": "556890d42a4c67832f127d400f1c7ae6c26e72ecb6a1bc052e2ae9a1267d9570",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H04",
+      "evidence_id": "asp",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[5]",
+      "quote": "2025년 연결기준 ASP는 전년 3,650만원 대비 5.2% 상승한 3,840만원을 기록하였습니다.",
+      "normalized_node_sha256": "0645692390c9468bbb7f71fb192f734f3dc8710ccbb6c48f64a7c3284e309f16",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H04",
+      "evidence_id": "explanation",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[5]",
+      "quote": "제한적인 판매 성장에도 불구하고 Pull 방식 영업준칙에 기반한 효율적인 인센티브 집행과 우호적인 환율효과로 인하여 ASP가 상승세를 지속하며 매출액 증가를 견인하였습니다.",
+      "normalized_node_sha256": "0645692390c9468bbb7f71fb192f734f3dc8710ccbb6c48f64a7c3284e309f16",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H05",
+      "evidence_id": "entity",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]",
+      "quote": "회 사 명 : 기아 주식회사",
+      "normalized_node_sha256": "556890d42a4c67832f127d400f1c7ae6c26e72ecb6a1bc052e2ae9a1267d9570",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H05",
+      "evidence_id": "plan_period",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[17]",
+      "quote": "'26년에는 주요국 정정 불안 지속으로 정책 불확실성이 확대되는 바, 정책 및 시장 변화를 면밀히 모니터링하여 선제적으로 리스크를 관리하고, 효율적인 사업 운영을 통해서 판매 목표 달성 및 수익성 확보할 계획입니다. 나아가 당사 최초 차종인 PBV의 글로벌 시장 성공적 안착을 추진하고, 주요 신차의 본격적 판매를 통해 성장 기반을 강건화할 예정입니다.",
+      "normalized_node_sha256": "497f77deaae7cb7b8acf73315428776a3b1002791a0bf2927d2ae8078f45a620",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H05",
+      "evidence_id": "north_america",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[19]",
+      "quote": "북미 시장은 통상 정책 변화 대응 위한 공장별/차종별 공급 유연성 제고하여, 관세 인상의 사업 영향을 최소화 할 계획입니다. 또한 미국 EV 세제 혜택 폐지 및 HEV 수요 증가 대응 위해, PT별 생산/판매를 최적화 운영할 예정입니다. 아울러 주요차종인 텔루라이드 후속 모델의 성공적 런칭 및 판매 모멘텀 확보 통해, 플래그십 볼륨모델로 지속 육성 및 판매 성장을 이어갈 계획입니다.",
+      "normalized_node_sha256": "3f578930261d93c0ef75d78c38377b299a8f6014782a8ae5d6cf0700e30fb53e",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H05",
+      "evidence_id": "supply_relation",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[19]",
+      "quote": "북미 시장은 통상 정책 변화 대응 위한 공장별/차종별 공급 유연성 제고하여, 관세 인상의 사업 영향을 최소화 할 계획입니다.",
+      "normalized_node_sha256": "3f578930261d93c0ef75d78c38377b299a8f6014782a8ae5d6cf0700e30fb53e",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H05",
+      "evidence_id": "powertrain_relation",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[19]",
+      "quote": "또한 미국 EV 세제 혜택 폐지 및 HEV 수요 증가 대응 위해, PT별 생산/판매를 최적화 운영할 예정입니다.",
+      "normalized_node_sha256": "3f578930261d93c0ef75d78c38377b299a8f6014782a8ae5d6cf0700e30fb53e",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H06",
+      "evidence_id": "entity",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]",
+      "quote": "회 사 명 : 기아 주식회사",
+      "normalized_node_sha256": "556890d42a4c67832f127d400f1c7ae6c26e72ecb6a1bc052e2ae9a1267d9570",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H06",
+      "evidence_id": "scope",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[6]",
+      "quote": "(2) 별도 기준 매출현황",
+      "normalized_node_sha256": "59e30dd0656c8f3ade8c363a6513c717c75ad4f9b81d4ff6aed1964facdd765f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H06",
+      "evidence_id": "unit",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[3]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H06",
+      "evidence_id": "table",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[4]",
+      "quote": "매출 유형 품목 제82기('25.1.1~12.31) 제81기('24.1.1~12.31) 제80기('23.1.1~12.31) 제품 승용 내수 3,554,913 3,503,745 4,026,691 수출 4,734,171 4,280,518 2,958,948 합계 8,289,084 7,784,262 6,985,639 RV 내수 13,609,944 12,652,011 11,632,835 수출 29,220,221 26,973,985 28,150,438 합계 42,830,165 39,625,996 39,783,273 상용 내수 1,606,733 1,649,045 2,174,291 수출 716,125 672,334 637,365 합계 2,322,858 2,321,379 2,811,656 기타 내수 - 6,203 7,502 제품 외 기타 내수 1,633,120 1,326,842 869,397 수출 10,073,449 12,192,062 8,062,491 합계 11,706,569 13,518,904 8,931,888 합계 내수 20,404,710 19,137,846 18,710,716 수출 44,743,966 44,118,899 39,809,242 합계 65,148,676 63,256,745 58,519,958",
+      "normalized_node_sha256": "74f7408e0ad8efe9e2f43b4cb45455c5b078b4262eb7557a56be7474fdad6820",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H06",
+      "evidence_id": "segment_context",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[2]",
+      "quote": "가. 매출실적 연결실체는 보고서 작성 기준일 현재 완성차 및 부분품의 제조ㆍ판매, 렌트 및 정비용역을 사업으로 영위하고 있습니다. 렌트 및 정비부문은 연결실체 전체 매출에서 차지하는 비중이 중요하지 않음에 따라 연결실체는 하나의 보고부문으로 구성됩니다.(1) 지역별 매출 현황",
+      "normalized_node_sha256": "b9fd613a4deba0ec162efda037094956db1a3f8099f65f998fb3fa4d4d203425",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H06",
+      "evidence_id": "company_margin",
+      "source_sha256": "0e6a6af51b2d97e9ed10f9e487043ef15ff3095a8636c2b7789cbdc2e4c4b32f",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[7]",
+      "quote": "영업이익은 전년대비 28.3% 감소한 9조 781억원을 기록하였으며, 영업이익율은 전년대비 3.8%p 감소한 8.0%를 기록하며",
+      "normalized_node_sha256": "5d71cee2591b59d6473d8083acb23f022907d134402f2ee9004f5c046278e694",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "entity",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]/TBODY/TR[2]/TD[2]",
+      "quote": "삼성에스디에스(주)",
+      "normalized_node_sha256": "8ecea221badc104b27e8ffaa23a7b55f9567ca07901a2e75f180049d1d15a126",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "annual_periods",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TABLE[1]",
+      "quote": "제 41 기 2025.01.01 부터 2025.12.31 까지 제 40 기 2024.01.01 부터 2024.12.31 까지",
+      "normalized_node_sha256": "abc11cc5e5213da7b07720f29ac27b2ca2fe3d15d96ce4c5112b4224abcc8a0f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "region_basis",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[20]",
+      "quote": "2) 지역별 정보연결실체의 지역별 영업현황(소재지 기준)은 다음과 같습니다.",
+      "normalized_node_sha256": "cc40dca428d1ed1d8bfff20a6bab25dd588d94fa20f7424208d0e8da9eefe335",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "current_heading",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[21]",
+      "quote": "지역별 매출액 당기 (단위 : 천원)",
+      "normalized_node_sha256": "96df29b65509bd8d250bb490e31c51866f22751ab30400287d7da8c23a7acf90",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "prior_heading",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[24]",
+      "quote": "전기 (단위 : 천원)",
+      "normalized_node_sha256": "755200d6e65ff67fa9cd52c6066fa6ec33cf75c69dc7e139d9b7001d1cff78a8",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "current_table",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[22]",
+      "quote": "매출액 지역 국내 5,241,073,518 외국 미주 3,487,338,013 유럽 1,790,244,958 아시아 및 아프리카(*) 2,624,340,870 중국 786,871,139 지역 합계 13,929,868,498",
+      "normalized_node_sha256": "c1d6d5be5833b3d8a3a14117af84fe72e1d20dffc06c8150a0f806f4964ca232",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "prior_table",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[25]",
+      "quote": "매출액 지역 국내 5,188,484,505 외국 미주 3,493,947,734 유럽 1,669,660,799 아시아 및 아프리카(*) 2,522,644,826 중국 953,494,170 지역 합계 13,828,232,034",
+      "normalized_node_sha256": "2cc03baa673738aa7f4325b1a04d658525253e4e86b13b6f81a5a1316cb65dc5",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "domestic_2025_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[22]/TBODY/TR[1]/TE[3]",
+      "quote": "5,241,073,518",
+      "normalized_node_sha256": "64803e62e916b24644790f42371980394f2046c695481fb576c4716e0b8635b5",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "domestic_2024_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[25]/TBODY/TR[1]/TE[3]",
+      "quote": "5,188,484,505",
+      "normalized_node_sha256": "350ccf5d99e32f7bcfac2476ba4c61528e429c740bd907d3b5de47fb1392eec3",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "china_2025_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[22]/TBODY/TR[5]/TE[2]",
+      "quote": "786,871,139",
+      "normalized_node_sha256": "27868a188f15734a8518802e897aca03fb8022ac59ce2aa8095cb9e06b1f3a68",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H07",
+      "evidence_id": "china_2024_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[25]/TBODY/TR[5]/TE[2]",
+      "quote": "953,494,170",
+      "normalized_node_sha256": "2b348fe6653b849a72fe3948de509d69f56a7fccea8a1549bd940dd7cdc39c2e",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "entity",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]/TBODY/TR[2]/TD[2]",
+      "quote": "삼성에스디에스(주)",
+      "normalized_node_sha256": "8ecea221badc104b27e8ffaa23a7b55f9567ca07901a2e75f180049d1d15a126",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "annual_periods",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TABLE[1]",
+      "quote": "제 41 기 2025.01.01 부터 2025.12.31 까지 제 40 기 2024.01.01 부터 2024.12.31 까지",
+      "normalized_node_sha256": "abc11cc5e5213da7b07720f29ac27b2ca2fe3d15d96ce4c5112b4224abcc8a0f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "rd_unit",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[2]",
+      "quote": "(단위 : 천원)",
+      "normalized_node_sha256": "846adbe72daa7df17cd87723f85c2c9bf952bd819860ed6a07e3fccea9d32f0d",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "rd_basis",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/P[5]",
+      "quote": "※ 연결재무제표 기준입니다.",
+      "normalized_node_sha256": "5c9e8a6ee0b1534bbdb55f1bc8c5af8183d481a58558f5bb6f6bc1a0c3504dfd",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "rd_table",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[3]",
+      "quote": "과 목 제41기 제40기 제39기 연구개발비용 총계 225,326,452 244,451,177 184,604,961 (정부보조금) - - (16,551) 연구개발비용 계 225,326,452 244,451,177 184,588,410 회계처리 개발비 자산화(무형자산) 28,452,403 29,670,379 2,128,560 연구개발비(비용) 196,874,049 214,780,798 182,459,850 연구개발비 / 매출액 비율 [연구개발비용 총계÷당기매출액×100] 1.62% 1.77% 1.39%",
+      "normalized_node_sha256": "8c0957dff054177b542fe31a044f87ceb4d7bd599666dccd65ca588d447a87ce",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "capitalized_2025_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[3]/TBODY/TR[4]/TD[3]",
+      "quote": "28,452,403",
+      "normalized_node_sha256": "2d613ed7716f4728a5479dbadc97f5282dc4c81f2fbbc9a17d7c3c4226745b3d",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "capitalized_2024_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[3]/TBODY/TR[4]/TD[4]",
+      "quote": "29,670,379",
+      "normalized_node_sha256": "7ef9beef664e59572a7e44186555510eadf631997b2bdb932937caed28b108f5",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "expensed_2025_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[3]/TBODY/TR[5]/TD[2]",
+      "quote": "196,874,049",
+      "normalized_node_sha256": "67663e4dcf7e39f8cf0ab6b6f44b43abcbeeef0bed5575f84de05ccd3d13bba2",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H08",
+      "evidence_id": "expensed_2024_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[6]/TABLE[3]/TBODY/TR[5]/TD[3]",
+      "quote": "214,780,798",
+      "normalized_node_sha256": "6f1ba33934613ed0f0575f33ab3d944ec515f964da7580c5d19d79885249ca09",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H09",
+      "evidence_id": "entity",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]/TBODY/TR[2]/TD[2]",
+      "quote": "삼성에스디에스(주)",
+      "normalized_node_sha256": "8ecea221badc104b27e8ffaa23a7b55f9567ca07901a2e75f180049d1d15a126",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H09",
+      "evidence_id": "product_unit",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[1]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H09",
+      "evidence_id": "product_revenue_table",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]",
+      "quote": "사업부문 품목 매출액 2025년(제41기) 2024년(제40기) 2023년(제39기) IT서비스 클라우드 2,680,239(19.2%) 2,323,476(16.8%) 1,880,680(14.2%) SI 1,041,449(7.5%) 1,078,608(7.8%) 1,151,394(8.7%) ITO 2,821,800(20.3%) 2,999,319(21.7%) 3,073,782(23.1%) 소계 6,543,488(47.0%) 6,401,403(46.3%) 6,105,856(46.0%) 물류 7,386,380(53.0%) 7,426,829(53.7%) 7,170,988(54.0%) 합계 13,929,868(100.0%) 13,828,232(100.0%) 13,276,844(100.0%)",
+      "normalized_node_sha256": "2de98e90e802ab951a3e9bd43531902d23323652010ef939c8fe41abce4fc137",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H09",
+      "evidence_id": "cloud_2025_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]/TBODY/TR[1]/TD[3]",
+      "quote": "2,680,239(19.2%)",
+      "normalized_node_sha256": "efdd1da4204386286aa83b03cb040c02075c8802100dffbfb6d178d5f854383f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H09",
+      "evidence_id": "cloud_2024_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]/TBODY/TR[1]/TD[4]",
+      "quote": "2,323,476(16.8%)",
+      "normalized_node_sha256": "33ef2650038852b3e2720f22817f21f816db68228191dd8e66eccd22f5534e88",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "entity",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]/TBODY/TR[2]/TD[2]",
+      "quote": "삼성에스디에스(주)",
+      "normalized_node_sha256": "8ecea221badc104b27e8ffaa23a7b55f9567ca07901a2e75f180049d1d15a126",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "balance_dates",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[1]/TABLE[1]",
+      "quote": "제 41 기 2025.12.31 현재 제 40 기 2024.12.31 현재",
+      "normalized_node_sha256": "5c10e56ea0b2caa5652d2b5e5c3483aaec004e00d5d035e4ee4bfc823b05c897",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "restricted_title",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[6]/TITLE",
+      "quote": "6. 사용이 제한되거나 담보로 제공된 금융자산 (연결)",
+      "normalized_node_sha256": "6a57f04a8af97f77d801b30ce8a4a0574b0a64b729f42a37a2c2e925664a6ee5",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "balance_scope",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[6]/TABLE[2]",
+      "quote": "당기말 및 전기말 현재 사용이 제한된 금융자산과 부채나 우발부채에 대한 담보로 제공된 금융자산의 내역은 다음과 같습니다.",
+      "normalized_node_sha256": "8631fe52ddbec9b70e11ec4e00202a57c4716cb7f04d3311eb25d4247bbfd04f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "restricted_heading",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[6]/TABLE[3]",
+      "quote": "사용이 제한된 금융자산 당기 (단위 : 천원)",
+      "normalized_node_sha256": "365dfba9ecb17f0811899644fc46a0f328562c67af2ce63e75c90ba81b4bfd4d",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "restricted_table",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[6]/TABLE[4]",
+      "quote": "사용이 제한되거나 담보로 제공된 금융자산 금융자산, 분류 현금및현금성자산 국책과제 관련 예금 7,604,110 단기금융상품 정기예금 5,188,638 기타비유동자산(장기금융상품) 당좌개설보증금 17,000 계약이행담보(*) 10,000,000 동반성장협력대출상생펀드(*) 48,200,000 기타(*) 15,000 금융자산, 분류 합계 71,024,748",
+      "normalized_node_sha256": "43381130f5a1e0616b833ef5d10ed2078dc2eeb22d8d9ab19588a959c155025e",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "fund_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[6]/TABLE[4]/TBODY/TR[5]/TE[2]",
+      "quote": "48,200,000",
+      "normalized_node_sha256": "cfec79f3fa977c03f51428f612b4c4324b3374bda85b6330029ad6498b8bf8b1",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H10",
+      "evidence_id": "fund_restriction",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[6]/TABLE[9]",
+      "quote": "(*) 기타비유동자산의 동반성장협력대출상생펀드는 협력기업 공동지원을 위한 예치금으로 연결실체의 협력기업에 대한 자금지원 목적으로만 사용하도록 기업은행과 약정되어 있습니다.",
+      "normalized_node_sha256": "e6b81350734b1801300cd269aeb2342bff5379b9536f646a49b55f5119909b86",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H11",
+      "evidence_id": "entity",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]/TBODY/TR[2]/TD[2]",
+      "quote": "삼성에스디에스(주)",
+      "normalized_node_sha256": "8ecea221badc104b27e8ffaa23a7b55f9567ca07901a2e75f180049d1d15a126",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H11",
+      "evidence_id": "report_period",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE-GROUP[1]/TABLE",
+      "quote": "사업연도 2025년 01월 01일 부터 2025년 12월 31일 까지",
+      "normalized_node_sha256": "8d9e9db82917376f8ba18110d4ae30ceabab2565e53353702417663256efe536",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H11",
+      "evidence_id": "fabrix_kind",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[6]/TBODY/TR[1]/TD[1]",
+      "quote": "AI Platform",
+      "normalized_node_sha256": "03c9dc9e3f75db33cb6332bb1678656be789e95ff656e524d4da13475a0d0dd4",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H11",
+      "evidence_id": "fabrix_description",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[6]/TBODY/TR[1]/TD[2]",
+      "quote": "FabriX : 기업 맞춤형 생성형 AI 서비스 플랫폼- 업종 특화 데이터를 학습한 기업 맞춤 LLM을 기반으로 자연어 기반 AI Chat 서비스를 제공, 영업/구매/물류/경영지원 등 기업의 핵심 업무시스템에 Copilot 구현 환경 제공- 챗포탈, 어시스턴트포탈, 플랫폼, 코파일럿으로 구성",
+      "normalized_node_sha256": "a0aa2268511080f68bc6c44e60611a38473aace8907c1ab6a7b4bad900d1535c",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H11",
+      "evidence_id": "brity_kind",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[6]/TBODY/TR[2]/TD[1]",
+      "quote": "AI Solution",
+      "normalized_node_sha256": "25c48b34e44d45bc39f2196e89c0c59a6c684509885f5975ac7a2302b354b5d9",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H11",
+      "evidence_id": "brity_description",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[6]/TBODY/TR[2]/TD[2]",
+      "quote": "Brity Copilot : Brity Works를 위한 생성형 AI 서비스 - 요약, 번역, 문서 생성, MS 오피스 결합 서비스 등 효율적 업무 수행 지원 - Brity Automation 상품과 연계로 기업 업무의 모든 과정을 자동화",
+      "normalized_node_sha256": "d28acd67aa131154ba04bd8d976d3a962eb02b54bcbd95df40b53507bddfdf17",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "entity",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE[2]/TBODY/TR[2]/TD[2]",
+      "quote": "삼성에스디에스(주)",
+      "normalized_node_sha256": "8ecea221badc104b27e8ffaa23a7b55f9567ca07901a2e75f180049d1d15a126",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "product_unit",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[1]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "product_revenue_table",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]",
+      "quote": "사업부문 품목 매출액 2025년(제41기) 2024년(제40기) 2023년(제39기) IT서비스 클라우드 2,680,239(19.2%) 2,323,476(16.8%) 1,880,680(14.2%) SI 1,041,449(7.5%) 1,078,608(7.8%) 1,151,394(8.7%) ITO 2,821,800(20.3%) 2,999,319(21.7%) 3,073,782(23.1%) 소계 6,543,488(47.0%) 6,401,403(46.3%) 6,105,856(46.0%) 물류 7,386,380(53.0%) 7,426,829(53.7%) 7,170,988(54.0%) 합계 13,929,868(100.0%) 13,828,232(100.0%) 13,276,844(100.0%)",
+      "normalized_node_sha256": "2de98e90e802ab951a3e9bd43531902d23323652010ef939c8fe41abce4fc137",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "cloud_2025_cell",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]/TBODY/TR[1]/TD[3]",
+      "quote": "2,680,239(19.2%)",
+      "normalized_node_sha256": "efdd1da4204386286aa83b03cb040c02075c8802100dffbfb6d178d5f854383f",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "fabrix_description",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[6]/TBODY/TR[1]/TD[2]",
+      "quote": "FabriX : 기업 맞춤형 생성형 AI 서비스 플랫폼- 업종 특화 데이터를 학습한 기업 맞춤 LLM을 기반으로 자연어 기반 AI Chat 서비스를 제공, 영업/구매/물류/경영지원 등 기업의 핵심 업무시스템에 Copilot 구현 환경 제공- 챗포탈, 어시스턴트포탈, 플랫폼, 코파일럿으로 구성",
+      "normalized_node_sha256": "a0aa2268511080f68bc6c44e60611a38473aace8907c1ab6a7b4bad900d1535c",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "fabrix_overview",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[1]/P[5]",
+      "quote": "특히, 생성형 AI 사업은 AI 인프라 GPUaaS(GPU as a Service), AI 플랫폼 FabriX, AI 솔루션 BrityCopilot(브리티 코파일럿) 등 AI 풀스택 역량을 기반으로 기업 고객의 AI 트랜스포메이션을 지원하고 있습니다. 최근 AI 사업을 더욱 강화하고 있으며, 회사 전반에 분산되어 있던 AI 역량을 전략적으로 결합해 고객 개별 과제를 넘어 업무와 비즈니스 전반의 구조적 변화를 주도하고, 실행력을 강화하고자 AX 센터를 출범시켰습니다.",
+      "normalized_node_sha256": "ce45e0b3bea0a7a38568b67be19e2f5939ebb0156efcf2bb9c64e65a98996383",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "fabrix_expansion",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[19]",
+      "quote": "2025년 클라우드 사업은 전년 대비 약 15% 성장하며 IT서비스 매출 성장을 견인하였습니다. IT서비스 사업 내 클라우드 매출 비중 또한 2024년 36%에서 2025년 41%로 확대되며, 당사의 사업구조가 클라우드와 생성형AI 중심으로 재편되고 있고, 외형성장과 함께 구조적 수익성 개선이 진행되고 있습니다.- CSP 사업에서는 하이테크 제조기업의 연구개발을 위한 HPC(고성능컴퓨팅서비스)와 생성형 AI를 위한 GPUaaS가 증가하고 PPP(민관협력 모델) 클라우드와 SDS 공공 클라우드 서비스를 본격적으로 추진하면서 공공 서비스도 확대하였습니다. 2024년에 출시한 생성형 플랫폼 서비스인 FabriX는 삼성 관계사 대상으로 2025년 확산이 마무리 되었습니다. 또한 구미시에 하이퍼스케일 AI 데이터센터 투자를 확정해, 미래 AI 인프라 수요에 대한 확장성을 확보하고 IT 서비스의 핵심 성장 동력으로 활용할 계획입니다.",
+      "normalized_node_sha256": "9a32ddadf187ed92dbfcd40272715882139471bbf069ff100b419337ffa6460c",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H12",
+      "evidence_id": "fabrix_managed_service",
+      "source_sha256": "25cb9bcd25f99369e36a174b548c982ee91a28ae68b81da270f86dfd8872a180",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[20]",
+      "quote": "- MSP 사업은 어플리케이션 현대화, ERP, SCM의 차세대 업무시스템 구축과 함께 클라우드 어플리케이션 운영 서비스도 꾸준히 증가하고 있습니다. FabriX 기반의 AI Managed Service를 시중 은행권, 공공 기관에 제공하여 생성형 AI 서비스를 확대하고 있습니다. 2025년에는 SDS가 강점을 가진 제조 업종뿐만 아니라 금융과 공공, 정유화학, 조선 등으로 업종을 다각화하였으며, 정보보안 강화를 위한 클라우드 전환ㆍ구축 서비스도 확대하였습니다.",
+      "normalized_node_sha256": "ba563a3551a536f66f2a47c5d4e5dcdb6ef1fb31c66c7390bea4ccad200e47de",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E1",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TABLE[1]",
+      "quote": "연결 포괄손익계산서 제 20 기 2025.01.01 부터 2025.12.31 까지 제 19 기 2024.01.01 부터 2024.12.31 까지 제 18 기 2023.01.01 부터 2023.12.31 까지 (단위 : 원)",
+      "normalized_node_sha256": "68f71c558703538e0f627601f3f57744ff13451f0363a6d36e572e97df3afc52",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E2",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TITLE",
+      "quote": "4. 부문별 정보 (연결)",
+      "normalized_node_sha256": "7d067a7b44e8700fee2f2c92d1c22e4eb9560bd9bfb22a95a13657880a9c6072",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E3",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[8]",
+      "quote": "영업부문에 대한 공시 당기 (단위 : 백만원)",
+      "normalized_node_sha256": "ebb85966f9289589be2370f69d92dfc74e8aba0b4e6d13892fb4c0f67ee972af",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E4",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[9]",
+      "quote": "매출액 영업이익(손실) 부문 보고부문 화장품사업부문 3,794,374 320,762 HB(Hair&Beauty) 사업부문 458,446 15,065 부문 합계 4,252,820 335,827",
+      "normalized_node_sha256": "3726af50e5db2c6e3437988d8878a62a659ad98c4b089952ab1fb969def2d056",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E5",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[11]",
+      "quote": "전기 (단위 : 백만원)",
+      "normalized_node_sha256": "8494afe155a69826ef9d371b778d67654853d1342b9b20960a17cc981af26378",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E6",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[12]",
+      "quote": "매출액 영업이익(손실) 부문 보고부문 화장품사업부문 3,477,837 222,715 HB(Hair&Beauty) 사업부문 407,274 (2,234) 부문 합계 3,885,111 220,481",
+      "normalized_node_sha256": "9fb6422818ca74eafb36c6d9b5408daa196b18d0160654a4c2eceede0d02c481",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E7",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[9]/TBODY/TR[1]/TE[4]",
+      "quote": "3,794,374",
+      "normalized_node_sha256": "3ba1ffd0538c82ce9d0e19836b59b1e44bc8d707bf32c34be907e53ceeaa3317",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E8",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[9]/TBODY/TR[2]/TE[2]",
+      "quote": "458,446",
+      "normalized_node_sha256": "a8694e74446c2801591b27815aef78d21b904bf55722df6bf03fa2a93ef3eecb",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E9",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[12]/TBODY/TR[1]/TE[4]",
+      "quote": "3,477,837",
+      "normalized_node_sha256": "66f434de7293f7c5e85db03693ac750866462496330977d3babccb26d691bbcb",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H13",
+      "evidence_id": "E10",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[12]/TBODY/TR[2]/TE[2]",
+      "quote": "407,274",
+      "normalized_node_sha256": "132dcd9677419eb1d8022c35ec49bf3ae39bcee53ceb4c6712f552ad5ec9b84a",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E1",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE-GROUP[1]/TABLE",
+      "quote": "사업연도 2025년 01월 01일 부터 2025년 12월 31일 까지",
+      "normalized_node_sha256": "8d9e9db82917376f8ba18110d4ae30ceabab2565e53353702417663256efe536",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E2",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[1]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E3",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[2]",
+      "quote": "사업부문 매입 유형 품 목 구체적 용도 매입액 비율 비 고 화장품사업부문 원재료 GLYCERINE, Synthetic Ethyl Alcohol 95%, JAUM BALANCING COMPLEX (자음단) 등 스킨, 로션 등 각종 화장품 원료 100,279 16.0% (주)욱성물산, 한국알콜산업(주), (주)현대바이오랜드 등 부재료 용기,캡, 단상자 등 보조재 205,523 32.8% (주)오타종패키징퍼시픽, (주)장업시스템 등 상품 스킨, 로션 등 상품 판매 72,704 11.6% (주)코스비전 등 소 계 378,506 60.5% - 헤어 앤 뷰티(Hair & Beauty)사업부문 원재료 MYRISTIC ACID, ECOROL 16/98P 등 샴푸, 비누, 치약 등의 원료 107,048 17.1% PALM-OLEO SDN.BHD, Ecogreen(indonesia) 등 부재료 용기,캡, 여과지, 단상자 등 보조재 84,220 13.5% (주)태진화학, (주)오타종패키징퍼시픽 등 상품 바디, 헤어 등 생활용품 56,361 9.0% (주)코스비전 등 소 계 247,629 39.5% - 합 계 원 재 료 207,327 33.1% - 부 재 료 289,743 46.3% - 상 품 129,065 20.6% - 합 계 626,135 100.0% -",
+      "normalized_node_sha256": "2a80790d4f76ce9fb681232e6e4dd0f0594c562a723fd2fe3940dc7e505f6ba7",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E4",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/P[4]",
+      "quote": "주) (주)아모레퍼시픽 기준",
+      "normalized_node_sha256": "5c8fe44483446b427502b856ae926392da4f6a9775f91dc01426f2e6d02adffd",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E5",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[3]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E6",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[4]",
+      "quote": "사업부문 매입 유형 품 목 구체적용도 매입액 비율 비 고 화장품 사업부문 원재료 UHD Dermaon, BUTYLENE GLYCOL(1,3)UK Grad, ACB Yeast Cholesterol JSQI, Ceramide PC 등 스킨, 로션 등 각종 화장품 원료 53,972 41.9% (주)케이피티, (주)아모레퍼시픽, (주)모아캠, (주)마크로케어 등 부재료 용기, 캡, 단상자 등 보조재 73,034 56.6% (주)펌텍코리아, (주)오타종패키징퍼시픽, (주)제이유코스앤팩코리아 등 상품 마스카라, 틴트, 겔마스크 등 상품 판매 1,984 1.5% (주)코디, (주)씨앤씨인터내셔널, (주)코스메카코리아 등 소 계 128,990 100.0% -",
+      "normalized_node_sha256": "2bf57f305f4682c400bf286c206af373e25150ff03de45eeef752585add15294",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E7",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/P[5]",
+      "quote": "주) 주요 종속회사인 (주)코스비전 기준",
+      "normalized_node_sha256": "4b91f50eab5d164d02f26a5615934cf459b43ce84fd6859e7da4380be44be01e",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E8",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[2]/TBODY/TR[2]/TD[4]",
+      "quote": "205,523",
+      "normalized_node_sha256": "f99229b13f03fdbc364997ad7930d76ba19349ae31e99142649da528887e2ee8",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H14",
+      "evidence_id": "E9",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[4]/TBODY/TR[2]/TD[4]",
+      "quote": "73,034",
+      "normalized_node_sha256": "08856f6c8b5a2c9586c5980e299e8e86e985a7caae4929b9c1921d06499f0910",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H15",
+      "evidence_id": "E1",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[18]",
+      "quote": "(단위 : 백만원)",
+      "normalized_node_sha256": "fde946b3eeb3ad8901e73d4f1330501eee2e5c7e38183799877b242d405e3088",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H15",
+      "evidence_id": "E2",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[19]",
+      "quote": "구분 내역 투자기간 투자대상자산 투자효과 제20기 투자액 영업 매입기타 2025.01.01 ~ 2025.12.31 집기, 공사비 등 판매증대 8,042 생산 증설수선 2025.01.01 ~ 2025.12.31 건물, 기계장치, 환경설비 등 생산효율성 제고 21,870 연구 기타 2025.01.01 ~ 2025.12.31 연구설비 등 연구개발 1,272 기타 신설매입 2025.01.01 ~ 2025.12.31 공사비, 전산장비, 집기 등 경영효율성 제고 60,376 합 계 91,560",
+      "normalized_node_sha256": "dd0b349f03b2ee750dad79ac8e5b815fa1c8e729e0d9621e915d3ab18f515dc7",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H15",
+      "evidence_id": "E3",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/P[24]",
+      "quote": "주) (주)아모레퍼시픽 기준",
+      "normalized_node_sha256": "5c8fe44483446b427502b856ae926392da4f6a9775f91dc01426f2e6d02adffd",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H15",
+      "evidence_id": "E4",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[19]/TBODY/TR[2]/TD[6]",
+      "quote": "21,870",
+      "normalized_node_sha256": "9a2ca8d2a95379ede33d8e08e7511599def8aed617a8e93d35dbaca5a16c25a9",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H15",
+      "evidence_id": "E5",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[3]/TABLE[19]/TBODY/TR[5]/TD[2]",
+      "quote": "91,560",
+      "normalized_node_sha256": "cd35f70acfe4637003b8cf37a1a0904b74e3e70b52d62fda760757e60b54b502",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H16",
+      "evidence_id": "E1",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/COVER/P[3]",
+      "quote": "(제 20 기)",
+      "normalized_node_sha256": "c6395226bd8837507bb4f24a34f80da24df4faa6775773af7296f89441744085",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H16",
+      "evidence_id": "E2",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE-GROUP[1]/TABLE",
+      "quote": "사업연도 2025년 01월 01일 부터 2025년 12월 31일 까지",
+      "normalized_node_sha256": "8d9e9db82917376f8ba18110d4ae30ceabab2565e53353702417663256efe536",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H16",
+      "evidence_id": "E3",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[3]",
+      "quote": "(단위 : 원/개)",
+      "normalized_node_sha256": "c5d3a10ef51810c9b6865862e067fe9e05a36bffcc3817f6b71d4d6a4292622c",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H16",
+      "evidence_id": "E4",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[4]",
+      "quote": "품 목 제20기 제19기 제18기 화장품사업부문 설화수 자음2종 140,000 140,000 140,000 라네즈 립슬리핑마스크 22,000 22,000 22,000 헤라 블랙쿠션 74,000 74,000 66,000 헤어 앤 뷰티(Hair & Beauty)사업부문 미쟝센 퍼펙트세럼 15,000 15,000 15,000 려 자양윤모샴푸 17,000 16,000 16,000",
+      "normalized_node_sha256": "8aaf5582301b5e8407516698ab281b09683e83b24c3f7006f6b3a75f59191d18",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H16",
+      "evidence_id": "E5",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[4]/TBODY/TR[5]/TD[2]",
+      "quote": "17,000",
+      "normalized_node_sha256": "817a0c3297560be7f0880e39308fbf25affbd572d49918f38b6d2eb0cbf441ab",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H16",
+      "evidence_id": "E6",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/P[5]",
+      "quote": "려 자양윤모샴푸 수입 원부자재 단가상승 대응 및 브랜드 수익성 제고를 위한 가격조정(2025.5월)",
+      "normalized_node_sha256": "a3c34103237ec8abdae49cdf3a9d58d80d5ab6fb13e7147b2fa9e280093910a3",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H17",
+      "evidence_id": "E1",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE-GROUP[1]/TABLE",
+      "quote": "사업연도 2025년 01월 01일 부터 2025년 12월 31일 까지",
+      "normalized_node_sha256": "8d9e9db82917376f8ba18110d4ae30ceabab2565e53353702417663256efe536",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H17",
+      "evidence_id": "E2",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[16]",
+      "quote": "국내 사업 매출은 전년 대비 1,182억 성장(+5.5%)한 2조 2,752억을 기록하였습니다. 온라인은 핵심 플랫폼과의 전략적 협업 강화, 아모레세일페스타, 80주년 프로모션 등과 같은 주요 기획전을 통해 매출 성장세를 유지하였으며,",
+      "normalized_node_sha256": "ab4c0ff66146169d3c626fc0cf24dd57270a8551b9bcf8ae8ed81cd189bd55da",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H17",
+      "evidence_id": "E3",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[16]",
+      "quote": "MBS 경로에서는 올리브영에서의 주요제품 판매호조와 다이소에서의 매출확대를 통해 두자리수의 성장을 기록하였습니다.",
+      "normalized_node_sha256": "ab4c0ff66146169d3c626fc0cf24dd57270a8551b9bcf8ae8ed81cd189bd55da",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E1",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/COVER/TABLE-GROUP[1]/TABLE",
+      "quote": "사업연도 2025년 01월 01일 부터 2025년 12월 31일 까지",
+      "normalized_node_sha256": "8d9e9db82917376f8ba18110d4ae30ceabab2565e53353702417663256efe536",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E2",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TITLE",
+      "quote": "4. 부문별 정보 (연결)",
+      "normalized_node_sha256": "7d067a7b44e8700fee2f2c92d1c22e4eb9560bd9bfb22a95a13657880a9c6072",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E3",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[15]",
+      "quote": "지역에 대한 공시 당기 (단위 : 백만원)",
+      "normalized_node_sha256": "6fba81d58984ead07b3b7965cd2250a39e0e264b8c75ae518905d6d74832a5bb",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E4",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[4]/TABLE[16]",
+      "quote": "매출액 지역 한국 2,264,495 아시아 1,083,904 북미 640,745 기타지역 263,676 지역 합계 4,252,820",
+      "normalized_node_sha256": "8f46e1833c79b2d8d04eef2f200212007b3e9b10f46f0d4d1c4342de8a31a3e5",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E5",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[5]/SECTION-2[3]/P[20]",
+      "quote": "(2) 해외 사업 미국은 라네즈 립 신제품 출시 및 스킨케어 마케팅 확대, 그리고 코스알엑스의 “RX”라인 강화와 헤어 카테고리 진출로 성장동력의 다변화 추진, 설화수와 이니스프리의 프랜차이즈 라인 중심 고객인지도 강화 등을 통해 20%의 견조한 매출 성장을 기록했습니다.",
+      "normalized_node_sha256": "784a167b438b90ebfb585058d4969da438f1e4e015c429cf6dcb095ce4747533",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E6",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[7]/P[26]",
+      "quote": "미주 지역은 라네즈, 설화수, 이니스프리 브랜드의 지속적인 매출 성장 및 코스알엑스 편입에 더하여, 에스트라 및 한율 브랜드 신규 진출로 매출이 고성장하였습니다. 라네즈는 새롭게 선보인 ‘글레이즈 크레이즈 틴티드 립 세럼’ 판매 호조로 립 카테고리 내 시장 입지를 더욱 공고히 하였으며, 주요 스킨케어 라인을 중심으로 마케팅 캠페인을 강화하며 전체 매출이 성장하였습니다. 설화수는 백화점 신규 입점을 통해 채널 접점을 다변화하고 ‘자음생’ 라인 중심 브랜드 인지도를 제고하며 매출이 성장하였습니다. 이니스프리는 ‘비타C’ 및 ‘그린티’ 라인 중심 마케팅 확대로 제품 및 브랜드 인지도를 제고하였으며, 또한 에스트라와 한율 브랜드를 신규 론칭하며 글로벌 브랜드 포트폴리오를 확장하였습니다.",
+      "normalized_node_sha256": "d6580ea2094623469eb300d5b9f4e602ab677808f32076c3be5ec039a62d52f9",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E7",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[3]",
+      "quote": "경 로 순수국내 면세 해외법인 및 수출 비중 44% 9% 47%",
+      "normalized_node_sha256": "3d40fb76513d063f7d0bf75d85b405892f0eb522681e1789b5740cddc46bd6a1",
+      "status": "EXACT_WITNESS_MATCH"
+    },
+    {
+      "case_id": "H18",
+      "evidence_id": "E8",
+      "source_sha256": "d8d11210c38edcfcbe5b166ddee15dfd5f7305a3df95a7b26b8189c98380d6f9",
+      "xpath": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[5]",
+      "quote": "주) 순수국내는 온라인, 백화점, 방문판매, 전문점, 할인점, 대리점 등을 포함합니다.",
+      "normalized_node_sha256": "b17cd141b07dadf51823b0d528f68156cdf58a7d81f381cead4f33da1929848d",
+      "status": "EXACT_WITNESS_MATCH"
+    }
+  ],
+  "limit": "Unique XPath and literal membership verify physical source linkage, not full semantic correctness. Gold reviewed separately. No generated answer or retrieval measured."
+}

@@ -1,0 +1,41 @@
+{
+  "by_group": {
+    "common_answerable": {
+      "cases": 46,
+      "cases_with_added": 21,
+      "cases_with_lost": 0,
+      "64KiB_total_bytes": 2635676,
+      "160KiB_total_bytes": 3293910
+    },
+    "refusal": {
+      "cases": 19,
+      "cases_with_added": 3,
+      "cases_with_lost": 0,
+      "64KiB_total_bytes": 887263,
+      "160KiB_total_bytes": 916678
+    },
+    "diagnostic_or_hold": {
+      "cases": 12,
+      "cases_with_added": 6,
+      "cases_with_lost": 0,
+      "64KiB_total_bytes": 677748,
+      "160KiB_total_bytes": 853049
+    }
+  },
+  "remaining_budget_cases": [
+    {
+      "case_id": "MIX_T2_047",
+      "units": 493,
+      "bytes": 163681,
+      "rejected": 32
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "units": 1701,
+      "bytes": 163836,
+      "rejected": 980
+    }
+  ],
+  "Motional160_exact_previous_diagnostic_packet": true,
+  "total_bytes_relative_increase_percent": 20.543068312397473
+}

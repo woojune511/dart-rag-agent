@@ -1,0 +1,21 @@
+{
+  "status": "completed",
+  "elapsed_seconds": 57.62,
+  "cases": 77,
+  "new_model_api_calls": 0,
+  "new_retrieval_runs": 0,
+  "new_answers": 0,
+  "cost_usd": 0,
+  "new_runtime_features": 0,
+  "table_decisions": {
+    "no_valid_numeric_units": 224,
+    "attached": 321,
+    "no_table_payload": 248,
+    "rejected_byte_budget": 94,
+    "duplicate_table_first_owner_only": 20
+  },
+  "unit_decisions": {
+    "attached": 9465,
+    "rejected_byte_budget": 9319
+  }
+}

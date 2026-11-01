@@ -1,0 +1,24 @@
+{
+  "status": "completed",
+  "elapsed_seconds": 37.25,
+  "cases": 77,
+  "new_model_api_calls": 0,
+  "new_retrieval_runs": 0,
+  "new_answers": 0,
+  "cost_usd": 0,
+  "new_runtime_features": 0,
+  "case_decisions": {
+    "attached": 545,
+    "rejected_byte_budget": 63,
+    "no_table_payload": 248,
+    "duplicate_table_first_owner_only": 20,
+    "rejected_structural_validation": 31
+  },
+  "projector_outcomes_unique_docs": {
+    "payload_complete_source_verified": 531,
+    "missing_table_object": 181,
+    "payload_incomplete": 20,
+    "row_axis_not_unique_or_missing": 11,
+    "context_relation_mismatch": 3
+  }
+}

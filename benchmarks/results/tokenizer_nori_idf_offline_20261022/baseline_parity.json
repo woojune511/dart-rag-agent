@@ -1,0 +1,6 @@
+{
+  "cases": 77,
+  "bm25_ranks_equal": true,
+  "bm25_score_atol": 1e-08,
+  "saved_packets_exact": true
+}

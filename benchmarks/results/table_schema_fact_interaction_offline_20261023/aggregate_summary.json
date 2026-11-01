@@ -1,0 +1,81 @@
+{
+  "cases": 77,
+  "exact_A12_fact160_replays": 77,
+  "external_model_API_calls": 0,
+  "cost_usd": 0,
+  "new_answers": 0,
+  "retrieval_recomputations": 0,
+  "arms": {
+    "A12_original": {
+      "actual_source_events": 907,
+      "mean_bytes": 37273.25974025974,
+      "median_bytes": 36352,
+      "max_bytes": 64813,
+      "table_unit_events": 0
+    },
+    "S12_original": {
+      "actual_source_events": 906,
+      "mean_bytes": 38240.72727272727,
+      "median_bytes": 37122,
+      "max_bytes": 64802,
+      "table_unit_events": 0
+    },
+    "A12_fact160": {
+      "actual_source_events": 907,
+      "mean_bytes": 65761.51948051948,
+      "median_bytes": 59334,
+      "max_bytes": 163836,
+      "table_unit_events": 17772
+    },
+    "S12_fact160": {
+      "actual_source_events": 906,
+      "mean_bytes": 72797.46753246753,
+      "median_bytes": 61327,
+      "max_bytes": 163839,
+      "table_unit_events": 20607
+    }
+  },
+  "physical_unit_changes": {
+    "common_events": 15568,
+    "added": 5039,
+    "lost": 2204,
+    "changed_dependencies": 0,
+    "cases_with_losses": [
+      "KBF_T2_018",
+      "POS_T4_059",
+      "SKH_T3_080",
+      "MIX_T3_048",
+      "HYU_T3_011",
+      "LGE_T4_053",
+      "POS_T1_057",
+      "NAV_T4_008",
+      "CEL_T4_041",
+      "KAK_T3_055",
+      "HYU_T3_072",
+      "HYU_T4_012",
+      "KBF_T1_017",
+      "KBF_T2_043",
+      "KBF_T3_019",
+      "KBF_T4_020",
+      "MIX_T3_025",
+      "LGE_T1_051",
+      "POS_T2_058",
+      "SKI_T1_068",
+      "SKI_T2_069",
+      "MIX_T4_065",
+      "NAV_T1_005",
+      "NAV_T1_071",
+      "NAV_T2_006",
+      "NAV_T3_032",
+      "SAM_T1_026",
+      "SAM_T4_029",
+      "CEL_T2_073",
+      "CEL_T3_040",
+      "MIX_T3_050",
+      "KAB_T3_067",
+      "HYU_T1_009",
+      "HYU_T1_034",
+      "HYU_T2_035"
+    ]
+  }
+}
