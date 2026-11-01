@@ -1,10 +1,13 @@
 """Reject unverified XML recovery before partial source text reaches ingest."""
 
+from io import BytesIO
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
+
+from lxml import etree
 
 from src.ingestion.ingest_service import IngestService
 from src.processing.financial_parser import FinancialParser, XMLRecoveryError
@@ -112,7 +115,21 @@ class ParserRecoveryTests(unittest.TestCase):
         error = raised.exception
         self.assertGreater(error.error_count, 5)
         self.assertEqual(len(error.diagnostics), 5)
-        self.assertIn('ERR_DOCUMENT_END', error.diagnostics[-1])
+        # libxml versions differ on which error ends recovery of this malformed
+        # input. Preserve the parser's actual final diagnostic, not one platform's
+        # particular error name. Source bytes contain no literal-label repairs.
+        reference = etree.XMLParser(recover=True, encoding='utf-8', huge_tree=True)
+        try:
+            etree.parse(BytesIO(self.source.read_bytes()), reference)
+        except etree.XMLSyntaxError:
+            pass
+        reported = [entry for entry in reference.error_log if entry.level >= etree.ErrorLevels.ERROR]
+        self.assertEqual(error.error_count, len(reported))
+        final = reported[-1]
+        self.assertEqual(
+            error.diagnostics[-1],
+            f'{final.level_name}/{final.type_name} at line {final.line}, column {final.column}',
+        )
         self.assertNotIn('Original text.', str(error))
 
 
