@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "saved_reviews_read": 380,
+  "all_groups_reconciled_to_existing_final_summaries": true,
+  "regrading": false,
+  "source_reports_preserved": true,
+  "statistical_fallacy_scan_coverage": "11/11",
+  "inference": "descriptive only; no p-values or general-accuracy claims",
+  "report_sha256": "dfd4c30ddf6c73c6a6a16a7c4c5ba4f41a2867e15e44cbedf99a47c4aeb3b365"
+}

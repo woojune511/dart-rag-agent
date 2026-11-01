@@ -1,0 +1,20 @@
+{
+  "status": "ANALYZED_SINGLE_CASE",
+  "fallacy_types_checked": 11,
+  "checks": {
+    "Simpsons paradox": "Not applicable: no pooled statistical comparison.",
+    "Ecological fallacy": "No individual or population inference beyond the one saved case.",
+    "Berkson selection": "Known failing case selected purposively; no general accuracy inference.",
+    "Collider bias": "No observational causal model fitted.",
+    "Base rate neglect": "No diagnostic-rate or prevalence claim.",
+    "Regression to mean": "Deterministic replay; no stochastic answer rerun or improvement claim.",
+    "Survivorship bias": "All seven predeclared budgets reported, including failures.",
+    "Look elsewhere": "Seven declared budgets inspected; no significance or optimal-budget claim.",
+    "Forking paths": "Posthoc diagnostic disclosed; caps recorded before replay; no outcome-guided extra cap.",
+    "Correlation causation": "Only in-memory assembler cap changes, supporting this mechanical delivery effect; not semantic answer improvement.",
+    "Reverse causality": "Deterministic input parameter precedes packet assembly; no reverse-direction claim."
+  },
+  "baseline_exact_replay": true,
+  "minimum_budget_established": false,
+  "all77_or_answer_improvement_established": false
+}

@@ -2,8 +2,8 @@
 Streamlit UI — DART 공시 검색·질의응답 (experimental)
 
 탭 구성:
-  Tab 1: 기업 데이터 수집 — DART 수집 + 파싱 + 인덱싱
-  Tab 2: 질문 분석         — 자연어 질문 → 검색 → 답변 + 출처
+  Tab 1: 질문 분석         — 보고서 선택 → 검색 → 답변 + 출처·검색 상태
+  Tab 2: 기업 데이터 수집 — DART 수집 + 파싱 + 인덱싱
 
 실행:
     streamlit run app.py
@@ -12,10 +12,13 @@ Streamlit UI — DART 공시 검색·질의응답 (experimental)
 import logging
 import os
 import sys
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
+
+from src.ui.query_presentation import indexed_report_catalog, query_status_notices
 
 # src 경로 추가
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
@@ -56,11 +59,11 @@ st.caption(
 # 탭 구성
 # --------------------------------------------------------------------------
 
-tab1, tab2 = st.tabs(["📥 데이터 수집", "💬 질문 분석"])
+tab2, tab1 = st.tabs(["💬 질문 분석", "📥 데이터 수집"])
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# Tab 1: 기업 데이터 수집
+# 기업 데이터 수집
 # ══════════════════════════════════════════════════════════════════════════
 
 with tab1:
@@ -108,6 +111,7 @@ with tab1:
                     status.update(label="공시 문서를 찾을 수 없습니다.", state="error")
                     st.error(f"'{company_input}'의 {selected_years} 공시 문서를 찾을 수 없습니다.")
                 else:
+                    st.session_state.pop("query_report_catalog", None)
                     total_chunks = int(result.get("chunks_added") or 0)
                     skipped = int(result.get("reports_skipped") or 0)
                     if total_chunks == 0 and skipped > 0:
@@ -135,6 +139,7 @@ with tab1:
                     raise RuntimeError(services.readiness.reason)
                 data = vsm.vector_store.get(include=["metadatas"])
             metadatas = data.get("metadatas") or []
+            st.session_state["query_report_catalog"] = indexed_report_catalog(metadatas)
 
             if not metadatas:
                 st.info("인덱싱된 문서가 없습니다.")
@@ -165,7 +170,7 @@ with tab1:
 
 
 # ══════════════════════════════════════════════════════════════════════════
-# Tab 2: 질문 분석
+# 질문 분석
 # ══════════════════════════════════════════════════════════════════════════
 
 with tab2:
@@ -198,14 +203,64 @@ with tab2:
         question = selected_example
         st.text_area("질문", value=question, height=80, disabled=True, key="shown_question")
 
-    with st.expander("검색할 보고서 범위 (선택)"):
+    scope_mode = st.radio(
+        "검색할 보고서",
+        ["전체 보고서", "목록에서 선택", "조건 직접 입력"],
+        horizontal=True,
+        key="query_scope_mode",
+    )
+    report_scope, scope_label, scope_ready = {}, "인덱싱된 전체 보고서", True
+    if scope_mode == "목록에서 선택":
+        if st.button("보고서 목록 불러오기 / 새로고침", key="query_catalog_refresh"):
+            st.session_state.pop("query_report_catalog", None)
+            try:
+                services = load_components()
+                with services.serialized_sync_operation():
+                    if services.store is None:
+                        raise RuntimeError(services.readiness.reason)
+                    data = services.store.vector_store.get(include=["metadatas"])
+                st.session_state["query_report_catalog"] = indexed_report_catalog(data.get("metadatas") or [])
+            except Exception:
+                st.error("보고서 목록을 불러오지 못했습니다. 연결 상태를 확인한 뒤 다시 불러오세요.")
+        catalog, unidentified = st.session_state.get("query_report_catalog", ([], 0))
+        scope_ready = False
+        if catalog:
+            companies = sorted({company for row in catalog for company in row["companies"]})
+            if st.session_state.get("report_company_filter") not in [None, *companies]:
+                st.session_state["report_company_filter"] = None
+            company = st.selectbox("기업", [None, *companies],
+                                   format_func=lambda value: value or "모든 기업", key="report_company_filter")
+            visible = [row for row in catalog if company is None or company in row["companies"]]
+            years = sorted({year for row in visible for year in row["years"]}, reverse=True)
+            if st.session_state.get("report_year_filter") not in [None, *years]:
+                st.session_state["report_year_filter"] = None
+            year = st.selectbox("보고서 연도", [None, *years],
+                                format_func=lambda value: "모든 연도" if value is None else str(value),
+                                key="report_year_filter")
+            visible = [row for row in visible if year is None or year in row["years"]]
+            labels = {row["receipt"]: row["label"] for row in visible}
+            chosen = st.session_state.get("selected_reports", [])
+            if any(receipt not in labels for receipt in chosen):
+                st.session_state["selected_reports"] = [receipt for receipt in chosen if receipt in labels]
+            selected = st.multiselect("보고서 선택 (여러 개 선택 가능)", list(labels),
+                                      format_func=labels.__getitem__, key="selected_reports")
+            if selected:
+                report_scope = {"source_receipts": selected}
+                scope_label = " / ".join(labels[receipt] for receipt in selected)
+                scope_ready = True
+            else:
+                st.info("검색할 보고서를 하나 이상 선택하세요.")
+            st.caption("선택한 접수번호의 보고서에서만 검색합니다. 보고서 연도는 질문의 측정 기간과 다를 수 있습니다.")
+        elif "query_report_catalog" in st.session_state:
+            st.info("선택할 수 있는 보고서가 없습니다.")
+        else:
+            st.info("보고서 목록을 불러온 뒤 기업·연도로 좁혀 선택하세요.")
+        if unidentified:
+            st.warning(f"접수번호가 없는 자료 {unidentified}개는 보고서 목록에서 제외했습니다.")
+    elif scope_mode == "조건 직접 입력":
         scope_company = st.text_input("기업명", key="query_scope_company")
         scope_year = st.text_input("보고서 연도", key="query_scope_year", placeholder="예: 2023")
         scope_receipt = st.text_input("공시 접수번호", key="query_scope_receipt")
-        st.caption("입력한 조건을 모두 만족하는 보고서에서 검색합니다. 비워두면 해당 조건을 적용하지 않습니다.")
-
-    if st.button("🔍 분석 실행", type="primary", disabled=not question):
-        report_scope = {}
         if scope_company.strip():
             report_scope["company"] = scope_company.strip()
         if scope_receipt.strip():
@@ -215,7 +270,17 @@ with tab2:
                 report_scope["year"] = int(scope_year.strip())
             except ValueError:
                 st.error("보고서 연도는 정수로 입력하세요.")
-                st.stop()
+                scope_ready = False
+        scope_ready = scope_ready and bool(report_scope)
+        scope_label = " · ".join(f"{label}: {report_scope[key]}" for key, label in
+                                 (("company", "기업"), ("year", "보고서 연도"), ("rcept_no", "접수번호"))
+                                 if key in report_scope)
+        st.caption("입력한 조건을 모두 만족하는 보고서에서 검색합니다. 조건을 하나 이상 입력하세요.")
+    else:
+        st.caption("모든 인덱싱된 보고서에서 검색합니다. 질문 속 기업명·연도를 검색 범위로 자동 적용하지 않습니다.")
+
+    if st.button("🔍 분석 실행", type="primary", disabled=not question.strip() or not scope_ready):
+        st.session_state.pop("query_display", None)
         services = load_components()
 
         with st.spinner("근거 검색 및 답변 생성 중..."):
@@ -229,45 +294,51 @@ with tab2:
                         report_scope=report_scope or None,
                         include_review_trace=True,
                     )
-                answer_result = run_result.agent_answer
-                review_trace = run_result.review_trace or {}
-
-                col_a, col_b, col_c = st.columns(3)
-                col_a.metric("답변 상태", "근거 부족" if answer_result.get("abstained") else "답변 생성")
-                extracted_companies = answer_result.get("companies", [])
-                extracted_years     = answer_result.get("years", [])
-                col_b.metric(
-                    "검색된 기업",
-                    ", ".join(extracted_companies) if extracted_companies else "—",
-                    help="검색 근거에 기록된 기업입니다.",
-                )
-                col_c.metric(
-                    "검색된 보고서 연도",
-                    ", ".join(str(y) for y in extracted_years) if extracted_years else "—",
-                    help="검색 근거에 기록된 보고서 연도입니다. 질문의 측정 기간을 판정한 값이 아닙니다.",
-                )
-
-                st.divider()
-                st.subheader("답변")
-                st.markdown(answer_result.get("answer", "답변 없음"))
-
-                citations = answer_result.get("citations", [])
-                if citations:
-                    with st.expander(f"📚 출처 ({len(citations)}건)", expanded=False):
-                        for i, source in enumerate(answer_result.get("cited_sources", []), 1):
-                            st.markdown(f"**{i}.** {source['source_id']}")
-                            st.json(source["context"])
-                            st.text(source["text"])
-
-                retrieved_sources = review_trace.get("retrieved_sources", [])
-                if retrieved_sources:
-                    with st.expander(f"🔎 검색 근거 ({len(retrieved_sources)}개)"):
-                        for source in retrieved_sources:
-                            st.markdown(f"**{source['source_id']}**")
-                            st.json(source["context"])
-                            st.text(source["text"])
+                    st.session_state["query_display"] = deepcopy({
+                        "question": question, "scope_label": scope_label,
+                        "answer": run_result.agent_answer, "review": run_result.review_trace or {},
+                        "store_degraded": bool(getattr(services.readiness, "degraded", False)),
+                    })
 
             except Exception as e:
                 from src.utils.provider_errors import provider_error_projection
                 logging.getLogger(__name__).error("Query failed: %s", provider_error_projection(e))
                 st.error("답변 생성에 실패했습니다. 설정과 진단 기록을 확인하세요.")
+
+    if "query_display" in st.session_state:
+        display = st.session_state["query_display"]
+        answer_result, review_trace = display["answer"], display["review"]
+        st.divider()
+        st.subheader("최근 답변")
+        st.caption(f"질문: {display['question']}")
+        st.caption(f"이 답변의 검색 범위: {display['scope_label']}")
+        col_a, col_b, col_c = st.columns(3)
+        col_a.metric("답변 상태", "근거 부족" if answer_result.get("abstained") else "답변 생성")
+        col_b.metric("검색된 기업", ", ".join(answer_result.get("companies", [])) or "—",
+                     help="검색 근거에 기록된 기업입니다.")
+        col_c.metric("검색된 보고서 연도", ", ".join(str(y) for y in answer_result.get("years", [])) or "—",
+                     help="검색 근거에 기록된 보고서 연도입니다. 질문의 측정 기간을 판정한 값이 아닙니다.")
+        answer_column, status_column = st.columns([3, 2])
+        with answer_column:
+            st.markdown(answer_result.get("answer", "답변 없음"))
+            citations = answer_result.get("citations", [])
+            if citations:
+                with st.expander(f"📚 출처 ({len(citations)}건)", expanded=False):
+                    for i, source in enumerate(answer_result.get("cited_sources", []), 1):
+                        st.markdown(f"**{i}.** {source['source_id']}")
+                        st.json(source["context"])
+                        st.text(source["text"])
+            retrieved_sources = review_trace.get("retrieved_sources", [])
+            if retrieved_sources:
+                with st.expander(f"🔎 답변 입력 근거 ({len(retrieved_sources)}개)"):
+                    for source in retrieved_sources:
+                        st.markdown(f"**{source['source_id']}**")
+                        st.json(source["context"])
+                        st.text(source["text"])
+        with status_column:
+            st.markdown("**검색·근거 상태**")
+            for level, message in query_status_notices(
+                answer_result, review_trace, store_degraded=display["store_degraded"],
+            ):
+                getattr(st, level)(message)
+            st.caption("출처 ID 검사는 답변의 의미·계산·요청 항목 충족 여부를 검증하지 않습니다.")

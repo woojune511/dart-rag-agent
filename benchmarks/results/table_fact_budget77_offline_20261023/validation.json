@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "verification_status": "ANALYZED_DESCRIPTIVE_OFFLINE_COMPARISON",
+  "reproducibility_scope": "All77 64KiB packets and complete decisions exactly reproduce the saved FCT12 outputs. The160KiB Motional packet also equals the previous single-case diagnostic. No second scored77-run.",
+  "inferential_statistics": "Not used. Deterministic census of this fixed development-exposed panel, not a random sample or generated-answer test.",
+  "fallacy_scan_coverage": "11/11 checked",
+  "fallacy_scan": [
+    {"type": "Simpson paradox", "status": "CHECKED", "disposition": "Separate46 common,19 refusal and12 HOLD; report per-case changes. Never combine HOLD with correctness or refusal outcomes."},
+    {"type": "Ecological fallacy", "status": "CHECKED", "disposition": "Delivered unit events are not independent required facts or correct answers; retain case-level required-evidence judgements."},
+    {"type": "Berkson selection bias", "status": "CAUTION", "disposition": "Fixed repeatedly inspected77-case development panel; no population or unseen-report accuracy estimate."},
+    {"type": "Collider bias", "status": "CHECKED", "disposition": "All77 retained, including no-change and refusal/HOLD cases; no outcome-dependent exclusion or matching."},
+    {"type": "Base rate neglect", "status": "CHECKED", "disposition": "Report original group denominators and whole77 changes. Physical error-free checks do not estimate semantic accuracy."},
+    {"type": "Regression to mean", "status": "CHECKED", "disposition": "No stochastic answer remeasurement; deterministic paired budget intervention. Historical answer grades are not replaced."},
+    {"type": "Survivorship bias", "status": "CHECKED", "disposition": "All77 completed both caps. Budget-rejected units, original omitted documents and unresolved requirements remain visible."},
+    {"type": "Look elsewhere", "status": "CAUTION", "disposition": "160KiB was selected after a prior disclosed Motional diagnostic. This is a fixed follow-up across77, not discovery on an unseen holdout."},
+    {"type": "Garden of forking paths", "status": "CHECKED_WITH_DISCLOSURE", "disposition": "Protocol, criteria and runner frozen before this full77 execution; exactly two caps, no outcome-driven rerun or selection/schema changes. Earlier experimental history remains unchanged."},
+    {"type": "Correlation versus causation", "status": "CHECKED", "disposition": "CAP is the only changed assembler input, so serialized delivery differences are attributable to this intervention in the saved replay. This does not establish answer improvement or model reading quality."},
+    {"type": "Reverse causality", "status": "CHECKED", "disposition": "Saved input and prior constraints precede execution; no feedback from evaluation labels into assembly. No directional claim about generated answers."}
+  ],
+  "remaining_limits": [
+    "No new answers, model latency, token billing, accuracy, faithfulness or refusal measurement.",
+    "Source physical validation differs from semantic period, entity, scope and unit interpretation.",
+    "Native review workers share prior context and are not blinded or independently sampled models.",
+    "Larger context may change answer behavior even when all earlier evidence is retained.",
+    "Retained original wrong or ambiguous scalar hints are unchanged by this budget-only intervention."
+  ]
+}

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import time
 from typing import Any, Callable, Dict, List, Optional
 
 from src.processing.section_extraction import SECTION_TAGS, SectionParseTimeout
-from src.processing.source_context import ancestor_heading_contexts, bounded_source_contexts, source_fragment
+from src.processing.source_context import ancestor_heading_contexts, bounded_source_contexts, heading_scope_key, source_fragment
 
 
 def collect_blocks(
@@ -22,6 +23,7 @@ def collect_blocks(
     build_table_object: Callable[[Any], Dict[str, Any]],
     extract_standalone_table_context_hint: Callable[[Dict[str, Any]], Optional[str]],
     extract_table_unit_suffix: Callable[[Dict[str, Any]], Optional[str]],
+    is_forward_table_caption: Callable[[Dict[str, Any]], bool],
     build_table_context_bundle: Callable[..., Dict[str, Any]],
     extract_paragraph_heading_parts: Callable[..., Any],
     is_single_bracket_heading: Callable[[str], bool],
@@ -30,6 +32,7 @@ def collect_blocks(
     push_heading: Callable[[List[str], str, str], List[str]],
 ) -> List[Dict[str, Any]]:
     blocks: List[Dict[str, Any]] = []
+    source_elements: Dict[int, Any] = {}
     heading_stack: List[str] = []
     heading_sources: List[Optional[Dict[str, Any]]] = []
     section_contexts = ancestor_heading_contexts(section_elem) + [
@@ -82,6 +85,7 @@ def collect_blocks(
         block_type: str,
         local_heading_override: Optional[str] = None,
         extra_metadata: Optional[Dict[str, Any]] = None,
+        source_element: Any = None,
     ) -> None:
         normalized = normalize_text(text)
         if not normalized:
@@ -105,6 +109,7 @@ def collect_blocks(
             # Keep its enclosing scope for adjacency checks during chunking.
             block["local_heading_scope"] = soft_heading_path(heading_stack)
         blocks.append(block)
+        source_elements[id(block)] = source_element
 
     def process(elem: Any, next_tag: Optional[str] = None) -> None:
         nonlocal pending_table_heading, pending_table_heading_source, pending_table_context_hint, pending_section_label, table_counter
@@ -128,6 +133,7 @@ def collect_blocks(
                         text,
                         "table",
                         local_heading_override=pending_table_heading,
+                        source_element=table,
                         extra_metadata=build_table_context_bundle(
                             text,
                             section_path,
@@ -155,6 +161,7 @@ def collect_blocks(
                     text,
                     "table",
                     local_heading_override=pending_table_heading,
+                    source_element=elem,
                     extra_metadata=build_table_context_bundle(
                         text,
                         section_path,
@@ -244,7 +251,7 @@ def collect_blocks(
                 else:
                     if pending_section_label and not pending_table_heading:
                         pending_section_label = None
-                    emit_block(part["text"], "paragraph")
+                    emit_block(part["text"], "paragraph", source_element=elem)
             return
         child_nodes = list(elem)
         for child_idx, child in enumerate(child_nodes):
@@ -256,5 +263,52 @@ def collect_blocks(
     for idx, child in enumerate(children):
         next_tag = children[idx + 1].tag if idx + 1 < len(children) else None
         process(child, next_tag=next_tag)
+
+    for prefix, target in zip(blocks, blocks[1:]):
+        check_deadline("table-caption")
+        if (not is_forward_table_caption(prefix) or target["type"] != "table"
+                or not target.get("table_value_records_json")
+                or heading_scope_key(prefix) != heading_scope_key(target)
+                or prefix.get("local_heading_scope", prefix.get("local_heading"))
+                != target.get("local_heading_scope", target.get("local_heading"))):
+            continue
+        source, table = source_elements[id(prefix)], source_elements[id(target)]
+        if (source is None or table is None or source.getparent() is not table.getparent()
+                or (source.tail or "").strip()):
+            continue
+        # Do not turn a fragment of a mixed heading paragraph into a caption.
+        if prefix["type"] == "paragraph" and normalize_text("".join(source.itertext())) != prefix["text"]:
+            continue
+        neighbor = source.getnext()
+        while neighbor is not None and neighbor is not table:
+            if (neighbor.tail or "").strip():
+                break
+            if neighbor.tag == "PGBRK" or (neighbor.tag in {"P", "TABLE"}
+                    and not normalize_text("".join(neighbor.itertext()))):
+                neighbor = neighbor.getnext()
+                continue
+            unit_table = build_table_object(neighbor) if neighbor.tag == "TABLE" else {}
+            hint = extract_standalone_table_context_hint(unit_table)
+            unit = extract_table_unit_suffix(unit_table)
+            if not hint or not unit or normalize_text(hint.replace("|", " ")) != normalize_text(unit):
+                break
+            neighbor = neighbor.getnext()
+        if neighbor is not table:
+            continue
+        caption = source_fragment(source, "caption")
+        if caption["source_span"][1] != len("".join(source.itertext())):
+            continue
+        table_object = json.loads(target["table_object_json"])
+        existing_contexts = table_object.get("source_contexts", [])
+        contexts = bounded_source_contexts([caption, *existing_contexts])
+        context_key = lambda c: (c["source_locator"], tuple(c["source_span"]), c["source_text"])
+        retained = {context_key(c) for c in contexts}
+        if any(context_key(c) not in retained for c in existing_contexts):
+            # A caption must not evict existing physical evidence to fit a budget.
+            continue
+        prefix["table_prefix_target"] = target["table_source_id"]
+        target["table_context"] = prefix["text"]
+        table_object["source_contexts"] = contexts
+        target["table_object_json"] = json.dumps(table_object, ensure_ascii=False)
 
     return blocks

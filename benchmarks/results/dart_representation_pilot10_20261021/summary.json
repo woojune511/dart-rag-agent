@@ -1,0 +1,167 @@
+{
+  "arms": {
+    "generic": {
+      "positive_count": 16,
+      "complete_correct": 12,
+      "packet_faithful": 16,
+      "faithful_under_frozen_rule": 15,
+      "supported_complete": 11,
+      "correct_by_repeat": [
+        6,
+        6
+      ],
+      "negative_correct": 4,
+      "negative_count": 4,
+      "answer_usd": "0.2429898",
+      "corpus_embedding_usd": "0.09156563",
+      "shared_query_embedding_half_usd": "0.00006123",
+      "total_allocated_usd": "0.33461666",
+      "r1_answer_usd": "0.2136425",
+      "r2_answer_usd": "0.0293473",
+      "input_tokens": 153006,
+      "output_tokens": 4404,
+      "cached_input_tokens": 76473,
+      "cache_write_tokens": 76473,
+      "mean_answer_seconds": 6.032702754999628,
+      "median_answer_seconds": 5.594803350002621,
+      "mean_packet_chunks": 4.5,
+      "mean_proxy_tokens": 11124.1
+    },
+    "dart": {
+      "positive_count": 16,
+      "complete_correct": 12,
+      "packet_faithful": 16,
+      "faithful_under_frozen_rule": 16,
+      "supported_complete": 12,
+      "correct_by_repeat": [
+        6,
+        6
+      ],
+      "negative_correct": 4,
+      "negative_count": 4,
+      "answer_usd": "0.2580186",
+      "corpus_embedding_usd": "0.20752017",
+      "shared_query_embedding_half_usd": "0.00006123",
+      "total_allocated_usd": "0.46560000",
+      "r1_answer_usd": "0.2255475",
+      "r2_answer_usd": "0.0324711",
+      "input_tokens": 161082,
+      "output_tokens": 4857,
+      "cached_input_tokens": 80511,
+      "cache_write_tokens": 80511,
+      "mean_answer_seconds": 6.553189124999335,
+      "median_answer_seconds": 6.132351699998253,
+      "mean_packet_chunks": 9.6,
+      "mean_proxy_tokens": 10701.4
+    }
+  },
+  "paired_questions": [
+    {
+      "id": "01_income",
+      "company": "농심",
+      "generic": [
+        true,
+        true
+      ],
+      "dart": [
+        true,
+        true
+      ],
+      "repeat_consistent": true
+    },
+    {
+      "id": "01_inventory",
+      "company": "농심",
+      "generic": [
+        true,
+        true
+      ],
+      "dart": [
+        true,
+        true
+      ],
+      "repeat_consistent": true
+    },
+    {
+      "id": "01_capex",
+      "company": "농심",
+      "generic": [
+        false,
+        false
+      ],
+      "dart": [
+        false,
+        false
+      ],
+      "repeat_consistent": true
+    },
+    {
+      "id": "01_business",
+      "company": "농심",
+      "generic": [
+        true,
+        true
+      ],
+      "dart": [
+        true,
+        true
+      ],
+      "repeat_consistent": true
+    },
+    {
+      "id": "02_income",
+      "company": "삼성전기",
+      "generic": [
+        true,
+        true
+      ],
+      "dart": [
+        true,
+        true
+      ],
+      "repeat_consistent": true
+    },
+    {
+      "id": "02_inventory",
+      "company": "삼성전기",
+      "generic": [
+        false,
+        false
+      ],
+      "dart": [
+        true,
+        true
+      ],
+      "repeat_consistent": true
+    },
+    {
+      "id": "02_capex",
+      "company": "삼성전기",
+      "generic": [
+        true,
+        true
+      ],
+      "dart": [
+        false,
+        false
+      ],
+      "repeat_consistent": true
+    },
+    {
+      "id": "02_business",
+      "company": "삼성전기",
+      "generic": [
+        true,
+        true
+      ],
+      "dart": [
+        true,
+        true
+      ],
+      "repeat_consistent": true
+    }
+  ],
+  "total_usd": "0.80021666",
+  "judgement_file_sha256": "462d8e94209c7cd97e99173214d68ed9026fbe159b4c3ba1ec5d1394f9b53414",
+  "interpretation": "No aggregate answer accuracy gain; stable one-question gain and one regression. Citation context issue in one generic repeat, not unsupported packet content."
+}

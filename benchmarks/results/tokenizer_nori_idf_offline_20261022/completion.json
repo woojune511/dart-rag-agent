@@ -1,0 +1,34 @@
+{
+  "status": "COMPLETE_OFFLINE_REVIEW",
+  "verification_status": "UNVERIFIED",
+  "decision": "DO_NOT_ADOPT_ALL_THREE_VARIANTS",
+  "cases": 77,
+  "conditions": [
+    "A12",
+    "L12",
+    "N12",
+    "NL12"
+  ],
+  "scored_runs": 1,
+  "scored_run_retries": 0,
+  "model_api_calls": 0,
+  "model_cost_usd": 0,
+  "answers_generated": 0,
+  "runtime_changes": false,
+  "app_restarted": false,
+  "frozen_panel": {
+    "answerable_cases": 10,
+    "required_units": 26,
+    "packet_hits": {
+      "A12": 24,
+      "L12": 24,
+      "N12": 20,
+      "NL12": 21
+    },
+    "new_units_recovered": 0
+  },
+  "review_scope": "All common_answerable historical-citation-loss case/arm pairs plus frozen-panel losses; no full77 answer grading",
+  "raw_execution_result_retained": true,
+  "detailed_report": "report.md",
+  "validation_receipt": "final_validation.json"
+}

@@ -1,0 +1,140 @@
+{
+  "status": "PASS",
+  "review_scope": "Independent offline review of the prepared conditions, cost arithmetic and execution boundary; not approval or validation of a live runner.",
+  "reviewed_at": "2026-10-23T14:16:11.150146+00:00",
+  "requested_model_identity_attested": false,
+  "inputs": {
+    "protocol.json": "c0b699829612dc1c1f4dc57925cb7c42c40280fe7f8a89950b1022d9b79b483d",
+    "pricing.json": "15ead246db57dd114800609f0a58cd10d13ea6fe8df3b6d9112e2a1dfa631dbd",
+    "embedding_plan.json": "cce284e094d0c36cc2950ae518830fd6ad601cf5e5c8c283e4c9b39eff0fefa8",
+    "projection.json": "76c95d4f3bf73bc170286496aa94b15dd4053496834876c8e1c37d7c69ad1184"
+  },
+  "reference_protocol": "benchmarks/results/table_fact_answer_full77_20261023/protocol.json",
+  "findings": [],
+  "checks": [
+    {
+      "id": "P1",
+      "status": "PASS",
+      "claim": "A64 and C160 preserve actual A-delivered membership, source IDs, text, context, order, question and caller scope.",
+      "evidence": [
+        "protocol.json delivery.A, delivery.C and delivery.no_refill",
+        "src/agent/simple_rag.py:95-137 constructs whole-source A packet and skips over-budget sources.",
+        "benchmarks/results/table_fact_units_offline_20261023/run.py:162-223 deep-copies A, iterates only A documents, and asserts all original fields, source order and packet-level fields are unchanged."
+      ],
+      "limit": "C adds physical table facts and verified source context from saved metadata; equality of original fields is not equality of total evidence. The protocol correctly identifies a combined representation plus context-budget intervention."
+    },
+    {
+      "id": "P2",
+      "status": "PASS",
+      "claim": "Dense16/BM25<=24/RRF60 top12 is frozen correctly without accidentally widening retrieval.",
+      "evidence": [
+        "src/storage/vector_store.py:1018-1022 requests dense k*2.",
+        "src/storage/vector_store.py:1065-1077 passes k to BM25 then RRF.",
+        "src/storage/bm25_index.py:75-88 takes stable eligible top k*3 and omits nonpositive scores.",
+        "src/storage/search_merge.py:49-69 gives equal rank weights, constant k_rrf, stable Dense-first insertion order and requested final k.",
+        "protocol.json explicitly requires search(k=8), captures both complete candidate lists and reruns unchanged merge_rrf_results with k=12, k_rrf=60."
+      ],
+      "limit": "The new three-report corpus changes IDF and vector neighborhoods relative to full77. This is disclosed, and both arms share one retrieval result per question."
+    },
+    {
+      "id": "P3",
+      "status": "PASS",
+      "claim": "Fixed generation body equals the prior full77 protocol exactly, except for substituting each packet.",
+      "evidence": [
+        "Python dictionary equality for fixed_generation returned true."
+      ],
+      "details": {
+        "model": "gpt-6.1-sol",
+        "reasoning_effort": "low",
+        "max_output_tokens": 8192,
+        "service_tier": "default",
+        "store": false,
+        "stream": false,
+        "schema": "strict RagAnswer"
+      },
+      "limit": "Requested model string is configuration, not proof of returned model identity or backend implementation."
+    },
+    {
+      "id": "P4",
+      "status": "PASS",
+      "claim": "105 is the complete planned maximum attempt count: 15 document embedding + 18 query embedding + 72 answer requests.",
+      "details": {
+        "corpus_chunks": 3768,
+        "unique_embedding_inputs": 3734,
+        "unique_embedding_tokens": 2726886,
+        "embedding_batches": 15,
+        "max_batch_inputs_observed": 256,
+        "max_batch_tokens_observed": 217360,
+        "planned_answers": "18 questions * 2 arms * 2 repetitions = 72",
+        "max_query_utf8_bytes_plus_32_observed": 242
+      },
+      "evidence": [
+        "embedding_plan.json summary and batch aggregate counts",
+        "projection.json summary",
+        "protocol.json budget"
+      ],
+      "limit": "No retries/probes/judge calls are included. Any wrapper retry, initialization probe, fallback embedding or resumed request would violate the plan unless separately authorized. Completion is not promised if a stop condition fires."
+    },
+    {
+      "id": "P5",
+      "status": "PASS",
+      "claim": "The conservative reservation arithmetic is correct under the supplied tariff and byte-to-input-token admission assumptions.",
+      "details": {
+        "answer_reservation_usd": "35.38944",
+        "document_embedding_reservation_usd": "0.37002862",
+        "query_embedding_reservation_usd": "0.00239616",
+        "total_usd": "35.76186478",
+        "cap_usd": "36.00",
+        "headroom_usd": "0.23813522",
+        "formula_answers": "36 * ((98304 + 229376) * 2.5 / 1000000 + 2 * 8192 * 10 / 1000000)",
+        "formula_doc_embeddings": "(2726886 + 32 * 3734) * 0.13 / 1000000",
+        "formula_query_embeddings": "18 * 1024 * 0.13 / 1000000"
+      },
+      "limit": "Tariffs were not independently refetched in this offline review. The cap depends on the bounded runner enforcing full-body UTF-8-byte-plus-4096 input reservations, 8192 output limit, standard endpoint/tiers and no extra requests. Unexpected/missing usage must retain the full reservation and stop, as specified."
+    },
+    {
+      "id": "P6",
+      "status": "PASS",
+      "claim": "The $3-$6 expected range is explicitly an estimate, not a cap or confidence interval.",
+      "details": {
+        "prior_realized_cost_scaled_usd": "2.323197350649350649350649351",
+        "all_cache_write_cost_scaled_usd": "3.500934545454545454545454545",
+        "fresh_document_embedding_estimate_usd": "0.35449518",
+        "historical_scale": "18 / 77; both historical arms already include two repetitions"
+      },
+      "evidence": [
+        "Recomputed from generation_performance.json aggregate token/cost fields only; no historical answers were inspected."
+      ],
+      "limit": "The expected range assumes new packets and responses are broadly similar to historical mean sizes. Realized caching, new table sizes and answer length may move cost outside the range; the independent $36 admission cap is what constrains execution."
+    },
+    {
+      "id": "P7",
+      "status": "PASS",
+      "claim": "Preparation and execution are clearly separated.",
+      "evidence": [
+        "protocol.json status=PREPARED_NOT_EXECUTED and execution_gate",
+        "projection.json records 0 model API calls, 0 embedding API calls, 0 store writes"
+      ],
+      "limit": "This review verifies artifacts and declared boundaries, not external provider/account activity. No bounded live runner exists in the reviewed preparation; implementation and provider-free guard validation are explicitly deferred until execution authorization."
+    },
+    {
+      "id": "P8",
+      "status": "PASS",
+      "claim": "Interpretation and scoring limits are adequate for the proposed small transfer screen.",
+      "evidence": [
+        "Protocol separates 15 answerable questions from 3 refusal cases; repeats are not counted as independent questions; only 3 report clusters; format and byte-budget effects are not separately identified; criteria freeze precedes retrieval; masked review limitations are disclosed."
+      ],
+      "limit": "This is assistant-authored source-grounded usage-scenario evaluation. It is not real user logs, independent human gold, full blinding, general-population accuracy or a statistical significance test."
+    }
+  ],
+  "required_execution_gates": [
+    "After authorization, seal and hash all question/gold/corpus/price/protocol/projector dependencies; verify hashes before spending. No gold changes based on arm performance.",
+    "Use the new execution/store only, build BM25 in the frozen original corpus order, and retain all original UIDs despite exact embedding-input deduplication.",
+    "Implement an experiment-only candidate observer with a provider-free test proving search(k=8) captures complete Dense16 and BM25<=24 once, then yields top12 without a second query embedding.",
+    "Construct A from the frozen top12 using current whole-source omission behavior; construct C from the exact actual A packet. Assert packet/text/context/source-ID/order preservation and both byte limits before any answer request.",
+    "Do not directly import the historical run.py into a live process without isolating its module-level offline socket deny patch at lines 30-34. Reuse only the validated pure assembly behavior in the authorized execution harness, with CAP explicitly 163840 and parity tests. This is an implementation concern, not a permission to mutate runtime files.",
+    "Disable SDK/client retries and implicit model/dimension probes. Use durable pre-dispatch attempt/cost reservations, monotonic wall deadline and bounded request timeouts; preserve uncertain billed liability and stop on the first transport/provider/model/dimension/usage/integrity error.",
+    "Fail admission rather than truncating or changing an over-limit packet. Count malformed/incomplete/invalid-citation answers as failures without regeneration. If a stop fires early, report an incomplete run rather than a completed 72-answer comparison."
+  ],
+  "actions_performed": "Read-only artifact/source review and Decimal arithmetic; wrote only review_protocol.json. No model/API/embedding calls, downloads, active store/.env reads, runtime changes, or git actions."
+}

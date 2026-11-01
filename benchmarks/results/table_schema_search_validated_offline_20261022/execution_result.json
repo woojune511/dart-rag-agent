@@ -1,0 +1,22 @@
+{
+  "status": "COMPLETE_NOT_ADOPTED",
+  "origin_skill": "experiment-agent",
+  "mode": "run",
+  "verification_status": "PARTIAL: local retrieval/provenance and bounded source review verified; answer quality and generalization untested",
+  "api_calls": 0,
+  "model_cost_usd": 0,
+  "answers_generated": 0,
+  "cases": 77,
+  "elapsed_seconds": 90.91,
+  "preservation": {
+    "protected_files": 1568,
+    "changed": [],
+    "unchanged": true
+  },
+  "focused_tests_passed": 10,
+  "focused_tests_failed": 0,
+  "command": ".venv\\Scripts\\python.exe -B -X utf8 benchmarks/results/table_schema_search_validated_offline_20261022/run.py run",
+  "exit_code": 0,
+  "valid_completed_policy_runs": 1,
+  "invalidated_prior_run": "benchmarks/results/table_schema_search_offline_20261022/validity.json"
+}

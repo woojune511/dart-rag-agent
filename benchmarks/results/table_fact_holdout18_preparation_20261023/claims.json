@@ -1,0 +1,40 @@
+{
+  "steps": [
+    {
+      "step": "kia_source_authored_six_questions",
+      "status": "passed"
+    },
+    {
+      "step": "sds_source_authored_six_questions",
+      "status": "passed"
+    },
+    {
+      "step": "amore_source_authored_six_questions",
+      "status": "passed"
+    },
+    {
+      "step": "public_source_acquisition",
+      "status": "passed"
+    },
+    {
+      "step": "offline_v12_input_and_cost_plan",
+      "status": "passed"
+    },
+    {
+      "step": "prior_record_exposure_audit",
+      "status": "passed"
+    },
+    {
+      "step": "source_gold_cross_review_resolved",
+      "status": "passed"
+    },
+    {
+      "step": "protocol_and_budget_review",
+      "status": "passed"
+    },
+    {
+      "step": "preparation_seal_and_preservation",
+      "status": "passed"
+    }
+  ]
+}

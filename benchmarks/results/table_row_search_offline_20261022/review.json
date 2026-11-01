@@ -1,0 +1,1876 @@
+{
+  "status": "COMPLETE_NOT_ADOPTED",
+  "decision": "현재 원본+행 BM25 혼합 인덱스는 채택하지 않음. 일부 행 복구 가능성은 관측했으나 후보 누락과 근거 회귀가 남았고 답변 개선은 측정하지 않음.",
+  "method": "Frozen single offline comparison, no reranking/retrieval rerun during review. Source review by the same assistant, unblinded and development-exposed.",
+  "comparison": {
+    "cases": 77,
+    "baseline_bm25_parity": {
+      "cases": 77,
+      "bm25_ranks_equal": true,
+      "max_score_error": 0.0
+    },
+    "original_rrf_top8_and_saved_packet_parity": "77/77 asserted in completed runner",
+    "corpus_chunks": 16051,
+    "row_views": 63367,
+    "augmented_index_items": 79418,
+    "dense": "saved Dense16 unchanged",
+    "fusion": "equal RRF60 unchanged",
+    "final_k": 8,
+    "packet_byte_limit": 65536,
+    "api_calls": 0,
+    "model_cost_usd": 0,
+    "answers_generated": 0
+  },
+  "confirmed_findings": [
+    "Existing table objects can yield source-linked row search views without a new parser or model call.",
+    "Motional alternative investment row and Hyundai cost table are promoted with a row view winning the parent's BM25 score.",
+    "Hyundai US sales paragraph also enters final8, but its original full-chunk view wins: this gain cannot be attributed to row shortening alone.",
+    "SK Hynix asset rows have views but still miss the candidate lists; good table structure is not sufficient for lexical relevance.",
+    "NAVER commerce numeric evidence and KB's explicit cause-of-provision-increase sentence leave final8.",
+    "Whole-table metadata is inherited by many split chunks; rows absent from the actual parent body must not be indexed as if the parent contains them."
+  ],
+  "causal_limits_and_hypotheses": [
+    "Adding rows changes BM25 document frequency and average length. The observed difference includes those effects; it is not an isolated wording-only effect.",
+    "Many similar rows and alternative periods/scopes may compete for the same eight parent slots. This experiment does not isolate each causal contribution.",
+    "Separate row search may still be useful as a candidate source, but safe fusion/coverage under the same budget remains unproven. No additional policy or tuning was attempted."
+  ],
+  "row_admission": {
+    "counts": {
+      "chunks_without_table_object": 1884,
+      "chunks_with_table_object": 14167,
+      "row_record_occurrences": 392408,
+      "admitted_row_occurrences": 63428,
+      "row_not_visible_in_parent": 328528,
+      "column_projection_excluded_chunks": 1030,
+      "row_not_unique_in_parent": 441,
+      "oversized_view_excluded": 11
+    },
+    "unique_rows": 63367,
+    "parent_chunks_with_rows": 7270,
+    "corpus_chunks": 16051
+  },
+  "row_admission_note": "row_not_visible_in_parent counts repeated inherited metadata record occurrences, not unique lost rows. Projected wide-column chunks were excluded instead of guessing index remapping.",
+  "target_diagnostics": [
+    {
+      "case_id": "NAV_T3_007",
+      "evidence": "연결 영업권 총액과 손상",
+      "uid": "20240318000844:353:229",
+      "ranks": {
+        "dense": 6,
+        "baseline_bm25": null,
+        "row_bm25": null,
+        "A_rrf_union": 11,
+        "B_rrf_union": 11
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": null
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "evidence": "실제 현금 배당 지급액",
+      "uid": "20240312000736:127:6",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": 7,
+        "row_bm25": 10,
+        "A_rrf_union": 10,
+        "B_rrf_union": 14
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": {
+        "uid": "20240312000736:127:6",
+        "score": 50.52729133545658,
+        "winning_view_index": 127,
+        "view_type": "original_chunk"
+      }
+    },
+    {
+      "case_id": "POS_T1_057",
+      "evidence": "연결 영업이익",
+      "uid": "20240322000986:1186:24",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": 18,
+        "row_bm25": 24,
+        "A_rrf_union": 28,
+        "B_rrf_union": 32
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": {
+        "uid": "20240322000986:1186:24",
+        "score": 19.076162173680235,
+        "winning_view_index": 11478,
+        "view_type": "original_chunk"
+      }
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "evidence": "연결 유형·무형자산",
+      "uid": "20240319000684:123:0",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": null,
+        "row_bm25": null,
+        "A_rrf_union": null,
+        "B_rrf_union": null
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": null
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "evidence": "Motional 지분율·장부금액",
+      "uid": "20240313001451:275:133",
+      "ranks": {
+        "dense": 15,
+        "baseline_bm25": null,
+        "row_bm25": null,
+        "A_rrf_union": 27,
+        "B_rrf_union": 26
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": null
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "evidence": "Motional 요약 손익",
+      "uid": "20240313001451:285:143",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": null,
+        "row_bm25": null,
+        "A_rrf_union": null,
+        "B_rrf_union": null
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": null
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "evidence": "배터리 손실과 통화 단위",
+      "uid": "20240320000950:882:499",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": 9,
+        "row_bm25": 10,
+        "A_rrf_union": 15,
+        "B_rrf_union": 18
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": {
+        "uid": "20240320000950:882:499",
+        "score": 37.79151481465334,
+        "winning_view_index": 47539,
+        "view_type": "table_row",
+        "physical_row_id": "20240320000950|III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:451|10:1",
+        "row_label": "기타영업수익"
+      }
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "evidence": "재고 평가손실·환입·폐기손실",
+      "uid": "20240318000913:517:357",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": 5,
+        "row_bm25": 8,
+        "A_rrf_union": 11,
+        "B_rrf_union": 16
+      },
+      "in_packet": {
+        "A": false,
+        "B": false
+      },
+      "treatment_winner": {
+        "uid": "20240318000913:517:357",
+        "score": 111.63410633568364,
+        "winning_view_index": 38234,
+        "view_type": "table_row",
+        "physical_row_id": "20240318000913|III. 재무에 관한 사항 > 3. 연결재무제표 주석::table:355|50:4",
+        "row_label": "재고자산평가손실환입"
+      }
+    },
+    {
+      "case_id": "MIX_T1_064",
+      "evidence": "연결 매출액·매출원가",
+      "uid": "20240313001451:1047:3",
+      "ranks": {
+        "dense": 8,
+        "baseline_bm25": 16,
+        "row_bm25": 11,
+        "A_rrf_union": 10,
+        "B_rrf_union": 7
+      },
+      "in_packet": {
+        "A": false,
+        "B": true
+      },
+      "treatment_winner": {
+        "uid": "20240313001451:1047:3",
+        "score": 50.869479125221694,
+        "winning_view_index": 26916,
+        "view_type": "table_row",
+        "physical_row_id": "20240313001451|IV. 이사의 경영진단 및 분석의견::table:2|9:1",
+        "row_label": "매출원가"
+      }
+    }
+  ],
+  "additional_recovery": [
+    {
+      "case_id": "HYU_T2_010",
+      "uid": "20240313001451:96:5",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": 7,
+        "row_bm25": 5,
+        "A_rrf_union": 11,
+        "B_rrf_union": 8
+      },
+      "in_packet": {
+        "A": false,
+        "B": true
+      },
+      "treatment_winner": {
+        "uid": "20240313001451:96:5",
+        "score": 44.329812857715936,
+        "winning_view_index": 1171,
+        "view_type": "original_chunk"
+      }
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "uid": "20240313001451:1251:9",
+      "ranks": {
+        "dense": null,
+        "baseline_bm25": 12,
+        "row_bm25": 1,
+        "A_rrf_union": 22,
+        "B_rrf_union": 7
+      },
+      "in_packet": {
+        "A": false,
+        "B": true
+      },
+      "treatment_winner": {
+        "uid": "20240313001451:1251:9",
+        "score": 39.303034034208416,
+        "winning_view_index": 28204,
+        "view_type": "table_row",
+        "physical_row_id": "20240313001451|XII. 상세표 > 3. 타법인출자 현황(상세)::table:3|225:140",
+        "row_label": "경영참여"
+      },
+      "finding": "ALTERNATIVE_INVESTMENT_TABLE_ROW_RECOVERED_NOT_FULL_CONSOLIDATED_NOTE",
+      "note": "원래 분석에도 기록되어 있던 타법인출자 표의 Motional 행이 22위에서 7위로 복구. 기말 지분율 25.81%, 장부금액 1,294,367, 최근사업연도 당기순손익 -803,742가 있다. 기간/백만원·주·% 표제 청크 1243:1도 A/B에 존재한다. 연결 주석의 26%/700,691 및 영업수익·기타포괄손익 등 전체 요약 손익과는 범위가 다르므로 이를 합치거나 기존 정답 전체 복구로 판정하지 않는다.",
+      "evidence": [
+        {
+          "arm": "B",
+          "uid": "20240313001451:1251:9",
+          "quote": "Motional | 비상장 | 2020.03.01 | 경영참여 | 1,267,859 | 104,000,100 | 25.92 | 1,294,367 | - | - | - | 104,000,100 | 25.81 | 1,294,367 | 3,150,225 | -803,742",
+          "offset": 1930,
+          "text_sha256": "0e8b0e624a79b10447e07404e734e656e73156a9cd68532c48a136ffb2e1e516"
+        },
+        {
+          "arm": "B",
+          "uid": "20240313001451:1243:1",
+          "quote": "(기준일 : | 2023년 12월 31일 | ) | (단위 : 백만원, 주, %)",
+          "offset": 340,
+          "text_sha256": "66a43aa39492c26704dde184eaf0ebb4a39b60273a0e77b109b5e5277c64e25a"
+        }
+      ]
+    }
+  ],
+  "fixed_evidence_panel": {
+    "answerable_cases": 10,
+    "required_units": 26,
+    "refusal_controls_not_semantically_scored": 2,
+    "counts": {
+      "A": {
+        "full_cases": 4,
+        "full_units": 14
+      },
+      "B": {
+        "full_cases": 5,
+        "full_units": 17
+      }
+    },
+    "rows": [
+      {
+        "case_id": "NAV_T3_007",
+        "role": "target",
+        "units": [
+          {
+            "unit_id": "goodwill_end",
+            "criterion": "2023 연결 영업권 기말 총액과 천원 단위",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          },
+          {
+            "unit_id": "impairment",
+            "criterion": "2023 영업권 손상 발생 및 해당 열의 손상/환입, 다른 무형자산과 구별",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": false,
+          "B": false
+        },
+        "review_note": "원문 연결 영업권 총액 및 영업권 열의 손상 값이 A/B 모두 없음. 반올림 손상 언급만으로 요청한 주석 전체를 충족하지 않음."
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "role": "target",
+        "units": [
+          {
+            "unit_id": "cash_dividend",
+            "criterion": "연결 현금흐름의 실제 지급액 9,864,474백만원 또는 동등한 반올림 표시; 선언배당과 구별",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          },
+          {
+            "unit_id": "return_policy",
+            "criterion": "2024~2026 기간, FCF 50%, 연간 9.8조원 정규배당, 잔여재원 추가 환원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240312000736:590:0"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240312000736:590:0"
+                ]
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": false,
+          "B": false
+        },
+        "review_note": "실제 현금 배당 지급액은 A/B 모두 누락. 2024~2026 환원 정책 근거는 유지."
+      },
+      {
+        "case_id": "HYU_T2_010",
+        "role": "target",
+        "units": [
+          {
+            "unit_id": "sales_current",
+            "criterion": "현대차의 2023 미국 판매 87.0만 대; 전체 미국시장과 구별",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:96:5"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "sales_prior",
+            "criterion": "동일 현대차 미국 판매의 2022 비교값 78.1만 대; 증가율 계산 근거",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:96:5"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "protectionism",
+            "criterion": "IRA 등 보호무역주의에 적극 대응할 필요; 2022 판매 원인을 2023에 귀속하지 않음",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:1058:14"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:1058:14"
+                ]
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": false,
+          "B": true
+        },
+        "review_note": "B가 현대차 2023 미국 판매 87.0만 대와 2022 78.1만 대를 복구. IRA 대응 근거 유지. 승리 검색 표현은 원래 문단이므로 행 표현 자체의 단독 이득으로 해석하지 않음."
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "role": "target",
+        "units": [
+          {
+            "unit_id": "ppe",
+            "criterion": "2023 연결 유형자산 52,704,853백만원",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          },
+          {
+            "unit_id": "intangible",
+            "criterion": "2023 연결 무형자산 3,834,567백만원",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          },
+          {
+            "unit_id": "borrowings",
+            "criterion": "명시 세 항목 합계 23,757,090백만원 또는 유동성대체 포함 총액 29,468,632백만원을 범위 설명과 함께 허용; 자산 분모 일치",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240319000684:277:148"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240319000684:277:148"
+                ]
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": false,
+          "B": false
+        },
+        "review_note": "차입금 표는 유지되나 연결 유형자산/무형자산은 두 문맥 모두 누락. 해당 자산 행 검색 표현은 생성되었지만 후보에 오르지 못함."
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "role": "target",
+        "units": [
+          {
+            "unit_id": "inventory_loss",
+            "criterion": "2023 평가손실 2,526,280천원, 순환입과 구별",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          },
+          {
+            "unit_id": "inventory_reversal",
+            "criterion": "2023 평가손실환입 48,885,812천원, 환입 부호/의미 보존",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          },
+          {
+            "unit_id": "inventory_disposal",
+            "criterion": "2023 폐기손실 25,163,510천원",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": false,
+          "B": false
+        },
+        "review_note": "평가손실, 환입, 폐기손실의 각각의 금액은 A/B 모두 누락. 순환입만으로 gross 항목을 대체하지 않음."
+      },
+      {
+        "case_id": "MIX_T1_064",
+        "role": "target",
+        "units": [
+          {
+            "unit_id": "cost_of_sales",
+            "criterion": "2023 연결 매출원가 129,179,183백만원",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:1047:3"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "selling_admin",
+            "criterion": "2023 연결 판매비와관리비 18,357,495백만원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:408:266"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:408:266"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "revenue",
+            "criterion": "동일 연결 전체 매출액 162,663,579백만원, 합산비용과 비율 계산 가능",
+            "packet": {
+              "A": {
+                "full": false,
+                "witness_uids": []
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240313001451:1047:3"
+                ]
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": false,
+          "B": true
+        },
+        "review_note": "B에 연결 매출액과 원가가 있는 MD&A 표가 들어옴. 판매비와관리비는 기존 주석에 유지. 단위와 연결 범위는 실제 표/문맥에 있음."
+      },
+      {
+        "case_id": "KBF_T2_043",
+        "role": "reader_control",
+        "units": [
+          {
+            "unit_id": "fee_current",
+            "criterion": "2023 그룹 순수수료손익 3,673,524백만원; 반올림 원문도 허용",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:1846:5"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:1846:5"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "fee_prior",
+            "criterion": "동일 기준 2022 비교값 3,514,902백만원; 실제 표시정밀도로 계산",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:1846:5"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:1846:5"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "wm_group",
+            "criterion": "그룹 AUM 약 1216.7조원, 전년대비 70.0조원/6.1% 증가 및 원문상 자산 성장; 특정 자회사만으로 그룹 요구 대체하지 않음",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:1845:4"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:1845:4"
+                ]
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": true,
+          "B": true
+        },
+        "review_note": "그룹 순수수료이익 전년 비교와 그룹 WM/AUM 설명 모두 같은 근거로 유지. 수수료 원문 반올림 표시는 기존 기준에 따라 허용."
+      },
+      {
+        "case_id": "KBF_T2_018",
+        "role": "success_control",
+        "units": [
+          {
+            "unit_id": "provision_current",
+            "criterion": "2023 연결 신용손실충당금전입액 3,146,409백만원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:625:2"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:625:2"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "provision_prior",
+            "criterion": "동일 2022 비교값 1,847,775백만원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:625:2"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:625:2"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "risk_cause",
+            "criterion": "미래경기 불확실성에 대비한 보수적 적립; worse/crisis 설명은 지원되는 보충 근거",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240326000894:1846:5"
+                ]
+              },
+              "B": {
+                "full": false,
+                "witness_uids": []
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": true,
+          "B": false
+        },
+        "review_note": "전입액 두 연도 값은 유지. B는 보수적 적립의 언급과 일반 신용위험 측정 설명을 보유하지만, 미래경기 불확실성에 대비하여 전입액이 늘었다는 직접 연결은 사라짐. risk_cause는 부분 근거만 남아 full 아님."
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "role": "success_control",
+        "units": [
+          {
+            "unit_id": "revenue",
+            "criterion": "2023 연결 매출액 258,935,494백만원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240312000736:123:2"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240312000736:123:2"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "operating_income",
+            "criterion": "동일 연결 영업이익 6,566,976백만원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240312000736:123:2"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240312000736:123:2"
+                ]
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": true,
+          "B": true
+        },
+        "review_note": "현재 연결 매출액/영업이익 표 유지."
+      },
+      {
+        "case_id": "CEL_T1_013",
+        "role": "success_control",
+        "units": [
+          {
+            "unit_id": "rd_total",
+            "criterion": "2023 연결 전체 연구개발비용 342,736,271천원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240318000913:101:42"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240318000913:101:42"
+                ]
+              }
+            }
+          },
+          {
+            "unit_id": "rd_capitalized",
+            "criterion": "동일 기간 개발비 무형자산 181,624,107천원",
+            "packet": {
+              "A": {
+                "full": true,
+                "witness_uids": [
+                  "20240318000913:101:42"
+                ]
+              },
+              "B": {
+                "full": true,
+                "witness_uids": [
+                  "20240318000913:101:42"
+                ]
+              }
+            }
+          }
+        ],
+        "full_packet_coverage": {
+          "A": true,
+          "B": true
+        },
+        "review_note": "동일 연결 기간/천원 단위의 연구개발비 총액과 자본화 금액 유지."
+      },
+      {
+        "case_id": "KAK_T3_076",
+        "role": "refusal_control",
+        "units": [],
+        "full_packet_coverage": {
+          "A": null,
+          "B": null
+        },
+        "review_note": "거절 문항은 검색 목록 변화만 확인. 답변을 생성하지 않아 거절 정확도/비조작은 미평가."
+      },
+      {
+        "case_id": "SAM_T4_070",
+        "role": "refusal_control",
+        "units": [],
+        "full_packet_coverage": {
+          "A": null,
+          "B": null
+        },
+        "review_note": "거절 문항은 검색 목록 변화만 확인. 답변을 생성하지 않아 거절 정확도/비조작은 미평가."
+      }
+    ],
+    "scope": "These source-coverage counts are for the pre-existing focused panel, not overall77 accuracy. One partial-cause regression and two full-coverage restorations. No answer/refusal behavior tested."
+  },
+  "historical_pass_citation_review": {
+    "historical_pass_cases": 30,
+    "cases_losing_a_cited_source": 4,
+    "source_review": [
+      {
+        "case_id": "NAV_T2_006",
+        "finding": "CONFIRMED_REQUIRED_NUMERIC_EVIDENCE_LOSS",
+        "note": "커머스 매출 2023/2022 및 41.4% 성장 표가 RRF 6위에서 9위로 밀림. B에는 산업 시장 규모 표와 Poshmark 개별 취득 효과가 남지만 NAVER 커머스 전체 비교값을 대체하지 못함.",
+        "evidence": [
+          {
+            "arm": "A",
+            "uid": "20240318000844:1559:7",
+            "quote": "커머스 | 2,546.6 | 1,801.1 | 41.4% | 26.4%",
+            "offset": 274,
+            "text_sha256": "54bbe8af5cfc99853cade11b71a2da6cb4b7c0b315545ee1eeb5520b39750b36"
+          }
+        ],
+        "source": {
+          "case_id": "NAV_T2_006",
+          "uid": "20240318000844:1559:7",
+          "ranks": {
+            "dense": 13,
+            "baseline_bm25": 4,
+            "row_bm25": 21,
+            "A_rrf_union": 6,
+            "B_rrf_union": 9
+          },
+          "in_packet": {
+            "A": true,
+            "B": false
+          },
+          "treatment_winner": {
+            "uid": "20240318000844:1559:7",
+            "score": 38.88065947996004,
+            "winning_view_index": 4939,
+            "view_type": "original_chunk"
+          }
+        }
+      },
+      {
+        "case_id": "KBF_T2_018",
+        "finding": "CONFIRMED_DIRECT_CAUSAL_LINK_LOSS_PARTIAL_TOPIC_RETAINED",
+        "note": "금액은 유지. 보수적 충당금 적립 언급은 B에도 있으나, 증가 원인을 미래경기 불확실성과 직접 연결한 문장이 빠짐. 질문 전체가 불가능하거나 금액까지 누락됐다는 뜻은 아님.",
+        "evidence": [
+          {
+            "arm": "A",
+            "uid": "20240326000894:1846:5",
+            "quote": "신용손실충당금전입액은 미래경기 불확실성에 대비한 보수적인 충당금적립으로",
+            "offset": 605,
+            "text_sha256": "6ee672a88816aa1f461471dadef6e9ac87f364ebc8124c233ad70623ee292751"
+          },
+          {
+            "arm": "B",
+            "uid": "20240326000894:1842:1",
+            "quote": "보수적인 충당금 적립에도 불구하고",
+            "offset": 637,
+            "text_sha256": "d1b738953d39cf45e65871e1da6f1040460e227485abf15b0cedf27c38e06d0e"
+          }
+        ],
+        "source": {
+          "case_id": "KBF_T2_018",
+          "uid": "20240326000894:1846:5",
+          "ranks": {
+            "dense": null,
+            "baseline_bm25": 4,
+            "row_bm25": 5,
+            "A_rrf_union": 8,
+            "B_rrf_union": 10
+          },
+          "in_packet": {
+            "A": true,
+            "B": false
+          },
+          "treatment_winner": {
+            "uid": "20240326000894:1846:5",
+            "score": 70.63533960956093,
+            "winning_view_index": 70368,
+            "view_type": "table_row",
+            "physical_row_id": "20240326000894|IV. 이사의 경영진단 및 분석의견::table:4|14:6",
+            "row_label": "신용손실충당금전입액 (d)"
+          }
+        }
+      },
+      {
+        "case_id": "MIX_T1_046",
+        "finding": "ESSENTIAL_VALUES_RETAINED_IN_ALTERNATIVE_SOURCE",
+        "note": "인용했던 MD&A 출처는 빠졌지만 원래 함께 있었던 당기 연결 비용 표가 유지되어 종업원급여와 비용 총액을 직접 제공. 천원/당기/연결 표시 있음. 실제 답변 회귀 여부는 미평가.",
+        "evidence": [
+          {
+            "arm": "B",
+            "uid": "20240318000844:937:813",
+            "quote": "종업원급여(*) | 1,701,418,940",
+            "offset": 880,
+            "text_sha256": "bd4e2d4a0a9c4328494ad6248b10c61bc6c22b7fc06604b391103875961457cc"
+          },
+          {
+            "arm": "B",
+            "uid": "20240318000844:937:813",
+            "quote": "합계 | 8,181,823,307",
+            "offset": 1233,
+            "text_sha256": "bd4e2d4a0a9c4328494ad6248b10c61bc6c22b7fc06604b391103875961457cc"
+          }
+        ]
+      },
+      {
+        "case_id": "KAB_T3_067",
+        "finding": "ESSENTIAL_CATEGORIES_RETAINED_SOME_DETAIL_LOST",
+        "note": "연계대출/계좌 수수료 표, 플랫폼 업무, 2023 조직 확장 및 세금신고 서비스 근거 유지. 빠진 MD&A의 광고 사업 본격화/신용대출 비교 출시를 동일 문장 그대로 재현할 근거는 약해지므로 모든 기존 답변 문장을 보존했다고는 하지 않음.",
+        "evidence": [
+          {
+            "arm": "B",
+            "uid": "20240320001487:300:6",
+            "quote": "당사는 2023년 플랫폼 역량 강화와 신속한 비즈니스 확장을 위한 조직 개편을 실시하였습니다.",
+            "offset": 276,
+            "text_sha256": "c6de8d0950b1038fce3cbf12cf759f569559592616e853e503264bc6e9679b44"
+          },
+          {
+            "arm": "B",
+            "uid": "20240320001487:82:21",
+            "quote": "2023년 1월에는 파트너사와의 제휴를 통해 개인사업자 간편 세금신고 서비스를 런칭",
+            "offset": 338,
+            "text_sha256": "5d9d7f467c0c553bae0807720effad05611660f06956384fa524b1532b3bce33"
+          }
+        ],
+        "numeric_witness_uid": "20240320001487:173:77"
+      }
+    ],
+    "limit": "Citation retention is only a proxy. Retained sources or substituted evidence do not guarantee answer accuracy, especially after order changes."
+  },
+  "all77_citation_retention": [
+    {
+      "case_id": "KBF_T2_018",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [
+        "20240326000894:1846:5",
+        "20240326000894:662:19"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "POS_T4_059",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SKH_T3_080",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T1_046",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [
+        "20240318000844:1558:6"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "NAV_T3_007",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [
+        "20240318000844:365:241"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T2_078",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T1_013",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T4_016",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [
+        "20240318000913:1055:10"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "KAK_T3_076",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "HYU_T3_011",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T2_047",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T4_049",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "LGE_T4_053",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [
+        "20240314001110:4:4"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "POS_T1_057",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "NAV_T1_030",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "NAV_T4_008",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "NAV_T4_033",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T3_028",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T4_070",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T2_039",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T4_041",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [
+        "20240318000913:985:0"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "MIX_T4_024",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KAK_T3_055",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [
+        "20240313001451:1244:2",
+        "20240313001451:1256:14"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "HYU_T4_012",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "HYU_T4_037",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KBF_T1_017",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KBF_T2_043",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KBF_T3_019",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KBF_T3_044",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KBF_T4_020",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KBF_T4_045",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [
+        "20240326000894:1842:1"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "MIX_T3_025",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "LGE_T1_051",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "LGE_T2_052",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [
+        "20240314001110:20:1"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "LGE_T4_077",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [
+        "20240314001110:69:14"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "POS_T1_075",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "POS_T2_058",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [
+        "20240322000986:1446:284"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SKI_T2_069",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T4_065",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [
+        "20240319000684:723:2"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "SKH_T2_061",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T2_022",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T3_063",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [
+        "20240318000844:432:308"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "NAV_T1_005",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "NAV_T1_071",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "NAV_T2_006",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [
+        "20240318000844:1559:7"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "NAV_T2_031",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "NAV_T3_032",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T1_021",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T4_062",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_FAIL",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T1_001",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T1_026",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T2_027",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T3_003",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T4_004",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "SAM_T4_029",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T1_038",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T2_014",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T2_073",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T3_015",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T3_050",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KAK_T1_054",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KAK_T4_056",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KAB_T1_066",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "KAB_T3_067",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [
+        "20240320001487:295:1"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "HYU_T1_009",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "HYU_T1_034",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "HYU_T2_035",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "HYU_T3_036",
+      "historical_group": "diagnostic_or_hold",
+      "historical_outcome": "UNDETERMINED",
+      "lost_cited_uids": [
+        "20240313001451:183:41"
+      ],
+      "all_cited_uids_retained": false
+    },
+    {
+      "case_id": "HYU_T4_079",
+      "historical_group": "refusal",
+      "historical_outcome": "REFUSAL_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T1_064",
+      "historical_group": "common_answerable",
+      "historical_outcome": "NOT_PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    },
+    {
+      "case_id": "MIX_T3_023",
+      "historical_group": "common_answerable",
+      "historical_outcome": "PASS",
+      "lost_cited_uids": [],
+      "all_cited_uids_retained": true
+    }
+  ],
+  "all77_packet_changes": {
+    "changed_source_sets": 60,
+    "changed_source_order_or_set": 76,
+    "removed_source_slots": 85,
+    "not_semantic_regression_count": true,
+    "packet_stats": {
+      "A": {
+        "mean_bytes": 26960.14285714286,
+        "median_bytes": 25050,
+        "min_bytes": 12598,
+        "max_bytes": 64813,
+        "omitted_cases": [
+          "SKH_T1_060",
+          "MIX_T3_063"
+        ]
+      },
+      "B": {
+        "mean_bytes": 25669.584415584417,
+        "median_bytes": 24736,
+        "min_bytes": 13536,
+        "max_bytes": 64411,
+        "omitted_cases": [
+          "SKH_T1_060",
+          "MIX_T3_063"
+        ]
+      }
+    }
+  },
+  "treatment_bm25_winner_types": {
+    "table_row": 326,
+    "original_chunk": 1522
+  },
+  "example_source_linked_rows": [
+    {
+      "cells": [
+        {
+          "cell_id": "9:1:1",
+          "column_headers": [
+            "제56기"
+          ],
+          "column_index": 1,
+          "value_text": "129,179,183"
+        },
+        {
+          "cell_id": "9:1:2",
+          "column_headers": [
+            "제55기"
+          ],
+          "column_index": 2,
+          "value_text": "113,879,569"
+        },
+        {
+          "cell_id": "9:1:3",
+          "column_headers": [
+            "차이"
+          ],
+          "column_index": 3,
+          "value_text": "15,299,614"
+        }
+      ],
+      "column_header_source": "existing_table_object_header_rows",
+      "parent_span": [
+        212,
+        257
+      ],
+      "parent_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8",
+      "parent_uid": "20240313001451:1047:3",
+      "physical_row_id": "20240313001451|IV. 이사의 경영진단 및 분석의견::table:2|9:1",
+      "raw_line": "매출원가 | 129,179,183 | 113,879,569 | 15,299,614",
+      "receipt": "20240313001451",
+      "row_headers": [
+        "매출원가"
+      ],
+      "row_id": "9:1",
+      "row_label": "매출원가",
+      "search_text": "IV. 이사의 경영진단 및 분석의견\n3. 재무상태 및 영업실적 > 나. 연결 손익계산서\n매출원가\n제56기 | 129,179,183\n제55기 | 113,879,569\n차이 | 15,299,614",
+      "search_text_sha256": "1e5130b0077d7a98872880526fe3cc7ef6f3adf0b986ead7dee6ede1e12697f6",
+      "source_document_sha256": "641c41ae0648ef48e30d25bbb4b9923040ec460b151fdc39b6435076d14dd7df",
+      "table_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[2]",
+      "verified_units": []
+    },
+    {
+      "cells": [
+        {
+          "cell_id": "225:140:4",
+          "column_headers": [
+            "최초취득금액"
+          ],
+          "column_index": 4,
+          "value_text": "1,267,859"
+        },
+        {
+          "cell_id": "225:140:5",
+          "column_headers": [
+            "기초잔액",
+            "수량"
+          ],
+          "column_index": 5,
+          "value_text": "104,000,100"
+        },
+        {
+          "cell_id": "225:140:6",
+          "column_headers": [
+            "기초잔액",
+            "지분율"
+          ],
+          "column_index": 6,
+          "value_text": "25.92"
+        },
+        {
+          "cell_id": "225:140:7",
+          "column_headers": [
+            "기초잔액",
+            "장부가액"
+          ],
+          "column_index": 7,
+          "value_text": "1,294,367"
+        },
+        {
+          "cell_id": "225:140:8",
+          "column_headers": [
+            "증가(감소)",
+            "취득(처분)",
+            "수량"
+          ],
+          "column_index": 8,
+          "value_text": "-"
+        },
+        {
+          "cell_id": "225:140:9",
+          "column_headers": [
+            "증가(감소)",
+            "취득(처분)",
+            "금액"
+          ],
+          "column_index": 9,
+          "value_text": "-"
+        },
+        {
+          "cell_id": "225:140:10",
+          "column_headers": [
+            "증가(감소)",
+            "평가손익"
+          ],
+          "column_index": 10,
+          "value_text": "-"
+        },
+        {
+          "cell_id": "225:140:11",
+          "column_headers": [
+            "기말잔액",
+            "수량"
+          ],
+          "column_index": 11,
+          "value_text": "104,000,100"
+        },
+        {
+          "cell_id": "225:140:12",
+          "column_headers": [
+            "기말잔액",
+            "지분율"
+          ],
+          "column_index": 12,
+          "value_text": "25.81"
+        },
+        {
+          "cell_id": "225:140:13",
+          "column_headers": [
+            "기말잔액",
+            "장부가액"
+          ],
+          "column_index": 13,
+          "value_text": "1,294,367"
+        },
+        {
+          "cell_id": "225:140:14",
+          "column_headers": [
+            "최근사업연도재무현황",
+            "총자산"
+          ],
+          "column_index": 14,
+          "value_text": "3,150,225"
+        },
+        {
+          "cell_id": "225:140:15",
+          "column_headers": [
+            "최근사업연도재무현황",
+            "당기순손익"
+          ],
+          "column_index": 15,
+          "value_text": "-803,742"
+        }
+      ],
+      "column_header_source": "existing_table_object_header_rows",
+      "parent_span": [
+        1930,
+        2079
+      ],
+      "parent_text_sha256": "0e8b0e624a79b10447e07404e734e656e73156a9cd68532c48a136ffb2e1e516",
+      "parent_uid": "20240313001451:1251:9",
+      "physical_row_id": "20240313001451|XII. 상세표 > 3. 타법인출자 현황(상세)::table:3|225:140",
+      "raw_line": "Motional | 비상장 | 2020.03.01 | 경영참여 | 1,267,859 | 104,000,100 | 25.92 | 1,294,367 | - | - | - | 104,000,100 | 25.81 | 1,294,367 | 3,150,225 | -803,742",
+      "receipt": "20240313001451",
+      "row_headers": [
+        "Motional",
+        "비상장",
+        "2020.03.01",
+        "경영참여"
+      ],
+      "row_id": "225:140",
+      "row_label": "경영참여",
+      "search_text": "XII. 상세표 > 3. 타법인출자 현황(상세)\nMotional\n비상장\n2020.03.01\n경영참여\n최초취득금액 | 1,267,859\n기초잔액 | 수량 | 104,000,100\n기초잔액 | 지분율 | 25.92\n기초잔액 | 장부가액 | 1,294,367\n증가(감소) | 취득(처분) | 수량 | -\n증가(감소) | 취득(처분) | 금액 | -\n증가(감소) | 평가손익 | -\n기말잔액 | 수량 | 104,000,100\n기말잔액 | 지분율 | 25.81\n기말잔액 | 장부가액 | 1,294,367\n최근사업연도재무현황 | 총자산 | 3,150,225\n최근사업연도재무현황 | 당기순손익 | -803,742",
+      "search_text_sha256": "b74cc9c2732cdcfc796230aa86c6967262aa825d4fb17000bd1eb98f8ce15470",
+      "source_document_sha256": "641c41ae0648ef48e30d25bbb4b9923040ec460b151fdc39b6435076d14dd7df",
+      "table_locator": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[2]",
+      "verified_units": []
+    },
+    {
+      "cells": [
+        {
+          "cell_id": "58:17:1",
+          "column_headers": [
+            "제 76 기"
+          ],
+          "column_index": 1,
+          "value_text": "52,704,853"
+        },
+        {
+          "cell_id": "58:17:2",
+          "column_headers": [
+            "제 75 기"
+          ],
+          "column_index": 2,
+          "value_text": "60,228,528"
+        },
+        {
+          "cell_id": "58:17:3",
+          "column_headers": [
+            "제 74 기"
+          ],
+          "column_index": 3,
+          "value_text": "53,225,667"
+        }
+      ],
+      "column_header_source": "existing_table_object_header_rows",
+      "parent_span": [
+        1826,
+        1881
+      ],
+      "parent_text_sha256": "9a1f42d6910ad37ec12482c61b5a416c742a88f45165b12158f63c0f5d9bc2fa",
+      "parent_uid": "20240319000684:123:0",
+      "physical_row_id": "20240319000684|III. 재무에 관한 사항 > 2. 연결재무제표::table:1|58:17",
+      "raw_line": "유형자산 (주12,15,33) | 52,704,853 | 60,228,528 | 53,225,667",
+      "receipt": "20240319000684",
+      "row_headers": [
+        "유형자산 (주12,15,33)"
+      ],
+      "row_id": "58:17",
+      "row_label": "유형자산 (주12,15,33)",
+      "search_text": "III. 재무에 관한 사항 > 2. 연결재무제표\n유형자산 (주12,15,33)\n제 76 기 | 52,704,853\n제 75 기 | 60,228,528\n제 74 기 | 53,225,667\n백만원",
+      "search_text_sha256": "2f7d2ccd5b97df5e46759196d957758a474e7efd2f63654ab551bccbcd3da0ac",
+      "source_document_sha256": "44a579672e2f40bb5118c1252aca06e50ab3244a081d76f3acd870227451131b",
+      "table_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[1]/TABLE[2]",
+      "verified_units": [
+        "백만원"
+      ]
+    }
+  ],
+  "primary_target_row_view_counts": {
+    "20240318000844:353:229": 9,
+    "20240312000736:127:6": 39,
+    "20240322000986:1186:24": 2,
+    "20240319000684:123:0": 53,
+    "20240313001451:275:133": 8,
+    "20240313001451:285:143": 20,
+    "20240320000950:882:499": 4,
+    "20240318000913:517:357": 49,
+    "20240313001451:1047:3": 8
+  },
+  "limitations": [
+    "No new-report held-out evaluation",
+    "No independent blinded reviewer",
+    "No answer generation or accuracy/faithfulness/refusal scoring",
+    "No Dense row embedding comparison",
+    "Projected wide-column chunks excluded",
+    "No proof that all table metadata/period bindings are correct",
+    "No production code/store/env/app changes"
+  ],
+  "preservation": {
+    "protected_files": 956,
+    "changed": [],
+    "unchanged": true
+  },
+  "protocol_sha256": "671069645e4e649eba16db26146c1970b1da0c5ed71886feb455f07b17c1d73d",
+  "results_sha256": "a96b21b294187d0adb0ab915ce64137b9bd7d33632f52da544f72837606910ca"
+}

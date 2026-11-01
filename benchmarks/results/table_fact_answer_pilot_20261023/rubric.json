@@ -1,0 +1,3027 @@
+{
+  "schema_version": "table_fact_answer_pilot_rubric_v1",
+  "status": "FROZEN_PRE_GENERATION_CRITERIA",
+  "created_utc": "2026-10-22T17:33:31.539579+00:00",
+  "authorization_scope": "Rubric preparation only; no generation/retrieval/provider calls. 72 planned generations belong to separate execution authorization/runner.",
+  "pre_result_access": {
+    "new_answer_outputs_exist_or_inspected": false,
+    "saved_retrieval_and_provider_free_packet_results_inspected": true,
+    "development_exposed": true,
+    "blind_or_held_out_claim": false
+  },
+  "design": {
+    "case_ids": [
+      "HYU_T3_072",
+      "MIX_T3_063",
+      "KAK_T3_055",
+      "SKI_T1_068",
+      "SAM_T1_001",
+      "MIX_T2_047",
+      "POS_T1_057",
+      "SKH_T1_060",
+      "MIX_T3_048",
+      "CEL_T3_040",
+      "SAM_T4_029",
+      "HYU_T4_079"
+    ],
+    "arms": [
+      "A12",
+      "64KiB",
+      "160KiB"
+    ],
+    "repetitions_each": 2,
+    "planned_generation_calls": 72,
+    "model_and_generation_prompt": "Same across arms; exact model/prompt/hash fixed by parent protocol, not changed by this rubric.",
+    "retrieval_calls": 0,
+    "source_criteria_changed": false,
+    "original_documents_selection_order_fixed": true
+  },
+  "inputs": {
+    "benchmarks\\results\\table_fact_budget77_offline_20261023\\evaluation_contract.json": "6df6519b4ac617579d1d9cdf92589dfbcc7de013d493f869115427b75f7ecee6",
+    "benchmarks\\results\\table_fact_budget77_offline_20261023\\evaluation_supplement.json": "05f878a9eebaebbabfac8a35dd99d16be428b8fc330e223267ee644c3692a4c0",
+    "benchmarks\\results\\table_fact_budget77_offline_20261023\\postrun_required_fact_review.json": "63481845de47085b563e5957cb7c1e4a3e04bd89a758d2d3efab374e70dca934",
+    "benchmarks\\results\\table_fact_budget77_offline_20261023\\all77_evidence_review.json": "60c65b7a690638bdddf11fbcae11f51b4a6d4a45a8eecdc72f416ca58a21531d",
+    "benchmarks\\results\\table_fact_units_offline_20261023\\source_checks.json": "7fd1a998af5313b06a3376b0d354943ab73604ea3b70c6835045fca8878af9e0",
+    "benchmarks\\results\\table_fact_units_offline_20261023\\projections.json": "56540c0f41397204297bc5853a931881da89fe976c913212b702d6b3bcb479bf",
+    "benchmarks\\results\\table_fact_units_offline_20261023\\postrun_required_fact_review.json": "c12a2293f0610070fcbd9faa2a0f429e4c3b981d7292189978e3b9621f8820fd"
+  },
+  "source_validation_basis": "Existing independently source-verified literal row/column coordinates and bound context spans; their hashes and actual saved packet delivery are checked here. No new parser, store or source rewrite. Source facts outside each arm are evaluator-only.",
+  "grades": {
+    "accuracy": {
+      "PASS": "All requested substantive outputs actually asserted match source values, period, entity, scope, and valid arithmetic, and the requested task is completed. Refusal cases use their separate rejection contract.",
+      "PARTIAL": "At least one requested substantive item is correct but others are missing/wrong, or a supported partial answer cannot finish the requested calculation.",
+      "FAIL": "No requested substantive result is supplied, or a core result is materially wrong. Honest total abstention can have support PASS with accuracy FAIL on answerable questions.",
+      "HOLD": "For MIX063/KAK055, aggregate accuracy is null; report claim-level source correctness diagnostically without changing HOLD."
+    },
+    "completeness": {
+      "PASS": "Every frozen required unit plus explicitly requested calculation/result/relationship is fulfilled.",
+      "PARTIAL": "Some required units fulfilled; missing units or incomplete relations remain.",
+      "FAIL": "No required unit fulfilled.",
+      "unit_states": [
+        "FULFILLED",
+        "PARTIAL",
+        "OMITTED",
+        "INCORRECT",
+        "UNRESOLVED_CRITERION"
+      ],
+      "missing_item_count": "Count OMITTED separately from INCORRECT and PARTIAL; do not collapse correct abstention into completion. Units with source absence remain requested but unfulfilled.",
+      "HOLD": "Aggregate completeness null; retain diagnostic unit matrix."
+    },
+    "faithfulness": {
+      "PASS": "Every material claim is supported by actual arm evidence with same entity/period/unit/relationship and traceable citation, or by explicit valid arithmetic from that evidence.",
+      "PARTIAL": "Core response is supported but one secondary material claim, unit assertion or citation is unsupported/insufficiently linked; or available support lacks adequate citation.",
+      "FAIL": "Core numerical/entity/causal claim is unsupported, contradicted, fabricated, or grounded only in outside-packet source.",
+      "citation_id_validation": "Record valid/invalid IDs separately; valid ID does not prove claim support. A fact appendix is cited through its owning original document source_id; invented cell IDs do not satisfy the original source-ID schema."
+    },
+    "appropriate_abstention": {
+      "PASS": "Rejects only unsupported portion or false premise, states the limitation of provided evidence, and answers supported requested portions where available.",
+      "PARTIAL": "Direction is appropriate but overbroad or omits explanation/available supported portions.",
+      "FAIL": "Invents unsupported result or refuses a supported request without reason.",
+      "NOT_APPLICABLE": "No unsupported component or refusal is relevant."
+    },
+    "arithmetic_and_rounding": "Accept mathematically equivalent source units and ordinary rounding at the answer displayed precision; default check nearest half-unit of last displayed decimal. Preserve sign/scale. No broad numerical tolerance that conceals wrong cell/period. Ratios require correctly cited same-scope operands.",
+    "ambiguous_decision": "If the source cannot resolve entity/period/scope or judge mapping, record AMBIGUOUS plus exact conflicting excerpts; no forced PASS or ad-hoc gold repair. Both repeats use the same frozen rule; unresolved adjudication is reported separately."
+  },
+  "aggregation": {
+    "main_answerable_cases": 8,
+    "main_refusal_cases": 2,
+    "hold_diagnostic_cases": 2,
+    "per_arm_answerable_outputs": 16,
+    "per_arm_refusal_outputs": 4,
+    "per_arm_HOLD_outputs": 4,
+    "do_not_pool_HOLD_into_primary": true,
+    "primary_reports": [
+      "8 answerable cases: accuracy/completeness/support counts separately and all-three-PASS conjunction",
+      "2 refusal cases: appropriate-rejection success and unsupported-claim errors separately",
+      "Unit omission/incorrect/partial counts by case and arm",
+      "Paired arm comparison per repeat; both-pass/both-fail/discordant repeats",
+      "2 HOLD cases: conditional source-supported gains and unsupported claims, no overall accuracy ranking"
+    ],
+    "regression": "Compare each non-A12 arm against A12 and160 against64. Report new wrong claim/new unsupported relation/lost required unit separately. A correct value obtained without support is not accepted as overall improvement.",
+    "historical_labels": "Frozen historical answer labels are context only, not reused as current scores. New completeness scale is stated explicitly and applied equally to all newly generated arms; historical counts are not numerically pooled.",
+    "two_repeats_limit": "Descriptive pilot only; no statistical significance/generalization claim; no stopping or retuning based on first-repeat scores."
+  },
+  "expected_risks": [
+    "Larger numeric context may induce mixed current/prior, connected/separate or entity scope claims.",
+    "160 can restore cells while causing narrative omissions or unsupported relations; packet preservation does not prove answer preservation.",
+    "A12 missing currency evidence and title/period conflicts must be graded against actual packet, not evaluator source access.",
+    "72 calls does not include model grading; human/source audit or provider-free validation only unless separately authorized."
+  ],
+  "cases": [
+    {
+      "case_id": "HYU_T3_072",
+      "question": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "ownership",
+          "label": "Motional 지분율",
+          "acceptance": "기업명Motional과같은행/열에연결된2023말지분율. 연결공동기업26% 또는명시적으로범위를밝힌별도25.81%를별도대안으로기록.",
+          "known_witness_uids": [
+            "20240313001451:275:133",
+            "20240313001451:1251:9"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "carrying",
+          "label": "투자장부금액",
+          "acceptance": "해당지분율과동일범위의장부금액:연결700,691백만원,별도대안1,294,367백만원. 취득금액/취득일과기말잔액을혼동하지않음.",
+          "known_witness_uids": [
+            "20240313001451:275:133",
+            "20240313001451:1251:9"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "profit_summary",
+          "label": "요약손익",
+          "acceptance": "같은Motional기업·기간의요약손익:연결원문 영업수익1,775/계속손익(803,742)/기타포괄12,115/총포괄(791,627)백만원의명명된관계. 최소영업수익과손익항목을구별가능해야하며,표에있는4개명명값을단위와함께보존.",
+          "known_witness_uids": [
+            "20240313001451:285:143"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "3요구: 동일 범위 지분율, 기말 장부금액, 요약손익을 구별하여 제시. 손익4명명값의 누락을 별도로 기록하며 지분율·장부액만으로 완전 성공 처리하지 않는다.",
+      "reference_facts_and_relations": [
+        "상세 타법인출자표의 Motional 기말 25.81%, 1,294,367백만원; 기준일2023.12.31. 이 둘은 그 상세 투자현황 범위를 명시할 때 허용한다.",
+        "동일 표 최근사업연도 당기순손익 -803,742백만원은 부분 손익 근거이며 영업손실로 이름을 바꾸지 않는다.",
+        "연결 주석 대안은26%/700,691백만원. 상세투자현황의25.81%와 연결장부액700,691을 섞지 않는다.",
+        "요약손익 기준: 영업수익1,775, 계속손익(803,742), 기타포괄12,115, 총포괄(791,627)백만원. 실제 해당 arm 근거가 없는 값을 외부 지식으로 채우면 출처 충실도 실패."
+      ],
+      "appropriate_abstention": "없는 손익만 범위를 좁혀 확인 불가로 표시. 상세표 값이 전달된160에서 세요구를 전부 거절하면 회피/누락으로 기록.",
+      "anticipated_errors": [
+        "2020.03.01 취득일과2023말을 혼동",
+        "기말장부액을 취득액으로 오독",
+        "frame에 별도라는 literal이 없으므로 별도 재무제표임을 원문상 확정했다고 과장",
+        "전체 요약손익 누락을 순손익 하나로 가림"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\HYU_T3_072_A12.json",
+          "packet_sha256": "bbc86ebf8f2b89b0ebc42e2076d96812d2d3df6f265a979e4f6f626ab1682717",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1246:4",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1246%3A4",
+              "original_text_sha256": "495124b55f7e6019d984bd02ddaaf9cb22c890d48be16f92ab3dbec4722adefb",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:275:133",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:285:143",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "관련 요구값 없음; 유보의 충실도와 요청 미완료를 분리"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\HYU_T3_072_64KiB.json",
+          "packet_sha256": "662942de811f07b7e0773281d9f7383479512471d57ed747b12da375db04e6a6",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1246:4",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1246%3A4",
+              "original_text_sha256": "495124b55f7e6019d984bd02ddaaf9cb22c890d48be16f92ab3dbec4722adefb",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[13]/TITLE",
+                  "source_span": [
+                    0,
+                    8
+                  ],
+                  "source_text": "XII. 상세표"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TITLE",
+                  "source_span": [
+                    0,
+                    15
+                  ],
+                  "source_text": "3. 타법인출자 현황(상세)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[1]",
+                  "source_span": [
+                    0,
+                    55
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n(기준일 : \n2023년 12월 31일\n)\n(단위 : 백만원, 주, %)\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:275:133",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:285:143",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "같음; 원문 검증 통과와 실제 전달을 혼동하지 않음"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\HYU_T3_072_160KiB.json",
+          "packet_sha256": "18618b76db782b19eecbba35856a84a6d47850d9cd00e48303b24cefe34a472b",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1246:4",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1246%3A4",
+              "original_text_sha256": "495124b55f7e6019d984bd02ddaaf9cb22c890d48be16f92ab3dbec4722adefb",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[13]/TITLE",
+                  "source_span": [
+                    0,
+                    8
+                  ],
+                  "source_text": "XII. 상세표"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TITLE",
+                  "source_span": [
+                    0,
+                    15
+                  ],
+                  "source_text": "3. 타법인출자 현황(상세)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[13]/SECTION-2[3]/TABLE-GROUP/TABLE[1]",
+                  "source_span": [
+                    0,
+                    55
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n(기준일 : \n2023년 12월 31일\n)\n(단위 : 백만원, 주, %)\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:275:133",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:285:143",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "지분율·장부액 및 순손익 일부; 전체요약손익은 불완전"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "MIX_T3_063",
+      "question": "사업보고서 주석에서 관계기업 및 공동기업 투자 내역 중 장부금액이 큰 상위 2개 기업의 이름과 당기순손익을 요약해 줘.",
+      "group": "diagnostic_or_hold",
+      "main_aggregate": false,
+      "frozen_required_units": [
+        {
+          "unit_id": "book_entities",
+          "label": "기업별 당기 장부금액",
+          "acceptance": "선정된청크에붙은전체table215에서기업별열/행과당기장부금액을복원. A Holdings15,338,412,557및Mirae Asset-Naver341,924,825천원은평가용대조값이며projection선택에사용금지.",
+          "known_witness_uids": [],
+          "kind": "entity_numeric"
+        },
+        {
+          "unit_id": "profit_entities",
+          "label": "같은 기업의 당기순손익",
+          "acceptance": "별도요약손익표426:302의기업연결및당기순이익450,253,285/79,190,655천원과지배주주귀속한정을보존.장부금액만으로손익을추정하지않음.",
+          "known_witness_uids": [
+            "20240318000844:426:302"
+          ],
+          "kind": "entity_numeric"
+        }
+      ],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": "순위대상/기준답안 HOLD 유지. top8과 동일6개 packet에서2023 장부액 및 지분법손익 표 부재를 인정.396:272는전기,425:301은주석도입이므로 2023순위/손익을 꾸며내지 않음.",
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "HOLD: 합계 제외·순위모집단·손익정의가 미확정이므로 정확도/완전성 주점수는 null. 기업별 장부액, 순위 주장의 범위, 당기순손익 연결을 각각 진단.",
+      "reference_facts_and_relations": [
+        "당기 장부금액 행에서 A Holdings Corporation15,338,412,557천원, Mirae Asset-Naver Asia Growth Investment Pte. Ltd.341,924,825천원을 기업 열과 연결.",
+        "손익 기준 대조값450,253,285/79,190,655천원은 별도 요약손익표426:302의 지배주주귀속 한정이 필요. 장부액으로 손익을 추정하지 않는다.",
+        "396:272는 전기;425:301은 주석도입. 현재 손익표의 대체로 인정하지 않는다."
+      ],
+      "appropriate_abstention": "전달된 당기장부액은 명시범위로 요약할 수 있으나 당기손익·전체순위 불확실성을 분리. 조건부 근거보강을 HOLD 해제로 세지 않음.",
+      "anticipated_errors": [
+        "전기 장부금액으로 당기 순위 산출",
+        "합계를 기업으로 취급",
+        "장부액·손익·지분법손익 혼동",
+        "몇개 기업 값 복구를 전체모집단 top2 증명으로 과장"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\MIX_T3_063_A12.json",
+          "packet_sha256": "8c95179e4793a1f41c9235130526dc03d1c25f204fe044e47bfcdc1afc43ff01",
+          "document_count": 6,
+          "witnesses": [
+            {
+              "uid": "20240318000844:384:260",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A384%3A260",
+              "original_text_sha256": "2acccc3f465c52507c373d4a4e7ae6cbff2438dfc302ead98b14464c2696455a",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:396:272",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A396%3A272",
+              "original_text_sha256": "8b0c3d9007771da5afe52bab8f3e334f2c1e7f6b0b9f4cf8925b3e7449f1e5d7",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[7]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:425:301",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A425%3A301",
+              "original_text_sha256": "855846ff836a6d17d361c2ac342bb3517701009f8f5da2720042ad41bdd09286",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[24]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:426:302",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "당기장부액/손익 불충분"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\MIX_T3_063_64KiB.json",
+          "packet_sha256": "8c95179e4793a1f41c9235130526dc03d1c25f204fe044e47bfcdc1afc43ff01",
+          "document_count": 6,
+          "witnesses": [
+            {
+              "uid": "20240318000844:384:260",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A384%3A260",
+              "original_text_sha256": "2acccc3f465c52507c373d4a4e7ae6cbff2438dfc302ead98b14464c2696455a",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:396:272",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A396%3A272",
+              "original_text_sha256": "8b0c3d9007771da5afe52bab8f3e334f2c1e7f6b0b9f4cf8925b3e7449f1e5d7",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[7]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:425:301",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A425%3A301",
+              "original_text_sha256": "855846ff836a6d17d361c2ac342bb3517701009f8f5da2720042ad41bdd09286",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[24]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:426:302",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "당기장부액/손익 불충분"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\MIX_T3_063_160KiB.json",
+          "packet_sha256": "b7c8ff581f2fae2159f44bdc443b4c1cf52f5af6cf6033499b32837daafaeb5d",
+          "document_count": 6,
+          "witnesses": [
+            {
+              "uid": "20240318000844:384:260",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A384%3A260",
+              "original_text_sha256": "2acccc3f465c52507c373d4a4e7ae6cbff2438dfc302ead98b14464c2696455a",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TITLE",
+                  "source_span": [
+                    0,
+                    22
+                  ],
+                  "source_text": "15. 관계기업 및 공동기업투자 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[3]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:396:272",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A396%3A272",
+              "original_text_sha256": "8b0c3d9007771da5afe52bab8f3e334f2c1e7f6b0b9f4cf8925b3e7449f1e5d7",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[7]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TITLE",
+                  "source_span": [
+                    0,
+                    22
+                  ],
+                  "source_text": "15. 관계기업 및 공동기업투자 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[6]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n전기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:425:301",
+              "actually_delivered": true,
+              "source_id": "20240318000844:20240318000844%3A425%3A301",
+              "original_text_sha256": "855846ff836a6d17d361c2ac342bb3517701009f8f5da2720042ad41bdd09286",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[15]/TABLE[24]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000844:426:302",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "당기장부액 추가; 손익 및 전체순위 정의 여전히 미해결"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "KAK_T3_055",
+      "question": "재무제표 주석을 참조하여, 종속기업(SM엔터테인먼트 등) 편입이 2023년 연결 매출액 및 무형자산 증가에 미친 영향을 요약해 줘.",
+      "group": "diagnostic_or_hold",
+      "main_aggregate": false,
+      "frozen_required_units": [
+        {
+          "unit_id": "R1",
+          "label": "매출에 대한 편입 효과",
+          "acceptance": "사업결합 주석의 편입 후 기여 매출 또는 명시적인 연결 효과 설명.",
+          "answer_acceptance_reference_not_scored": "SM엔터테인먼트 등 편입 대상·시점과 연결 매출 반영을 원문으로 연결한다. 매출 증가 전부를 인수 효과로 단정하지 않는다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R2",
+          "label": "무형자산에 대한 효과",
+          "acceptance": "합계·영업권 열, 기초·기말 잔액, 사업결합 증가분을 함께 확인할 수 있는 전체 원문.",
+          "answer_acceptance_reference_not_scored": "취득으로 인식한 무형자산·영업권과 기말 잔액의 순증감을 구별한다. 증가라는 질문 전제가 틀리면 이를 바로잡는다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        }
+      ],
+      "frozen_existing_scope": "2023년 연결 매출·무형자산에 대한 사업결합 효과. 잔액 순증감과 인수 증가분은 다르다.",
+      "frozen_existing_hold_reason": "HOLD_GOLD_COLUMN_AND_CAUSAL_SCOPE",
+      "frozen_error_boundaries": [
+        "영업권 4,065,637,170천원을 전체 무형자산으로 쓰지 않는다.",
+        "기말 총잔액이 감소했는데 인수 증가분만으로 총잔액도 증가했다고 단정하지 않는다."
+      ],
+      "answer_completion_rule": "HOLD_GOLD_COLUMN_AND_CAUSAL_SCOPE 유지. 매출 편입효과와 취득무형자산/영업권을 설명하되 전체 기초·기말·증가분이 없으면 전체 순증감은 확인불가로 분리.",
+      "reference_facts_and_relations": [
+        "771:630의 SM매출756,076,432천원은 해당 표의 범위와 기간을 보존. 내부거래 조정 후 연결 순기여 또는 연간매출 증가 전부로 단정하지 않는다.",
+        "733:592 취득일 인식영업권: 에스엠엔터테인먼트 외29개사846,169,079천원, 에스엠브랜드마케팅 외4개사98,600,836천원, 오션드라이브 외1개사67,681,335천원. SM브랜드마케팅이라는 회사명을 브랜드 무형자산 항목으로 오독하지 않는다.",
+        "160의733:592 식별가능한 순자산/무형자산 행, 에스엠엔터테인먼트 외29개사608,409,502천원은 신규 취득무형자산 근거. 취득영업권과 구분.",
+        "R2의 전체원문 기준은 합계·영업권 열과 기초·기말·사업결합 증가를 함께 확인하는 것. 인수 증가가 연결 전체 무형자산 순증가를 증명하지 않는다."
+      ],
+      "appropriate_abstention": "확인된 취득금액과 전체순증감 한계를 따로 답하면 지원됨. 없는 총증가를 만들지 않는다.",
+      "anticipated_errors": [
+        "회사명 SM브랜드마케팅을 자산종류 브랜드로 오독",
+        "취득영업권과 기타무형자산 이중계산",
+        "매출기여/내부거래/취득후기간 무시",
+        "증가라는 질문전제를 그대로 수용"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\KAK_T3_055_A12.json",
+          "packet_sha256": "9b0d89d510a217b75a8e4acd9770b050c4883dc72b1070efb6468c5385bf02eb",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240418000375:771:630",
+              "actually_delivered": true,
+              "source_id": "20240418000375:20240418000375%3A771%3A630",
+              "original_text_sha256": "ff4792022490895a72e4bb8e7f84d80098336d51a54e70bc519fe38bfa42f0bd",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[41]/TABLE[18]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240418000375:733:592",
+              "actually_delivered": true,
+              "source_id": "20240418000375:20240418000375%3A733%3A592",
+              "original_text_sha256": "c45813b6b4e1ae5c9941cb7b8ac302a25898fe4b6556268f268d11901a7f9f92",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[39]/TABLE[8]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "매출 및 인수영업권 일부; 전체잔액변동 부족"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\KAK_T3_055_64KiB.json",
+          "packet_sha256": "7d41ad94357f605c6ce05baae620f2cd66b1746d1e3be739f129a5620ffbe225",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240418000375:771:630",
+              "actually_delivered": true,
+              "source_id": "20240418000375:20240418000375%3A771%3A630",
+              "original_text_sha256": "ff4792022490895a72e4bb8e7f84d80098336d51a54e70bc519fe38bfa42f0bd",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[41]/TABLE[18]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[41]/TITLE",
+                  "source_span": [
+                    0,
+                    21
+                  ],
+                  "source_text": "41. 비지배지분에 대한 정보 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[41]/TABLE[17]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240418000375:733:592",
+              "actually_delivered": true,
+              "source_id": "20240418000375:20240418000375%3A733%3A592",
+              "original_text_sha256": "c45813b6b4e1ae5c9941cb7b8ac302a25898fe4b6556268f268d11901a7f9f92",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[39]/TABLE[8]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "동일 핵심 한계"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\KAK_T3_055_160KiB.json",
+          "packet_sha256": "390984e5d6a7be26834a0dae22b6b8278188b9ce44de3f12d0b3fede0e12e361",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240418000375:771:630",
+              "actually_delivered": true,
+              "source_id": "20240418000375:20240418000375%3A771%3A630",
+              "original_text_sha256": "ff4792022490895a72e4bb8e7f84d80098336d51a54e70bc519fe38bfa42f0bd",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[41]/TABLE[18]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[41]/TITLE",
+                  "source_span": [
+                    0,
+                    21
+                  ],
+                  "source_text": "41. 비지배지분에 대한 정보 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[41]/TABLE[17]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240418000375:733:592",
+              "actually_delivered": true,
+              "source_id": "20240418000375:20240418000375%3A733%3A592",
+              "original_text_sha256": "c45813b6b4e1ae5c9941cb7b8ac302a25898fe4b6556268f268d11901a7f9f92",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[39]/TABLE[8]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[39]/TITLE",
+                  "source_span": [
+                    0,
+                    13
+                  ],
+                  "source_text": "39. 사업결합 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[39]/TABLE[7]",
+                  "source_span": [
+                    0,
+                    27
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n　\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "취득무형자산 행 보강; 전체 기초기말 변동은 여전히 부족"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "question": "2023년 배터리 사업 부문(SK온)의 영업손실(적자) 규모를 확인하고, 이것이 전체 연결 영업이익의 몇 % 수준에 해당하는지 절대값으로 계산해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "battery_loss",
+          "label": "배터리 영업손실",
+          "acceptance": "2023배터리행의(581,816)과해당금액단위.유사한581,824를정답지에서주입하지않음.",
+          "known_witness_uids": [
+            "20240320000950:1713:6",
+            "20240320000950:882:499"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "total_operating_income",
+          "label": "전체 연결 영업이익",
+          "acceptance": "같은기준전체영업이익1,903,886.영업손실반복오기가있는옛expected_operands는무효.",
+          "known_witness_uids": [
+            "20240320000950:1713:6",
+            "20240320000950:882:499"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "currency_binding",
+          "label": "두 금액의 화폐단위",
+          "acceptance": "해당표의원문연결에서백만원확인.금액셀에상속된unit_hint=%는원문단위증거가아님.백만원source_context가실제전달돼야단위증거회복.",
+          "known_witness_uids": [
+            "20240320000950:1713:6",
+            "20240320000950:882:499"
+          ],
+          "kind": "unit_binding"
+        }
+      ],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "배터리 영업손실 규모·동일기준 전체 연결영업이익·화폐단위·절대값 비율을 답한다.",
+      "reference_facts_and_relations": [
+        "배터리(581,816), 전체1,903,886; source-bound 금액단위는백만원.581,824는 허용하지 않는다.",
+        "abs(-581816)/1903886*100=30.5593927367…%, 약30.56% 또는30.6%.",
+        "단위 환산 시581,816백만원=5,818.16억원. 화폐단위는 actual arm의 원문연결이 필요; unit_hint=%를 금액단위로 해석하지 않음."
+      ],
+      "appropriate_abstention": "통화단위를 확인 못하면 그 한계를 표시하되 무차원 비율은 가능한 근거로 계산. 검증 가능한 전체 요구를 과도하게 거절하지 않음.",
+      "anticipated_errors": [
+        "손실 부호를 유지한 음수비율",
+        "전체이익자리에 배터리손실 반복",
+        "A12에 없는 백만원단위를 추정"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\SKI_T1_068_A12.json",
+          "packet_sha256": "32f882d50816e976f02cca30ff95bb99c035cfd95eef72e5e5caca8eee91c6cc",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240320000950:1713:6",
+              "actually_delivered": true,
+              "source_id": "20240320000950:20240320000950%3A1713%3A6",
+              "original_text_sha256": "4e50e401b7bd5ca5d9f12e8969e64fdf58201d4a133dd55d0e4d13ed78b987e0",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[7]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240320000950:882:499",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "값과 비율은 가능, 해당 인용의 화폐단위 부재를 별도 채점"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SKI_T1_068_64KiB.json",
+          "packet_sha256": "a8976f49aafbb75162790ddbb6f73edead4c18bf7ac5d5dd99af1f0aa30c00a6",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240320000950:1713:6",
+              "actually_delivered": true,
+              "source_id": "20240320000950:20240320000950%3A1713%3A6",
+              "original_text_sha256": "4e50e401b7bd5ca5d9f12e8969e64fdf58201d4a133dd55d0e4d13ed78b987e0",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[7]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TITLE",
+                  "source_span": [
+                    0,
+                    19
+                  ],
+                  "source_text": "IV. 이사의 경영진단 및 분석의견"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[10]",
+                  "source_span": [
+                    1,
+                    17
+                  ],
+                  "source_text": "3. 재무 상태 및 영업 실적"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[12]",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "나. 영업실적"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[6]",
+                  "source_span": [
+                    0,
+                    46
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n(기준일 : 2023.12.31)\n\n\n(단위 : 백만원)\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240320000950:882:499",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "1713:6 기준일/백만원 caption 있음"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SKI_T1_068_160KiB.json",
+          "packet_sha256": "ba023d98a1e0eea9eec61a65d696dfb30fd98ef83737218756cd22a3639584e0",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240320000950:1713:6",
+              "actually_delivered": true,
+              "source_id": "20240320000950:20240320000950%3A1713%3A6",
+              "original_text_sha256": "4e50e401b7bd5ca5d9f12e8969e64fdf58201d4a133dd55d0e4d13ed78b987e0",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[7]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TITLE",
+                  "source_span": [
+                    0,
+                    19
+                  ],
+                  "source_text": "IV. 이사의 경영진단 및 분석의견"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[10]",
+                  "source_span": [
+                    1,
+                    17
+                  ],
+                  "source_text": "3. 재무 상태 및 영업 실적"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[12]",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "나. 영업실적"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[6]",
+                  "source_span": [
+                    0,
+                    46
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n(기준일 : 2023.12.31)\n\n\n(단위 : 백만원)\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240320000950:882:499",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "동일 caption 유지"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "SAM_T1_001",
+      "question": "2023년 연결기준 삼성전자의 영업이익률을 계산해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "operand_1",
+          "label": "매출액",
+          "acceptance": "원문의 실제 행/열/주체/기간/단위로 이 요청 항목을 연결. 아래 예전 기대값은 검색 보조이며 독립 정답 증명이 아님.",
+          "legacy_operand_search_aid": {
+            "label": "매출액",
+            "period": "2023년",
+            "raw_unit": "백만원",
+            "raw_value": "258,935,494"
+          },
+          "kind": "source_operand"
+        },
+        {
+          "unit_id": "operand_2",
+          "label": "영업이익",
+          "acceptance": "원문의 실제 행/열/주체/기간/단위로 이 요청 항목을 연결. 아래 예전 기대값은 검색 보조이며 독립 정답 증명이 아님.",
+          "legacy_operand_search_aid": {
+            "label": "영업이익",
+            "period": "2023년",
+            "raw_unit": "백만원",
+            "raw_value": "6,566,976"
+          },
+          "kind": "source_operand"
+        }
+      ],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "2023연결 영업이익/매출액*100을 계산하고 표의 열·기간을 맞춘다.",
+      "reference_facts_and_relations": [
+        "매출258,935,494, 영업이익6,566,976백만원. 영업이익률2.53614361575…%, 약2.54%.",
+        "123:2 제55기=2023.01.01~12.31 source caption은160에서 복구되지만 기존 원문값 및677:4 동등범위 근거와 구별."
+      ],
+      "appropriate_abstention": "계산 가능한 값을 근거부족으로 거절하면 누락.",
+      "anticipated_errors": [
+        "제54/53기 열 오독",
+        "백만원/억원 환산 오류",
+        "calendar caption 반복을 신규숫자 회복으로 간주"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\SAM_T1_001_A12.json",
+          "packet_sha256": "564117769912c01b88aee86f3163ba4fe4d9016fb7902e8b9087df99545563e1",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:123:2",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A123%3A2",
+              "original_text_sha256": "22f4abf92b9a206209507d628f1eb6efc6012d41b8998bb46b714bec373cac52",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:677:4",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A677%3A4",
+              "original_text_sha256": "25ecdd06b757aca86639b5622a8af8ed29f28219f4c874739bda58f06365b92c",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[5]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "필수값과 기존2023 범위 근거 있음"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SAM_T1_001_64KiB.json",
+          "packet_sha256": "be6dfc6de4c82194cbd0c94ae69fa6f511ec06d8dac8b614ae4370e3c313e352",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:123:2",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A123%3A2",
+              "original_text_sha256": "22f4abf92b9a206209507d628f1eb6efc6012d41b8998bb46b714bec373cac52",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:677:4",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A677%3A4",
+              "original_text_sha256": "25ecdd06b757aca86639b5622a8af8ed29f28219f4c874739bda58f06365b92c",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[5]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TITLE",
+                  "source_span": [
+                    0,
+                    19
+                  ],
+                  "source_text": "IV. 이사의 경영진단 및 분석의견"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[7]",
+                  "source_span": [
+                    1,
+                    22
+                  ],
+                  "source_text": "3. 재무상태 및 영업실적(연결 기준)"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[9]",
+                  "source_span": [
+                    1,
+                    8
+                  ],
+                  "source_text": "나. 영업실적"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[4]",
+                  "source_span": [
+                    0,
+                    22
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n(단위 : 백만원)\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "필수값 유지;123:2 명시달력 caption은 없을 수 있음"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SAM_T1_001_160KiB.json",
+          "packet_sha256": "a6fd279a9bbf034e2841f1cb2dfdc490eaf208400ddda384f9efd336f404bd19",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:123:2",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A123%3A2",
+              "original_text_sha256": "22f4abf92b9a206209507d628f1eb6efc6012d41b8998bb46b714bec373cac52",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TITLE",
+                  "source_span": [
+                    0,
+                    9
+                  ],
+                  "source_text": "2. 연결재무제표"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TITLE",
+                  "source_span": [
+                    0,
+                    13
+                  ],
+                  "source_text": "2-2. 연결 손익계산서"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[2]/TABLE[1]",
+                  "source_span": [
+                    0,
+                    163
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n연결 손익계산서\n\n\n\n\n\n\n제 55 기 2023.01.01 부터 2023.12.31 까지\n\n\n\n\n\n\n제 54 기 2022.01.01 부터 2022.12.31 까지\n\n\n\n\n\n\n제 53 기 2021.01.01 부터 2021.12.31 까지\n\n\n\n\n\n\n(단위 : 백만원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:677:4",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A677%3A4",
+              "original_text_sha256": "25ecdd06b757aca86639b5622a8af8ed29f28219f4c874739bda58f06365b92c",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[5]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TITLE",
+                  "source_span": [
+                    0,
+                    19
+                  ],
+                  "source_text": "IV. 이사의 경영진단 및 분석의견"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[7]",
+                  "source_span": [
+                    1,
+                    22
+                  ],
+                  "source_text": "3. 재무상태 및 영업실적(연결 기준)"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[9]",
+                  "source_span": [
+                    1,
+                    8
+                  ],
+                  "source_text": "나. 영업실적"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[4]",
+                  "source_span": [
+                    0,
+                    22
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n(단위 : 백만원)\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "동일값에 명시달력 caption 보강"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "MIX_T2_047",
+      "question": "사업보고서를 바탕으로 2023년 제네시스 브랜드의 고급화 전략 성과를 요약해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "R1",
+          "label": "고급화 전략의 내용",
+          "acceptance": "제네시스와 고급화·제품 믹스를 연결하는 사업보고서 문단.",
+          "answer_acceptance_reference_not_scored": "고부가 제네시스 차종·SUV 등 판매 확대 또는 제품 믹스 고도화라는 방향을 설명한다.",
+          "choice": null,
+          "basis": "explicit_request",
+          "kind": "existing_narrative_rubric"
+        },
+        {
+          "unit_id": "R2",
+          "label": "확인 가능한 성과",
+          "acceptance": "성과의 주체와 발생 연도가 확인되는 문단. 그룹 수익성 기여를 사용할 때는 브랜드 단독 실적과 구별한다.",
+          "answer_acceptance_reference_not_scored": "2023년의 구체적 브랜드 성과를 최소 1개 제시하고 전략과 연결한다. 예: 2023년 8월 글로벌 누적판매 100만 대 달성.",
+          "choice": null,
+          "basis": "proposed_summary_minimum",
+          "kind": "existing_narrative_rubric"
+        }
+      ],
+      "frozen_existing_scope": "제네시스 브랜드의 2023년 성과와 현대차 전체 실적을 구별한다.",
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [
+        "그룹 영업이익을 제네시스 단독 이익으로 기재하지 않는다.",
+        "누적판매 100만 대를 2023년 한 해 판매대수로 바꾸지 않는다."
+      ],
+      "answer_completion_rule": "고급차/제품믹스 전략과 주체·2023시점이 확인되는 구체적인 제네시스 성과 최소1개를 연결.",
+      "reference_facts_and_relations": [
+        "1045:1 제네시스·SUV 고부가차종 믹스조정이 현대차 수익성중심운영과 연결.",
+        "1045:1 2023년8월 브랜드출범7년10개월 만에 글로벌 누적판매100만대 돌파.",
+        "99:8 제네시스GV60의2023독일올해의차 프리미엄부문 선정은 대안 성과. 현대차 전체 차량부문/그룹실적을 제네시스 단독이익으로 쓰지 않음."
+      ],
+      "appropriate_abstention": "주어진 자료에 전략·성과가 있으므로 전면 유보는 누락.",
+      "anticipated_errors": [
+        "누적100만대를2023 한해 판매로 오독",
+        "아이오닉 수상을 제네시스에 귀속",
+        "그룹 영업이익을 브랜드 이익으로 귀속",
+        "160의 많은 추가표로 원래 prose 누락"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\MIX_T2_047_A12.json",
+          "packet_sha256": "201b1f5e2286ffb061277a9bd46e0f22414db9f12f716eab33c5231c82431bb7",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1045:1",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1045%3A1",
+              "original_text_sha256": "320ace60c485bde0a9c9f2f4b67f25f9200196b57ab233dc38f07a26a061ac78",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:99:8",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A99%3A8",
+              "original_text_sha256": "6ce5a7fd39cefa4e8a3f8bfdc9143aa9628c2ada1205c15326da639094a19dc9",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[7]/TABLE",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:1047:3",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1047%3A3",
+              "original_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:19:5",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A19%3A5",
+              "original_text_sha256": "5440ba967bedf467f8cab2e6e010d6d734024bce87190c3084042746e3a3b071",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[2]/SECTION-2[2]/TABLE[2]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:103:12",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A103%3A12",
+              "original_text_sha256": "6a8693e919f2879d6c5444931b09785884567f0050c09befd805c0d124050e5a",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "핵심 서술근거 충분"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\MIX_T2_047_64KiB.json",
+          "packet_sha256": "a38163d67bbb52aba4d19877f57c327d9767481fa177ae779a0a85f1a044bfb5",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1045:1",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1045%3A1",
+              "original_text_sha256": "320ace60c485bde0a9c9f2f4b67f25f9200196b57ab233dc38f07a26a061ac78",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:99:8",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A99%3A8",
+              "original_text_sha256": "6ce5a7fd39cefa4e8a3f8bfdc9143aa9628c2ada1205c15326da639094a19dc9",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[7]/TABLE",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:1047:3",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1047%3A3",
+              "original_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:19:5",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A19%3A5",
+              "original_text_sha256": "5440ba967bedf467f8cab2e6e010d6d734024bce87190c3084042746e3a3b071",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[2]/SECTION-2[2]/TABLE[2]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:103:12",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A103%3A12",
+              "original_text_sha256": "6a8693e919f2879d6c5444931b09785884567f0050c09befd805c0d124050e5a",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "원래 prose 보존"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\MIX_T2_047_160KiB.json",
+          "packet_sha256": "0a81733c1ccdf0ed88d169e63bf8d5a65c802a171c5b39d7813500d5bb3bdfee",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1045:1",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1045%3A1",
+              "original_text_sha256": "320ace60c485bde0a9c9f2f4b67f25f9200196b57ab233dc38f07a26a061ac78",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:99:8",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A99%3A8",
+              "original_text_sha256": "6ce5a7fd39cefa4e8a3f8bfdc9143aa9628c2ada1205c15326da639094a19dc9",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[7]/TABLE",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:1047:3",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1047%3A3",
+              "original_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:19:5",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A19%3A5",
+              "original_text_sha256": "5440ba967bedf467f8cab2e6e010d6d734024bce87190c3084042746e3a3b071",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[2]/SECTION-2[2]/TABLE[2]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240313001451:103:12",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A103%3A12",
+              "original_text_sha256": "6a8693e919f2879d6c5444931b09785884567f0050c09befd805c0d124050e5a",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "원래 prose 보존; 문맥증가의 회귀대조"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "POS_T1_057",
+      "question": "2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "operating_income",
+          "label": "연결 영업이익",
+          "acceptance": "동일2023연결 범위 영업이익3,531,422,506,439원 또는 원문 요약3,531,423백만원; 원/백만원과 표시정밀도를 구별.",
+          "known_witness_uids": [
+            "20240322000986:355:2",
+            "20240322000986:1186:24",
+            "20240322000986:350:1"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "interest_cost",
+          "label": "연결 이자비용",
+          "acceptance": "같은 연결당기의 이자비용1,001,290백만원. 금융비용총계나 이자지급현금흐름은 대체 불가.",
+          "known_witness_uids": [
+            "20240322000986:692:331"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "같은2023연결 영업이익과 이자비용을 같은화폐단위로 맞춘 후 이자보상배율을 계산.",
+      "reference_facts_and_relations": [
+        "영업이익 원문 대조3,531,422,506,439원 또는요약3,531,423백만원; 이자비용1,001,290백만원.",
+        "요약값 비율3.5268733334…배, 약3.53배. 원단위와 백만원 혼용 금지.",
+        "실제3arm에는 영업이익 근거가 없다. 이자비용만 제시하고 비율유보하면 충실한 부분응답이지 완전정답은 아니다. 맞는 숫자를 외부기억으로 채워도 충실도는 실패."
+      ],
+      "appropriate_abstention": "연결 당기 이자비용은 답하고 검색자료에서 분자를 확인하지 못했다고 제한. 보고서 전체에 없다고 단정하지 않음.",
+      "anticipated_errors": [
+        "전기607,458 또는 별도 이자비용 사용",
+        "금융비용총계/지급이자현금흐름 대체",
+        "정답숫자를 근거 없이 생성"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\POS_T1_057_A12.json",
+          "packet_sha256": "8cea0dbceecd0fda27e53b898f67495037e26884e29c7a5bf5dc59d5bd032ffc",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240322000986:692:331",
+              "actually_delivered": true,
+              "source_id": "20240322000986:20240322000986%3A692%3A331",
+              "original_text_sha256": "8c9d0250e79d7c6eed0b5dfa18336cceb4df070bdb0a8b2dd7ff0d101a1caabf",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[33]/TABLE[3]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240322000986:355:2",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240322000986:1186:24",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "분자없음"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\POS_T1_057_64KiB.json",
+          "packet_sha256": "500cfcce89301b505665c2099ff3814095b9ce7d292b8e6fba0eb3395fe90333",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240322000986:692:331",
+              "actually_delivered": true,
+              "source_id": "20240322000986:20240322000986%3A692%3A331",
+              "original_text_sha256": "8c9d0250e79d7c6eed0b5dfa18336cceb4df070bdb0a8b2dd7ff0d101a1caabf",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[33]/TABLE[3]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[33]/TITLE",
+                  "source_span": [
+                    0,
+                    13
+                  ],
+                  "source_text": "33. 금융손익 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[33]/TABLE[2]",
+                  "source_span": [
+                    0,
+                    32
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 백만원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240322000986:355:2",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240322000986:1186:24",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "분자없음"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\POS_T1_057_160KiB.json",
+          "packet_sha256": "500cfcce89301b505665c2099ff3814095b9ce7d292b8e6fba0eb3395fe90333",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240322000986:692:331",
+              "actually_delivered": true,
+              "source_id": "20240322000986:20240322000986%3A692%3A331",
+              "original_text_sha256": "8c9d0250e79d7c6eed0b5dfa18336cceb4df070bdb0a8b2dd7ff0d101a1caabf",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[33]/TABLE[3]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[33]/TITLE",
+                  "source_span": [
+                    0,
+                    13
+                  ],
+                  "source_text": "33. 금융손익 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[33]/TABLE[2]",
+                  "source_span": [
+                    0,
+                    32
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 백만원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240322000986:355:2",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240322000986:1186:24",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "패킷 동일; 분자없음"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "question": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "ppe",
+          "label": "유형자산",
+          "acceptance": "2023.12.31연결 유형자산52,704,853백만원. 담보자산/취득현금흐름은 대체불가.",
+          "known_witness_uids": [
+            "20240319000684:123:0",
+            "20240319000684:246:117"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "intangible",
+          "label": "무형자산",
+          "acceptance": "동일 연결기말 무형자산3,834,567백만원.",
+          "known_witness_uids": [
+            "20240319000684:123:0",
+            "20240319000684:262:133"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "short_borrowing",
+          "label": "단기차입금",
+          "acceptance": "명명된 단기차입금4,145,647백만원.",
+          "known_witness_uids": [
+            "20240319000684:277:148"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "long_borrowing",
+          "label": "장기차입금",
+          "acceptance": "명명된 장기차입금10,121,033백만원.",
+          "known_witness_uids": [
+            "20240319000684:277:148"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "bond",
+          "label": "사채",
+          "acceptance": "명명된 사채9,490,410백만원.",
+          "known_witness_uids": [
+            "20240319000684:277:148"
+          ],
+          "kind": "numeric_or_relation"
+        }
+      ],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "명명된 단기·장기·사채 합계와 연결기말 유형·무형자산 합계를 구분하고 비중계산.",
+      "reference_facts_and_relations": [
+        "단기4,145,647+장기10,121,033+사채9,490,410=23,757,090백만원.",
+        "유형52,704,853+무형3,834,567=56,539,420백만원. 명명된3항목 비중42.0186305413…%, 약42.02%.",
+        "유동성대체 포함 차입총액29,468,632는 명시3항목 합계의 대체가 아님; 추가 설명으로 범위를 명시할 때만 별도 인정.",
+        "실제3arm의 자산 분모가 없음.160의 추가차입표로 자산이 생긴 것으로 오판하지 않음."
+      ],
+      "appropriate_abstention": "명명3항목을 합산하되 자산분모·최종비율은 제한적으로 유보. 유보를 정확도완전PASS로 올리지 않음.",
+      "anticipated_errors": [
+        "유동성대체 이중계산",
+        "별도/전기차입금 혼입",
+        "담보자산/취득현금흐름을 장부자산으로 대체",
+        "정답분모 환각"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\SKH_T1_060_A12.json",
+          "packet_sha256": "fd244a584725489f517304fe1179beb6849110a81c17eac49913056e042febf6",
+          "document_count": 9,
+          "witnesses": [
+            {
+              "uid": "20240319000684:277:148",
+              "actually_delivered": true,
+              "source_id": "20240319000684:20240319000684%3A277%3A148",
+              "original_text_sha256": "b87c4d4e9b9a9cca271ff3c9366563d9fc1120f0afa3dde0a3b1727a20780dfd",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[17]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:123:0",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:246:117",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:262:133",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "세 차입항목 있음, 자산분모 없음"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SKH_T1_060_64KiB.json",
+          "packet_sha256": "abfe0a7b0cc183610669216ebc99e6f313ee228ed2adabd3a49fdba2a759bed4",
+          "document_count": 9,
+          "witnesses": [
+            {
+              "uid": "20240319000684:277:148",
+              "actually_delivered": true,
+              "source_id": "20240319000684:20240319000684%3A277%3A148",
+              "original_text_sha256": "b87c4d4e9b9a9cca271ff3c9366563d9fc1120f0afa3dde0a3b1727a20780dfd",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[17]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[17]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "17. 차입금 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[17]/TABLE[3]",
+                  "source_span": [
+                    0,
+                    32
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 백만원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:123:0",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:246:117",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:262:133",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "동일"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SKH_T1_060_160KiB.json",
+          "packet_sha256": "1e3e94fbccbdc84826e84e8ba0359024614644819977d34641dd0cbb97288ace",
+          "document_count": 9,
+          "witnesses": [
+            {
+              "uid": "20240319000684:277:148",
+              "actually_delivered": true,
+              "source_id": "20240319000684:20240319000684%3A277%3A148",
+              "original_text_sha256": "b87c4d4e9b9a9cca271ff3c9366563d9fc1120f0afa3dde0a3b1727a20780dfd",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[17]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[17]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "17. 차입금 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[17]/TABLE[3]",
+                  "source_span": [
+                    0,
+                    32
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 백만원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:123:0",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:246:117",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240319000684:262:133",
+              "actually_delivered": false,
+              "source_id": null,
+              "original_text_sha256": null,
+              "physical_table": null,
+              "saved_source_receipt_status": null,
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "추가 차입표뿐, 자산분모 없음"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "question": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "cash_dividend",
+          "label": "실제 현금 배당 지급",
+          "acceptance": "제55기(2023년) 연결 현금흐름의 배당금의 지급(9,864,474)백만원 또는 같은 실제 지급 규모의 원문 표시. 선언배당9,809,438/정책9.8조는 대체 불가.",
+          "known_witness_uids": [
+            "20240312000736:127:6"
+          ],
+          "kind": "numeric_or_relation"
+        },
+        {
+          "unit_id": "policy_period_base",
+          "label": "정책 기간·기본 구조",
+          "acceptance": "2024~2026년과FCF50% 및 연간정규배당9.8조원이 같은 정책 문단에 연결.",
+          "known_witness_uids": [
+            "20240312000736:590:0"
+          ],
+          "kind": "narrative"
+        },
+        {
+          "unit_id": "policy_condition",
+          "label": "추가 환원 조건",
+          "acceptance": "정규배당 이후 잔여재원이 발생하면 추가 환원한다는 조건부 관계.",
+          "known_witness_uids": [
+            "20240312000736:590:0"
+          ],
+          "kind": "narrative"
+        }
+      ],
+      "frozen_existing_scope": "2023년 연결 현금흐름표의 실제 지급액과 2024~2026년 정책을 별개로 답한다.",
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [
+        "배당 결정액 9,809,438백만원을 현금 유출액으로 대체하지 않는다.",
+        "FCF 50% 전부를 매년 현금배당한다고 하거나 추가 환원을 무조건 확정하지 않는다."
+      ],
+      "answer_completion_rule": "2023 실제현금배당 지급액 및2024~2026 환원정책 기간/기본구조/조건부추가환원 모두.",
+      "reference_facts_and_relations": [
+        "현금흐름표 배당금의지급(9,864,474)백만원; 유출규모9,864,474백만원.",
+        "정책2024~2026, FCF50%, 연간정규배당9.8조원. 정규배당 이후 잔여재원 발생 시 추가환원.",
+        "선언배당9,809,438백만원 및 정책9.8조원을 실제현금유출로 바꾸지 않음. FCF50% 전부를 매년 현금배당 또는 추가환원 확정으로 말하지 않음."
+      ],
+      "appropriate_abstention": "이미 있는 금액·정책을 불명으로 처리하면 누락.",
+      "anticipated_errors": [
+        "현금배당/선언배당 혼동",
+        "조건문 삭제",
+        "160 숫자증가로 기존정책 서술 누락"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\MIX_T3_048_A12.json",
+          "packet_sha256": "70b60775f74493c86b94e8c21a8e2eb5896dd8291f4a222003d7ed2908da2b3a",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:127:6",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A127%3A6",
+              "original_text_sha256": "fe3433480d9f5662c06dc5500e57617f6d1d8a49130665b3f64d308dcaa695cf",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:590:0",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A590%3A0",
+              "original_text_sha256": "d2a2ae366fecfe5b585270ad60e2715cd7c40d90bd335f81763a1e34ba428392",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/SECTION-2[2]/TABLE[1]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "전부있음"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\MIX_T3_048_64KiB.json",
+          "packet_sha256": "23739e25fbfd9b26753e29984f1cf0ce674760963e9e1f77502a0a99f87c9eee",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:127:6",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A127%3A6",
+              "original_text_sha256": "fe3433480d9f5662c06dc5500e57617f6d1d8a49130665b3f64d308dcaa695cf",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TITLE",
+                  "source_span": [
+                    0,
+                    9
+                  ],
+                  "source_text": "2. 연결재무제표"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[5]/TITLE",
+                  "source_span": [
+                    0,
+                    13
+                  ],
+                  "source_text": "2-5. 연결 현금흐름표"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[5]/TABLE[1]",
+                  "source_span": [
+                    0,
+                    163
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n연결 현금흐름표\n\n\n\n\n\n\n제 55 기 2023.01.01 부터 2023.12.31 까지\n\n\n\n\n\n\n제 54 기 2022.01.01 부터 2022.12.31 까지\n\n\n\n\n\n\n제 53 기 2021.01.01 부터 2021.12.31 까지\n\n\n\n\n\n\n(단위 : 백만원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:590:0",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A590%3A0",
+              "original_text_sha256": "d2a2ae366fecfe5b585270ad60e2715cd7c40d90bd335f81763a1e34ba428392",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/SECTION-2[2]/TABLE[1]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "보존"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\MIX_T3_048_160KiB.json",
+          "packet_sha256": "0420f41e8243d236adbc7c6b517fc7322566437853973249c06f81620f5f3670",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:127:6",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A127%3A6",
+              "original_text_sha256": "fe3433480d9f5662c06dc5500e57617f6d1d8a49130665b3f64d308dcaa695cf",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TITLE",
+                  "source_span": [
+                    0,
+                    9
+                  ],
+                  "source_text": "2. 연결재무제표"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[5]/TITLE",
+                  "source_span": [
+                    0,
+                    13
+                  ],
+                  "source_text": "2-5. 연결 현금흐름표"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[1]/TABLE-GROUP[5]/TABLE[1]",
+                  "source_span": [
+                    0,
+                    163
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n연결 현금흐름표\n\n\n\n\n\n\n제 55 기 2023.01.01 부터 2023.12.31 까지\n\n\n\n\n\n\n제 54 기 2022.01.01 부터 2022.12.31 까지\n\n\n\n\n\n\n제 53 기 2021.01.01 부터 2021.12.31 까지\n\n\n\n\n\n\n(단위 : 백만원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:590:0",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A590%3A0",
+              "original_text_sha256": "d2a2ae366fecfe5b585270ad60e2715cd7c40d90bd335f81763a1e34ba428392",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/SECTION-2[2]/TABLE[1]",
+              "saved_source_receipt_status": "NO_UNITS",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "보존"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "question": "2023년 사업보고서에서 재고자산평가손실, 재고자산평가손실환입, 재고자산폐기손실 규모를 찾아 요약해 줘.",
+      "group": "common_answerable",
+      "main_aggregate": true,
+      "frozen_required_units": [
+        {
+          "unit_id": "gross_inventory_loss",
+          "label": "평가손실",
+          "acceptance": "연결당기평가손실2,526,280천원.순효과/등행의0은대체불가.",
+          "known_witness_uids": [
+            "20240318000913:517:357"
+          ],
+          "kind": "numeric_or_relation",
+          "alternatives": {
+            "separate_if_labelled": "1,010,161천원 at917:320"
+          }
+        },
+        {
+          "unit_id": "gross_inventory_reversal",
+          "label": "평가손실환입",
+          "acceptance": "연결(48,885,812)천원.환입부호/의미와총액항목보존.",
+          "known_witness_uids": [
+            "20240318000913:517:357"
+          ],
+          "kind": "numeric_or_relation",
+          "alternatives": {
+            "separate_if_labelled": "(45,139,758)천원 at917:320"
+          }
+        },
+        {
+          "unit_id": "gross_inventory_disposal",
+          "label": "폐기손실",
+          "acceptance": "연결25,163,510천원.순환입(-)21,196백만원으로대체불가.",
+          "known_witness_uids": [
+            "20240318000913:517:357"
+          ],
+          "kind": "numeric_or_relation",
+          "alternatives": {
+            "separate_if_labelled": "22,312,563천원 at917:320"
+          }
+        }
+      ],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "평가손실·환입·폐기손실 gross3항목과 명시범위/단위. 질문은 연결을 명시하지 않아 범위를 밝힌 별도 대안도 기존계약대로 허용.",
+      "reference_facts_and_relations": [
+        "연결당기517:357: 평가손실2,526,280천원, 환입(48,885,812)천원, 폐기25,163,510천원.",
+        "별도당기917:320: 평가손실1,010,161천원, 환입(45,139,758)천원, 폐기22,312,563천원; 별도라고 밝히고 3개를 같은범위로 답해야 함.",
+        "환입은 감소효과를 설명하면 양수규모48,885,812천원으로 표현해도 됨. 순효과0/순환입21,196백만원은 gross3항목 대체가 아님."
+      ],
+      "appropriate_abstention": "명시범위로3항목 답변. 연결/별도 모호성은 대안범위 표시로 처리; 임의 단일정답범위 강화 금지.",
+      "anticipated_errors": [
+        "gross와net 혼동",
+        "연결/별도혼합",
+        "천원/백만원 환산",
+        "환입을 신규평가손실로 해석"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\CEL_T3_040_A12.json",
+          "packet_sha256": "43cc814220365a5277b924f2fcff28a211244f5068e3ee0109dd94cf7a533780",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240318000913:517:357",
+              "actually_delivered": true,
+              "source_id": "20240318000913:20240318000913%3A517%3A357",
+              "original_text_sha256": "0e7381a025d148b6cec918da9637e4578b1e8b08c11f6ac2f9d4c0eb6fcb396c",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[35]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000913:917:320",
+              "actually_delivered": true,
+              "source_id": "20240318000913:20240318000913%3A917%3A320",
+              "original_text_sha256": "0f5e2816b47ce299c2d2fff19497ba0659f7dcbfb0722ac18fa8ab6c3069f31e",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TABLE-GROUP[33]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "연결/별도3항목 모두 있음"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\CEL_T3_040_64KiB.json",
+          "packet_sha256": "ce3e79c9116fdfe241265cb7cb9ac135a970d9398aba2beb7071b6032dfe2d1f",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240318000913:517:357",
+              "actually_delivered": true,
+              "source_id": "20240318000913:20240318000913%3A517%3A357",
+              "original_text_sha256": "0e7381a025d148b6cec918da9637e4578b1e8b08c11f6ac2f9d4c0eb6fcb396c",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[35]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[35]/TITLE",
+                  "source_span": [
+                    0,
+                    22
+                  ],
+                  "source_text": "35. 영업으로부터 창출된 현금 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[35]/TABLE[3]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000913:917:320",
+              "actually_delivered": true,
+              "source_id": "20240318000913:20240318000913%3A917%3A320",
+              "original_text_sha256": "0f5e2816b47ce299c2d2fff19497ba0659f7dcbfb0722ac18fa8ab6c3069f31e",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TABLE-GROUP[33]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TITLE",
+                  "source_span": [
+                    0,
+                    10
+                  ],
+                  "source_text": "5. 재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TABLE-GROUP[33]/TITLE",
+                  "source_span": [
+                    0,
+                    17
+                  ],
+                  "source_text": "33. 영업으로부터 창출된 현금"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TABLE-GROUP[33]/TABLE[3]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "보존"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\CEL_T3_040_160KiB.json",
+          "packet_sha256": "ce3e79c9116fdfe241265cb7cb9ac135a970d9398aba2beb7071b6032dfe2d1f",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240318000913:517:357",
+              "actually_delivered": true,
+              "source_id": "20240318000913:20240318000913%3A517%3A357",
+              "original_text_sha256": "0e7381a025d148b6cec918da9637e4578b1e8b08c11f6ac2f9d4c0eb6fcb396c",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[35]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    12
+                  ],
+                  "source_text": "3. 연결재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[35]/TITLE",
+                  "source_span": [
+                    0,
+                    22
+                  ],
+                  "source_text": "35. 영업으로부터 창출된 현금 (연결)"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[2]/TABLE-GROUP[35]/TABLE[3]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240318000913:917:320",
+              "actually_delivered": true,
+              "source_id": "20240318000913:20240318000913%3A917%3A320",
+              "original_text_sha256": "0f5e2816b47ce299c2d2fff19497ba0659f7dcbfb0722ac18fa8ab6c3069f31e",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TABLE-GROUP[33]/TABLE[4]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "III. 재무에 관한 사항"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TITLE",
+                  "source_span": [
+                    0,
+                    10
+                  ],
+                  "source_text": "5. 재무제표 주석"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TABLE-GROUP[33]/TITLE",
+                  "source_span": [
+                    0,
+                    17
+                  ],
+                  "source_text": "33. 영업으로부터 창출된 현금"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[4]/LIBRARY/SECTION-2[4]/TABLE-GROUP[33]/TABLE[3]",
+                  "source_span": [
+                    0,
+                    31
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n\n\n\n당기\n\n\n\n(단위 : 천원)\n\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "보존"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "SAM_T4_029",
+      "question": "삼성전자의 2023년 '생명보험' 부문 수입보험료를 계산해 줘.",
+      "group": "refusal",
+      "main_aggregate": true,
+      "frozen_required_units": [],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "적절한거절: 삼성전자 사업부와 최대주주 삼성생명보험을 구분하고 삼성전자 생명보험부문 수입보험료 계산 전제를 거절.",
+      "reference_facts_and_relations": [
+        "40:0은 삼성전자DX/DS/SDC/Harman 제품부문.804:11은 최대주주 삼성생명보험의 별도사업 설명.",
+        "삼성생명 숫자/지분/배당을 삼성전자 수입보험료로 변환하거나 0원이라고 단정하지 않음."
+      ],
+      "appropriate_abstention": "전제불일치와 실제자료범위를 설명하여 계산거절. 최대주주 삼성생명의 보고서가 별도 필요하다는 안내는 허용.",
+      "anticipated_errors": [
+        "공시파일에 등장한 관계기업/주주 사업을 회사부문으로 혼동",
+        "근거부재=0원"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\SAM_T4_029_A12.json",
+          "packet_sha256": "1906c3ca6ba9dcebdb944e3722a5721c8c1f1b493f6d94d82570eebac7b3f8ce",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:40:0",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A40%3A0",
+              "original_text_sha256": "99d285e96f9b55485be52e34547fa824b4de52dc9845eef0b25df86a00a276b9",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:804:11",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A804%3A11",
+              "original_text_sha256": "7173f9ce044ad1db01ec5c0f121f72be6ff0641abf0f9a895405c5cd014c2e9a",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "거절근거 있음"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SAM_T4_029_64KiB.json",
+          "packet_sha256": "807bb090bb52ee94b2bf73f07ef04870a10d3ecda5e861cb7b1080e641aeeed2",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:40:0",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A40%3A0",
+              "original_text_sha256": "99d285e96f9b55485be52e34547fa824b4de52dc9845eef0b25df86a00a276b9",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:804:11",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A804%3A11",
+              "original_text_sha256": "7173f9ce044ad1db01ec5c0f121f72be6ff0641abf0f9a895405c5cd014c2e9a",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "보존"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\SAM_T4_029_160KiB.json",
+          "packet_sha256": "88a791872b8e74af2415290b65b03ac28ccc425e6fa6ca20308962bee84a0f5c",
+          "document_count": 12,
+          "witnesses": [
+            {
+              "uid": "20240312000736:40:0",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A40%3A0",
+              "original_text_sha256": "99d285e96f9b55485be52e34547fa824b4de52dc9845eef0b25df86a00a276b9",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/TITLE",
+                  "source_span": [
+                    0,
+                    10
+                  ],
+                  "source_text": "II. 사업의 내용"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TITLE",
+                  "source_span": [
+                    0,
+                    14
+                  ],
+                  "source_text": "2. 주요 제품 및 서비스"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/P[2]",
+                  "source_span": [
+                    1,
+                    12
+                  ],
+                  "source_text": "가. 주요 제품 매출"
+                },
+                {
+                  "relation": "preceding_block",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[2]/TABLE[1]",
+                  "source_span": [
+                    0,
+                    24
+                  ],
+                  "source_text": "\n\n\n\n\n\n\n\n\n(단위 : 억원, %)\n\n\n"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            },
+            {
+              "uid": "20240312000736:804:11",
+              "actually_delivered": true,
+              "source_id": "20240312000736:20240312000736%3A804%3A11",
+              "original_text_sha256": "7173f9ce044ad1db01ec5c0f121f72be6ff0641abf0f9a895405c5cd014c2e9a",
+              "physical_table": null,
+              "saved_source_receipt_status": "REJECTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "보존"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    },
+    {
+      "case_id": "HYU_T4_079",
+      "question": "2023년 사업보고서(연간 보고서) 데이터만을 사용하여 2023년 4분기만의 단일 영업이익을 계산할 수 있는지 논리적으로 검증하고, 불가능하다면 사유를 설명해 줘.",
+      "group": "refusal",
+      "main_aggregate": true,
+      "frozen_required_units": [],
+      "frozen_existing_scope": null,
+      "frozen_existing_hold_reason": null,
+      "frozen_error_boundaries": [],
+      "answer_completion_rule": "적절한거절: 연간/전년도 수치만으로 해당연도Q4 단독이익을 식별할 수 없음을 설명하고 동일범위9개월 누계 또는분기직접값 필요를 명시.",
+      "reference_facts_and_relations": [
+        "1047:3 연결2023연간 영업이익15,126,901백만원,2022연간9,824,928백만원.",
+        "Q4=같은범위2023연간-2023누적9개월이라는 조건식은 허용. 실제9개월값이 제공되지 않았으므로 수치결론 유보.",
+        "연간/4, 전년연간차이5,301,973 또는 다른부문의이익을 Q4로 제시하지 않음. 보고서 전체에분기정보가 없다고 미검증 단정하지 않음."
+      ],
+      "appropriate_abstention": "제공자료에서는 계산불가라고 제한하고 필요한기간정보를 설명.",
+      "anticipated_errors": [
+        "연평균을Q4로 취급",
+        "전년도차감을Q4로 취급",
+        "검색패킷 부재를 전체보고서부재로 확장"
+      ],
+      "arm_evidence": {
+        "A12": {
+          "packet_path": "benchmarks\\results\\table_fact_units_offline_20261023\\packets\\HYU_T4_079_A12.json",
+          "packet_sha256": "adf2d9544108b4d422dafd18d58f8114c8a86af56308df6ebde9d1e6e096d10c",
+          "document_count": 11,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1047:3",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1047%3A3",
+              "original_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "연간만,9개월누계없음"
+        },
+        "64KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\HYU_T4_079_64KiB.json",
+          "packet_sha256": "adf2d9544108b4d422dafd18d58f8114c8a86af56308df6ebde9d1e6e096d10c",
+          "document_count": 11,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1047:3",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1047%3A3",
+              "original_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "동일"
+        },
+        "160KiB": {
+          "packet_path": "benchmarks\\results\\table_fact_budget77_offline_20261023\\packets\\HYU_T4_079_160KiB.json",
+          "packet_sha256": "72383917dc88b5ffc6e1c20a006e7495797b750cf2f116a8d012be1dfd902cab",
+          "document_count": 11,
+          "witnesses": [
+            {
+              "uid": "20240313001451:1047:3",
+              "actually_delivered": true,
+              "source_id": "20240313001451:20240313001451%3A1047%3A3",
+              "original_text_sha256": "d09d5cb8167e2f4c75f3c5c00a4de8acf90fba299b0d23b038120b3bd3b5fcc8",
+              "physical_table": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[2]",
+              "saved_source_receipt_status": "ADMITTED",
+              "delivered_literal_contexts": [
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/TITLE",
+                  "source_span": [
+                    0,
+                    7
+                  ],
+                  "source_text": "목     차"
+                },
+                {
+                  "relation": "ancestor_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TITLE",
+                  "source_span": [
+                    0,
+                    19
+                  ],
+                  "source_text": "IV. 이사의 경영진단 및 분석의견"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[10]",
+                  "source_span": [
+                    1,
+                    15
+                  ],
+                  "source_text": "3. 재무상태 및 영업실적"
+                },
+                {
+                  "relation": "intermediate_heading",
+                  "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/P[13]",
+                  "source_span": [
+                    1,
+                    12
+                  ],
+                  "source_text": "나. 연결 손익계산서"
+                }
+              ],
+              "note": "Original body may support evidence without a fact appendix. Outside-packet witness is evaluator-only and never counts as model-visible support."
+            }
+          ],
+          "expected_evidence_boundary_not_answer_prediction": "동일; 추가표가 있어도기간관계확인 필요"
+        }
+      },
+      "answer_scores": "PENDING_NO_ANSWERS_GENERATED_OR_INSPECTED"
+    }
+  ],
+  "postrun_record_schema": [
+    "case_id",
+    "arm",
+    "repeat",
+    "answer_path",
+    "answer_sha256",
+    "accuracy",
+    "completeness",
+    "faithfulness",
+    "appropriate_abstention",
+    "required_unit_states",
+    "claim_citation_support",
+    "arithmetic_checks",
+    "ambiguities",
+    "regression_vs_A12",
+    "regression_160_vs64",
+    "adjudication_notes"
+  ]
+}

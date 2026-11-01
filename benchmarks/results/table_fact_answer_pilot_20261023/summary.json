@@ -1,0 +1,1336 @@
+{
+  "groups": {
+    "common_answerable": {
+      "A": {
+        "answers": 16,
+        "complete_success": 8,
+        "accuracy": {
+          "FAIL": 2,
+          "PARTIAL": 6,
+          "PASS": 8
+        },
+        "completeness": {
+          "FAIL": 2,
+          "PARTIAL": 6,
+          "PASS": 8
+        },
+        "faithfulness": {
+          "PASS": 14,
+          "PARTIAL": 2
+        },
+        "appropriate_abstention": {
+          "PASS": 8,
+          "PARTIAL": 2,
+          "NOT_APPLICABLE": 6
+        },
+        "unit_states": {
+          "OMITTED": 12,
+          "FULFILLED": 29,
+          "PARTIAL": 3,
+          "UNRESOLVED_CRITERION": 2
+        },
+        "omitted_units": 12,
+        "unfulfilled_units": 17
+      },
+      "B": {
+        "answers": 16,
+        "complete_success": 8,
+        "accuracy": {
+          "PARTIAL": 6,
+          "FAIL": 2,
+          "PASS": 8
+        },
+        "completeness": {
+          "PARTIAL": 6,
+          "FAIL": 2,
+          "PASS": 8
+        },
+        "faithfulness": {
+          "PASS": 14,
+          "PARTIAL": 2
+        },
+        "appropriate_abstention": {
+          "PASS": 8,
+          "NOT_APPLICABLE": 6,
+          "PARTIAL": 2
+        },
+        "unit_states": {
+          "OMITTED": 12,
+          "FULFILLED": 32,
+          "PARTIAL": 2
+        },
+        "omitted_units": 12,
+        "unfulfilled_units": 14
+      },
+      "C": {
+        "answers": 16,
+        "complete_success": 9,
+        "accuracy": {
+          "PARTIAL": 6,
+          "PASS": 10
+        },
+        "completeness": {
+          "PARTIAL": 6,
+          "PASS": 10
+        },
+        "faithfulness": {
+          "PASS": 15,
+          "PARTIAL": 1
+        },
+        "appropriate_abstention": {
+          "PASS": 6,
+          "PARTIAL": 3,
+          "NOT_APPLICABLE": 7
+        },
+        "unit_states": {
+          "OMITTED": 6,
+          "FULFILLED": 38,
+          "PARTIAL": 2
+        },
+        "omitted_units": 6,
+        "unfulfilled_units": 8
+      }
+    },
+    "diagnostic_or_hold": {
+      "A": {
+        "answers": 4,
+        "complete_success": null,
+        "accuracy": {
+          "null": 4
+        },
+        "completeness": {
+          "null": 4
+        },
+        "faithfulness": {
+          "PASS": 4
+        },
+        "appropriate_abstention": {
+          "PASS": 4
+        },
+        "unit_states": {
+          "OMITTED": 4,
+          "FULFILLED": 2,
+          "PARTIAL": 2
+        },
+        "omitted_units": 4,
+        "unfulfilled_units": 6
+      },
+      "B": {
+        "answers": 4,
+        "complete_success": null,
+        "accuracy": {
+          "null": 4
+        },
+        "completeness": {
+          "null": 4
+        },
+        "faithfulness": {
+          "PASS": 4
+        },
+        "appropriate_abstention": {
+          "PASS": 4
+        },
+        "unit_states": {
+          "FULFILLED": 2,
+          "PARTIAL": 2,
+          "OMITTED": 4
+        },
+        "omitted_units": 4,
+        "unfulfilled_units": 6
+      },
+      "C": {
+        "answers": 4,
+        "complete_success": null,
+        "accuracy": {
+          "null": 4
+        },
+        "completeness": {
+          "null": 4
+        },
+        "faithfulness": {
+          "PASS": 4
+        },
+        "appropriate_abstention": {
+          "PASS": 4
+        },
+        "unit_states": {
+          "FULFILLED": 4,
+          "PARTIAL": 2,
+          "OMITTED": 2
+        },
+        "omitted_units": 2,
+        "unfulfilled_units": 4
+      }
+    },
+    "refusal": {
+      "A": {
+        "answers": 4,
+        "complete_success": 4,
+        "accuracy": {
+          "PASS": 4
+        },
+        "completeness": {
+          "PASS": 4
+        },
+        "faithfulness": {
+          "PASS": 4
+        },
+        "appropriate_abstention": {
+          "PASS": 4
+        },
+        "unit_states": {},
+        "omitted_units": 0,
+        "unfulfilled_units": 0
+      },
+      "B": {
+        "answers": 4,
+        "complete_success": 4,
+        "accuracy": {
+          "PASS": 4
+        },
+        "completeness": {
+          "PASS": 4
+        },
+        "faithfulness": {
+          "PASS": 4
+        },
+        "appropriate_abstention": {
+          "PASS": 4
+        },
+        "unit_states": {},
+        "omitted_units": 0,
+        "unfulfilled_units": 0
+      },
+      "C": {
+        "answers": 4,
+        "complete_success": 4,
+        "accuracy": {
+          "PASS": 4
+        },
+        "completeness": {
+          "PASS": 4
+        },
+        "faithfulness": {
+          "PASS": 4
+        },
+        "appropriate_abstention": {
+          "PASS": 4
+        },
+        "unit_states": {},
+        "omitted_units": 0,
+        "unfulfilled_units": 0
+      }
+    }
+  },
+  "pairs": {
+    "A_B": [
+      {
+        "case_id": "HYU_T3_072",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T3_072",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "repetition": 1,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "repetition": 2,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "KAK_T3_055",
+        "repetition": 1,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "KAK_T3_055",
+        "repetition": 2,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKI_T1_068",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "currency_binding"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKI_T1_068",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "currency_binding"
+        ],
+        "lost_fulfilled": [
+          "battery_loss"
+        ]
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T2_047",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T2_047",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "POS_T1_057",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "POS_T1_057",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "long_borrowing",
+          "bond"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T4_029",
+        "repetition": 1,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T4_029",
+        "repetition": 2,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T4_079",
+        "repetition": 1,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T4_079",
+        "repetition": 2,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      }
+    ],
+    "B_C": [
+      {
+        "case_id": "HYU_T3_072",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "ownership",
+          "carrying"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T3_072",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "ownership",
+          "carrying"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "repetition": 1,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [
+          "book_entities"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "repetition": 2,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [
+          "book_entities"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "KAK_T3_055",
+        "repetition": 1,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "KAK_T3_055",
+        "repetition": 2,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKI_T1_068",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 1
+        },
+        "complete_before": false,
+        "complete_after": true,
+        "newly_fulfilled": [
+          "battery_loss"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKI_T1_068",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "battery_loss"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T2_047",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T2_047",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "POS_T1_057",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "POS_T1_057",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T4_029",
+        "repetition": 1,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T4_029",
+        "repetition": 2,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T4_079",
+        "repetition": 1,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T4_079",
+        "repetition": 2,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      }
+    ],
+    "A_C": [
+      {
+        "case_id": "HYU_T3_072",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "ownership",
+          "carrying"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T3_072",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "ownership",
+          "carrying"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "repetition": 1,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [
+          "book_entities"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_063",
+        "repetition": 2,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [
+          "book_entities"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "KAK_T3_055",
+        "repetition": 1,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "KAK_T3_055",
+        "repetition": 2,
+        "group": "diagnostic_or_hold",
+        "changes": {
+          "accuracy": null,
+          "completeness": null,
+          "faithfulness": 0
+        },
+        "complete_before": null,
+        "complete_after": null,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKI_T1_068",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 1
+        },
+        "complete_before": false,
+        "complete_after": true,
+        "newly_fulfilled": [
+          "battery_loss",
+          "currency_binding"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKI_T1_068",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 1,
+          "completeness": 1,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "currency_binding"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T1_001",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T2_047",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T2_047",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "POS_T1_057",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "POS_T1_057",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [
+          "long_borrowing",
+          "bond"
+        ],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SKH_T1_060",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": false,
+        "complete_after": false,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "MIX_T3_048",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "repetition": 1,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "CEL_T3_040",
+        "repetition": 2,
+        "group": "common_answerable",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T4_029",
+        "repetition": 1,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "SAM_T4_029",
+        "repetition": 2,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T4_079",
+        "repetition": 1,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      },
+      {
+        "case_id": "HYU_T4_079",
+        "repetition": 2,
+        "group": "refusal",
+        "changes": {
+          "accuracy": 0,
+          "completeness": 0,
+          "faithfulness": 0
+        },
+        "complete_before": true,
+        "complete_after": true,
+        "newly_fulfilled": [],
+        "lost_fulfilled": []
+      }
+    ]
+  },
+  "performance": {
+    "A": {
+      "answers": 24,
+      "estimated_usd": "0.4708784",
+      "input_tokens": 331712,
+      "output_tokens": 8130,
+      "reasoning_tokens": 317,
+      "cached_tokens": 183194,
+      "cache_write_tokens": 148446,
+      "latency_mean": 7.772698916665831,
+      "latency_median": 7.071739599996363,
+      "latency_max": 15.148167700011982
+    },
+    "B": {
+      "answers": 24,
+      "estimated_usd": "0.7622304",
+      "input_tokens": 554212,
+      "output_tokens": 7943,
+      "reasoning_tokens": 278,
+      "cached_tokens": 292789,
+      "cache_write_tokens": 261351,
+      "latency_mean": 7.888053979161971,
+      "latency_median": 7.348471100005554,
+      "latency_max": 14.293471199984197
+    },
+    "C": {
+      "answers": 24,
+      "estimated_usd": "1.2558072",
+      "input_tokens": 977924,
+      "output_tokens": 8131,
+      "reasoning_tokens": 341,
+      "cached_tokens": 529282,
+      "cache_write_tokens": 448570,
+      "latency_mean": 7.822597450003134,
+      "latency_median": 6.721853650014964,
+      "latency_max": 14.824453499983065
+    }
+  },
+  "execution": {
+    "at": "2026-10-22T17:47:12.428534+00:00",
+    "attempts": 72,
+    "completed": 72,
+    "elapsed_seconds": 564.0724189999746,
+    "error": null,
+    "estimated_usd": "2.4889160",
+    "status": "COMPLETED",
+    "unsettled_reservation_usd": "0"
+  },
+  "raw_seal_verified": true,
+  "frozen_inputs_verified": true,
+  "source_review": "Masked native-assistant review plus root adjudication; no independent human or judge API.",
+  "all_citation_ids_valid": true,
+  "all_answers_schema_valid": true,
+  "statistical_inference": "Descriptive only; repeats are not independent questions; development-exposed purposive sample."
+}

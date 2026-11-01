@@ -3,6 +3,20 @@ from __future__ import annotations
 from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
 
+# Explicit experiment only. These are lexical aliases / related source-field
+# hints, not assertions that a legal entity's location is its sales geography.
+# Keep the versioned ID stable; a vocabulary or trigger change needs a new ID.
+EXPERIMENTAL_LEXICAL_QUERY_POLICIES: Dict[str, Tuple[Dict[str, Any], ...]] = {
+    "country_location_v1": (
+        {
+            "id": "country_source_fields",
+            "query_pattern": r"(?<!\w)(?:나라|국가)(?:별(?:로)?|에서(?:는|도)?|마다|의|는|가|를|로|와)?(?!\w)",
+            "append_terms": ("국가", "소재지"),
+        },
+    ),
+}
+
+
 KOREAN_PERIOD_COMPARISON_RE_FRAGMENT = r"(?:전년|전기|직전\s*연도)\s*대비"
 KOREAN_COUNT_UNITS = ("개", "명", "건", "곳", "사", "대")
 KOREAN_COUNT_SCALE_PREFIXES = (("천", 1_000.0), ("만", 10_000.0), ("백만", 1_000_000.0))

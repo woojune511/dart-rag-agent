@@ -1,0 +1,71 @@
+{
+  "cases": 77,
+  "selected_documents": 924,
+  "actual_original_documents": 907,
+  "exact64_replays": 77,
+  "external_API_calls": 0,
+  "cost_usd": 0,
+  "source_unit_regeneration": false,
+  "elapsed_seconds": 57.0,
+  "arms": {
+    "64KiB": {
+      "total_packet_bytes": 4200687,
+      "median_packet_bytes": 59334,
+      "mean_packet_bytes": 54554.37662337662,
+      "max_packet_bytes": 65536,
+      "attached_unit_events": 9465,
+      "attached_table_events": 321,
+      "budget_rejected_unit_events": 9319,
+      "cases_with_budget_rejections": 30
+    },
+    "160KiB": {
+      "total_packet_bytes": 5063637,
+      "median_packet_bytes": 59334,
+      "mean_packet_bytes": 65761.51948051948,
+      "max_packet_bytes": 163836,
+      "attached_unit_events": 17772,
+      "attached_table_events": 410,
+      "budget_rejected_unit_events": 1012,
+      "cases_with_budget_rejections": 2
+    }
+  },
+  "unit_changes": {
+    "retained": 9465,
+    "added": 8307,
+    "lost": 0,
+    "cases_with_added": [
+      "KBF_T2_018",
+      "MIX_T3_048",
+      "MIX_T2_047",
+      "SKH_T1_060",
+      "NAV_T1_030",
+      "KAK_T3_055",
+      "HYU_T3_072",
+      "HYU_T4_037",
+      "KBF_T1_017",
+      "KBF_T2_043",
+      "KBF_T3_044",
+      "KBF_T4_020",
+      "MIX_T3_025",
+      "LGE_T1_051",
+      "SKI_T1_068",
+      "MIX_T3_063",
+      "NAV_T1_005",
+      "NAV_T3_032",
+      "MIX_T1_021",
+      "SAM_T1_001",
+      "SAM_T1_026",
+      "SAM_T4_029",
+      "CEL_T2_073",
+      "MIX_T3_050",
+      "KAB_T1_066",
+      "HYU_T1_009",
+      "HYU_T1_034",
+      "HYU_T3_036",
+      "HYU_T4_079",
+      "MIX_T3_023"
+    ],
+    "cases_with_lost": [],
+    "changed_payloads": 0
+  }
+}

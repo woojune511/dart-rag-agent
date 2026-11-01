@@ -1,0 +1,2630 @@
+{
+  "method": "All77 changed sources and saved Sol_top12 answer citation retention; source replacement is not itself a semantic regression, and retained citations are not a correctness proof.",
+  "grades_input_sha256": "6ea14c94821fed3d4d44b74512c30f6c47b644acd23c41340a5e8b9a5b26431b",
+  "cases": [
+    {
+      "case_id": "KBF_T2_018",
+      "query": "2023년 연결 포괄손익계산서 상의 '신용손실충당금전입액' 전년 대비 증가율을 계산하고, 그 원인을 리스크 관리 측면에서 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "전입액70.28%와 보수적 기대신용손실 적립을 설명. 625:2/1846:5/662:19/1842:1이 금액·원인·고정이하여신비율1.01%(+0.31%p)를 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:1126:483"
+          ],
+          "gained_sources": [
+            "20240326000894:1843:2"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "POS_T4_059",
+      "query": "포스코홀딩스의 2025년 아르헨티나 염수 리튬 생산량 목표치를 달성했을 때 예상되는 영업이익을 계산해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "145:51 생산능력25/23천톤 및 투자기간을 실제2025생산량·이익으로 전용하지 않고 판매단가/원가 부재로 거절.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240322000986:1121:2",
+            "20240322000986:1336:174"
+          ],
+          "gained_sources": [
+            "20240322000986:1306:144",
+            "20240322000986:524:163"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SKH_T3_080",
+      "query": "2023년 주석에서 외화환산이익과 외화환산손실 금액을 각각 찾고, 해당 연도의 환율 변동이 영업외수지에 미친 순효과(이익-손실)를 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "381:252 연결 환산손익573884-906120=-332236백만원. 다른 환율 관련 손익을 제외하는 범위를 보존.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240319000684:381:252",
+            "20240319000684:382:253",
+            "20240319000684:438:38",
+            "20240319000684:556:156",
+            "20240319000684:634:234"
+          ],
+          "gained_sources": [
+            "20240319000684:185:56",
+            "20240319000684:342:213",
+            "20240319000684:343:214",
+            "20240319000684:595:195",
+            "20240319000684:726:5"
+          ],
+          "historical_cited_sources_lost": [
+            "20240319000684:381:252"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T1_046",
+      "query": "2023년 영업비용 중 인건비(종업원급여)가 차지하는 비중을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "937:813 종업원급여1701418940/영업비용8181823307천원=20.80%; 별도 인건비 항목을 합산하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:1342:241",
+            "20240318000844:1343:242",
+            "20240318000844:1655:15",
+            "20240318000844:1658:18"
+          ],
+          "gained_sources": [
+            "20240318000844:1127:26",
+            "20240318000844:180:56",
+            "20240318000844:84:12",
+            "20240318000844:90:18"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000844:90:18"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T3_007",
+      "query": "2023년 연결재무제표 주석에서 인식된 '영업권(Goodwill)'의 총액을 찾고, 손상차손 발생 여부를 확인해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "추가된353:229 영업권 열의 기말2578089956천원과 손상19630042천원을 정확히 추출.1563:11의196억원 설명과 일치.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:186:62",
+            "20240318000844:351:227",
+            "20240318000844:356:232",
+            "20240318000844:365:241"
+          ],
+          "gained_sources": [
+            "20240318000844:1256:155",
+            "20240318000844:1301:200",
+            "20240318000844:167:43",
+            "20240318000844:354:230"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T3_048",
+      "query": "2023년 연결 현금흐름표에서 '배당금 지급'으로 유출된 현금 규모를 찾고, 사업보고서의 '배당에 관한 사항'을 바탕으로 2024~2026년 주주환원 정책을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "추가된127:6 현금배당9864474백만원과590:0의2024~2026 FCF50%·정규9.8조·조건부추가환원을 모두 충족. 정책 조정 가능성도 원문 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:127:6",
+            "20240312000736:383:4",
+            "20240312000736:477:93"
+          ],
+          "gained_sources": [
+            "20240312000736:151:23",
+            "20240312000736:333:205",
+            "20240312000736:389:5"
+          ],
+          "historical_cited_sources_lost": [
+            "20240312000736:127:6"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T2_078",
+      "query": "2023년 연결 연구개발비용 총액을 추출하고, 사업보고서에서 Harman 부문의 전장 사업 방향과 주요 기술 초점을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "92:3/93:4 연결R&D 총액·보조금 전후를 구분.114:17/682:9의 IT 접목·SDV·콕핏·5G TCU 기술과 성과를 보존.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:1051:0",
+            "20240312000736:48:5"
+          ],
+          "gained_sources": [
+            "20240312000736:128:0",
+            "20240312000736:39:0"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T1_013",
+      "query": "2023년 전체 연구개발비용 중 무형자산(개발비)으로 자본화된 금액의 비율(%)을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "101:42 연결R&D 자본화 비율52.99%, 정부보조금 없음 및 차감 전후 동일도 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:365:205",
+            "20240318000913:366:206",
+            "20240318000913:780:183"
+          ],
+          "gained_sources": [
+            "20240318000913:104:45",
+            "20240318000913:1063:18",
+            "20240318000913:71:12"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000913:104:45"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T4_016",
+      "query": "셀트리온의 2023년 스마트폰 판매 실적과 전년 대비 증감률을 계산해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1055:10 의약품 부문 실적을 스마트폰 실적으로 대체하지 않고 두연도 자료부족을 설명.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:1235:7",
+            "20240318000913:16:4"
+          ],
+          "gained_sources": [
+            "20240318000913:1052:7",
+            "20240318000913:987:2"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KAK_T3_076",
+      "query": "2023년 사업보고서 중 '그 밖의 투자자 보호를 위하여 필요한 사항' 등에서 데이터센터 화재(서비스 장애)와 관련된 보상 진행 현황 또는 관련 충당부채 내역을 찾아 요약해.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1412:0 소송54건106101백만원은 맞고 화재사건으로 특정하지 않음.1421:9 주석38 안내 및 발췌 한계 명시.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240418000375:1262:1",
+            "20240418000375:240:99",
+            "20240418000375:83:5"
+          ],
+          "gained_sources": [
+            "20240418000375:1423:1",
+            "20240418000375:1425:3",
+            "20240418000375:1429:0"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "query": "2023년 미국 시장 판매대수의 전년 대비 성장률을 계산하고, 사업보고서에서 인플레이션 감축법(IRA) 등 보호무역주의 정책에 대한 대응 필요성을 요약해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "질문 주체 생략 HOLD 유지. 96:5의 현대차 미국 78.1/87.0만대로 11.4% 계산; 보고율11.5% 및 전체시장12.3%와 분리하고 차이의 정확한 원인을 단정하지 않는다. 1058:14 IRA/핵심원자재법, 생산물량 유연화 및 EV원가경쟁 방향 모두 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:1212:4",
+            "20240313001451:46:6"
+          ],
+          "gained_sources": [
+            "20240313001451:106:15",
+            "20240313001451:99:8"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T3_011",
+      "query": "사업보고서의 MD&A를 바탕으로 2023년 수익성 개선의 주요 요인을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "물량·고부가 믹스·판매체질/재료비 개선을 최소2개 이상 설명.1045:1/1047:3이 부문별 증감 및 연결9.3%·+2.4%p까지 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:1045:1",
+            "20240313001451:99:8"
+          ],
+          "gained_sources": [
+            "20240313001451:1115:7",
+            "20240313001451:1118:10"
+          ],
+          "historical_cited_sources_lost": [
+            "20240313001451:1045:1"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T2_047",
+      "query": "사업보고서를 바탕으로 2023년 제네시스 브랜드의 고급화 전략 성과를 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "고급차 믹스와2023년8월 누적100만대 성과 충족. GV60수상·2023연식/GV80쿠페 출시·4대권역 전략을 각각99:8/19:5/103:12가 지지. 차량부문과 제네시스 단독실적 구분.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:1149:18"
+          ],
+          "gained_sources": [
+            "20240313001451:101:10"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T4_049",
+      "query": "KB금융의 2023년 반도체 파운드리 시장 점유율을 알려줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "122:45/312:235 금융시장점유율을 파운드리 점유율로 바꾸지 않고 거절.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:107:30"
+          ],
+          "gained_sources": [
+            "20240326000894:123:46"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "LGE_T4_053",
+      "query": "LG에너지솔루션의 2023년 수소연료전지 차량(FCEV) 판매량을 알려줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "18:0/34:0 전지사업 자료와FCEV 차량판매를 구분하여 수치 유보.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240314001110:34:0",
+            "20240314001110:70:15",
+            "20240314001110:71:0"
+          ],
+          "gained_sources": [
+            "20240314001110:67:12",
+            "20240314001110:84:1",
+            "20240314001110:868:1"
+          ],
+          "historical_cited_sources_lost": [
+            "20240314001110:34:0"
+          ],
+          "novel_vs_A12_candidate_pool": [
+            "20240314001110:84:1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "POS_T1_057",
+      "query": "2023년 연결기준 이자보상배율(영업이익 / 이자비용)을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": false,
+      "historical_note": "692:331 이자비용1001290백만원은 정확하지만 연결영업이익이 제공되지 않아 비율을 유보. top8과 같은 미완료.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240322000986:533:172",
+            "20240322000986:534:173",
+            "20240322000986:884:75",
+            "20240322000986:885:76"
+          ],
+          "gained_sources": [
+            "20240322000986:1030:221",
+            "20240322000986:1230:68",
+            "20240322000986:1296:134",
+            "20240322000986:722:361"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240322000986:1030:221"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "SKH_T1_060",
+      "query": "2023년 연결 재무상태표에서 유·무형자산의 총합 대비 차입금(단기차입금, 장기차입금, 사채 합산)의 비중을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": false,
+      "historical_note": "277:148 차입금29468632백만원은 유동성 대체분 포함이라고 명시. 분모 유무형자산이 없어 비율 유보; top8과 같은 미완료.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240319000684:278:149",
+            "20240319000684:279:150",
+            "20240319000684:280:151",
+            "20240319000684:282:153",
+            "20240319000684:532:132",
+            "20240319000684:535:135"
+          ],
+          "gained_sources": [
+            "20240319000684:128:5",
+            "20240319000684:187:58",
+            "20240319000684:191:62",
+            "20240319000684:200:71",
+            "20240319000684:726:5",
+            "20240319000684:74:2"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240319000684:74:2"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T1_030",
+      "query": "2023년 잉여현금흐름(FCF)을 영업활동현금흐름에서 유형자산 취득액을 차감하여 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "122:5 영업현금흐름과 유형자산취득 원 단위를 보존하여 FCF1361609576268원을 정확히 계산.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:1435:334",
+            "20240318000844:1443:342",
+            "20240318000844:991:867"
+          ],
+          "gained_sources": [
+            "20240318000844:1506:1",
+            "20240318000844:1563:11",
+            "20240318000844:366:242"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000844:1506:1",
+            "20240318000844:1563:11"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T4_008",
+      "query": "네이버의 2023년 '선박 건조' 부문 수주 잔고를 알려줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1559:7 ICT사업 구분을 선박건조 수주잔고로 전용하지 않고 현재발췌 부족만 진술.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:104:32",
+            "20240318000844:67:0",
+            "20240318000844:79:7",
+            "20240318000844:9:9"
+          ],
+          "gained_sources": [
+            "20240318000844:17:5",
+            "20240318000844:33:0",
+            "20240318000844:76:4",
+            "20240318000844:99:27"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000844:76:4",
+            "20240318000844:99:27"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T4_033",
+      "query": "네이버의 2023년 자체 보유 화물 트럭 대수와 물류 배송 건수를 알려줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1559:7 도착보장 이용자성장을 화물트럭·배송건수로 바꾸지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:104:32",
+            "20240318000844:105:33",
+            "20240318000844:114:42",
+            "20240318000844:79:7"
+          ],
+          "gained_sources": [
+            "20240318000844:76:4",
+            "20240318000844:89:17",
+            "20240318000844:94:22",
+            "20240318000844:99:27"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000844:89:17",
+            "20240318000844:99:27"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T3_028",
+      "query": "2023년 재무제표 주석에서 '재고자산평가손실(또는 환입)' 규모를 찾고, 이것이 매출원가에 미친 영향을 분석해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "319:191/532:148 연결5037579·별도3558358백만원을 구분.210:82/448:64 비용 포함 및 환입 반대방향 설명.533:149 전기 대비40.7%와 등 포함 한계를 보존.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:209:81",
+            "20240312000736:210:82",
+            "20240312000736:319:191",
+            "20240312000736:447:63",
+            "20240312000736:448:64",
+            "20240312000736:532:148",
+            "20240312000736:533:149"
+          ],
+          "gained_sources": [
+            "20240312000736:158:30",
+            "20240312000736:171:43",
+            "20240312000736:172:44",
+            "20240312000736:395:11",
+            "20240312000736:528:144",
+            "20240312000736:646:20",
+            "20240312000736:701:28"
+          ],
+          "historical_cited_sources_lost": [
+            "20240312000736:210:82",
+            "20240312000736:319:191",
+            "20240312000736:448:64",
+            "20240312000736:532:148",
+            "20240312000736:533:149"
+          ],
+          "novel_vs_A12_candidate_pool": [
+            "20240312000736:528:144",
+            "20240312000736:701:28"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T4_070",
+      "query": "삼성전자의 2023년 사업보고서에 나타난 2026년 파운드리 3나노 공정의 예상 수율을 알려줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1074:23 2022.06 3나노GAA 양산·PPA개선과2026 예상수율을 구분하며 거절.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:255:127",
+            "20240312000736:258:130",
+            "20240312000736:53:10",
+            "20240312000736:638:12"
+          ],
+          "gained_sources": [
+            "20240312000736:1073:22",
+            "20240312000736:108:11",
+            "20240312000736:110:13",
+            "20240312000736:590:0"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T2_039",
+      "query": "2023년 셀트리온이 북미 지역에서 직접판매 체제를 어떻게 확대했는지 설명하고, 짐펜트라(Zymfentra)의 미국 시장 진출 의미를 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "49:1 미국2023직판·캐나다 확대,37:0 짐펜트라2023.10.21 신약허가 충족.145:21 라이선스·38:1 합병일원화·134:10 가격/판매 전망을 실제2023출시성과와 구분.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:73:14"
+          ],
+          "gained_sources": [
+            "20240318000913:1057:12"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T4_041",
+      "query": "셀트리온의 2023년 5G 통신망 설비투자(CAPEX) 금액을 알려줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "985:0 배당재원 CAPEX 언급을 5G망 투자금액으로 전용하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:1065:20",
+            "20240318000913:1099:12",
+            "20240318000913:1235:7",
+            "20240318000913:16:4",
+            "20240318000913:68:9"
+          ],
+          "gained_sources": [
+            "20240318000913:106:47",
+            "20240318000913:108:49",
+            "20240318000913:109:50",
+            "20240318000913:110:51",
+            "20240318000913:38:1"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000913:38:1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T4_024",
+      "query": "셀트리온의 2023년 배터리 셀 제조 수율을 알려줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1099:12 바이오시밀러 공정수율 개선을 배터리셀 수율로 바꾸지 않고 거절.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:1235:7",
+            "20240318000913:16:4",
+            "20240318000913:68:9"
+          ],
+          "gained_sources": [
+            "20240318000913:109:50",
+            "20240318000913:17:5",
+            "20240318000913:36:9"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KAK_T3_055",
+      "query": "재무제표 주석을 참조하여, 종속기업(SM엔터테인먼트 등) 편입이 2023년 연결 매출액 및 무형자산 증가에 미친 영향을 요약해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "인수 매출 기여도/무형자산 범위 HOLD 유지. SM매출756076432천원과 취득영업권846169079천원, SM브랜드98600836천원, 오션드라이브67681335천원이 인용표의 해당 열 및 단위와 일치. 내부거래 조정 후 순기여나 연결 무형자산 증가 전체로 단정하지 않는다.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240418000375:1043:252",
+            "20240418000375:148:7",
+            "20240418000375:159:18",
+            "20240418000375:160:19",
+            "20240418000375:768:627",
+            "20240418000375:769:628"
+          ],
+          "gained_sources": [
+            "20240418000375:1264:3",
+            "20240418000375:1279:2",
+            "20240418000375:150:9",
+            "20240418000375:154:13",
+            "20240418000375:725:584",
+            "20240418000375:782:641"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240418000375:782:641"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T3_072",
+      "query": "2023년 타법인출자 현황 또는 주석을 바탕으로 모셔널(Motional)의 지분율, 투자장부금액, 요약 손익을 정리해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": false,
+      "historical_note": "Motional 관련 행이 실제top12에도 없어 요청3항목 유보.1192:18의 상세표 안내만 사용하고 보고서 전체 부재라고 하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:1190:16",
+            "20240313001451:1242:0",
+            "20240313001451:1245:3"
+          ],
+          "gained_sources": [
+            "20240313001451:1189:15",
+            "20240313001451:1257:15",
+            "20240313001451:274:132"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T4_012",
+      "query": "2026년 1분기 현대자동차의 예상 영업이익과 전기차 판매량을 예측해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1047:3 2023연간이익과1058:14 2024 EV전략은 지지.2026Q1 수치 생성 없이 필요한 가정·자료 설명.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:113:0",
+            "20240313001451:115:2",
+            "20240313001451:116:3",
+            "20240313001451:117:4",
+            "20240313001451:76:0",
+            "20240313001451:96:5"
+          ],
+          "gained_sources": [
+            "20240313001451:1172:14",
+            "20240313001451:125:2",
+            "20240313001451:266:124",
+            "20240313001451:374:232",
+            "20240313001451:500:358",
+            "20240313001451:746:165"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240313001451:125:2",
+            "20240313001451:266:124",
+            "20240313001451:374:232",
+            "20240313001451:500:358",
+            "20240313001451:746:165"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T4_037",
+      "query": "현대자동차의 2023년 'LNG 선박 건조' 부문 매출액을 계산해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "64:0/76:0 차량·금융·기타부문 및기타매출10112502백만원을 LNG건조매출로 전용하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:107:0",
+            "20240313001451:578:10",
+            "20240313001451:91:0"
+          ],
+          "gained_sources": [
+            "20240313001451:66:1",
+            "20240313001451:75:6",
+            "20240313001451:814:233"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KBF_T1_017",
+      "query": "2023년 KB금융의 순이자마진(NIM) 수치를 사업보고서에서 찾고, 전년 대비 증감폭(%p)을 계산해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "은행/그룹 NIM 범위 및 표시값 차이 HOLD 유지. 은행+카드2.44/2.30%로0.14%p 계산, 보고된0.13%p를 별도 제시. 가맹점수수료 포함 범위 명시. 1842:1에 지지되며 불일치 원인을 만들어내지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:1848:7",
+            "20240326000894:76:0"
+          ],
+          "gained_sources": [
+            "20240326000894:1847:6",
+            "20240326000894:1858:17"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KBF_T2_043",
+      "query": "2023년 순수수료이익(비이자이익)의 전년 대비 증가율을 계산하고, 자산관리(WM) 부문의 성과를 요약해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "비이자이익 정의/WM 범위 HOLD 유지. 순수수료이익3673524/3514902백만원으로4.51%; 이는 비이자 전체가 아닌 일부임을 명시. KB증권 위탁자산관리영업이익265445/149275백만원(+77.82%)과 순손익245434/125859백만원, 리테일/기관 범위를 정확히 분리.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:1892:51",
+            "20240326000894:625:2"
+          ],
+          "gained_sources": [
+            "20240326000894:125:48",
+            "20240326000894:76:0"
+          ],
+          "historical_cited_sources_lost": [
+            "20240326000894:625:2"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KBF_T3_019",
+      "query": "사업보고서를 참조하여 부동산 PF(프로젝트파이낸싱) 대출과 관련된 회사의 잠재적 리스크 및 대응 방안을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "KB부동산신탁 범위를 명시하며 충당금·책임준공손해배상·자금조달 위험 및 대응 설명.1111:468 한도/실행액/대여가능액을 손실액으로 오인하거나 합산하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:1155:512",
+            "20240326000894:363:286",
+            "20240326000894:61:27"
+          ],
+          "gained_sources": [
+            "20240326000894:2104:9",
+            "20240326000894:2109:14",
+            "20240326000894:607:94"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240326000894:2104:9",
+            "20240326000894:2109:14"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "KBF_T3_044",
+      "query": "2023년 사업보고서에서 BIS자기자본비율을 찾고, 해당 지표가 금융당국의 규제 기준 대비 어느 정도 수준인지 리스크 관점에서 설명해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "513:0/1851:10 그룹16.73%와1214:49 규제11.5%의5.23%p 여유 정확. 기본/보통주비율·손실흡수 설명과1852:11 은행18.08%도 원문 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:529:16",
+            "20240326000894:562:49"
+          ],
+          "gained_sources": [
+            "20240326000894:1842:1",
+            "20240326000894:565:52"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KBF_T4_020",
+      "query": "2023년 KB데이타시스템의 매출원가율을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "362:285 K-IFRS 연결매출원가218394/매출230825=94.61%. 역사적으로 정정된 answerable 분류 유지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:1113:470",
+            "20240326000894:508:63",
+            "20240326000894:79:2"
+          ],
+          "gained_sources": [
+            "20240326000894:10:10",
+            "20240326000894:111:34",
+            "20240326000894:357:280"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KBF_T4_045",
+      "query": "KB금융의 2023년 공장 가동률과 생산 실적을 요약해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "76:0 금융그룹 설명 및1842:1 자산715조7380억·순이익4조6320억은 정확하며 공장지표로 혼동하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:107:30",
+            "20240326000894:2422:5",
+            "20240326000894:76:0"
+          ],
+          "gained_sources": [
+            "20240326000894:2248:68",
+            "20240326000894:600:87",
+            "20240326000894:69:6"
+          ],
+          "historical_cited_sources_lost": [
+            "20240326000894:76:0"
+          ],
+          "novel_vs_A12_candidate_pool": [
+            "20240326000894:2248:68",
+            "20240326000894:600:87",
+            "20240326000894:69:6"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T3_025",
+      "query": "2023년 연결 포괄손익계산서에서 지배기업주주지분순이익(주주 귀속 순이익)을 확인하고, 이사의 경영진단(MD&A)을 참조하여 비이자이익 증가의 주요 원인을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "625:2 지배주주4631932백만원과 전체4563431백만원 구분.1843:2 자본시장 손익·증권브로커리지 증가를 MD&A와 연결.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240326000894:974:331",
+            "20240326000894:976:333"
+          ],
+          "gained_sources": [
+            "20240326000894:1008:365",
+            "20240326000894:1848:7"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "LGE_T1_051",
+      "query": "2023년 연결기준 영업이익을 확인하고, 미국 인플레이션 감축법(IRA)에 따른 세액공제(AMPC) 금액을 제외했을 때의 '실질 영업이익'을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "383:300 연결2163234-676874=1486360백만원. 정확한 값의 억원 반올림14864는 동결된 허용 기준 충족.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240314001110:412:329",
+            "20240314001110:778:284",
+            "20240314001110:779:285"
+          ],
+          "gained_sources": [
+            "20240314001110:125:42",
+            "20240314001110:135:52",
+            "20240314001110:507:13"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "LGE_T2_052",
+      "query": "2023년 사업보고서에서 주요 원재료(양극재, 음극재 등)의 가격 변동 추이를 요약하고, 이것이 배터리 판가(ASP)에 미친 영향을 설명해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "24:2/23:1 소형양극재 가격23.9%하락과897:3 판가 대비 투입원가 lagging을 정확히 설명.21:2/20:1 개별제품16.7%상승은 전체ASP와 구분하고 음극재 추이는 유보.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240314001110:20:1",
+            "20240314001110:26:4"
+          ],
+          "gained_sources": [
+            "20240314001110:53:0",
+            "20240314001110:953:5"
+          ],
+          "historical_cited_sources_lost": [
+            "20240314001110:20:1"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "LGE_T4_077",
+      "query": "LG에너지솔루션의 2023년 '가입자당 평균 매출(ARPU)'을 계산해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "383:300 연결매출33745470백만원은 정확하나 가입자관련매출·평균가입자수가 없어 ARPU를 거절.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240314001110:257:174",
+            "20240314001110:456:373",
+            "20240314001110:457:374",
+            "20240314001110:622:128"
+          ],
+          "gained_sources": [
+            "20240314001110:1036:5",
+            "20240314001110:422:339",
+            "20240314001110:959:11",
+            "20240314001110:982:2"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240314001110:1036:5",
+            "20240314001110:422:339",
+            "20240314001110:959:11",
+            "20240314001110:982:2"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "POS_T1_075",
+      "query": "2023년 연결기준 EBITDA를 보고서의 주요 경영지표 기준으로 답해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "EBITDA 법인 주체 HOLD 유지. 1241:79에43248백만원과 연결재무제표 기준 표시는 있지만 이 표의 운영주체를 POSCO홀딩스 전체에 연결할 근거가 없음. 질문의 회사 EBITDA로 무조건 답한 주체 귀속은 미지지. 표 내 숫자/단위/연결 표시 자체는 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240322000986:1258:96",
+            "20240322000986:1290:128",
+            "20240322000986:1354:192"
+          ],
+          "gained_sources": [
+            "20240322000986:1333:171",
+            "20240322000986:623:262",
+            "20240322000986:672:311"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240322000986:672:311"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "POS_T2_058",
+      "query": "2023년 사업보고서를 바탕으로 친환경 미래소재(이차전지소재 등) 부문의 투자 성과와 수익성 변동 요인을 요약해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "법인/사업부 범위 HOLD 유지. 그룹 리튬/니켈/재활용 투자, 양극재20/30/162천톤 및 수주계약은1163:1/311:36에 지지. 포스코퓨처엠 매출47599억원·영업이익359억원과 에너지소재33618억원·손실117억원을 구분. 메탈가격/래깅/평가손실, 감가1376(+453),EBITDA1735(-847),라임259/내화물64억원 증가는1440:278/1446:284에 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240322000986:1446:284",
+            "20240322000986:8:8"
+          ],
+          "gained_sources": [
+            "20240322000986:73:25",
+            "20240322000986:86:0"
+          ],
+          "historical_cited_sources_lost": [
+            "20240322000986:1446:284"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SKI_T1_068",
+      "query": "2023년 배터리 사업 부문(SK온)의 영업손실(적자) 규모를 확인하고, 이것이 전체 연결 영업이익의 몇 % 수준에 해당하는지 절대값으로 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": false,
+      "historical_note": "1713:6 배터리581816/전체1903886=30.6%는 정확. 하지만 유일한 인용에 금액 화폐단위가 없는데 백만원/억원을 단정하여 top8과 동일하게 근거 PARTIAL.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240320000950:1738:31",
+            "20240320000950:181:1",
+            "20240320000950:304:4",
+            "20240320000950:551:168"
+          ],
+          "gained_sources": [
+            "20240320000950:1065:109",
+            "20240320000950:1714:7",
+            "20240320000950:221:41",
+            "20240320000950:432:49"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SKI_T2_069",
+      "query": "2023년 정유 부문의 영업이익 전년 대비 증감률을 계산하고, 이사의 경영진단(MD&A)에서 정제마진 하락 추이가 실적에 미친 영향을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "1738:31 SK에너지 연결영업이익84.3%감소와 스프레드 축소를 정확히 연결.1825:118의 상하반기 시장환경 설명은 개별회사의 손익수치로 전용하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240320000950:1794:87",
+            "20240320000950:1795:88",
+            "20240320000950:1796:89",
+            "20240320000950:1797:90",
+            "20240320000950:1855:148"
+          ],
+          "gained_sources": [
+            "20240320000950:1782:75",
+            "20240320000950:1849:142",
+            "20240320000950:1851:144",
+            "20240320000950:1854:147",
+            "20240320000950:1912:205"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240320000950:1851:144",
+            "20240320000950:1854:147"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T4_065",
+      "query": "2023년 SK하이닉스의 '영화 배급 수익' 및 '방송 프로그램 제작비'를 차감한 영업이익을 계산해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "723:2 영업손실7730313백만원은 지지. 미제공영화·방송 항목을0으로 가정하거나 임의차감하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240319000684:715:20",
+            "20240319000684:820:9",
+            "20240319000684:940:30"
+          ],
+          "gained_sources": [
+            "20240319000684:162:33",
+            "20240319000684:418:18",
+            "20240319000684:869:24"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240319000684:162:33"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "SKH_T2_061",
+      "query": "2023년 전체 매출 중 DRAM 제품군이 차지하는 비중을 계산하고, 사업의 내용에서 AI 서버 수요 확대(HBM 등)로 인한 향후 실적 개선 전망을 요약해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "DRAM 비중 기준답안 불충분 HOLD 유지. 전체32.8조원과 세계 메모리시장 DRAM54%를 회사 DRAM매출로 대체하지 않음. DDR5 4배/HBM3 5배 성장,AI향 수요 전망,12단24GB HBM3/HBM3E 성능 개선 및 전사7.7조원 손실은98:10/88:0/102:14/103:15/84:4에 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240319000684:70:3",
+            "20240319000684:88:0"
+          ],
+          "gained_sources": [
+            "20240319000684:101:13",
+            "20240319000684:723:2"
+          ],
+          "historical_cited_sources_lost": [
+            "20240319000684:88:0"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T2_022",
+      "query": "2023년 핀테크 부문의 전년 대비 결제액 또는 영업수익 증가율을 계산하고, 성장의 핵심 원동력을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "34:1 영업수익14.17% 및1559:7 결제액21.8%를 구분. 외부결제·현장결제·예약/주문 및 금융상품/앱 개편을 원문과 연결.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:1498:397",
+            "20240318000844:1499:398",
+            "20240318000844:42:1"
+          ],
+          "gained_sources": [
+            "20240318000844:1565:13",
+            "20240318000844:33:0",
+            "20240318000844:368:244"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T3_063",
+      "query": "사업보고서 주석에서 관계기업 및 공동기업 투자 내역 중 장부금액이 큰 상위 2개 기업의 이름과 당기순손익을 요약해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "순위대상/기준답안 HOLD 유지. top8과 동일6개 packet에서2023 장부액 및 지분법손익 표 부재를 인정.396:272는전기,425:301은주석도입이므로 2023순위/손익을 꾸며내지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T1_005",
+      "query": "2023년 네이버의 영업수익 대비 연구개발비용 비중(%)을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "69:2 연구개발비와1558:6 영업수익의 백만원/십억원 단위를 맞춰20.6% 검산.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:1790:9",
+            "20240318000844:360:236",
+            "20240318000844:67:0",
+            "20240318000844:9:9"
+          ],
+          "gained_sources": [
+            "20240318000844:1262:161",
+            "20240318000844:1788:7",
+            "20240318000844:1791:10",
+            "20240318000844:359:235"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T1_071",
+      "query": "2023년 연결 손익계산서에서 '법인세비용차감전순이익'을 추출하고, 전년 대비 증감액을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "956:832/957:833 현재·전기 세전순손익 차이397679227천원 정확.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:1060:936",
+            "20240318000844:1098:2"
+          ],
+          "gained_sources": [
+            "20240318000844:1506:1",
+            "20240318000844:1553:1"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000844:1506:1",
+            "20240318000844:1553:1"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T2_006",
+      "query": "커머스 부문의 2023년 매출 성장률(전년 대비)을 계산하고, 포시마크(Poshmark) 인수가 커머스 실적에 미친 영향을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "1559:7 커머스성장41.4%,1058:934 취득시점·100%,1060:936 매출4738.49억/순손실190.63억을 정확히 분리. 순손실을 영업손실로 바꾸지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:91:19"
+          ],
+          "gained_sources": [
+            "20240318000844:1555:3"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T2_031",
+      "query": "2023년 서치플랫폼 매출 대비 클라우드 부문 매출의 비율을 계산하고, 클라우드 부문의 주요 기술(AI 등) 적용 사례를 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "42:1 비율12.46% 검산.114:42/113:41 HyperCLOVA X·CLOVA Studio·Neurocloud·산업전용·CSA·1784/네이버웍스 사례가 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": false,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "NAV_T3_032",
+      "query": "2023년 사업보고서에서 데이터센터(각 세종 등) 인프라 투자와 관련된 자본적 지출(CAPEX) 규모나 관련 주석 내용을 요약해.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "40:4 연결CAPEX6923억·8.5%감소를 데이터센터전용과 구분.37:1/38:2 세종장부금액·건설중자산,75:3 개장시점,1449:348/1236:135/1238:137 별도약정·취득·자본화 및 단위환산을 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000844:1238:137",
+            "20240318000844:1531:1"
+          ],
+          "gained_sources": [
+            "20240318000844:107:35",
+            "20240318000844:114:42"
+          ],
+          "historical_cited_sources_lost": [
+            "20240318000844:1238:137"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T1_021",
+      "query": "2023년 연결기준 부채비율(부채총계/자본총계)과 유동비율(유동자산/유동부채)을 각각 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "117:0 요약연결금액으로 부채25.36%·유동258.77% 정확. 이 문항은 top8과 실제 제공 packet 동일하나 인용 선택이 달라진 경우.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": false,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T4_062",
+      "query": "삼성전자의 2023년 연구개발비용을 무조건 100조 원이라고 가정하고, 매출액 대비 연구개발비 비중을 계산해.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": false,
+      "historical_note": "동결된 grounded-only 거절정책을 위반해100조 가정 계산을 수행.674:1의259조 반올림 매출과38.6%산술은 지지되며 가정을 실제공시라고 주장하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:297:169",
+            "20240312000736:513:129",
+            "20240312000736:95:6"
+          ],
+          "gained_sources": [
+            "20240312000736:1068:17",
+            "20240312000736:1071:20",
+            "20240312000736:99:2"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T1_001",
+      "query": "2023년 연결기준 삼성전자의 영업이익률을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "123:2 연결영업이익/매출=2.54% 정확.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:213:85",
+            "20240312000736:272:144",
+            "20240312000736:295:167",
+            "20240312000736:511:127"
+          ],
+          "gained_sources": [
+            "20240312000736:690:17",
+            "20240312000736:909:12",
+            "20240312000736:916:19",
+            "20240312000736:918:21"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240312000736:909:12",
+            "20240312000736:916:19",
+            "20240312000736:918:21"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T1_026",
+      "query": "2023년 연결기준 자기자본이익률(ROE)을 계산해 줘. (당기순이익 / 평균 자본총계)",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "125:4/126:5 연결총자본의 기초·기말 평균359213734.5백만원과 당기순이익15487100백만원으로4.31% 정확.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:674:1",
+            "20240312000736:802:9",
+            "20240312000736:811:18",
+            "20240312000736:910:13",
+            "20240312000736:920:23"
+          ],
+          "gained_sources": [
+            "20240312000736:909:12",
+            "20240312000736:912:15",
+            "20240312000736:916:19",
+            "20240312000736:918:21",
+            "20240312000736:919:22"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T2_027",
+      "query": "2023년 DX부문과 DS부문의 매출액 비중을 각각 계산하고, DS부문의 실적 하락을 방어하기 위한 향후 사업 전략을 요약해.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "전략 문항 채점기준 HOLD 유지. DX169992337/DS66594471/전사258935494백만원과65.7/25.7%,부문간거래 범위 지지. DS매출-32.4%/손실148795억원, HBM/DDR5/LPDDR5x 및 샤인볼트/12나노/32GbDDR5는실제 인용문에 있음. top8의 근거 밖 U100 주장을 재생성하지 않아 support PARTIAL에서PASS.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:48:5",
+            "20240312000736:4:4"
+          ],
+          "gained_sources": [
+            "20240312000736:128:0",
+            "20240312000736:684:11"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T3_003",
+      "query": "2023년 사업보고서 주석을 참조하여, 우발부채 및 주요 소송사건이 재무에 미칠 잠재적 영향을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "979:0 분할채무 연대책임·229:101 바이오로직스 소송 및 잠재손익 영향·281:153/496:112 불확실성 충족.80억원 처분 대상과 경영진 판단을 정확히 귀속.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:649:23"
+          ],
+          "gained_sources": [
+            "20240312000736:673:0"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T4_004",
+      "query": "삼성전자의 2023년 영업이익률을 계산하고, 사업보고서에서 Apple이 어떤 맥락으로 언급되는지 설명해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "677:4 이익률2.54%,77:14 Apple 주요매출처·알파벳순·5개사합계15%를 구분.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:169:41",
+            "20240312000736:385:1",
+            "20240312000736:39:0",
+            "20240312000736:406:22"
+          ],
+          "gained_sources": [
+            "20240312000736:909:12",
+            "20240312000736:911:14",
+            "20240312000736:916:19",
+            "20240312000736:918:21"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240312000736:909:12",
+            "20240312000736:911:14",
+            "20240312000736:916:19",
+            "20240312000736:918:21"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "SAM_T4_029",
+      "query": "삼성전자의 2023년 '생명보험' 부문 수입보험료를 계산해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "40:0 제품부문과804:11 최대주주 삼성생명 사업을 구분해 수입보험료 추정 거절.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240312000736:21:3",
+            "20240312000736:798:5",
+            "20240312000736:815:22",
+            "20240312000736:929:6",
+            "20240312000736:932:9"
+          ],
+          "gained_sources": [
+            "20240312000736:248:120",
+            "20240312000736:26:0",
+            "20240312000736:64:1",
+            "20240312000736:813:20",
+            "20240312000736:995:3"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240312000736:248:120",
+            "20240312000736:26:0",
+            "20240312000736:813:20",
+            "20240312000736:995:3"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T1_038",
+      "query": "2023년 무형자산상각비 총액을 포괄손익계산서 또는 주석에서 찾고, 이것이 영업이익률을 얼마나 낮추었는지(%p) 추정해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "360:200 총상각182286838천원과 당기비용182049824천원을 구분.185:25 연결매출 기준 영향8.36%p. 총액비율8.38%p는 자산배부 포함한 비교치로 제한.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:185:25",
+            "20240318000913:186:26",
+            "20240318000913:370:210",
+            "20240318000913:978:381"
+          ],
+          "gained_sources": [
+            "20240318000913:236:76",
+            "20240318000913:571:411",
+            "20240318000913:649:52",
+            "20240318000913:660:63"
+          ],
+          "historical_cited_sources_lost": [
+            "20240318000913:185:25"
+          ],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000913:236:76",
+            "20240318000913:649:52",
+            "20240318000913:660:63"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T2_014",
+      "query": "2023년 셀트리온의 주요 바이오시밀러(램시마, 트룩시마 등) 파이프라인의 연구개발 진행 현황을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "84:25 상업화 제품과103:44/106:47/108:49/1056:11 후속 품목의 임상·심사 단계 및2023말/2024구분을 정확히 보존.37:0 짐펜트라 신약허가 구별.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:42:1",
+            "20240318000913:50:2"
+          ],
+          "gained_sources": [
+            "20240318000913:133:9",
+            "20240318000913:135:11"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T2_073",
+      "query": "2023년 수출(해외매출) 비중을 전체 매출액 대비로 계산하고, 유럽 시장에서의 직판 체제 전환이 영업이익률 개선에 미친 영향을 설명해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "수출/해외매출 및 직판 인과 HOLD 유지. 연결매출2176431531380원은1048:3 표/주변 금액으로 지지. 연결 해외분자 부재를 인정하고 자회사 수출/매출로 대체하지 않음.2020/2022하반기 유럽직판전환,유통비절감경로,29.93/28.34%표시차1.59%p 및 고수익바이오시밀러/진단키트믹스 원인은인용문에 지지. 전부를 직판효과로 단정하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:512:352"
+          ],
+          "gained_sources": [
+            "20240318000913:133:9"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000913:133:9"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T3_015",
+      "query": "셀트리온헬스케어와의 합병과 관련하여 재무제표 주석에 기재된 내용과 합병의 주요 목적을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "574:414/575:415 합병일·승인·교부비율·목적 충족. 연결주석40/별도36·파생상품18/65백만원·합병시점까지 거래·신주2024.1.12 등 추가사실도 실제 인용이 지지.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:574:414",
+            "20240318000913:691:94",
+            "20240318000913:694:97"
+          ],
+          "gained_sources": [
+            "20240318000913:1018:0",
+            "20240318000913:16:4",
+            "20240318000913:31:4"
+          ],
+          "historical_cited_sources_lost": [
+            "20240318000913:574:414",
+            "20240318000913:691:94"
+          ],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000913:16:4",
+            "20240318000913:31:4"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CEL_T3_040",
+      "query": "2023년 사업보고서에서 재고자산평가손실, 재고자산평가손실환입, 재고자산폐기손실 규모를 찾아 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "추가된517:357 연결 gross손실2526280·환입48885812·폐기25163510천원 충족.917:320 별도도 구별; 두순합계가318:158/732:135 매출원가 순환입 등과 반올림 일치.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:517:357"
+          ],
+          "gained_sources": [
+            "20240318000913:918:321"
+          ],
+          "historical_cited_sources_lost": [
+            "20240318000913:517:357"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T3_050",
+      "query": "2023년 재무제표 주석 상 특수관계자(셀트리온제약 등)와의 매출 거래 규모를 합산하고, 내부거래가 실적에 미치는 영향을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "949:352 별도제품용역매출1731078694천원 및 종속기업부분합61223475천원 정확.545:385 연결관련자합계1731945873과 구분하며 전체관련자매출을 내부거래로 제거하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240318000913:545:385",
+            "20240318000913:546:386",
+            "20240318000913:948:351"
+          ],
+          "gained_sources": [
+            "20240318000913:1207:6",
+            "20240318000913:185:25",
+            "20240318000913:925:328"
+          ],
+          "historical_cited_sources_lost": [
+            "20240318000913:545:385"
+          ],
+          "novel_vs_A12_candidate_pool": [
+            "20240318000913:925:328"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "KAK_T1_054",
+      "query": "2023년 카카오의 당기순손실에 영업권손상 및 PPA무형자산 손상차손이 미친 영향을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "1267:6 연결영업흑자4609억과 최종순손실18167억을 구분하고 두 손상 유형의 영업외비용 영향을 설명. 각각의 금액은 유보.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240418000375:446:305",
+            "20240418000375:952:161",
+            "20240418000375:954:163"
+          ],
+          "gained_sources": [
+            "20240418000375:181:40",
+            "20240418000375:184:43",
+            "20240418000375:814:23"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KAK_T4_056",
+      "query": "카카오의 2023년 1주당 순자산가치(BPS)를 '매출액 나누기 발행주식총수'로 계산해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "25:0 주식수444849878주 지지.매출/주식수는 BPS가 아니라고 명시하고 숫자계산을 거절.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240418000375:209:68",
+            "20240418000375:25:0",
+            "20240418000375:685:544",
+            "20240418000375:830:39"
+          ],
+          "gained_sources": [
+            "20240418000375:1203:1",
+            "20240418000375:1325:0",
+            "20240418000375:1411:0",
+            "20240418000375:32:6"
+          ],
+          "historical_cited_sources_lost": [
+            "20240418000375:25:0"
+          ],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KAB_T1_066",
+      "query": "2023년 카카오뱅크의 CIR을 계산해 줘. 여기서 CIR은 수익성 표의 '경비차감전영업이익(A)' 대비 '판매비와관리비(E)' 비율을 의미한다.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "297:3 질문정의E/A로37.47% 정확. 반올림 문구의 자리 표현은 모호하나 표시값은 둘째자리까지 정확.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240320001487:196:100",
+            "20240320001487:199:103"
+          ],
+          "gained_sources": [
+            "20240320001487:113:17",
+            "20240320001487:43:7"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "KAB_T3_067",
+      "query": "2023년 주석 20 '순수수료손익'에서 연계대출수입수수료와 연계계좌수입수수료 금액을 찾고, 사업보고서에서 플랫폼 비즈니스의 주요 서비스와 2023년 확장 방향을 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "173:77 두수수료17003/15520백만원과54:18 서비스 최소2종,295:1/82:21/300:6의2023확장 충족.2024 투자상품 계획과2023 라이선스·세금신고 및 조직개편을 구별.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": false,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T1_009",
+      "query": "2023년 연결기준 전체 매출액 중 '금융 부문' 매출이 차지하는 비중(%)을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "113:0/76:0 외부고객매출 부문합162663579백만원으로 금융13.77%를 재계산. top8 공시13.8% 응답과 같은 완전정답이나 계산근거가 풍부해짐.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:469:327",
+            "20240313001451:545:403"
+          ],
+          "gained_sources": [
+            "20240313001451:125:2",
+            "20240313001451:64:0"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T1_034",
+      "query": "2023년 차량 부문 영업이익과 금융 부문 영업이익을 각각 추출하고, 전체 영업이익에서 차량 부문이 차지하는 비중을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "76:0/113:0/1047:3의 차량12677300·금융1385538·전체15126901백만원과83.8% 정확; 내부거래조정 포함 표시.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:530:388"
+          ],
+          "gained_sources": [
+            "20240313001451:529:387"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T2_035",
+      "query": "2023년 현대자동차 사업보고서를 바탕으로 E-GMP 기반 전동화 모델의 주요 성과를 요약해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "E-GMP 및 차량별판매 기준 HOLD 유지.1045:1은IONIQ6의2023월드카3관왕/2022IONIQ5를 지지. 추가된21:7 실제 인도공장HMI 행에2023아이오닉5(NE)양산이 연결되어 top8의 끊긴국가귀속 문제가 해소. E-GMP 연결과모델별판매는근거없다고 명시.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:0:0",
+            "20240313001451:22:8",
+            "20240313001451:88:3",
+            "20240313001451:89:4"
+          ],
+          "gained_sources": [
+            "20240313001451:101:10",
+            "20240313001451:103:12",
+            "20240313001451:104:13",
+            "20240313001451:2:2"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240313001451:104:13"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T3_036",
+      "query": "2023년 연결재무제표 주석 17. 충당부채(연결)에서 '판매보증충당부채'의 기존 충당부채 증가액을 찾고, 이것이 리스크 관리 차원에서 의미하는 바를 설명해 줘.",
+      "historical_group": "diagnostic_or_hold",
+      "historical_all_three_PASS": false,
+      "historical_note": "연결/별도 기준답안 충돌 HOLD 유지. 추가된333:191 연결표의 증가2175691백만원,사용3442626,환율-11439,기초10399527,기말9121153을 정확히 연결.183:41의 최선추정 정의를 설명하고 품질악화/잔액순증으로 단정하지 않음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": false,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "HYU_T4_079",
+      "query": "2023년 사업보고서(연간 보고서) 데이터만을 사용하여 2023년 4분기만의 단일 영업이익을 계산할 수 있는지 논리적으로 검증하고, 불가능하다면 사유를 설명해 줘.",
+      "historical_group": "refusal",
+      "historical_all_three_PASS": true,
+      "historical_note": "1047:3 연간15126901백만원과전년도9824928백만원을 구분.동일범위9개월 실적이 필요하며 연간/4 또는연도차감을Q4로 쓰지 않음.전체보고서 부재 단정 없음.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:512:370",
+            "20240313001451:742:161",
+            "20240313001451:875:294",
+            "20240313001451:876:295"
+          ],
+          "gained_sources": [
+            "20240313001451:1020:8",
+            "20240313001451:391:249",
+            "20240313001451:762:181"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240313001451:1020:8",
+            "20240313001451:391:249",
+            "20240313001451:762:181"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T1_064",
+      "query": "2023년 손익계산서에서 '매출원가'와 '판매비와관리비'를 합산하여 '총 영업비용'을 구한 뒤, 전체 매출액 대비 영업비용률을 계산해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "추가된1047:3에서 연결매출원가129179183·매출162663579백만원 확보.408:266 판관비18357495와 합계147536678·비용률90.70% 정확.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:407:265",
+            "20240313001451:777:196"
+          ],
+          "gained_sources": [
+            "20240313001451:558:416",
+            "20240313001451:559:417"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        }
+      }
+    },
+    {
+      "case_id": "MIX_T3_023",
+      "query": "사업보고서 내 '환경 및 안전' 섹션(또는 주석)에서 탄소 배출권 관련 의무나 충당부채가 언급된 내용을 찾아 요약해 줘.",
+      "historical_group": "common_answerable",
+      "historical_all_three_PASS": true,
+      "historical_note": "1225:4 현대차 배출권거래제 적용 의무와595:14 별도 회계정책의 무상/유상·충분/부족 조건을 보존. 실제충당금 계상금액은 유보.",
+      "arms": {
+        "A12": {
+          "same_source_set_as_A12": true,
+          "same_order_as_A12": true,
+          "lost_sources": [],
+          "gained_sources": [],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": []
+        },
+        "K12": {
+          "same_source_set_as_A12": false,
+          "same_order_as_A12": false,
+          "lost_sources": [
+            "20240313001451:707:126",
+            "20240313001451:710:129"
+          ],
+          "gained_sources": [
+            "20240313001451:100:9",
+            "20240313001451:58:18"
+          ],
+          "historical_cited_sources_lost": [],
+          "novel_vs_A12_candidate_pool": [
+            "20240313001451:100:9"
+          ]
+        }
+      }
+    }
+  ]
+}

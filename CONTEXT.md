@@ -1,12 +1,10 @@
 # Current Handoff Context
 
-Last updated: 2026-10-21. [Latest evaluation synthesis](docs/evaluation/rag_quality_progress_2026-10-21.md) · [Historical readiness diagnostics](docs/operations/readiness_diagnostics_2026-10-17.md)
+Last updated: 2026-11-02. [Latest evaluation synthesis](docs/evaluation/rag_quality_progress_2026-10-21.md) · [Historical readiness diagnostics](docs/operations/readiness_diagnostics_2026-10-17.md)
 
 ## Product boundary
 
-The user authorized simple RAG as the default API/Streamlit path after discussing
-its reduced guarantees. Starting source: `2a926a6e`; branch:
-`codex/reviewed-compiler-selection-gate`.
+The user-authorized default API/Streamlit path is Simple RAG with reduced guarantees.
 Read [AGENTS.md](AGENTS.md), [runtime contract](docs/architecture/agent_runtime_contract.md),
 [adoption decision](docs/architecture/simple_rag_adoption.md),
 [code map](docs/overview/codebase_map.md), and [project status](docs/overview/project_status.md).
@@ -24,13 +22,15 @@ Source-ID validity is not entailment or numeric correctness. `FinancialAgent` an
 its source/calculation checks remain only for explicit comparison/replay under
 [compiled_workflow_contract.md](docs/architecture/compiled_workflow_contract.md).
 Shared model construction does not import that path into the application.
-Published parser schema is v5; ready=true belongs to the historical v5 checkpoint, not the current local v12 experiment store. Embedding model identity is preserved. `openai` keeps
+Published parser schema is v12. Publication does not build a store or certify live readiness; historical v5 readiness is not current-build acceptance. Embedding model identity is preserved. `openai` keeps
 answer/ingest-context routes; `openai_compiler` is comparison-only and rejected by
 application startup. The old embedded evaluation dashboard is removed.
 
+V12 parsing, stored unit/period delivery and the report-selection/diagnostic UI are included. Default model/top-8/64KiB stay unchanged; lexical hints are explicit opt-in. [Table-evidence results](docs/evaluation/table_evidence_research_2026-10-24.md) and the [publication manifest](benchmarks/published/README.md) retain experiment source, negative findings and adoption limits. Table augmentation/160KiB remain experiment-only. Publication excludes credentials, stores and raw provider payloads, and does not rerun models or restart the app.
+
 ## Evidence and accounting
 
-The [October quality comparison](docs/evaluation/rag_quality_progress_2026-10-21.md) records local v12 experiments at `1d09627d` plus frozen local changes, not the published parser's measured performance. Under the same revised rubric, Terra top-8/top-12 and Sol top-8/top-12 complete 34/36/38/42 of 46 answerable cases; Sol top-12 improves four with no regression versus saved Sol top-8 at 32.7% more answer cost. Automated decomposition/selection completes 41/46 at about 4.8x cost and is not adopted. The original scores, source-bound review and one selection failure remain recorded; the 11-case completion was not preregistered. Reports/rubric are published separately from raw runs and uncommitted runtime work. Default model/top-k remain unchanged. Older parser adoption and experiment checkpoints below remain historical evidence.
+The [October quality comparison](docs/evaluation/rag_quality_progress_2026-10-21.md) records local v12 experiments at `1d09627d` plus frozen local changes, not the published parser's measured performance. Under the same revised rubric, Terra top-8/top-12 and Sol top-8/top-12 complete 34/36/38/42 of 46 answerable cases; Sol top-12 improves four with no regression versus saved Sol top-8 at 32.7% more answer cost. Automated decomposition/selection completes 41/46 at about 4.8x cost and is not adopted. The original scores, source-bound review and one selection failure remain recorded; the 11-case completion was not preregistered. The runtime fixes are now published alongside selected experiment source and summaries; raw runs/stores remain local. Default model/top-k remain unchanged. Older parser adoption and experiment checkpoints below remain historical evidence.
 
 The [table-context preservation fix](docs/evaluation/table_context_hint_preservation.md) restores prose tables previously consumed as period/unit labels. Eleven original reports/473 sections preserve all19,408 prior block texts/headings and table grids;1,559 blocks are added, including four carbon-policy tables verified through chunking. Mixed captions retain their bodies and forward only explicit unit declarations.10 regression tests and full2,154 pass. At parser-fix completion, v3 store/.env were unchanged and readiness was mismatch; the subsequent v4 rebuild resolved that mismatch at its checkpoint; the v5 successor above now resolves the subsequent paragraph-style mismatch. At fix completion answer quality was NOT_RUN with no provider calls; the later v4 regression supplied bounded answer evidence for that version. Prior strict11/12 and v3 audit are historical, unchanged.
 

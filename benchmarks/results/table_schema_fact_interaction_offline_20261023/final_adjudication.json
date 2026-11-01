@@ -1,0 +1,62 @@
+{
+  "status": "COMPLETE_OFFLINE_NOT_ADOPTED",
+  "external_model_API_calls": 0,
+  "cost_usd": 0,
+  "hypothesis_gate": "FAIL: Samsung common mandatory evidence regresses after augmentation; no new frozen required unit in the bounded panel.",
+  "positive_interaction": "LGES product-table USD source context is restored by augmentation; outside legacy26 denominator.",
+  "redundant_retrieval_gain": "Motional ownership/carrying already recovered by A12_fact160; S12 has no incremental unit on current4.",
+  "review_reconciliation": {
+    "Motional_net_profit": "Both reviewers observe loss of -803,742 supplementary investment-row profit. Frozen four-item profit_summary is incomplete in both augmented arms; do not count a new binary failure or silently call this no loss.",
+    "HOLD": "Conditional Hyundai US sales operand loss is reported separately; no HOLD promotion.",
+    "LGES": "Restored product-table USD is outside legacy26; not substituted with raw-material USD.",
+    "no_regression_claim": "Confirmed common loss suffices to fail gate; remaining unknowns do not count as passes."
+  },
+  "all77_review_validation": {
+    "cases": 77,
+    "criteria_unchanged": 154,
+    "packet_file_and_canonical_hashes": 308,
+    "actual_text_or_fact_receipts_checked": 89,
+    "not_fully_reassessed_criteria": 90,
+    "categories": {
+      "SOURCE_ID_LOSS_EQUIVALENT_ALTERNATIVE": 10,
+      "UNEVALUATED_UNKNOWN": 43,
+      "RETAINED_ORIGINAL_FACTS": 17,
+      "CONFIRMED_MANDATORY_EVIDENCE_LOSS": 2,
+      "UNIT_DEPENDENCY_CONTEXT_AMBIGUITY": 5
+    },
+    "by_group": {
+      "common_answerable": {
+        "SOURCE_ID_LOSS_EQUIVALENT_ALTERNATIVE": 10,
+        "RETAINED_ORIGINAL_FACTS": 16,
+        "CONFIRMED_MANDATORY_EVIDENCE_LOSS": 1,
+        "UNEVALUATED_UNKNOWN": 17,
+        "UNIT_DEPENDENCY_CONTEXT_AMBIGUITY": 2
+      },
+      "refusal": {
+        "UNEVALUATED_UNKNOWN": 19
+      },
+      "diagnostic_or_hold": {
+        "CONFIRMED_MANDATORY_EVIDENCE_LOSS": 1,
+        "UNEVALUATED_UNKNOWN": 7,
+        "UNIT_DEPENDENCY_CONTEXT_AMBIGUITY": 3,
+        "RETAINED_ORIGINAL_FACTS": 1
+      }
+    }
+  },
+  "interpretation_limits": [
+    "No new answers or accuracy/faithfulness/refusal score.",
+    "Development-exposed cases; no new-report generalization.",
+    "Augmentation plus160KiB is a combined delivery package, not a pure-format intervention.",
+    "S12 is schema plus frozen stream allocation, not all possible table search methods.",
+    "Physical source linkage does not certify financial meaning or model interpretation."
+  ],
+  "input_hashes": {
+    "results.json": "789a61a57d222ac5aff0d9e9c7f11b5ea52f65ef8e5510a1a2fdaf8a1a0b6331",
+    "required_evidence_review.json": "36ae8f067c465d13a8a9b7e5a3f7398f858fd80e845dc0d2d8480fe1e89fff52",
+    "all77_evidence_review.json": "2184b1030edc1c734825dd3d5d8c97dbdcc49654bb3c931fe2ef2db3af8df15f",
+    "physical_audit.json": "36589729a394cbaec8034aff605fc096802fd36c203463dd3774009468bbc957",
+    "preservation.json": "90421640cbe437f36926b47931f82805fcc3b90debbfbaa39e435be6a3c50e82",
+    "loss_layers.json": "b63795174846f005a2263da6aca15f071fdc9199a5ee3d74f6b53e88bc3c0240"
+  },
+  "disposition": "Do not advance S12 to paid answer generation or production adoption. Retain existing runtime and experimental A12_fact160 comparison baseline."
+}

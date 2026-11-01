@@ -1,0 +1,54 @@
+{
+  "version": "saved_schema_fact_interaction_v1",
+  "date": "2026-10-23",
+  "status": "FROZEN_BEFORE_NEW_PROJECTION_OUTPUT",
+  "scope": "First priority only: frozen A12 versus S12 retrieval with and without the same table-fact delivery package.",
+  "population": {
+    "cases": 77,
+    "common_answerable": 46,
+    "refusal": 19,
+    "HOLD": 12
+  },
+  "arms": {
+    "A12_original": "Saved A12 original64KiB packet",
+    "S12_original": "Saved S12 original64KiB packet",
+    "A12_fact160": "Same A12 packet plus unchanged source-validated fact-unit assembler, total160KiB",
+    "S12_fact160": "Same S12 packet plus identical fact-unit assembler, total160KiB"
+  },
+  "retrieval_fixed_within_arm": "Saved candidate lists, scores, Dense, BM25 rules, RRF60 order, selected12, query and explicit receipt. No retrieval recomputation.",
+  "delivery_fixed_between_retrieval_arms": [
+    "Frozen projector and XML helper",
+    "first physical table owner",
+    "source row/column unit order",
+    "atomic dependency admission; skip oversized unit and continue",
+    "no original source refill",
+    "no query-aware priorities",
+    "original text, context, source IDs and document order intact within each arm"
+  ],
+  "new_S12_projections": "Reuse every existing UID projection exactly. For previously unprojected S12 UIDs, run the same frozen generic projector over the saved metadata and hash-checked original XML. No schema expansion or filling missing stored values from XML.",
+  "causal_limits": "Delivery package combines table augmentation and160KiB; not a pure format effect. S12 combines schema and frozen stream allocation; not representation-only.",
+  "evaluation": [
+    "All77 invariants, source/physical-unit additions/losses and byte sizes",
+    "unchanged154 criteria with bounded source review and explicit unresolved cases",
+    "legacy26 known-witness facts, current4 failures and19axis-watch",
+    "review alternatives before interpreting source-ID loss as fact loss",
+    "A12_fact160 exact replay against previous saved160KiB packets",
+    "independent original XML/cell/context verification for delivered additions"
+  ],
+  "gate": "Proceed toward an answer-generation plan only if S12_fact160 has new required evidence beyond A12_fact160 and no confirmed required-evidence regression in reviewed cases. Unknowns do not count as passes. No tuning or automatic production adoption.",
+  "limits": {
+    "external_model_API_calls": 0,
+    "cost_usd": 0,
+    "new_answers": 0,
+    "scored_runs": 1,
+    "run_seconds": 1800,
+    "store_or_SQLite_client": false,
+    "app_restart": false,
+    "network": "blocked"
+  },
+  "preservation": {
+    "write_scope": "benchmarks/results/table_schema_fact_interaction_offline_20261023",
+    "existing_runtime_env_active_store_prior_artifacts": "immutable"
+  },
+  "interpretation": "Development-exposed offline evidence availability; not answer accuracy, semantic certification or generalization."
+}

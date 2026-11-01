@@ -1,2 +1,11 @@
 # Keep the frozen evaluation rubric hash stable across checkouts.
 benchmarks/rubrics/narrative_requirements_v1.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Preserve the exact pinned official schema bytes across platforms.
+# Upstream CRLF, padding and indentation are covered by the checksum test.
+src/config/schemas/Dart4.xsd -text whitespace=cr-at-eol,-blank-at-eol,-space-before-tab
+
+# This fixture is byte-hashed by its successor; preserve its canonical LF bytes.
+tests/fixtures/reviewed_runtime_replay_corpus_v2.json text eol=lf
+
+# User-published frozen experiment snapshots retain their recorded byte hashes.
+benchmarks/results/** -text whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab,cr-at-eol

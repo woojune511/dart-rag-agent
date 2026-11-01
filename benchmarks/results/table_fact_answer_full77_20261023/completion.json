@@ -1,0 +1,49 @@
+{
+  "status": "COMPLETED_ANALYZED",
+  "completed_at_utc": "2026-10-23T03:56:41.972792+00:00",
+  "report": "report.md",
+  "report_sha256": "880d304a693445eb37738c279683ccfefacef06ab001e537bb663ba15d4a1037",
+  "successful_answers": 308,
+  "http_attempts": 309,
+  "initial_failure": {
+    "attempt": 44,
+    "http_status": 503,
+    "preserved": true,
+    "replacement_user_authorized": true
+  },
+  "successful_usage_estimate_usd": "9.9381220",
+  "unsettled_failed_request_reservation_usd": "0.1702425",
+  "conservative_total_usd": "10.1083645",
+  "common_answerable": {
+    "cases": 46,
+    "answers_per_arm": 92,
+    "complete_success": {
+      "A": 83,
+      "C": 84
+    }
+  },
+  "refusal": {
+    "cases": 19,
+    "answers_per_arm": 38,
+    "appropriate_refusal": {
+      "A": 36,
+      "C": 36
+    }
+  },
+  "diagnostic_or_hold": {
+    "cases": 12,
+    "included_in_primary_accuracy": false,
+    "faithfulness_pass": {
+      "A": 22,
+      "C": 19
+    },
+    "regressions_and_ambiguities_disclosed": true
+  },
+  "semantic_review_scope": "Frozen criteria; native assistant source review with imperfect masking and logged adjudication, not independent human gold. All77 cases development-exposed.",
+  "audit": "final_aggregation_audit.json",
+  "preservation": "final_preservation.json",
+  "ledger_validation": "run_ledger_validation.json",
+  "runtime_changes": false,
+  "app_restart": false,
+  "further_provider_calls": false
+}

@@ -1,0 +1,71 @@
+{
+  "status": "COMPLETED_OFFLINE_BUDGET_ONLY_COMPARISON_NO_PRODUCTION_CHANGE",
+  "caps_bytes": [
+    65536,
+    163840
+  ],
+  "cases": 77,
+  "frozen_criteria": 154,
+  "external_API_calls": 0,
+  "new_answers": 0,
+  "cost_usd": 0,
+  "confirmed": {
+    "64KiB_exact_reproduction": 77,
+    "original_packet_preservation": 77,
+    "retained_unit_events": 9465,
+    "new_unit_events": 8307,
+    "lost_unit_events": 0,
+    "retained_axis_or_context_changes": 0,
+    "physical_binding_mismatches": 0,
+    "Motional_new_required_categories": [
+      "ownership",
+      "carrying"
+    ],
+    "Motional_scope": "타법인출자 현황(상세) 2023.12.31 기말잔액 기준 대안; no literal 별도 certification",
+    "Motional_profit_summary_complete": false,
+    "new_complete_current4_cases": 0,
+    "HOLD_status_lifted": 0,
+    "HOLD_conditional_recovery": [
+      "MIX_T3_063:book_entities"
+    ],
+    "HOLD_partial_components": [
+      "KAK_T3_055:R2 acquisition identifiable intangible assets"
+    ],
+    "total_context_bytes_increase_percent": 20.543068312397473
+  },
+  "limits": [
+    "No generated-answer improvement or regression measured.",
+    "All77 evidence preservation is exact; new semantic review is bounded, not154 fresh PASS grades.",
+    "Remaining candidate/selection gaps are unchanged; larger budget cannot invent absent evidence.",
+    "MIX047 pre-existing inferred prefix exposure grows34 to493 units; semantic safety is not certified.",
+    "Development-exposed panel and previously diagnosed160KiB target; not held-out generalization."
+  ],
+  "preservation": {
+    "protected_files": 5626,
+    "changed": [],
+    "env_byte_identical": true,
+    "active_v12_store_files": 11,
+    "active_v12_store_byte_identical": true,
+    "head_unchanged": true,
+    "index_unchanged": true,
+    "git_status_unchanged": true,
+    "external_API_calls": 0,
+    "store_or_SQLite_client_opened": false,
+    "app_restarts": 0,
+    "source_unit_regeneration": false
+  },
+  "artifacts": {
+    "protocol.json": "5a0a818544073666ff83d1463f1d31079f2cf779b147da53da5b6afc2d157eeb",
+    "freeze.json": "07b03ed4b9dbfe98acbe762a4d0ab0827fa80ca9224f7468b0fec39d2e631c36",
+    "results.json": "b7563d755fc55f582630ef5348cc9196d7e896979acdf472eca75bc9520635ec",
+    "aggregate_summary.json": "782458637cde6de5c36e2ded2a16212ca40d61465e5135f603e02c383f2c21ab",
+    "descriptive_statistics.json": "bca6ed5909a48f26d3868ae95f34d221a6cc5c59e2f73436e2c439f926ce302f",
+    "all77_evidence_review.json": "60c65b7a690638bdddf11fbcae11f51b4a6d4a45a8eecdc72f416ca58a21531d",
+    "postrun_required_fact_review.json": "63481845de47085b563e5957cb7c1e4a3e04bd89a758d2d3efab374e70dca934",
+    "postrun_axis_review.json": "96e506c81368f3930f6534af0f9f6e41c41ce3c4dc5427ae162b97d15abde1a1",
+    "postrun_boundary_review.json": "c3bb054d3c05a37357f10c099351f3b3bd7962771003b52918360955aaa33667",
+    "validation.json": "d8f7d67789ed6a9b9d720f90e2e9a3dc015d72ad6d6418368359029c6ab371e6",
+    "preservation.json": "272c60945f05ce963833d2ab7dd9a41eb8d401209615a80bf407738e7e0ee9cc",
+    "report.md": "e03c3723a44a9299ed2ffc3494e37d3a00f0cebc0eb97b0e2b3d2e8806f0017c"
+  }
+}

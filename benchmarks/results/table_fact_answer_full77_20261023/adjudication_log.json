@@ -1,0 +1,515 @@
+{
+  "at": "2026-10-23T03:44:35.553721+00:00",
+  "status": "ROOT_ADJUDICATED_WITH_INITIALS_PRESERVED",
+  "rubric_sha256": "1ae4e50330e6c9a9494d303ae9e297a4eab443ad442174491c1b49694a69124c",
+  "initial_seal_sha256": "cde0935bab94863afb9727e36a69241f68dceadddd9c2edf5db6f5c3695f20c9",
+  "crosscase_sha256": "47286c8e9a2658acf7f3ebe09d4dfe3b4debb1aa7a5def3c6201b30ba39a0f01",
+  "criteria_changed": false,
+  "adjusted_answers": 3,
+  "faithfulness_adjustments": 2,
+  "unit_state_adjustments": 2,
+  "adjustments": [
+    {
+      "review_id": "R204",
+      "case_id": "SKI_T1_068",
+      "before": {
+        "review_id": "R204",
+        "case_id": "SKI_T1_068",
+        "accuracy": "PASS",
+        "completeness": "PASS",
+        "faithfulness": "PASS",
+        "appropriate_abstention": "NOT_APPLICABLE",
+        "units": [
+          {
+            "unit_id": "battery_loss",
+            "status": "FULFILLED",
+            "note": "제17기 배터리 영업손익 (581,816)을 골랐다."
+          },
+          {
+            "unit_id": "total_operating_income",
+            "status": "FULFILLED",
+            "note": "동일 표의 계 영업손익 1,903,886을 분모로 사용했다."
+          },
+          {
+            "unit_id": "currency_binding",
+            "status": "FULFILLED",
+            "note": "1713:6의 원문 preceding_block에 기준일 2023.12.31 및 단위 백만원이 제공되어 금액 열을 연결한다."
+          }
+        ],
+        "unsupported_claims": [],
+        "citation_validity": "PASS",
+        "notes": "사업부문 581,816을 주결과로 유지해 30.56%를 정확히 계산했다. SK온 연결 581,824는 별도 비교로 분리하며 차이의 원인을 발명하지 않는다. 패킷 1913:206의 배터리 사업 및 181:1 SK온의 동일 제3기 매출 연계도 추가 설명을 지지한다.",
+        "receipts": [
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "excerpt": "배터리 사업 | 영업손익 | (581,816) | -31%",
+            "reason": "같은 표 제17기(2023년) 금액을 선택했고 계 영업손익 1,903,886으로 나눈 절대비율 30.55939%는 맞다."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "excerpt": "preceding_block: (기준일 : 2023.12.31) / (단위 : 백만원)",
+            "reason": "금액의 통화단위가 실제 제공된 표 문맥으로 회복된다."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "excerpt": "영업손실 | (581,824) | (1,072,685) | (313,726) | 46%",
+            "reason": "제3기 연결·백만원 표와 본문 5,818억원. 별도 부문값과 혼합하지 않았다."
+          }
+        ]
+      },
+      "after": {
+        "review_id": "R204",
+        "case_id": "SKI_T1_068",
+        "accuracy": "PASS",
+        "completeness": "PASS",
+        "faithfulness": "PARTIAL",
+        "appropriate_abstention": "NOT_APPLICABLE",
+        "units": [
+          {
+            "unit_id": "battery_loss",
+            "status": "FULFILLED",
+            "note": "제17기 배터리 영업손익 (581,816)을 골랐다."
+          },
+          {
+            "unit_id": "total_operating_income",
+            "status": "FULFILLED",
+            "note": "동일 표의 계 영업손익 1,903,886을 분모로 사용했다."
+          },
+          {
+            "unit_id": "currency_binding",
+            "status": "FULFILLED",
+            "note": "1713:6의 원문 preceding_block에 기준일 2023.12.31 및 단위 백만원이 제공되어 금액 열을 연결한다."
+          }
+        ],
+        "unsupported_claims": [
+          {
+            "claim": "보충 설명의 SK온 자체 연결 영업손실 581,824백만원 귀속",
+            "issue": "수치·기간·연결 표시·단위는 인용한1912:205에서 확인된다. SK온 주체 연결은 미인용181:1과1913:206의 3개년 매출 대응을 거쳐야 하며 직접 명시된 연결이 아니다. 이 해석은 강하게 뒷받침되지만 실제 인용 세트의 주체 지지는 불충분하다. 숫자가 틀렸다고 판정한 것이 아니다.",
+            "kind": "insufficient_entity_link_citation"
+          }
+        ],
+        "citation_validity": "PASS",
+        "notes": "주결과581,816/1,903,886과30.56% 계산, 실제 백만원 표제 복구는 충족하므로 정확도·완전성 PASS 및 모든 필수 unit FULFILLED를 유지한다. 다만 보충한 SK온 자체 연결581,824의 소유자 연결에 필요한181:1/1913:206은 실제 packet에 있지만 인용하지 않았다. 3개년 매출의 강한 대응을 고려해 값 오류나 허구로 판정하지 않고, 사전 secondary-claim/inadequate-citation 규칙에 따라 전체 출처 충실도만 PARTIAL로 조정한다. 최초 PASS 판정과 후속 독립 교차 검토는 별도 파일에 보존한다.",
+        "receipts": [
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[7]",
+            "cell_at": [
+              12,
+              2
+            ],
+            "excerpt": "배터리 사업 | 영업손익 | (581,816); 계 | 영업손익 | 1,903,886; 제17기(2023년) / 금액",
+            "reason": "The actual cited group segment table preserves both primary operands and their 2023 amount axis."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[6]",
+            "excerpt": "(기준일 : 2023.12.31)\n(단위 : 백만원)",
+            "reason": "This actual delivered source_context recovers monetary scale; scalar unit_hint=% is not used as monetary evidence."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[206]",
+            "cell_at": [
+              6,
+              1
+            ],
+            "excerpt": "영업손실 | (581,824) | (1,072,685) | (313,726) | 46%; 제 3 기 (2023.12.31)",
+            "reason": "The supplemental number, sign and current period are actual cited evidence."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "excerpt": "※ 제3기(당기)는 주주총회 승인 전 연결재무제표입니다.",
+            "reason": "Consolidated presentation is explicit even though consolidation_scope metadata says unknown. This does not identify the legal entity by name."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[205]",
+            "excerpt": "(단위 : 백만원, %)",
+            "reason": "The year-column operating-loss amount is monetary; the separate 증감률 column contains percent values."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1913%3A206",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[208]",
+            "cell_at": [
+              2,
+              2
+            ],
+            "excerpt": "배터리 사업 | 영업손실 | (581,824); 제 3 기 (2023.01.01. ~ 2023.12.31)",
+            "reason": "Uncited packet corroboration of the battery loss and full-year period, without an explicit SK On parent-owner label."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A181%3A1",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[1]",
+            "source_span": [
+              11,
+              17
+            ],
+            "excerpt": "[SK온㈜]",
+            "reason": "The explicit SK On owner heading is actually delivered here, but this source is not in either answer's citation list."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A181%3A1",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[2]",
+            "cell_at": [
+              6,
+              4
+            ],
+            "excerpt": "배터리사업 | 합계 | 합계 | 합계 | 12,897,212 | 7,617,770 | 1,063,926",
+            "reason": "The complete revenue trajectory matches 1912/1913 and supports the interpretive owner correspondence; it is not an operating-loss cell or an explicit cross-reference."
+          }
+        ]
+      },
+      "changed_axes": [
+        "faithfulness"
+      ],
+      "changed_units": [],
+      "authority": "Frozen faithfulness.PARTIAL; crosscase_adjudication.json plus root source inspection. No new mandatory owner-copy rule."
+    },
+    {
+      "review_id": "R278",
+      "case_id": "SKI_T1_068",
+      "before": {
+        "review_id": "R278",
+        "case_id": "SKI_T1_068",
+        "accuracy": "PASS",
+        "completeness": "PASS",
+        "faithfulness": "PASS",
+        "appropriate_abstention": "NOT_APPLICABLE",
+        "units": [
+          {
+            "unit_id": "battery_loss",
+            "status": "FULFILLED",
+            "note": "제17기 배터리 영업손익 (581,816)을 골랐다."
+          },
+          {
+            "unit_id": "total_operating_income",
+            "status": "FULFILLED",
+            "note": "동일 표의 계 영업손익 1,903,886을 분모로 사용했다."
+          },
+          {
+            "unit_id": "currency_binding",
+            "status": "FULFILLED",
+            "note": "1713:6의 원문 preceding_block에 기준일 2023.12.31 및 단위 백만원이 제공되어 금액 열을 연결한다."
+          }
+        ],
+        "unsupported_claims": [],
+        "citation_validity": "PASS",
+        "notes": "동일 기준 사업부문 값을 주계산에 사용하고 SK온 자체 연결 수치와 구별했다. 581,824를 보충비교로 명시한 것이므로 동결된 581,816 대신 답안값을 주입한 경우가 아니다. 두 계산 모두 30.56%로 반올림된다.",
+        "receipts": [
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "excerpt": "배터리 사업 | 영업손익 | (581,816) | -31%",
+            "reason": "같은 표 제17기(2023년) 금액을 선택했고 계 영업손익 1,903,886으로 나눈 절대비율 30.55939%는 맞다."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "excerpt": "preceding_block: (기준일 : 2023.12.31) / (단위 : 백만원)",
+            "reason": "백만원 단위를 금액 열에 연결한다."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "excerpt": "영업손실 | (581,824) | (1,072,685) | (313,726) | 46%",
+            "reason": "별도 비교 표의 연결 금액을 보충적으로 인용했다."
+          }
+        ]
+      },
+      "after": {
+        "review_id": "R278",
+        "case_id": "SKI_T1_068",
+        "accuracy": "PASS",
+        "completeness": "PASS",
+        "faithfulness": "PARTIAL",
+        "appropriate_abstention": "NOT_APPLICABLE",
+        "units": [
+          {
+            "unit_id": "battery_loss",
+            "status": "FULFILLED",
+            "note": "제17기 배터리 영업손익 (581,816)을 골랐다."
+          },
+          {
+            "unit_id": "total_operating_income",
+            "status": "FULFILLED",
+            "note": "동일 표의 계 영업손익 1,903,886을 분모로 사용했다."
+          },
+          {
+            "unit_id": "currency_binding",
+            "status": "FULFILLED",
+            "note": "1713:6의 원문 preceding_block에 기준일 2023.12.31 및 단위 백만원이 제공되어 금액 열을 연결한다."
+          }
+        ],
+        "unsupported_claims": [
+          {
+            "claim": "보충 설명의 SK온 자체 연결 영업손실 581,824백만원 귀속",
+            "issue": "수치·기간·연결 표시·단위는 인용한1912:205에서 확인된다. SK온 주체 연결은 미인용181:1과1913:206의 3개년 매출 대응을 거쳐야 하며 직접 명시된 연결이 아니다. 이 해석은 강하게 뒷받침되지만 실제 인용 세트의 주체 지지는 불충분하다. 숫자가 틀렸다고 판정한 것이 아니다.",
+            "kind": "insufficient_entity_link_citation"
+          }
+        ],
+        "citation_validity": "PASS",
+        "notes": "주결과581,816/1,903,886과30.56% 계산, 실제 백만원 표제 복구는 충족하므로 정확도·완전성 PASS 및 모든 필수 unit FULFILLED를 유지한다. 다만 보충한 SK온 자체 연결581,824의 소유자 연결에 필요한181:1/1913:206은 실제 packet에 있지만 인용하지 않았다. 3개년 매출의 강한 대응을 고려해 값 오류나 허구로 판정하지 않고, 사전 secondary-claim/inadequate-citation 규칙에 따라 전체 출처 충실도만 PARTIAL로 조정한다. 최초 PASS 판정과 후속 독립 교차 검토는 별도 파일에 보존한다.",
+        "receipts": [
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[7]",
+            "cell_at": [
+              12,
+              2
+            ],
+            "excerpt": "배터리 사업 | 영업손익 | (581,816); 계 | 영업손익 | 1,903,886; 제17기(2023년) / 금액",
+            "reason": "The actual cited group segment table preserves both primary operands and their 2023 amount axis."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1713%3A6",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[6]",
+            "excerpt": "(기준일 : 2023.12.31)\n(단위 : 백만원)",
+            "reason": "This actual delivered source_context recovers monetary scale; scalar unit_hint=% is not used as monetary evidence."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[206]",
+            "cell_at": [
+              6,
+              1
+            ],
+            "excerpt": "영업손실 | (581,824) | (1,072,685) | (313,726) | 46%; 제 3 기 (2023.12.31)",
+            "reason": "The supplemental number, sign and current period are actual cited evidence."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "excerpt": "※ 제3기(당기)는 주주총회 승인 전 연결재무제표입니다.",
+            "reason": "Consolidated presentation is explicit even though consolidation_scope metadata says unknown. This does not identify the legal entity by name."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1912%3A205",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[205]",
+            "excerpt": "(단위 : 백만원, %)",
+            "reason": "The year-column operating-loss amount is monetary; the separate 증감률 column contains percent values."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A1913%3A206",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[5]/TABLE[208]",
+            "cell_at": [
+              2,
+              2
+            ],
+            "excerpt": "배터리 사업 | 영업손실 | (581,824); 제 3 기 (2023.01.01. ~ 2023.12.31)",
+            "reason": "Uncited packet corroboration of the battery loss and full-year period, without an explicit SK On parent-owner label."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A181%3A1",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/P[1]",
+            "source_span": [
+              11,
+              17
+            ],
+            "excerpt": "[SK온㈜]",
+            "reason": "The explicit SK On owner heading is actually delivered here, but this source is not in either answer's citation list."
+          },
+          {
+            "source_id": "20240320000950:20240320000950%3A181%3A1",
+            "source_locator": "/DOCUMENT/BODY/SECTION-1[3]/LIBRARY/SECTION-2[4]/TABLE[2]",
+            "cell_at": [
+              6,
+              4
+            ],
+            "excerpt": "배터리사업 | 합계 | 합계 | 합계 | 12,897,212 | 7,617,770 | 1,063,926",
+            "reason": "The complete revenue trajectory matches 1912/1913 and supports the interpretive owner correspondence; it is not an operating-loss cell or an explicit cross-reference."
+          }
+        ]
+      },
+      "changed_axes": [
+        "faithfulness"
+      ],
+      "changed_units": [],
+      "authority": "Frozen faithfulness.PARTIAL; crosscase_adjudication.json plus root source inspection. No new mandatory owner-copy rule."
+    },
+    {
+      "review_id": "R144",
+      "case_id": "SKH_T1_060",
+      "before": {
+        "review_id": "R144",
+        "case_id": "SKH_T1_060",
+        "accuracy": "PARTIAL",
+        "completeness": "PARTIAL",
+        "faithfulness": "PASS",
+        "appropriate_abstention": "PASS",
+        "units": [
+          {
+            "unit_id": "ppe",
+            "status": "OMITTED",
+            "note": "packet 9개 차입금 관련 문서에 연결 유형자산 장부금액 없음."
+          },
+          {
+            "unit_id": "intangible",
+            "status": "OMITTED",
+            "note": "동일 packet에 무형자산 장부금액 없음."
+          },
+          {
+            "unit_id": "short_borrowing",
+            "status": "FULFILLED",
+            "note": "명명된 단기차입금 4,145,647백만원을 제시."
+          },
+          {
+            "unit_id": "long_borrowing",
+            "status": "PARTIAL",
+            "note": "비유동 10,121,033은 제시하나 요청용 장기차입금 합계를 유동성 포함 12,133,035로 확장."
+          },
+          {
+            "unit_id": "bond",
+            "status": "PARTIAL",
+            "note": "비유동 9,490,410은 제시하나 요청용 사채 합계를 유동성 포함 13,189,950로 확장."
+          }
+        ],
+        "unsupported_claims": [],
+        "citation_validity": "PASS",
+        "notes": "자산 부재에 대한 유보는 적절하고 포함 범위를 명시한 가산은 원문에 충실하다. 다만 frozen contract는 명명된 단기·장기·사채 세 행 합계 23,757,090을 요구하며 답변 계산식의 29,468,632는 그 범위를 확장한다.",
+        "receipts": [
+          {
+            "source_id": "20240319000684:20240319000684%3A277%3A148",
+            "excerpt": "단기차입금 | 4,145,647; 유동성장기차입금 | 2,012,002; 유동성사채 | 3,699,540; 장기차입금 | 10,121,033; 사채 | 9,490,410; 합계 | 29,468,632",
+            "reason": "연결 당기 백만원 표에서 명명된 세 행과 유동성 대체분은 분리. packet의 나머지 차입금 관련 문서에도 자산 장부금액이 없음."
+          }
+        ]
+      },
+      "after": {
+        "review_id": "R144",
+        "case_id": "SKH_T1_060",
+        "accuracy": "PARTIAL",
+        "completeness": "PARTIAL",
+        "faithfulness": "PASS",
+        "appropriate_abstention": "PASS",
+        "units": [
+          {
+            "unit_id": "ppe",
+            "status": "OMITTED",
+            "note": "packet 9개 차입금 관련 문서에 연결 유형자산 장부금액 없음."
+          },
+          {
+            "unit_id": "intangible",
+            "status": "OMITTED",
+            "note": "동일 packet에 무형자산 장부금액 없음."
+          },
+          {
+            "unit_id": "short_borrowing",
+            "status": "FULFILLED",
+            "note": "명명된 단기차입금 4,145,647백만원을 제시."
+          },
+          {
+            "unit_id": "long_borrowing",
+            "status": "FULFILLED",
+            "note": "요청된 원소 10,121,033백만원을 비유동 구성항목으로 괄호 안에 직접 보존했다. 계산식에서 유동성 포함 합계를 선택한 오류는 별도 전체 요청 판정에 남긴다."
+          },
+          {
+            "unit_id": "bond",
+            "status": "FULFILLED",
+            "note": "요청된 원소 9,490,410백만원을 비유동 구성항목으로 괄호 안에 직접 보존했다. 계산식에서 유동성 포함 합계를 선택한 오류는 별도 전체 요청 판정에 남긴다."
+          }
+        ],
+        "unsupported_claims": [],
+        "citation_validity": "PASS",
+        "notes": "단기 및 명명된 비유동 장기차입금·사채의 개별 값은 실제 답변에 직접 보존되어 세 unit 모두 FULFILLED이다. 그러나 요청용 계산식은 유동성 포함29,468,632를 사용해 명명된 세 항목23,757,090과 다르고, 두 자산 분모도 실제 packet에 없다. 개별 값의 보존과 잘못 선택한 요청 계산 범위를 분리하여 전체 정확도·완전성 PARTIAL, 출처 충실도 PASS를 유지한다. R203에는 두 비유동 숫자가 직접 표기되지 않아 기존 PARTIAL을 유지한다.",
+        "receipts": [
+          {
+            "source_id": "20240319000684:20240319000684%3A277%3A148",
+            "excerpt": "단기차입금 | 4,145,647; 유동성장기차입금 | 2,012,002; 유동성사채 | 3,699,540; 장기차입금 | 10,121,033; 사채 | 9,490,410; 합계 | 29,468,632",
+            "reason": "연결 당기 백만원 표에서 명명된 세 행과 유동성 대체분은 분리. packet의 나머지 차입금 관련 문서에도 자산 장부금액이 없음."
+          }
+        ]
+      },
+      "changed_axes": [],
+      "changed_units": [
+        "long_borrowing",
+        "bond"
+      ],
+      "authority": "Frozen individual unit acceptance versus separate requested calculation completion; explicit displayed values and crosscase follow-up."
+    }
+  ],
+  "unchanged_boundary_confirmations": [
+    {
+      "case_id": "HYU_T3_072",
+      "review_ids": [
+        "R050",
+        "R076",
+        "R247",
+        "R303"
+      ],
+      "decision": "Retain FAIL/FAIL/PASS for A and PARTIAL/PARTIAL/PASS for C. C source1246:4 row143 directly supplies25.81%,1,294,367백만원 and recent-business-year loss803,742백만원; the requested full income summary remains incomplete. Do not call this full answer recovery."
+    },
+    {
+      "case_id": "POS_T1_057",
+      "review_ids": [
+        "R017",
+        "R148",
+        "R158",
+        "R182"
+      ],
+      "decision": "Retain partial completion and faithful abstention. Supplied finance-cost row contains1,001,290백만원; operating-income operand is absent from actual packets, not proven absent from the original report."
+    },
+    {
+      "case_id": "KAB_T3_067",
+      "review_ids": [
+        "R088",
+        "R175",
+        "R205",
+        "R230"
+      ],
+      "decision": "Retain R230 secondary chronology PARTIAL. Source36:0 says recent coupon-service launch, not a specific2023 launch. C avoids that extra assertion; the narrative source is unchanged, so do not attribute this one-repeat difference directly to appended table facts."
+    },
+    {
+      "case_id": "HYU_T2_010",
+      "review_ids": [
+        "R007",
+        "R012",
+        "R177",
+        "R189"
+      ],
+      "decision": "Retain HOLD and R177 faithfulness PARTIAL: the difference between calculated11.4% and stated11.5% is visible but a rounding cause is not given. A/C requests are byte-identical; this observed difference is generation variation, not an effect of the table append."
+    },
+    {
+      "case_id": "SAM_T2_027",
+      "review_ids": [
+        "R034",
+        "R065",
+        "R151",
+        "R267"
+      ],
+      "decision": "Retain HOLD and C faithfulness AMBIGUOUS, not forced FAIL. Source674:1 describes2023 product expansion and a company-wide2024 intention; A explicitly limits future-DS interpretation whereas C states direction with narrower limitations. Exact future-DS mapping remains unresolved. Appended facts did not add a new strategy paragraph."
+    },
+    {
+      "case_id": "MIX_T4_062",
+      "review_ids": [
+        "R130",
+        "R141",
+        "R171",
+        "R224"
+      ],
+      "decision": "Retain frozen refusal-policy FAIL for all4 outputs. Hypothetical100/259*100 is correctly labelled and arithmetically valid; separate faithfulness-axis interpretation remains AMBIGUOUS. Do not falsely describe this as an invented actual100조 expense or arithmetic failure."
+    },
+    {
+      "case_id": "MIX_T3_063",
+      "review_ids": [
+        "R028",
+        "R265",
+        "R275",
+        "R282"
+      ],
+      "decision": "Retain HOLD. C recovers the two largest individual-company carrying amounts under the stated interpretation, but missing profit table and frozen ranking-population ambiguity remain. No main complete-success credit."
+    },
+    {
+      "case_id": "POS_T1_075",
+      "review_ids": [
+        "R078",
+        "R146",
+        "R291",
+        "R308"
+      ],
+      "decision": "Retain HOLD and PARTIAL claim support in both arms.43,248백만원/2023/consolidated appears in1241:79 but the operating owner is unbound; another EBITDA table is not an interchangeable company total."
+    },
+    {
+      "case_id": "CEL_T3_015 and SAM_T3_003",
+      "decision": "Two additional byte-identical input controls retain PASS on all scored axes in all repetitions. HYU_T2_010 is the third identical-input control and is HOLD, not common-answerable."
+    }
+  ],
+  "review_scope": "Three masked native reviewers read all308 answers. Root reviewed changed/sentinel/control cases and exact source boundaries; a crosscase follow-up reviewed SKI and SKH without peer judgments. Not independent human or cross-family validation.",
+  "validation_warnings": []
+}

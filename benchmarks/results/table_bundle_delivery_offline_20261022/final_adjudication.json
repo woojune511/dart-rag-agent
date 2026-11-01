@@ -1,0 +1,25 @@
+{
+  "verification_status": "ANALYZED",
+  "date_local": "2026-10-23",
+  "experiment": "One frozen original-A12 versus append-only T12 offline delivery comparison",
+  "all77_original_evidence_preserved": 77,
+  "current_common_nonpass_cases_reviewed": 4,
+  "current_nonpass_cases_with_new_required_numeric_values": 0,
+  "current_nonpass_cases_with_mandatory_axis_recovery": 1,
+  "mandatory_axis_recovery_case": "SKI_T1_068",
+  "confirmed_physical_link_mismatches_in_source_audit": 0,
+  "source_audit_is_author_review": true,
+  "independent_all77_packet_invariant_violations": 0,
+  "adoption": "NOT_ADOPTED: narrow axis-delivery benefit; no generated-answer benefit measured; whole-table overhead and rejection isolation remain limitations.",
+  "next_design_hypothesis_only": "Validate and budget source-bound fact units independently so an unrelated ambiguous row does not invalidate a whole table. No implementation or alternate scoring performed.",
+  "new_answer_accuracy_completeness_faithfulness_refusal": "NOT_MEASURED",
+  "evidence_files": {
+    "freeze.json": "90d1450a1b779e80c5deee48177a61f6431343899772a181af00b668eb1546f6",
+    "results.json": "778688ca30c843b7c26cb17a42dd639a7f87e480911a1d31ba9c573d23986835",
+    "evaluation_contract.json": "6df6519b4ac617579d1d9cdf92589dfbcc7de013d493f869115427b75f7ecee6",
+    "postrun_required_fact_review.json": "3e676ce4aa520f8c2aa1f6b74ec0c85188c8ecb9e3140c835181cf32b8607d7b",
+    "postrun_axis_review.json": "a9c3ee127f3a2d35b0e8519a41cd2ad95eb90743b373789da1420c9dbda4ba0d",
+    "postrun_boundary_review.json": "04c64942dd3c9cfd48184a0bb6c0d8f93212fbebf899591d8bb7f45810a0c4e7",
+    "preservation.json": "ede8e14152fd1f3f1b6822b15321ad06d3c8bdcfeb999bc8047e23c7ec44d8cd"
+  }
+}

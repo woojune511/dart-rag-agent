@@ -92,6 +92,40 @@ class SimpleRagTests(unittest.TestCase):
         self.assertIsNone(result.review_trace)
         self.assertIsNone(result.debug_bundle)
 
+    def test_stored_unit_and_period_context_reaches_model_and_cited_sources(self):
+        source = hit(text="Closing quantity | 12")
+        stored = {"unit": "KRW", "unit_hint": "thousand KRW",
+                  "period_focus": "prior", "period_labels": ["FY2039", "prior"]}
+        source[0].metadata.update(deepcopy(stored))
+        before = deepcopy(source[0].metadata)
+        result = self.agent([source]).run("What is the 2042 quantity?", report_scope={"year": 2040})
+        packet = json.loads(self.llm.calls[0][1][1])
+        for key, value in stored.items():
+            self.assertEqual(packet["documents"][0]["context"][key], value)
+            self.assertEqual(result.agent_answer["cited_sources"][0]["context"][key], value)
+        self.assertEqual(packet["documents"][0]["text"], source[0].page_content)
+        self.assertEqual(self.store.calls[0][1]["where_filter"], {"year": 2040})
+        self.assertEqual(source[0].metadata, before)
+        result.agent_answer["cited_sources"][0]["context"]["period_labels"].append("mutated")
+        self.assertEqual(source[0].metadata, before)
+
+    def test_absent_unit_and_period_context_is_not_inferred(self):
+        self.agent().run("Give the 2042 amount in thousand KRW.")
+        context = json.loads(self.llm.calls[0][1][1])["documents"][0]["context"]
+        for key in ("unit_hint", "period_focus", "period_labels"):
+            self.assertNotIn(key, context)
+
+    def test_stored_period_context_counts_toward_whole_source_byte_budget(self):
+        source = hit(text="Closing quantity | 12")
+        source[0].metadata["period_labels"] = ["x" * 2500]
+        result = self.agent([source, hit(chunk="c2")], max_context_bytes=700).run(
+            "Quantity?", include_review_trace=True)
+        packet = json.loads(self.llm.calls[0][1][1])
+        self.assertEqual([row["chunk_id"] for row in packet["documents"]], ["c2"])
+        self.assertEqual(result.review_trace["retrieval_debug_trace"]["omitted"],
+                         [{"source_id": "r1:c1", "reason": "context_byte_limit"}])
+        self.assertLessEqual(result.review_trace["retrieval_debug_trace"]["context_bytes"], 700)
+
     def test_empty_or_unaddressable_search_abstains_without_model(self):
         for hits in ([], [hit(receipt="")], [hit(chunk="")], [hit(text=" ")]):
             with self.subTest(hits=hits):
@@ -190,6 +224,7 @@ class SimpleRagTests(unittest.TestCase):
                 app = AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py")).run()
                 self.assertEqual(len(app.exception), 0)
                 self.assertEqual(len(app.tabs), 2)
+                app.radio(key="query_scope_mode").set_value("조건 직접 입력").run()
                 app.text_area(key="custom_question").set_value("Quantity?")
                 app.text_input(key="query_scope_company").set_value("Issuer")
                 app.text_input(key="query_scope_year").set_value("2040")

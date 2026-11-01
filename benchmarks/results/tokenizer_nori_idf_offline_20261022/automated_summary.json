@@ -1,0 +1,69 @@
+{
+  "status": "SOURCE_REVIEW_PENDING",
+  "arms": {
+    "A12": {
+      "source_set_changed_vs_A12": 0,
+      "source_order_changed_vs_A12": 0,
+      "cases_losing_historical_citations": 0,
+      "historical_pass_cases_losing_citations": 0,
+      "cases_with_sources_outside_A12_candidate_pool": 0,
+      "packet_mean_bytes": 37273.3,
+      "packet_median_bytes": 36352,
+      "packet_max_bytes": 64813,
+      "cases_with_byte_omissions": 6,
+      "omitted_sources": 17,
+      "packet_known_witness_panel": {
+        "known_witness_unit_hits": 24,
+        "all_units_hit_cases": 9
+      }
+    },
+    "L12": {
+      "source_set_changed_vs_A12": 51,
+      "source_order_changed_vs_A12": 75,
+      "cases_losing_historical_citations": 10,
+      "historical_pass_cases_losing_citations": 10,
+      "cases_with_sources_outside_A12_candidate_pool": 4,
+      "packet_mean_bytes": 39533.5,
+      "packet_median_bytes": 38066,
+      "packet_max_bytes": 64411,
+      "cases_with_byte_omissions": 6,
+      "omitted_sources": 22,
+      "packet_known_witness_panel": {
+        "known_witness_unit_hits": 24,
+        "all_units_hit_cases": 9
+      }
+    },
+    "N12": {
+      "source_set_changed_vs_A12": 72,
+      "source_order_changed_vs_A12": 77,
+      "cases_losing_historical_citations": 18,
+      "historical_pass_cases_losing_citations": 14,
+      "cases_with_sources_outside_A12_candidate_pool": 19,
+      "packet_mean_bytes": 38114.0,
+      "packet_median_bytes": 36731,
+      "packet_max_bytes": 65454,
+      "cases_with_byte_omissions": 5,
+      "omitted_sources": 16,
+      "packet_known_witness_panel": {
+        "known_witness_unit_hits": 20,
+        "all_units_hit_cases": 7
+      }
+    },
+    "NL12": {
+      "source_set_changed_vs_A12": 75,
+      "source_order_changed_vs_A12": 77,
+      "cases_losing_historical_citations": 18,
+      "historical_pass_cases_losing_citations": 14,
+      "cases_with_sources_outside_A12_candidate_pool": 27,
+      "packet_mean_bytes": 40612.5,
+      "packet_median_bytes": 39974,
+      "packet_max_bytes": 64345,
+      "cases_with_byte_omissions": 6,
+      "omitted_sources": 20,
+      "packet_known_witness_panel": {
+        "known_witness_unit_hits": 21,
+        "all_units_hit_cases": 8
+      }
+    }
+  }
+}

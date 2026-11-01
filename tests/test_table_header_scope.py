@@ -18,9 +18,16 @@ class TableHeaderScopeTests(unittest.TestCase):
         from src.storage.store_manifest import canonical_store_manifest, write_store_manifest, assess_store_readiness
 
         expected = canonical_store_manifest(collection_name="test")
-        self.assertEqual(CANONICAL_PARSER_SCHEMA_VERSION, "financial_parser_v5_inherited_heading_style")
+        self.assertEqual(CANONICAL_PARSER_SCHEMA_VERSION, "financial_parser_v12_schema_literal_labels")
         for version in ("financial_parser_v1", "financial_parser_v3_heading_scope",
-                        "financial_parser_v4_label_only_table_context"):
+                        "financial_parser_v4_label_only_table_context",
+                        "financial_parser_v5_inherited_heading_style",
+                        "financial_parser_v6_doubled_attribute_quotes",
+                        "financial_parser_v7_forward_table_captions",
+                        "financial_parser_v8_table_axes_headerless_values",
+                        "financial_parser_v9_period_labels_row_units",
+                        "financial_parser_v10_xml_recovery_guard",
+                        "financial_parser_v11_literal_angle_boundaries"):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as directory:
                 old = replace(expected, ingest=replace(expected.ingest, parser_schema_version=version))
                 path = write_store_manifest(directory, old)

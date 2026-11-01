@@ -1,0 +1,20 @@
+{
+  "steps": [
+    {
+      "step": "offline_preflight",
+      "status": "passed"
+    },
+    {
+      "step": "independent_preflight",
+      "status": "passed"
+    },
+    {
+      "step": "frozen_generation_72",
+      "status": "passed"
+    },
+    {
+      "step": "answer_review_and_final_validation",
+      "status": "passed"
+    }
+  ]
+}

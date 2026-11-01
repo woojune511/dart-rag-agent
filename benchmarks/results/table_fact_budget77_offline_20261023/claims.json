@@ -1,0 +1,28 @@
+{
+  "steps": [
+    {
+      "step": "budget_only_protocol_freeze",
+      "status": "passed"
+    },
+    {
+      "step": "frozen_budget77_replay",
+      "status": "passed"
+    },
+    {
+      "step": "independent_physical_review",
+      "status": "passed"
+    },
+    {
+      "step": "required_evidence_review",
+      "status": "passed"
+    },
+    {
+      "step": "bounded_axis_review",
+      "status": "passed"
+    },
+    {
+      "step": "final_reconciliation_and_preservation",
+      "status": "passed"
+    }
+  ]
+}

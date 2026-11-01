@@ -1,0 +1,407 @@
+[
+  {
+    "case_id": "KBF_T2_018",
+    "uid": "20240326000894:1846:5",
+    "evidence": "충당금 증가 직접 원인",
+    "arms": {
+      "N12": {
+        "bm25_rank": 2,
+        "score": 61.61085527174609,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 3,
+          "dense_only": 1,
+          "bm25_only": 1
+        }
+      },
+      "F12": {
+        "bm25_rank": 1,
+        "score": 61.61085527174609,
+        "rrf_rank": 4,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 3,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      }
+    }
+  },
+  {
+    "case_id": "NAV_T3_007",
+    "evidence": "연결 영업권 총액과 손상",
+    "uid": "20240318000844:353:229",
+    "arms": {
+      "N12": {
+        "bm25_rank": 127,
+        "score": 31.859189900827943,
+        "rrf_rank": 9,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 5,
+          "dense_only": 1,
+          "bm25_only": 2
+        }
+      },
+      "F12": {
+        "bm25_rank": 119,
+        "score": 30.66400605671474,
+        "rrf_rank": 9,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 5,
+          "dense_only": 1,
+          "bm25_only": 2
+        }
+      }
+    }
+  },
+  {
+    "case_id": "MIX_T3_048",
+    "evidence": "실제 현금 배당 지급액",
+    "uid": "20240312000736:127:6",
+    "arms": {
+      "N12": {
+        "bm25_rank": 9,
+        "score": 62.03457279406663,
+        "rrf_rank": 14,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 9,
+          "dense_only": 3,
+          "bm25_only": 1
+        }
+      },
+      "F12": {
+        "bm25_rank": 9,
+        "score": 55.60159415789634,
+        "rrf_rank": 14,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 9,
+          "dense_only": 3,
+          "bm25_only": 1
+        }
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T2_010",
+    "uid": "20240313001451:96:5",
+    "evidence": "미국 판매 당기/전기",
+    "arms": {
+      "N12": {
+        "bm25_rank": 6,
+        "score": 59.38694510606766,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 5,
+          "dense_only": 2,
+          "bm25_only": 2
+        }
+      },
+      "F12": {
+        "bm25_rank": 6,
+        "score": 59.38694510606766,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 5,
+          "dense_only": 2,
+          "bm25_only": 2
+        }
+      }
+    }
+  },
+  {
+    "case_id": "POS_T1_057",
+    "evidence": "연결 영업이익",
+    "uid": "20240322000986:1186:24",
+    "arms": {
+      "N12": {
+        "bm25_rank": 30,
+        "score": 26.744073484582156,
+        "rrf_rank": null,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 0,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      },
+      "F12": {
+        "bm25_rank": 13,
+        "score": 26.052658345898347,
+        "rrf_rank": 20,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 8,
+          "dense_only": 6,
+          "bm25_only": 5
+        }
+      }
+    }
+  },
+  {
+    "case_id": "SKH_T1_060",
+    "evidence": "연결 유형·무형자산",
+    "uid": "20240319000684:123:0",
+    "arms": {
+      "N12": {
+        "bm25_rank": 46,
+        "score": 40.83716392676488,
+        "rrf_rank": null,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 0,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      },
+      "F12": {
+        "bm25_rank": 40,
+        "score": 38.28930630798995,
+        "rrf_rank": null,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 0,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "evidence": "Motional 지분율·장부금액",
+    "uid": "20240313001451:275:133",
+    "arms": {
+      "N12": {
+        "bm25_rank": 33,
+        "score": 21.661164469160738,
+        "rrf_rank": 27,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 4,
+          "dense_only": 10,
+          "bm25_only": 12
+        }
+      },
+      "F12": {
+        "bm25_rank": 25,
+        "score": 21.482239570547417,
+        "rrf_rank": 27,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 4,
+          "dense_only": 10,
+          "bm25_only": 12
+        }
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "evidence": "Motional 요약 손익",
+    "uid": "20240313001451:285:143",
+    "arms": {
+      "N12": {
+        "bm25_rank": 86,
+        "score": 17.554668542940284,
+        "rrf_rank": null,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 0,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      },
+      "F12": {
+        "bm25_rank": 193,
+        "score": 14.26046054982492,
+        "rrf_rank": null,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 0,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      }
+    }
+  },
+  {
+    "case_id": "HYU_T3_072",
+    "uid": "20240313001451:1251:9",
+    "evidence": "타법인출자 Motional 대체 행",
+    "arms": {
+      "N12": {
+        "bm25_rank": 132,
+        "score": 16.31564397946509,
+        "rrf_rank": null,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 0,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      },
+      "F12": {
+        "bm25_rank": 99,
+        "score": 16.31564397946509,
+        "rrf_rank": null,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 0,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      }
+    }
+  },
+  {
+    "case_id": "SKI_T1_068",
+    "evidence": "배터리 손실과 통화 단위",
+    "uid": "20240320000950:882:499",
+    "arms": {
+      "N12": {
+        "bm25_rank": 2,
+        "score": 41.61310517958939,
+        "rrf_rank": 8,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 4,
+          "dense_only": 2,
+          "bm25_only": 1
+        }
+      },
+      "F12": {
+        "bm25_rank": 3,
+        "score": 39.602635014742475,
+        "rrf_rank": 10,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 5,
+          "dense_only": 2,
+          "bm25_only": 2
+        }
+      }
+    }
+  },
+  {
+    "case_id": "NAV_T2_006",
+    "uid": "20240318000844:1559:7",
+    "evidence": "커머스 매출 비교",
+    "arms": {
+      "N12": {
+        "bm25_rank": 2,
+        "score": 50.8912582354807,
+        "rrf_rank": 5,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 4,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      },
+      "F12": {
+        "bm25_rank": 1,
+        "score": 50.8912582354807,
+        "rrf_rank": 5,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 4,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      }
+    }
+  },
+  {
+    "case_id": "CEL_T3_040",
+    "evidence": "재고 평가손실·환입·폐기손실",
+    "uid": "20240318000913:517:357",
+    "arms": {
+      "N12": {
+        "bm25_rank": 8,
+        "score": 72.54728933117968,
+        "rrf_rank": 15,
+        "in_packet": false,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 10,
+          "dense_only": 1,
+          "bm25_only": 3
+        }
+      },
+      "F12": {
+        "bm25_rank": 8,
+        "score": 57.53243276631384,
+        "rrf_rank": 14,
+        "in_packet": false,
+        "bm25_exact_score_ties": [
+          "20240318000913:917:320"
+        ],
+        "ahead_by_stream": {
+          "both": 10,
+          "dense_only": 1,
+          "bm25_only": 2
+        }
+      }
+    }
+  },
+  {
+    "case_id": "MIX_T1_064",
+    "evidence": "연결 매출액·매출원가",
+    "uid": "20240313001451:1047:3",
+    "arms": {
+      "N12": {
+        "bm25_rank": 9,
+        "score": 61.86063837419872,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 5,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      },
+      "F12": {
+        "bm25_rank": 7,
+        "score": 61.86063837419872,
+        "rrf_rank": 6,
+        "in_packet": true,
+        "bm25_exact_score_ties": [],
+        "ahead_by_stream": {
+          "both": 5,
+          "dense_only": 0,
+          "bm25_only": 0
+        }
+      }
+    }
+  }
+]

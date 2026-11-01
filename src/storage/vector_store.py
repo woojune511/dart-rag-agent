@@ -23,6 +23,7 @@ from src.storage.embedding_config import (
     _select_default_embedding_provider,
 )
 from src.storage import graph_persistence
+from src.storage.lexical_query import resolve_lexical_query
 from src.storage.metadata_payloads import (
     CHROMA_METADATA_DROP_KEYS as _CHROMA_METADATA_DROP_KEYS,
     CHROMA_METADATA_MAX_STRING_LEN as _CHROMA_METADATA_MAX_STRING_LEN,
@@ -149,7 +150,11 @@ class VectorStoreManager:
         skip_vector_add: bool = False,
         *,
         experimental_caption_links_path: str | Path | None = None,
+        experimental_lexical_policy_id: str | None = None,
     ):
+        # Validate opt-in policy before filesystem or provider initialization.
+        resolve_lexical_query("", experimental_lexical_policy_id)
+        self.experimental_lexical_policy_id = experimental_lexical_policy_id
         # An experiment artifact's presence must not activate an unadopted
         # retrieval feature in the default API/Streamlit construction path.
         caption_links = {}
@@ -176,9 +181,9 @@ class VectorStoreManager:
         self.chroma_hnsw_batch_size = max(1, DEFAULT_CHROMA_HNSW_BATCH_SIZE)
         self.chroma_hnsw_sync_threshold = max(self.chroma_hnsw_batch_size, DEFAULT_CHROMA_HNSW_SYNC_THRESHOLD)
         self._vector_capacity_cooldown_until = 0.0
-        self._search_cache: "OrderedDict[Tuple[str, int, int, Hashable], List[Tuple[Document, float]]]" = OrderedDict()
+        self._search_cache: "OrderedDict[Tuple[Hashable, ...], List[Tuple[Document, float]]]" = OrderedDict()
         self._search_cache_telemetry: Dict[
-            Tuple[str, int, int, Hashable], Dict[str, str]
+            Tuple[Hashable, ...], Dict[str, str]
         ] = {}
         self.last_search_telemetry: Dict[str, Any] = {}
         self.last_embedding_usage: Dict[str, int] = zero_embedding_usage_counts()
@@ -264,10 +269,14 @@ class VectorStoreManager:
         k: int,
         k_rrf: int,
         where_filter: Optional[dict],
-    ) -> Tuple[str, int, int, Hashable]:
-        return search_merge.search_cache_key(query, k=k, k_rrf=k_rrf, where_filter=where_filter)
+    ) -> Tuple[Hashable, ...]:
+        base = search_merge.search_cache_key(query, k=k, k_rrf=k_rrf, where_filter=where_filter)
+        lexical = resolve_lexical_query(query, getattr(self, "experimental_lexical_policy_id", None))
+        if lexical.policy_id is None:
+            return base
+        return (*base, lexical.policy_id, lexical.query)
 
-    def _get_cached_search(self, key: Tuple[str, int, int, Hashable]) -> Optional[List[Tuple[Document, float]]]:
+    def _get_cached_search(self, key: Tuple[Hashable, ...]) -> Optional[List[Tuple[Document, float]]]:
         cache = getattr(self, "_search_cache", None)
         if not cache:
             return None
@@ -279,7 +288,7 @@ class VectorStoreManager:
 
     def _store_cached_search(
         self,
-        key: Tuple[str, int, int, Hashable],
+        key: Tuple[Hashable, ...],
         results: List[Tuple[Document, float]],
         *,
         telemetry: Optional[Dict[str, Any]] = None,
@@ -930,8 +939,15 @@ class VectorStoreManager:
         """Perform Hybrid Search (Vector + BM25) with Reciprocal Rank Fusion."""
         logger.info("Hybrid Searching for: %r | filter=%s", query, where_filter)
         started_at = time.perf_counter()
+        lexical = resolve_lexical_query(query, getattr(self, "experimental_lexical_policy_id", None))
         telemetry: Dict[str, Any] = {
             "query": query,
+            "bm25_query": lexical.query,
+            "lexical_query_policy": {
+                "id": lexical.policy_id,
+                "matched_rules": list(lexical.matched_rules),
+                "added_terms": list(lexical.added_terms),
+            },
             "k": int(k),
             "k_rrf": int(k_rrf),
             "where_filter_present": where_filter is not None,
@@ -1050,7 +1066,7 @@ class VectorStoreManager:
                 self.bm25,
                 self.bm25_docs,
                 self.bm25_metadatas,
-                query,
+                lexical.query,
                 k=k,
                 where_filter=where_filter,
             )

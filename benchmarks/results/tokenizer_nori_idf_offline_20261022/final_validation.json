@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "verification_scope": "Saved-artifact consistency only; no new ranking, answer generation or independent reproduction",
+  "sealed_files_unchanged": 107,
+  "protocol_unchanged": true,
+  "original_chunks": 16051,
+  "cases": 77,
+  "packets_checked": 308,
+  "saved_dense_exact": true,
+  "baseline_bm25_and_packets_equal": true,
+  "scope_rrf12_bytes_and_original_text_verified": true,
+  "quotes_checked": 88,
+  "common_answerable_citation_loss_pairs_reviewed": 24,
+  "protected_files_unchanged": 2144,
+  "git_status_equal": true,
+  "active_store_file_inventory_unchanged": true,
+  "active_store_files": 11,
+  "local_report_links_verified": 24,
+  "external_model_calls": 0,
+  "answers_generated": 0
+}

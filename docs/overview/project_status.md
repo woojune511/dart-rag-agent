@@ -1,12 +1,18 @@
 # Project Status
 
-Last updated: 2026-10-21. [Historical readiness diagnostics](../operations/readiness_diagnostics_2026-10-17.md)
+Last updated: 2026-11-02. [Historical readiness diagnostics](../operations/readiness_diagnostics_2026-10-17.md)
 
-## Latest evaluation record
+## Current publication
+
+Source includes v12 parsing/tests, stored unit/period delivery, report-selection UI and omission/degraded-search labels. The default remains Simple RAG, Terra, top-8 and 64KiB; lexical hints require explicit opt-in.
+
+[Table-evidence synthesis](../evaluation/table_evidence_research_2026-10-24.md) separates 77-question Sol/top-12 accuracy 83/92→86/92 from the 18-question Terra/top-8 successor: accuracy 28/30 unchanged, faithfulness 28/30→30/30. Regressions, costs and repeated/non-independent evaluation limits remain visible. Table-fact/160KiB is experiment-only. [Manifest and offline checks](../../benchmarks/published/README.md) identify published code/results and excluded raw payloads/stores. No new paid evaluation, store build or app restart occurs in publication.
+
+## Earlier evaluation record
 
 The [October comparison](../evaluation/rag_quality_progress_2026-10-21.md) publishes the local v12 experiments and frozen narrative rubric separately from product code. On the same revised 46-answerable denominator, complete answers are Terra top-8 34, Terra top-12 36, Sol top-8 38 and Sol top-12 42; cited support is 42, 39, 44 and 45. Sol top-12 adds four complete answers without a regression versus its saved top-8, at 32.7% more answer-generation cost. Same-assistant review on exposed data; not independent accuracy.
 
-Automated decomposition/per-facet selection did not improve this run: 41/46 complete, about 4.8x cost, one pre-generation contract failure. The report retains the unplanned completion of 11 unattempted cases and does not hide the original stop. The runtime remains Simple RAG; publishing reports does not adopt Sol/top-12, local parser changes or the experimental selector. Raw runs/stores remain local. Earlier verification below is dated evidence, not a fresh readiness check.
+Automated decomposition/per-facet selection did not improve this run: 41/46 complete, about 4.8x cost, one pre-generation contract failure. The report retains the unplanned completion of 11 unattempted cases and does not hide the original stop. The runtime remains Simple RAG; publishing reports does not adopt Sol/top-12 or the experimental selector. The v12 parser source is published in the current integration. Raw runs/stores remain local. Earlier verification below is dated evidence, not a fresh readiness check.
 
 ## Current implementation
 
@@ -26,12 +32,12 @@ user direction from `2a926a6e` and retained in main.
 | Response | Answer, cited source text, abstention and validation labels; empty compiler result/trace fields |
 | Observation | Optional JSON-native retrieval/review data, usage, timing and interrupted diagnostics |
 
-The published parser schema is v5; compatible/ready=true describes the historical full11 v5 checkpoint, not current local store readiness. Embedding model identity is preserved. Application model construction
+The published parser schema is v12; compatible/ready=true in prior v5 records describes that historical checkpoint, not current local store readiness. Embedding model identity is preserved. Application model construction
 uses only answer and ingest-context routes; compiler-only profile selection is
 rejected. The old Streamlit compiled-evaluation tab is removed. Comparisons remain
 separate; their [contract](../architecture/compiled_workflow_contract.md) is preserved.
 
-## Current verification
+## Historical verification checkpoints
 
 The [parser v5 adoption](../architecture/parser_v5_adoption.md) records the user-approved parser/tests/docs commit separately from the unchanged [answer regression](../evaluation/paragraph_heading_v5_answer_regression.md): core14/14,strict11/14,stable4/7 (absence-wording sensitivity12/14,still gate not met). Plain and paragraph-style heading ownership, table-body preservation and bounded separator parsing are adopted. The verified local full11 v5 store has15,608 chunks; source/metadata delivery fixes do not certify all headings or general answer accuracy. Remaining added-claim citation omissions and overbroad absence wording are separate follow-up items. No new provider calls,prompt tuning,store mutation or automatic rerun is authorized by this adoption.
 

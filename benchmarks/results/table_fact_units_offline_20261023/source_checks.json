@@ -1,0 +1,68 @@
+{
+  "20240326000894": {
+    "path": "data\\reports\\KB금융\\2023_사업보고서_20240326000894.html",
+    "sha256": "13b1d57baae0cf9579828b3129e1bae7417e43215e556df5e2ec4cf46ba9aea0",
+    "sanitizer_changes_in_memory": 276,
+    "strict_parse_errors": 0
+  },
+  "20240314001110": {
+    "path": "data\\reports\\LG에너지솔루션\\2023_사업보고서_20240314001110.html",
+    "sha256": "1f7940b57ec1e423626a738e6de6a16794c9204d27077648dedd907e6767e293",
+    "sanitizer_changes_in_memory": 56,
+    "strict_parse_errors": 0
+  },
+  "20240322000986": {
+    "path": "data\\reports\\POSCO홀딩스\\2023_사업보고서_20240322000986.html",
+    "sha256": "03a1343f0a733871928a9d38866721e36d18784a99271c3ba5eba9fbe6a1b7a1",
+    "sanitizer_changes_in_memory": 241,
+    "strict_parse_errors": 0
+  },
+  "20240320000950": {
+    "path": "benchmarks\\results\\simple_rag_full77_preparation_2026-09-28\\reports\\20240320000950.html",
+    "sha256": "a47144ff7427b73b1d12e8f59a20f54f132896e2fc0615a77363bd9b7ef441ea",
+    "sanitizer_changes_in_memory": 225,
+    "strict_parse_errors": 0
+  },
+  "20240319000684": {
+    "path": "data\\reports\\SK하이닉스\\2023_사업보고서_20240319000684.html",
+    "sha256": "44a579672e2f40bb5118c1252aca06e50ab3244a081d76f3acd870227451131b",
+    "sanitizer_changes_in_memory": 158,
+    "strict_parse_errors": 0
+  },
+  "20240318000844": {
+    "path": "data\\reports\\NAVER\\2023_사업보고서_20240318000844.html",
+    "sha256": "234a3df95222e4dbcd55be980bac45431cff091345855747abe611d5db7a4113",
+    "sanitizer_changes_in_memory": 166,
+    "strict_parse_errors": 0
+  },
+  "20240312000736": {
+    "path": "data\\reports\\삼성전자\\2023_사업보고서_20240312000736.html",
+    "sha256": "6ea1700015f273c0facc9e4972c329a57c57f3fe7ecbcefdc2fce916d510c069",
+    "sanitizer_changes_in_memory": 537,
+    "strict_parse_errors": 0
+  },
+  "20240318000913": {
+    "path": "data\\reports\\셀트리온\\2023_사업보고서_20240318000913.html",
+    "sha256": "2da95c8b91d3b2e54fc122dc177941db4aa9c2ae1dfd1f6381b800f583d93e04",
+    "sanitizer_changes_in_memory": 69,
+    "strict_parse_errors": 0
+  },
+  "20240418000375": {
+    "path": "benchmarks\\results\\simple_rag_full77_preparation_2026-09-28\\reports\\20240418000375.html",
+    "sha256": "4d8b83b19060ac62a00c21e8c2c7c70fbe69e318b3c8819718e45a9f57cdfb3d",
+    "sanitizer_changes_in_memory": 120,
+    "strict_parse_errors": 0
+  },
+  "20240320001487": {
+    "path": "data\\reports\\카카오뱅크\\2023_사업보고서_20240320001487.html",
+    "sha256": "a7c9314fc7704b42af95d1b125b23efc17d3f154a47c0053c7fdc94edcb70fea",
+    "sanitizer_changes_in_memory": 114,
+    "strict_parse_errors": 0
+  },
+  "20240313001451": {
+    "path": "data\\reports\\현대자동차\\2023_사업보고서_20240313001451.html",
+    "sha256": "641c41ae0648ef48e30d25bbb4b9923040ec460b151fdc39b6435076d14dd7df",
+    "sanitizer_changes_in_memory": 1027,
+    "strict_parse_errors": 0
+  }
+}

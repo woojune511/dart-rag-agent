@@ -1,0 +1,26 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "at": "2026-10-23T14:27:22.863538+00:00",
+  "report": "plan.md",
+  "frozen_files": 55,
+  "questions": 18,
+  "reports": 3,
+  "answerable": 15,
+  "refusal": 3,
+  "source_witnesses": 134,
+  "required_facts": 54,
+  "future_http_attempt_cap": 105,
+  "future_usd_cap": "36.00",
+  "expected_usd_range": [
+    3,
+    6
+  ],
+  "future_wall_seconds": 9000,
+  "experiment_api_calls": 0,
+  "free_DART_requests": 7,
+  "env_and_active_store_unchanged": true,
+  "protected_files": 870,
+  "validation_sha256": "8fde9eee4bd7726a3bedbde88b21c620c0833eb12da42ba68ea359d15e5122e8",
+  "freeze_sha256": "bc9545c401f9b1ddeed41f6e135027e6e33586d37684ed2de4ff76d339d2e7f4",
+  "report_sha256": "22abf2370cee89a21fbb23c4c9b9d0080c84d4e244e94cae0e2fcd85055d4fec"
+}

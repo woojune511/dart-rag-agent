@@ -1,0 +1,703 @@
+{
+  "reviewer": "Assistant manual source review, not independent/blind",
+  "reviewed_at": "2026-10-21T04:40:27.958220+00:00",
+  "rubric_sha256": "444ab9d42ee80f3f5d1139922e88bfc6c91a1639f917f1ba051afe63a687a8f7",
+  "rows": [
+    {
+      "id": "01_income",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": false,
+      "faithful_under_frozen_rule": false,
+      "supported_complete": false,
+      "abstained": false,
+      "reason": "generic:117 supplies connected period/scope/unit header; generic:118 supplies both totals. Amounts in thousand won and 5.23% match source rounding. Repeat 1 omits citation to the table header source. Strict citation coverage fails: the current/prior column labels and applicable thousand-won unit are in uncited generic:117. Unrelated FX-table unit labels later in 118 do not supply this table header. Entire packet still supports the answer.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A118"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_income_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "01_income",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:117 supplies connected period/scope/unit header; generic:118 supplies both totals. Amounts in thousand won and 5.23% match source rounding. Repeat 1 omits citation to the table header source.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A117",
+        "20260311003892:20260311003892%3Ageneric%3A118"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_income_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "01_income",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "999:3 contains revenue 3,514,315,500 and operating profit 183,933,032, current/prior columns, thousand-won unit and consolidated operating-results heading. Both answers calculate 5.23%.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A999%3A3"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_income_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "01_income",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "999:3 contains revenue 3,514,315,500 and operating profit 183,933,032, current/prior columns, thousand-won unit and consolidated operating-results heading. Both answers calculate 5.23%.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A999%3A3"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_income_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "01_inventory",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:23 includes the full consolidated balance-sheet heading, 2025-12-31, KRW unit, both exact operands, and supports 9.24%.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A23"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_inventory_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "01_inventory",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:23 includes the full consolidated balance-sheet heading, 2025-12-31, KRW unit, both exact operands, and supports 9.24%.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A23"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_inventory_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "01_inventory",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "199:94 supports net inventory 353,314,248 thousand won; 93:1 supplies consolidated 2025 summary assets 3,822,122 million won. Unit conversion and 9.24% are correct within source display precision.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A199%3A94",
+        "20260311003892:20260311003892%3A93%3A1"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_inventory_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "01_inventory",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "199:94 supports net inventory 353,314,248 thousand won; 93:1 supplies consolidated 2025 summary assets 3,822,122 million won. Unit conversion and 9.24% are correct within source display precision.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A199%3A94",
+        "20260311003892:20260311003892%3A93%3A1"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_inventory_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "01_capex",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "Both cash-flow operands missing from supplied packet. Generic:49/87 are asset movement notes, not acquisition cash payments. Both answers appropriately refuse; not complete for an answerable question.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A49",
+        "20260311003892:20260311003892%3Ageneric%3A87"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_capex_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "01_capex",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "Both cash-flow operands missing from supplied packet. Generic:49/87 are asset movement notes, not acquisition cash payments. Both answers appropriately refuse; not complete for an answerable question.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A87",
+        "20260311003892:20260311003892%3Ageneric%3A49"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_capex_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "01_capex",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "104:6 cash-flow source is in corpus but RRF31, outside top12. Visible notes 215:110/239:134 support the disclosed additions amounts; 1010:8 supports MDA PPE amount but not a full two-operand cash-flow answer. Refusal is faithful.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A1010%3A8",
+        "20260311003892:20260311003892%3A239%3A134"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_capex_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "01_capex",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "104:6 cash-flow source is in corpus but RRF31, outside top12. Visible notes 215:110/239:134 support the disclosed additions amounts; 1010:8 supports MDA PPE amount but not a full two-operand cash-flow answer. Refusal is faithful.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A215%3A110",
+        "20260311003892:20260311003892%3A239%3A134",
+        "20260311003892:20260311003892%3A1010%3A8"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_capex_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "01_business",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:6 supports all four food categories, representative brands including Welchs, and subsidiary rental/esports/beer. generic:21 supports eight geographic reporting segments; repeat1 generic:4/5 supports smart-farm purpose and withheld commercialization details.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A6",
+        "20260311003892:20260311003892%3Ageneric%3A21",
+        "20260311003892:20260311003892%3Ageneric%3A4",
+        "20260311003892:20260311003892%3Ageneric%3A5"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_business_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "01_business",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:6 supports all four food categories, representative brands including Welchs, and subsidiary rental/esports/beer. generic:21 supports eight geographic reporting segments; repeat1 generic:4/5 supports smart-farm purpose and withheld commercialization details.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3Ageneric%3A6",
+        "20260311003892:20260311003892%3Ageneric%3A21"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_business_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "01_business",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "30:0 contains the food manufacturing/sales grouping, all product categories, brands and uses. Both answers correctly distinguish product categories from separate business segments.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A30%3A0"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_business_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "01_business",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "30:0 contains the food manufacturing/sales grouping, all product categories, brands and uses. Both answers correctly distinguish product categories from separate business segments.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A30%3A0"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_business_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "01_unanswerable",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_unanswerable_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "01_unanswerable",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_unanswerable_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "01_unanswerable",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A999%3A3"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_unanswerable_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "01_unanswerable",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [
+        "20260311003892:20260311003892%3A999%3A3"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\01_unanswerable_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "02_income",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:40 contains current consolidated segment totals and million-won unit. Revenue 11,314,459 and profit 913,331 support 8.07%, within published display precision.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A40"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_income_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "02_income",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:40 contains current consolidated segment totals and million-won unit. Revenue 11,314,459 and profit 913,331 support 8.07%, within published display precision.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A40"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_income_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "02_income",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "128:21 contains the current consolidated segment table with million-won unit and both totals; 8.07% is correct.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A128%3A21"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_income_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "02_income",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "128:21 contains the current consolidated segment table with million-won unit and both totals; 8.07% is correct.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A128%3A21"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_income_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "02_inventory",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "generic:121 supplies inventory 2,412,997 million won and rounded 16.5% but not total assets. Both replies refuse to infer a precise denominator from the rounded ratio. Full operands exist in corpus but source generic:18 is RRF16.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A121"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_inventory_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "02_inventory",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "generic:121 supplies inventory 2,412,997 million won and rounded 16.5% but not total assets. Both replies refuse to infer a precise denominator from the rounded ratio. Full operands exist in corpus but source generic:18 is RRF16.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A121"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_inventory_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "02_inventory",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "97:0 supplies both exact won amounts, consolidated summary heading and 2025 column. 844:8 supports net-of-allowance inventory statement. Ratio 16.53% correct.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A97%3A0",
+        "20260310003071:20260310003071%3A844%3A8"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_inventory_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "02_inventory",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "97:0 supplies both exact won amounts, consolidated summary heading and 2025 column. 844:8 supports net-of-allowance inventory statement. Ratio 16.53% correct.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A97%3A0",
+        "20260310003071:20260310003071%3A844%3A8"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_inventory_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "02_capex",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:24 includes 2025 consolidated cash-flow heading, won unit, PPE 1,192,112,995,578 and intangible 54,210,548,833. Positive sum 1,246,323,544,411 is correct.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A24"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_capex_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "02_capex",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:24 includes 2025 consolidated cash-flow heading, won unit, PPE 1,192,112,995,578 and intangible 54,210,548,833. Positive sum 1,246,323,544,411 is correct.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A24"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_capex_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "02_capex",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "106:5 actual cash-flow operands exist but rank RRF22. 205:98 supports additions 1,217,587,270 thousand won; 227:120 supports prior-period intangible carrying amount. Both replies correctly refuse to substitute asset additions for cash expenditure.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A205%3A98",
+        "20260310003071:20260310003071%3A227%3A120"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_capex_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "02_capex",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "numeric",
+      "complete_correct": false,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": false,
+      "abstained": true,
+      "reason": "106:5 actual cash-flow operands exist but rank RRF22. 205:98 supports additions 1,217,587,270 thousand won; 227:120 supports prior-period intangible carrying amount. Both replies correctly refuse to substitute asset additions for cash expenditure.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A205%3A98",
+        "20260310003071:20260310003071%3A227%3A120"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_capex_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "02_business",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:6 contains all three segments, passive components/semiconductor substrates/camera modules, and application mapping. Required and additional claims supported.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A6"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_business_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "02_business",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "generic:6 contains all three segments, passive components/semiconductor substrates/camera modules, and application mapping. Required and additional claims supported.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A6"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_business_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "02_business",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "9:9 contains all three segment-product mappings; 46:1 supports smartphone, automotive and PC applications.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A9%3A9",
+        "20260310003071:20260310003071%3A46%3A1"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_business_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "02_business",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "narrative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": false,
+      "reason": "9:9 contains all three segment-product mappings; 46:1 supports smartphone, automotive and PC applications.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A9%3A9",
+        "20260310003071:20260310003071%3A46%3A1"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_business_dart_r2\\answer.value.json"
+    },
+    {
+      "id": "02_unanswerable",
+      "arm": "generic",
+      "repeat": 1,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A0",
+        "20260310003071:20260310003071%3Ageneric%3A40"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_unanswerable_generic_r1\\answer.value.json"
+    },
+    {
+      "id": "02_unanswerable",
+      "arm": "generic",
+      "repeat": 2,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3Ageneric%3A0",
+        "20260310003071:20260310003071%3Ageneric%3A40"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_unanswerable_generic_r2\\answer.value.json"
+    },
+    {
+      "id": "02_unanswerable",
+      "arm": "dart",
+      "repeat": 1,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A60%3A1"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_unanswerable_dart_r1\\answer.value.json"
+    },
+    {
+      "id": "02_unanswerable",
+      "arm": "dart",
+      "repeat": 2,
+      "type": "negative",
+      "complete_correct": true,
+      "packet_faithful": true,
+      "cited_support_complete": true,
+      "faithful_under_frozen_rule": true,
+      "supported_complete": true,
+      "abstained": true,
+      "reason": "Explicit evidence-relative refusal for daily sales, abstained true, no invented or averaged daily value. Annual periods cited only as contrast. Negative control scored separately.",
+      "cited_source_ids": [
+        "20260310003071:20260310003071%3A60%3A1"
+      ],
+      "answer_file": "C:\\Users\\geonj\\Desktop\\dart-rag-agent\\benchmarks\\results\\dart_representation_pilot10_20261021\\live\\02_unanswerable_dart_r2\\answer.value.json"
+    }
+  ]
+}

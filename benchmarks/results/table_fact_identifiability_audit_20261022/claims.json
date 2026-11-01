@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "step": "verify_saved_sources_and_preservation",
+      "status": "passed"
+    },
+    {
+      "step": "verify_report_links_and_case_coverage",
+      "status": "passed"
+    }
+  ]
+}

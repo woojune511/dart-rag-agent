@@ -1,0 +1,58 @@
+{
+  "status": "ANALYZED",
+  "new_model_api_calls": 0,
+  "new_retrieval_runs": 0,
+  "new_answers": 0,
+  "cost_usd": 0,
+  "app_restarts": 0,
+  "all77_unique": true,
+  "canonical_groups": {
+    "common_answerable": 46,
+    "refusal": 19,
+    "diagnostic_or_hold": 12
+  },
+  "saved_failure_or_support_union": 15,
+  "prior_source_review_or_failure_queue": 39,
+  "reviewed_cases_including_two_policy_sentinels": 41,
+  "focus_cases": 19,
+  "audit_depth": {
+    "source_and_packet_focus": 19,
+    "inventory_screen_only": 36,
+    "saved_boundary_review": 21,
+    "saved_policy_review": 1
+  },
+  "focus_literal_structure_levels": {
+    "BOUND_CONTEXT": 16,
+    "INCOMPLETE": 1,
+    "CONDITIONAL_BOUND_CONTEXT": 1,
+    "NOT_TABLE": 1
+  },
+  "focus_layer_flags_nonexclusive_historical_conditions": {
+    "selection_delivery": 15,
+    "other": 6,
+    "axis_binding": 6,
+    "candidate_absence": 5
+  },
+  "all_queued_cases_reviewed": true,
+  "new_semantic_accuracy_or_causal_effect_measured": false,
+  "fresh_source_checks": {
+    "numeric_export_records": 16,
+    "axes_export_targets": 11,
+    "root_table_targets": 13,
+    "source_span_checks_pass": true,
+    "note": "Some contexts use a substring of an XML paragraph; exact source_span, not whole-node equality, is the contract. Existing sanitizer used in memory before strict parse."
+  },
+  "preservation": {
+    "workspace_snapshot_files": 864,
+    "prior_input_manifest_files": 4294,
+    "unique_protected_files": 5158,
+    "active_store_files": 11,
+    "content_changes": [],
+    "head_unchanged": true,
+    "index_unchanged": true,
+    "git_status_unchanged": true,
+    "env_unchanged": true,
+    "store_unchanged": true,
+    "sqlite_note": "Only file hashes read. No SQLite/Chroma connection was opened by the audit; database internals and data files were not rewritten."
+  }
+}

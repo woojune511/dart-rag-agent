@@ -1,0 +1,32 @@
+{
+  "A": {
+    "n": 36,
+    "input_tokens": 240136,
+    "output_tokens": 7456,
+    "cached_tokens": 120014,
+    "cache_write_tokens": 120014,
+    "reasoning_tokens": 864,
+    "estimated_usd": "0.4137258",
+    "median_seconds": 2.2903500499999154,
+    "structural_errors": 0,
+    "by_repeat": {
+      "1": "0.3457430",
+      "2": "0.0679828"
+    }
+  },
+  "C": {
+    "n": 36,
+    "input_tokens": 430170,
+    "output_tokens": 8071,
+    "cached_tokens": 221215,
+    "cache_write_tokens": 208847,
+    "reasoning_tokens": 1388,
+    "estimated_usd": "0.6634285",
+    "median_seconds": 2.4218956999999364,
+    "structural_errors": 0,
+    "by_repeat": {
+      "1": "0.5713783",
+      "2": "0.0920502"
+    }
+  }
+}

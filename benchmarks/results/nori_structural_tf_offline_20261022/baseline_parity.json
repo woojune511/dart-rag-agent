@@ -1,0 +1,6 @@
+{
+  "cases": 77,
+  "bm25_exact": true,
+  "rrf_exact": true,
+  "packet_exact": true
+}
