@@ -6,10 +6,13 @@ import re
 from typing import Any, Dict, List, Tuple
 
 from src.schema.runtime_enums import AggregationStage, ValueRole
+from src.processing.table_unit_hints import resolve_row_unit_hint
 
 
 _YEAR_LABEL_RE = re.compile(r"\b(20\d{2})년\b")
 _DATE_LABEL_RE = re.compile(r"\b(20\d{2})\.(\d{1,2})\.(\d{1,2})\b")
+_RELATIVE_PERIOD_LABELS = ("당기", "전기", "전전기", "당기말", "전기말", "전전기말")
+_RELATIVE_PERIOD_RE = re.compile("|".join(sorted(_RELATIVE_PERIOD_LABELS, key=len, reverse=True)))
 _AGGREGATE_LABEL_TERMS = ("합계", "소계", "총계", "잔액")
 _ADJUSTMENT_ROW_RE = re.compile(r"^차감(?::|\s)")
 _FINAL_AGGREGATE_ROW_RE = re.compile(r"^차감\s*계(?:\s*$|\s*[,，]\s*|\s+)")
@@ -69,9 +72,11 @@ def extract_period_labels(text: str) -> List[str]:
     if not normalized:
         return labels
 
-    for keyword in ("당기", "전기", "전전기", "당기말", "전기말", "전전기말"):
-        if keyword in normalized:
-            labels.append(keyword)
+    # One source occurrence contributes only its complete relative label.
+    # Keep the existing priority for independently occurring labels, since the
+    # first candidate is also used by structured value records as period_text.
+    relative_labels = {match.group(0) for match in _RELATIVE_PERIOD_RE.finditer(normalized)}
+    labels.extend(label for label in _RELATIVE_PERIOD_LABELS if label in relative_labels)
 
     labels.extend(match.group(1) for match in _YEAR_LABEL_RE.finditer(normalized))
     labels.extend(match.group(1) for match in _DATE_LABEL_RE.finditer(normalized))
@@ -139,6 +144,20 @@ def infer_table_row_axis(row: List[str]) -> Tuple[str, List[str], set[int]]:
 def infer_table_header_row_count(grid: List[List[str]]) -> int:
     if not grid:
         return 0
+    if len(grid) == 1:
+        row = grid[0]
+        row_label, _, axis_columns = infer_table_row_axis(row)
+        value_cells = [
+            normalize_table_text(cell)
+            for col_idx, cell in enumerate(row)
+            if col_idx not in axis_columns and normalize_table_text(cell)
+        ]
+        # An isolated labelled numeric row has no column header to inherit.
+        # Keep year-like cells and ambiguous multi-row tables on the old path.
+        if (row_label and not is_generic_value_label(row_label) and value_cells
+                and all(cell_looks_numeric(cell) and not is_period_like_label(cell)
+                        for cell in value_cells)):
+            return 0
     header_count = 0
     for index, row in enumerate(grid[:3]):
         numeric_beyond_first = any(cell_looks_numeric(cell) for cell in row[1:])
@@ -392,7 +411,10 @@ def build_table_row_records(table_object: Dict[str, Any], unit_hint: str) -> Lis
                     column_index=col_idx,
                     column_headers=list(column_headers[col_idx]),
                     value_text=value_text,
-                    unit_hint=unit_hint or "",
+                    unit_hint=resolve_row_unit_hint(
+                        row_headers, unit_hint,
+                        column_headers=column_headers[col_idx],
+                    ),
                 ).model_dump()
             )
         if not cells:
@@ -478,7 +500,7 @@ def build_table_value_records(
                     period_text=period_candidates[0] if period_candidates else "",
                     period_labels=period_candidates,
                     value_text=value_text,
-                    unit_hint=normalize_table_text(str(cell.get("unit_hint") or unit_hint or "")),
+                    unit_hint=normalize_table_text(str(cell.get("unit_hint", unit_hint) or "")),
                 ).model_dump()
             )
     return value_records

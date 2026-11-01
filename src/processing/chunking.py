@@ -6,6 +6,7 @@ import re
 import json
 from typing import Any, Callable, Dict, List, Optional
 from src.processing.source_context import heading_scope_key
+from src.processing.table_records import cell_looks_numeric
 
 
 WIDE_TABLE_COLUMN_THRESHOLD = 24
@@ -207,7 +208,13 @@ def split_table_for_chunks(
     *,
     chunk_size: int,
     normalize_text: Callable[[str], str],
+    table_grid: Optional[List[List[str]]] = None,
+    header_row_count: int = 0,
 ) -> List[Dict[str, str]]:
+    if table_grid and max(map(len, table_grid)) >= WIDE_TABLE_COLUMN_THRESHOLD:
+        return _split_wide_grid_for_chunks(
+            table_grid, header_row_count=header_row_count, chunk_size=chunk_size,
+        )
     wide_table_chunks = split_wide_table_by_columns(table_text)
     if wide_table_chunks:
         result: List[Dict[str, str]] = []
@@ -240,6 +247,61 @@ def split_table_for_chunks(
         ]
 
     return [{"text": table_text, "table_view": "full"}]
+
+
+def _split_wide_grid_for_chunks(
+    grid: List[List[str]], *, header_row_count: int, chunk_size: int,
+) -> List[Dict[str, str]]:
+    """Project original cell positions, then split only between whole rows.
+
+    Leading row axes repeat in every column window. A header plus one intact
+    row may exceed the soft chunk target; cutting a cell would corrupt its
+    column identity. The downstream source-packet byte limit still applies.
+    """
+    width = max(map(len, grid))
+    rows = [list(row) + [""] * (width - len(row)) for row in grid]
+    header_count = min(max(header_row_count, 0), len(rows))
+    numeric_rows = [row for row in rows[header_count:] if any(cell_looks_numeric(cell) for cell in row)]
+    axis_count = 0 if numeric_rows else 1
+    for row in numeric_rows:
+        # Keep the first textual axis run through the next numeric value.
+        # Leading numeric identifiers travel with that prefix. This projection
+        # does not change or depend on semantic row-record label inference.
+        first_text = next((i for i, cell in enumerate(row) if cell.strip() and not cell_looks_numeric(cell)), None)
+        if first_text is None:
+            continue
+        for index in range(first_text, width):
+            if cell_looks_numeric(row[index]):
+                break
+            if row[index].strip():
+                axis_count = max(axis_count, index + 1)
+    # Non-numeric descriptive rows do not turn every data column into an axis.
+    # An uncertain long prefix is repeated, never dropped.
+    axis_count = min(axis_count, width - 1)
+    # Never let a long textual prefix consume the entire data window.
+    window_size = max(1, WIDE_TABLE_WINDOW_SIZE - axis_count)
+    step = max(1, window_size - WIDE_TABLE_WINDOW_OVERLAP)
+    result: List[Dict[str, str]] = []
+    for start in range(axis_count, width, step):
+        end = min(width, start + window_size)
+        columns = [*range(axis_count), *range(start, end)]
+        projected = [" | ".join(row[i] for i in columns) for row in rows]
+        headers = projected[:header_count]
+        parts: List[str] = []
+        current: List[str] = []
+        for row in projected[header_count:]:
+            candidate = "\n".join([*headers, *current, row])
+            if current and len(candidate) > chunk_size:
+                parts.append("\n".join([*headers, *current]))
+                current = []
+            current.append(row)
+        if current or headers:
+            parts.append("\n".join([*headers, *current]))
+        view = "column_row_window" if len(parts) > 1 else "column_window"
+        result.extend({"text": text, "table_view": view} for text in parts)
+        if end == width:
+            break
+    return result
 
 
 def table_bundle_from_block(
@@ -352,6 +414,10 @@ def chunk_blocks(
     for block in blocks:
         text = block["text"]
         block_type = block["type"]
+        explicit_table_context = block.get("table_context")
+        if block.get("table_prefix_target"):
+            # A physically linked forward caption cannot trail an earlier table.
+            flush_pending()
         current_heading = next(
             (item.get("local_heading") for item in pending_blocks if item.get("local_heading")),
             None,
@@ -380,7 +446,7 @@ def chunk_blocks(
                 last_paragraph_scope = table_scope
             block = {
                 **block,
-                "table_context": last_paragraph_context or section_path,
+                "table_context": block.get("table_context") or last_paragraph_context or section_path,
             }
             if any(item.get("type") == "table" for item in pending_blocks):
                 flush_pending()
@@ -391,6 +457,8 @@ def chunk_blocks(
                 text,
                 chunk_size=chunk_size,
                 normalize_text=normalize_text,
+                table_grid=block.get("_table_grid"),
+                header_row_count=block.get("_table_header_row_count", 0),
             )
             propagate_headers = len(table_chunks) > 1
             if len(text) > chunk_size:
@@ -399,7 +467,7 @@ def chunk_blocks(
                         {
                             "text": table_chunk["text"],
                             "block_type": "table",
-                            "table_context": block["table_context"] if idx == 0 else None,
+                            "table_context": block["table_context"] if idx == 0 or explicit_table_context else None,
                             "local_heading": block.get("local_heading"),
                             "table_view": table_chunk["table_view"],
                             **heading_context_bundle(block),

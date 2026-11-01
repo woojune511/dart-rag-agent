@@ -1,0 +1,834 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+	<xs:annotation>
+		<xs:documentation xml:lang="ko">
+         		ver1.1
+		</xs:documentation>
+	</xs:annotation>
+	<xs:element name="DOCUMENT">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="DOCUMENT-HEADER" type="document-headerType"/>
+				<xs:element name="BODY" type="bodyType"/>
+				<xs:element name="NOTE-GROUP" type="note-groupType" minOccurs="0"/>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+	<!-- DOCUMENT-HEADER Schema-->
+	<xs:complexType name="document-headerType">
+		<xs:sequence>
+			<xs:element name="DOCUMENT-NAME" type="document-nameType"/>
+			<xs:element name="FORMULA-VERSION" type="formula-versionType"/>
+			<xs:element name="COMPANY-NAME" type="company-nameType"/>
+			<xs:element name="SUMMARY" type="summaryType" minOccurs="0"/>
+		</xs:sequence>
+		<xs:attribute name="AEXT-CLASS" type="ayesnoType" default="N"/>
+	</xs:complexType>
+	<xs:complexType name="document-nameType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ACODE" type="xs:string" use="required"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="formula-versionType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ADATE" type="xs:string"/>
+				<xs:attribute name="SUBVER" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="company-nameType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="AREGCIK" type="xs:string" use="required"/>
+				<xs:attribute name="AACCOUNTTYPE" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="summaryType">
+		<xs:sequence>
+			<xs:element name="EXTRACTION" type="extractionType" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="extractionType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ACODE" type="xs:string"/>
+				<xs:attribute name="AFEATURE" default="BOTH">
+					<xs:simpleType>
+						<xs:restriction base="xs:NMTOKEN">
+							<xs:enumeration value="NUM"/>
+							<xs:enumeration value="CHAR"/>
+							<xs:enumeration value="BOTH"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:attribute>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<!-- BODY Schema -->
+	<xs:complexType name="bodyType">
+		<xs:sequence>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="CORRECTION" type="correctionType"/>
+				<xs:element name="PGBRK" type="pgbrkType"/>
+				<xs:element name="INSERTION" type="insertionType"/>
+				<xs:element name="COVER" type="coverType"/>
+				<xs:element name="TOC" type="tocType"/>
+				<xs:element name="PART" type="partType"/>
+				<xs:element name="SECTION-1" type="section-1Type"/>
+				<xs:element name="TITLE" type="titleType"/>
+				<xs:element ref="SUBTITLE" minOccurs="0"/>
+				<xs:choice>
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element ref="WARNING" minOccurs="0"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:element name="LIBRARY" type="libraryType"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="ATOCID" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="correctionType">
+		<xs:sequence>
+			<xs:element name="TITLE" type="titleType"/>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="TABLE" type="tableType"/>
+				<xs:element name="TABLE-GROUP" type="table-groupType"/>
+				<xs:element name="P" type="pType"/>
+				<xs:element name="IMAGE" type="imageType"/>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="coverType">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="COVER-TITLE" type="cover-titleType"/>
+			<xs:element ref="WARNING" minOccurs="0"/>
+			<xs:element name="TABLE" type="tableType"/>
+			<xs:element name="TABLE-GROUP" type="table-groupType"/>
+			<xs:element name="P" type="pType"/>
+			<xs:element name="IMAGE" type="imageType"/>
+			<xs:group ref="anyInsGroup"/>
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="tocType">
+		<xs:sequence>
+			<xs:element name="TITLE" type="titleType"/>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="TABLE" type="tableType"/>
+				<xs:element name="TABLE-GROUP" type="table-groupType"/>
+				<xs:element name="P" type="pType"/>
+				<xs:element name="IMAGE" type="imageType"/>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="partType">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element name="TITLE" type="titleType"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice>
+				<xs:element ref="DESCRIPTION"/>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:choice>
+						<xs:element name="CAUTION" type="cautionType"/>
+						<xs:element ref="WARNING" minOccurs="0"/>
+						<xs:element name="P" type="pType"/>
+						<xs:element name="TABLE-GROUP" type="table-groupType"/>
+						<xs:element name="TABLE" type="tableType"/>
+						<xs:element name="IMAGE" type="imageType"/>
+						<xs:element name="APPENDIX" type="appendixType"/>
+					</xs:choice>
+					<xs:element name="SECTION-1" type="section-1Type"/>
+					<xs:choice>
+						<xs:element name="PGBRK" type="pgbrkType"/>
+						<xs:element name="INSERTION" type="insertionType"/>
+					</xs:choice>
+				</xs:choice>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+		<xs:attribute name="APARTSOURCE" default="SOURCE">
+			<xs:simpleType>
+				<xs:restriction base="xs:NMTOKEN">
+					<xs:enumeration value="SOURCE"/>
+					<xs:enumeration value="TARGET"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="APARTINFO" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="section-1Type">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice>
+				<xs:element ref="DESCRIPTION"/>
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:choice>
+						<xs:element name="CAUTION" type="cautionType"/>
+						<xs:element ref="WARNING" minOccurs="0"/>
+						<xs:element name="P" type="pType"/>
+						<xs:element name="TABLE-GROUP" type="table-groupType"/>
+						<xs:element name="TABLE" type="tableType"/>
+						<xs:element name="IMAGE" type="imageType"/>
+						<xs:element name="APPENDIX" type="appendixType"/>
+					</xs:choice>
+					<xs:element name="SECTION-2" type="section-2Type"/>
+					<xs:group ref="anyInsGroup"/>
+				</xs:choice>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+		<xs:attribute name="APARTSOURCE" default="SOURCE">
+			<xs:simpleType>
+				<xs:restriction base="xs:NMTOKEN">
+					<xs:enumeration value="SOURCE"/>
+					<xs:enumeration value="TARGET"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="APARTINFO" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="section-2Type">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:choice>
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element ref="WARNING" minOccurs="0"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:element name="SECTION-3" type="section-3Type"/>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+	</xs:complexType>
+	<xs:complexType name="section-3Type">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:choice minOccurs="0" maxOccurs="unbounded">
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element ref="WARNING" minOccurs="0"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:element name="SECTION-4" type="section-4Type"/>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+	</xs:complexType>
+	<xs:complexType name="section-4Type">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:choice>
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element ref="WARNING" minOccurs="0"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:element name="SECTION-5" type="section-5Type"/>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+	</xs:complexType>
+	<xs:complexType name="section-5Type">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:choice>
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element ref="WARNING" minOccurs="0"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:element name="SECTION-6" type="section-6Type"/>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+	</xs:complexType>
+	<xs:complexType name="section-6Type">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:choice>
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element ref="WARNING" minOccurs="0"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:element name="SECTION-7" type="section-7Type"/>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+	</xs:complexType>
+	<xs:complexType name="section-7Type">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:choice>
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element ref="WARNING" minOccurs="0"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:group ref="anyInsGroup"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+		<xs:attribute name="ACLASS" type="aclassType" default="MANDATORY"/>
+	</xs:complexType>
+	<!-- COMMON TAG Schema -->
+	<xs:element name="EMPHASIS" type="xs:string"/>
+	<xs:complexType name="titleType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ACLASS" type="xs:string"/>
+				<xs:attribute name="ATOC" type="ayesnoType"/>
+				<xs:attribute name="ATOCID" type="xs:string"/>
+				<xs:attribute name="AASSOCNOTE" type="xs:string"/>
+				<xs:attribute name="AUNIT" type="xs:string"/> 
+				<xs:attribute name="AUNITVALUE" type="xs:string"/>
+				<xs:attribute name="ID" type="xs:string"/>
+				<xs:attribute name="ENG" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:element name="SUBTITLE" type="xs:string"/>
+	<xs:complexType name="cover-titleType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ACLASS" type="xs:string"/>
+				<xs:attribute name="ATOC" type="ayesnoType"/>
+				<xs:attribute name="ATOCID" type="xs:string"/>
+				<xs:attribute name="AASSOCNOTE" type="xs:string"/>
+				<xs:attribute name="AUNIT" type="xs:string"/> 
+				<xs:attribute name="AUNITVALUE" type="xs:string"/>	
+				<xs:attribute name="ID" type="xs:string"/>
+				<xs:attribute name="ENG" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="cautionType">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice minOccurs="0" maxOccurs="unbounded">
+				<xs:element name="P" type="pType"/>
+				<xs:element name="TABLE" type="tableType"/>
+				<xs:element name="TABLE-GROUP" type="table-groupType"/>
+				<xs:element name="IMAGE" type="imageType"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:ID"/>
+	</xs:complexType>
+	<xs:element name="WARNING" type="xs:string"/>
+	<xs:complexType name="filenameType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ATYPE" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="insertionType">
+		<xs:sequence>
+			<xs:element ref="COMMENT"/>
+			<xs:element ref="LIBRARYLIST"/>
+			<xs:element name="LIBRARY" type="libraryType" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="ABASISNUMBER" type="xs:string"/>
+		<xs:attribute name="AFREQUENCY" type="xs:string"/>
+		<xs:attribute name="ADUPLICATION" type="ayesnoType" default="N"/>
+	</xs:complexType>
+	<xs:element name="COMMENT" type="xs:string"/>
+	<xs:element name="LIBRARYLIST" type="xs:string"/>
+	<xs:complexType name="libraryType">
+		<xs:sequence>
+			<xs:element name="FILENAME" type="filenameType" minOccurs="0"/>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="PART" type="partType"/>
+				<xs:element name="SECTION-1" type="section-1Type"/>
+				<xs:element name="SECTION-2" type="section-2Type"/>
+				<xs:element name="SECTION-3" type="section-3Type"/>
+				<xs:element name="SECTION-4" type="section-4Type"/>
+				<xs:element name="SECTION-5" type="section-5Type"/>
+				<xs:element name="SECTION-6" type="section-6Type"/>
+				<xs:choice>
+					<xs:element name="CAUTION" type="cautionType"/>
+					<xs:element name="P" type="pType"/>
+					<xs:element name="TABLE-GROUP" type="table-groupType"/>
+					<xs:element name="TABLE" type="tableType"/>
+					<xs:element name="IMAGE" type="imageType"/>
+					<xs:element name="APPENDIX" type="appendixType"/>
+				</xs:choice>
+				<xs:element name="CORRECTION" type="correctionType"/>
+				<xs:element name="COVER" type="coverType"/>
+				<xs:group ref="anyInsGroup"/>				
+			</xs:choice>
+
+		</xs:sequence>
+	</xs:complexType>
+	<xs:group name="paraGroup">
+		<xs:choice>
+			<xs:element name="P" type="pType"/>
+		</xs:choice>
+	</xs:group>
+	<xs:group name="anyInsGroup">
+		<xs:choice>
+			<xs:element name="PGBRK" type="pgbrkType"/>
+			<xs:element name="INSERTION" type="insertionType"/>
+		</xs:choice>
+	</xs:group>
+	<xs:complexType name="pType" mixed="true">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="SPAN" type="spanType"/>
+			<xs:element name="A" type="aType"/>
+			<xs:element name="TABLE" type="tableType"/>
+			<xs:element name="IMAGE" type="imageType"/>
+		</xs:choice>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="USERMARK" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="spanType" mixed="true">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="SPAN" type="spanType"/>
+			<xs:element name="A" type="aType"/>
+		</xs:choice>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="USERMARK" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="aType" mixed="true">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="SPAN" type="spanType"/>
+		</xs:choice>
+		<xs:attribute name="HREF" type="xs:string"/>
+		<xs:attribute name="REFNO" type="xs:string"/>
+		<xs:attribute name="USERMARK" type="xs:string"/>
+		<xs:attribute name="REFTOCID" type="xs:string"/>
+		<xs:attribute name="REFTYPE" type="xs:string"/>
+		<xs:attribute name="ID" type="xs:string"/>
+	</xs:complexType>
+	<xs:element name="DESCRIPTION" type="xs:string"/>
+	<xs:complexType name="imageType">
+		<xs:sequence>
+			<xs:element name="IMG" type="imgType"/>
+			<xs:element name="IMG-CAPTION" type="img-captionType" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="imgType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ID" type="xs:string"/>
+				<xs:attribute name="CLASS" type="xs:string"/>
+				<xs:attribute name="WIDTH" type="xs:string"/>
+				<xs:attribute name="HEIGHT" type="xs:string"/>
+				<xs:attribute name="ALIGN">
+					<xs:simpleType>
+						<xs:restriction base="xs:NMTOKEN">
+							<xs:enumeration value="LEFT"/>
+							<xs:enumeration value="CENTER"/>
+							<xs:enumeration value="RIGHT"/>
+						</xs:restriction>
+					</xs:simpleType>
+				</xs:attribute>
+				<xs:attribute name="HSPACE" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="img-captionType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ATOC" type="ayesnoType"/>
+				<xs:attribute name="ATOCID" type="xs:string"/>
+				<xs:attribute name="ID" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<!-- ATTRIBUTE TYPE Schema -->
+	<xs:simpleType name="ayesnoType">
+		<xs:restriction base="xs:NMTOKEN">
+			<xs:enumeration value="Y"/>
+			<xs:enumeration value="N"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="pgbrkType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ANUMBER" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<xs:complexType name="colType">
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="SPAN" type="xs:string"/>
+		<xs:attribute name="WIDTH" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+	</xs:complexType>
+	<xs:simpleType name="alignType">
+		<xs:restriction base="xs:NMTOKEN">
+			<xs:enumeration value="LEFT"/>
+			<xs:enumeration value="CENTER"/>
+			<xs:enumeration value="RIGHT"/>
+			<xs:enumeration value="JUSTIFY"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:simpleType name="valignType">
+		<xs:restriction base="xs:NMTOKEN">
+			<xs:enumeration value="TOP"/>
+			<xs:enumeration value="MIDDLE"/>
+			<xs:enumeration value="BOTTOM"/>
+			<xs:enumeration value="BASELINE"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="colgroupType">
+		<xs:sequence>
+			<xs:element name="COL" type="colType" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="SPAN" type="xs:string"/>
+		<xs:attribute name="WIDTH" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+	</xs:complexType>
+	<xs:simpleType name="aclassType">
+		<xs:restriction base="xs:NMTOKEN">
+			<xs:enumeration value="MANDATORY"/>
+			<xs:enumeration value="OPTION"/>
+		</xs:restriction>
+	</xs:simpleType>
+	<xs:complexType name="appendixType">
+		<xs:sequence>
+			<xs:element ref="COMMENT"/>
+			<xs:element ref="DESCRIPTION" minOccurs="0"/>
+			<xs:element name="FILENAME" type="filenameType" minOccurs="0"/>
+		</xs:sequence>
+		<xs:attribute name="ATYPE" type="xs:string"/>
+	</xs:complexType>
+	<!-- TABLE Schema -->
+	<xs:complexType name="table-groupType">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:element name="TABLE" type="tableType" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="ACLASS" type="xs:string"/>
+		<xs:attribute name="ADELETETABLE" type="ayesnoType"/>
+	</xs:complexType>
+	<xs:complexType name="tableType">
+		<xs:sequence>
+			<xs:choice>
+				<xs:element name="COL" type="colType" minOccurs="0" maxOccurs="unbounded"/>
+				<xs:element name="COLGROUP" type="colgroupType" minOccurs="0" maxOccurs="unbounded"/>
+			</xs:choice>
+			<xs:element name="THEAD" type="theadType" minOccurs="0"/>
+			<xs:element name="TFOOT" type="tfootType" minOccurs="0"/>
+			<xs:element name="TBODY" type="tbodyType" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="ACLASS" default="NORMAL">
+			<xs:simpleType>
+				<xs:restriction base="xs:NMTOKEN">
+					<xs:enumeration value="FINANCE"/>
+					<xs:enumeration value="EXTRACTION"/>
+					<xs:enumeration value="NORMAL"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="AFIXTABLE" type="ayesnoType"/>
+		<xs:attribute name="WIDTH" type="xs:string"/>
+		<xs:attribute name="BORDER" type="xs:string"/>
+		<xs:attribute name="FRAME">
+			<xs:simpleType>
+				<xs:restriction base="xs:NMTOKEN">
+					<xs:enumeration value="VOID"/>
+					<xs:enumeration value="ABOVE"/>
+					<xs:enumeration value="BELOW"/>
+					<xs:enumeration value="HSIDES"/>
+					<xs:enumeration value="LHS"/>
+					<xs:enumeration value="RHS"/>
+					<xs:enumeration value="VSIDES"/>
+					<xs:enumeration value="BOX"/>
+					<xs:enumeration value="BORDER"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="RULES">
+			<xs:simpleType>
+				<xs:restriction base="xs:NMTOKEN">
+					<xs:enumeration value="NONE"/>
+					<xs:enumeration value="GROUPS"/>
+					<xs:enumeration value="ROWS"/>
+					<xs:enumeration value="COLS"/>
+					<xs:enumeration value="ALL"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="ALIGN">
+			<xs:simpleType>
+				<xs:restriction base="xs:NMTOKEN">
+					<xs:enumeration value="LEFT"/>
+					<xs:enumeration value="CENTER"/>
+					<xs:enumeration value="RIGHT"/>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+		<xs:attribute name="USERMARK" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="theadType">
+		<xs:sequence>
+			<xs:element name="TR" type="TRType" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+	</xs:complexType>
+	<xs:complexType name="tfootType">
+		<xs:sequence>
+			<xs:element name="TR" type="TRType" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+	</xs:complexType>
+	<xs:complexType name="tbodyType">
+		<xs:sequence>
+			<xs:element name="TR" type="TRType" maxOccurs="unbounded"/>
+		</xs:sequence>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+	</xs:complexType>
+	<xs:complexType name="TRType">
+		<xs:choice maxOccurs="unbounded">
+			<xs:element name="TH" type="THType"/>
+			<xs:element name="TD" type="TDType"/>
+			<xs:element name="TE" type="TEType"/>
+			<xs:element name="TU" type="TUType"/>
+		</xs:choice>
+		<xs:attribute name="ACOPY" type="ayesnoType"/>
+		<xs:attribute name="ADELETE" type="ayesnoType"/>
+		<xs:attribute name="HEIGHT" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+	</xs:complexType>
+	<xs:complexType name="THType" mixed="true">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="P" type="pType"/>
+			<xs:element name="SPAN" type="spanType"/>
+			<xs:element name="A" type="aType"/>
+		</xs:choice>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="ROWSPAN" type="xs:string"/>
+		<xs:attribute name="COLSPAN" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+		<xs:attribute name="WIDTH" type="xs:string"/>
+		<xs:attribute name="HEIGHT" type="xs:string"/>
+		<xs:attribute name="ACOPYCOL" type="ayesnoType"/>
+		<xs:attribute name="ADELETECOL" type="ayesnoType"/>
+		<xs:attribute name="AMOVECOL" type="ayesnoType"/>
+		<xs:attribute name="AUPDATECONT" type="ayesnoType"/>
+		<xs:attribute name="USERMARK" type="xs:string"/>
+		<xs:attribute name="ENG" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="TDType" mixed="true">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="P" type="pType"/>
+			<xs:element name="SPAN" type="spanType"/>
+			<xs:element name="A" type="aType"/>
+			<xs:element name="TABLE" type="tableType"/>
+			<xs:element name="IMAGE" type="imageType"/>
+		</xs:choice>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="ROWSPAN" type="xs:string"/>
+		<xs:attribute name="COLSPAN" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+		<xs:attribute name="WIDTH" type="xs:string"/>
+		<xs:attribute name="HEIGHT" type="xs:string"/>
+		<xs:attribute name="ACODE" type="xs:string"/>
+		<xs:attribute name="ADELIM" type="xs:string"/>
+		<xs:attribute name="AUNIT" type="xs:string"/>
+		<xs:attribute name="ALEVEL" type="xs:string"/>
+		<xs:attribute name="AUNITVALUE" type="xs:string"/>
+		<xs:attribute name="AUPDATECONT" type="ayesnoType"/>
+		<xs:attribute name="AUTOSUM" type="xs:string"/>
+		<xs:attribute name="USERMARK" type="xs:string"/>
+		<xs:attribute name="ENG" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="TEType" mixed="true">
+		<xs:choice minOccurs="0" maxOccurs="unbounded">
+			<xs:element name="P" type="pType"/>
+			<xs:element name="SPAN" type="spanType"/>
+			<xs:element name="A" type="aType"/>
+		</xs:choice>
+		<xs:attribute name="ID" type="xs:string"/>
+		<xs:attribute name="CLASS" type="xs:string"/>
+		<xs:attribute name="ROWSPAN" type="xs:string"/>
+		<xs:attribute name="COLSPAN" type="xs:string"/>
+		<xs:attribute name="ALIGN" type="alignType"/>
+		<xs:attribute name="VALIGN" type="valignType"/>
+		<xs:attribute name="WIDTH" type="xs:string"/>
+		<xs:attribute name="HEIGHT" type="xs:string"/>
+		<xs:attribute name="ACODE" type="xs:string"/>
+		<xs:attribute name="ACONTEXT" type="xs:string"/>
+		<xs:attribute name="ADECIMAL" type="xs:string"/>
+		<xs:attribute name="ADELIM" type="xs:string"/>
+		<xs:attribute name="ALEVEL" type="xs:string"/>
+		<xs:attribute name="ACOPYCOL" type="ayesnoType"/>
+		<xs:attribute name="ADELETECOL" type="ayesnoType"/>
+		<xs:attribute name="AMOVECOL" type="ayesnoType"/>
+		<xs:attribute name="AUPDATECONT" type="ayesnoType"/>
+		<xs:attribute name="AUTOSUM" type="xs:string"/>
+		<xs:attribute name="USERMARK" type="xs:string"/>
+		<xs:attribute name="ENG" type="xs:string"/>
+		<xs:attribute name="ANEGATED" type="xs:string"/>
+	</xs:complexType>
+	<xs:complexType name="TUType">
+		<xs:simpleContent>
+			<xs:extension base="xs:string">
+				<xs:attribute name="ID" type="xs:string"/>
+				<xs:attribute name="CLASS" type="xs:string"/>
+				<xs:attribute name="ROWSPAN" type="xs:string"/>
+				<xs:attribute name="COLSPAN" type="xs:string"/>
+				<xs:attribute name="ALIGN" type="alignType"/>
+				<xs:attribute name="VALIGN" type="valignType"/>
+				<xs:attribute name="WIDTH" type="xs:string"/>
+				<xs:attribute name="HEIGHT" type="xs:string"/>
+				<xs:attribute name="AUNIT" type="xs:string"/>
+				<xs:attribute name="AUNITVALUE" type="xs:string"/>
+				<xs:attribute name="USERMARK" type="xs:string"/>
+				<xs:attribute name="ENG" type="xs:string"/>
+			</xs:extension>
+		</xs:simpleContent>
+	</xs:complexType>
+	<!-- NOTE-GROUP Schema -->
+	<xs:complexType name="note-groupType">
+		<xs:sequence>
+			<xs:element name="NOTE" type="NOTEType" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="NOTEType">
+		<xs:sequence>
+			<xs:choice minOccurs="0">
+				<xs:sequence>
+					<xs:element ref="EMPHASIS" minOccurs="0"/>
+					<xs:element name="TITLE" type="titleType" minOccurs="0"/>
+					<xs:element ref="SUBTITLE" minOccurs="0"/>
+				</xs:sequence>
+			</xs:choice>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="P" type="pType"/>
+				<xs:element name="TABLE" type="tableType"/>
+				<xs:element name="TABLE-GROUP" type="table-groupType"/>
+				<xs:element name="IMAGE" type="imageType"/>
+			</xs:choice>
+		</xs:sequence>
+		<xs:attribute name="AID" type="xs:string" use="required"/>
+	</xs:complexType>
+</xs:schema>

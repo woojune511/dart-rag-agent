@@ -14,6 +14,7 @@ import re
 import json
 import hashlib
 from dataclasses import dataclass
+from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -86,6 +87,12 @@ _INLINE_BODY_SEPARATOR_RE = re.compile(
 )
 _PROBABLE_XML_MARKUP_RE = re.compile(
     r"^/?[A-Za-z_][A-Za-z0-9._:-]*(?:\s+[A-Za-z_][A-Za-z0-9._:-]*\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*/?$"
+)
+_XML_LEXEME_RE = re.compile(
+    r"<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>|"
+    r"<(/?)([A-Za-z_][A-Za-z0-9._:-]*)"
+    r"(?:\s+[A-Za-z_][A-Za-z0-9._:-]*\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*(/?)>",
+    re.DOTALL,
 )
 DEFAULT_CHUNK_SIZE = 2500
 DEFAULT_CHUNK_OVERLAP = 320
@@ -183,6 +190,27 @@ _SHORT_BRACKET_LABEL_MAX_CHARS = 8
 class DocumentChunk:
     content: str
     metadata: Dict[str, Any]
+
+
+class XMLRecoveryError(ValueError):
+    """XML recovery reported errors; source preservation is unverified."""
+
+    def __init__(self, file_path: str, error_log: Any):
+        errors = [entry for entry in error_log if entry.level >= etree.ErrorLevels.ERROR]
+        self.file_path = str(file_path)
+        self.error_count = len(errors)
+        # Keep the final error (often truncated trailing content) in a bounded
+        # summary. Do not copy source-bearing libxml messages into the exception.
+        selected = errors if len(errors) <= 5 else [*errors[:4], errors[-1]]
+        self.diagnostics = tuple(
+            f"{entry.level_name}/{entry.type_name} at line {entry.line}, column {entry.column}"
+            for entry in selected
+        )
+        detail = "; ".join(self.diagnostics) or "no parser diagnostics available"
+        super().__init__(
+            f"XML recovery rejected [{file_path}]: source preservation unverified; "
+            f"{self.error_count} reported error(s) in sanitized XML: {detail}"
+        )
 
 
 def _row_record_model() -> Any:
@@ -397,6 +425,31 @@ def _extract_table_unit_suffix(table_object: Dict[str, Any]) -> Optional[str]:
     return match.group("label") if match else None
 
 
+def _is_forward_table_caption(block: Dict[str, Any]) -> bool:
+    """Recognize explicit period labels, not period mentions in ordinary prose.
+
+    Ownership still requires a following value table in the same XML parent
+    and heading scope. Mixed table bodies remain separate source evidence.
+    """
+    text = str(block.get("text") or "")
+    if not text or len(text) > 400:
+        return False
+    if block.get("type") == "paragraph":
+        label = re.split(r"[①②③④⑤⑥⑦⑧⑨⑩]|\(\d+\)", text)[-1].strip()
+    else:
+        rows = text.splitlines()
+        if (block.get("table_row_count") != 2
+                or not 1 <= int(block.get("table_column_count") or 0) <= 3
+                or block.get("table_value_records_json")
+                or len(rows) != 2
+                or len({cell.strip() for cell in rows[0].split("|")}) != 1):
+            return False
+        label = rows[-1]
+        if not _infer_unit_hint(label):
+            return False
+    return bool(_TABLE_CONTEXT_LABEL_RE.fullmatch(label) and _extract_period_labels(label))
+
+
 def _infer_statement_type(section_path: str, header_context: Optional[str]) -> str:
     combined = f"{_normalize(section_path)}\n{_normalize(header_context or '')}"
     if "요약재무정보" in combined:
@@ -439,6 +492,89 @@ def _is_probable_xml_markup(inner: str) -> bool:
     return bool(_PROBABLE_XML_MARKUP_RE.match(stripped))
 
 
+@lru_cache(maxsize=1)
+def _dart_schema_vocabulary() -> Tuple[frozenset, frozenset, frozenset]:
+    """Read the pinned official schema locally; never follow document URLs."""
+    path = Path(__file__).resolve().parents[1] / "config" / "schemas" / "Dart4.xsd"
+    try:
+        schema = etree.parse(str(path), etree.XMLParser(no_network=True, resolve_entities=False))
+    except (OSError, etree.XMLSyntaxError):
+        logger.warning("DART schema unavailable; literal-label recovery disabled", exc_info=True)
+        return frozenset(), frozenset(), frozenset()
+    ns = {"xs": "http://www.w3.org/2001/XMLSchema"}
+    # Negative membership is meaningful only for a complete, closed vocabulary.
+    if schema.xpath("//xs:any | //xs:include | //xs:import | //xs:redefine", namespaces=ns):
+        return frozenset(), frozenset(), frozenset()
+    mixed_types = set(schema.xpath("//xs:complexType[@mixed='true']/@name", namespaces=ns))
+    elements = schema.xpath("//xs:element", namespaces=ns)
+    return (
+        frozenset(schema.xpath("/xs:schema/xs:element/@name", namespaces=ns)),
+        frozenset(element.get("name") for element in elements),
+        frozenset(element.get("name") for element in elements if element.get("type") in mixed_types),
+    )
+
+
+def _escape_dart_schema_literals(xml: str) -> Tuple[str, int]:
+    """Escape unpaired bare labels only inside known DART mixed content.
+
+    Paired/attributed/qualified unknown elements remain markup. All remaining
+    tags must balance before any edits are returned; the XML error gate still
+    owns admission. This is vocabulary-based text preservation, not XSD validation.
+    """
+    if "noNamespaceSchemaLocation" not in xml or "<!DOCTYPE" in xml:
+        return xml, 0
+    first = next((m for m in _XML_LEXEME_RE.finditer(xml) if m[2]), None)
+    if first is None or first[1] or first[3]:
+        return xml, 0
+    try:
+        root = etree.fromstring(
+            (first[0][:-1] + "/>").encode("utf-8"),
+            etree.XMLParser(no_network=True, resolve_entities=False),
+        )
+    except etree.XMLSyntaxError:
+        return xml, 0
+    declared = root.get("{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation", "")
+    if declared.lower() != "dart4.xsd":
+        return xml, 0
+    roots, known, mixed = _dart_schema_vocabulary()
+    if root.tag not in roots:
+        return xml, 0
+
+    closed_names = {m[2] for m in _XML_LEXEME_RE.finditer(xml) if m[1]}
+    stack: List[str] = []
+    edits = []
+    cursor = 0
+    for token in _XML_LEXEME_RE.finditer(xml):
+        if "<" in xml[cursor:token.start()]:
+            return xml, 0  # Incomplete markup: do not reinterpret its contents.
+        cursor = token.end()
+        closing, name, empty = token.groups()
+        if name is None:
+            continue
+        if ":" in name or (token.start() != first.start() and re.search(r"\sxmlns[\s:=]", token[0])):
+            return xml, 0  # No vocabulary inference across namespace scopes.
+        if closing:
+            if not stack or stack.pop() != name:
+                return xml, 0
+        elif (name not in known and name not in closed_names and token[0] == f"<{name}>"
+              and stack and stack[-1] in mixed and all(parent in known for parent in stack)):
+            edits.append((token.start(), token.end(), f"&lt;{name}&gt;"))
+        else:
+            if not stack and token.start() != first.start():
+                return xml, 0
+            if not empty:
+                stack.append(name)
+    if stack or "<" in xml[cursor:] or not edits:
+        return xml, 0
+    parts = []
+    cursor = 0
+    for start, end, replacement in edits:
+        parts.extend((xml[cursor:start], replacement))
+        cursor = end
+    parts.append(xml[cursor:])
+    return "".join(parts), len(edits)
+
+
 def _sanitize_xml_like_text(raw: str) -> Tuple[str, int]:
     sanitized_parts: List[str] = []
     replacements = 0
@@ -446,6 +582,10 @@ def _sanitize_xml_like_text(raw: str) -> Tuple[str, int]:
     raw_len = len(raw)
     invalid_ampersand = re.compile(r"&(?!(?:amp|lt|gt|apos|quot|#[0-9]+|#x[0-9A-Fa-f]+);)")
     quoted_tag = re.compile(r'''<(?:[^<>"']|"[^"]*"|'[^']*')*>''')
+    doubled_attribute_quotes = re.compile(
+        r'(\s+[A-Za-z_][A-Za-z0-9._:-]*\s*=\s*)""([^"<>\r\n]+)""'
+        r'(?=\s*(?:[A-Za-z_][A-Za-z0-9._:-]*\s*=|/?$))'
+    )
 
     def preserve_text(text: str) -> str:
         nonlocal replacements
@@ -474,13 +614,34 @@ def _sanitize_xml_like_text(raw: str) -> Tuple[str, int]:
         # A greater-than sign inside a quoted attribute does not close its tag.
         tag = quoted_tag.match(raw, start)
         end = tag.end() - 1 if tag else raw.find(">", start + 1)
+        if tag is None and not re.match(r"[A-Za-z_!?/]", raw[start + 1 : start + 2]):
+            next_start = raw.find("<", start + 1)
+            if next_start >= 0 and (end < 0 or next_start < end):
+                # A literal '<' must not borrow the next tag's closing '>'.
+                # Preserve the text and resume at that tag. Possible markup
+                # names/attributes stay on the existing guarded parse path.
+                replacements += 1
+                sanitized_parts.append("&lt;")
+                sanitized_parts.append(preserve_text(raw[start + 1 : next_start]))
+                idx = next_start
+                continue
         if end < 0:
             sanitized_parts.append(preserve_text(raw[start:]))
             break
 
         candidate = raw[start + 1 : end]
+        if not _is_probable_xml_markup(candidate):
+            # Malformed doubled delimiters must not turn an opening tag into
+            # text while leaving its closing tag active. Accept only a complete
+            # attribute repair, keeping the inner quotation marks as literals.
+            repaired, count = doubled_attribute_quotes.subn(
+                lambda match: f'{match[1]}"&quot;{match[2]}&quot;"', candidate
+            )
+            if count and _is_probable_xml_markup(repaired):
+                candidate = repaired
+                replacements += count
         if _is_probable_xml_markup(candidate):
-            sanitized_parts.append(preserve_text(raw[start : end + 1]))
+            sanitized_parts.append(preserve_text(f"<{candidate}>"))
         else:
             replacements += 1
             sanitized_parts.append("&lt;")
@@ -488,7 +649,8 @@ def _sanitize_xml_like_text(raw: str) -> Tuple[str, int]:
             sanitized_parts.append("&gt;")
         idx = end + 1
 
-    return "".join(sanitized_parts), replacements
+    sanitized, schema_replacements = _escape_dart_schema_literals("".join(sanitized_parts))
+    return sanitized, replacements + schema_replacements
 
 
 def _looks_like_local_heading(text: str) -> bool:
@@ -831,6 +993,13 @@ class FinancialParser:
         context_prefix: Optional[str] = None,
     ) -> Dict[str, Any]:
         header_context = self._extract_table_header_context(table_text)
+        header_row_count = None
+        if table_object is not None:
+            header_row_count = table_object.get("header_row_count")
+            if header_row_count is None:
+                header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
+            if header_row_count == 0:
+                header_context = ""
         if table_object is not None and "header_row_count" in table_object:
             header_context = _normalize(format_table_grid(
                 table_object["grid"][:table_object["header_row_count"]]))
@@ -901,9 +1070,6 @@ class FinancialParser:
                     seen_value_labels.add(line)
                     value_label_lines.append(line)
                 table_value_labels_text = "\n".join(value_label_lines)
-            header_row_count = table_object.get("header_row_count")
-            if header_row_count is None:
-                header_row_count = self._infer_table_header_row_count(list(table_object.get("grid") or []))
             RowRecord = _row_record_model()
             TableObject = _table_object_model()
             ValueRecord = _value_record_model()
@@ -931,6 +1097,10 @@ class FinancialParser:
             )
             table_object_json = table_model.model_dump_json()
         return {
+            # Private parser-to-chunker seam: retain source cells before text
+            # normalization removes edge whitespace or cells contain pipes.
+            "_table_grid": list(table_object.get("grid") or []) if table_object else None,
+            "_table_header_row_count": header_row_count or 0,
             "table_source_id": table_source_id,
             "table_header_context": header_context,
             "period_labels": period_labels,
@@ -1160,6 +1330,7 @@ class FinancialParser:
             build_table_object=self._build_table_object,
             extract_standalone_table_context_hint=_extract_standalone_table_context_hint,
             extract_table_unit_suffix=_extract_table_unit_suffix,
+            is_forward_table_caption=_is_forward_table_caption,
             build_table_context_bundle=self._build_table_context_bundle,
             extract_paragraph_heading_parts=self._extract_paragraph_heading_parts,
             is_single_bracket_heading=lambda text: bool(_BRACKET_HEADING_RE.match(text)),
@@ -1236,10 +1407,17 @@ class FinancialParser:
                     os.path.basename(file_path),
                 )
             tree = etree.parse(BytesIO(sanitized_xml.encode("utf-8")), parser)
-            return tree.getroot()
+        except etree.XMLSyntaxError as exc:
+            raise XMLRecoveryError(file_path, parser.error_log) from exc
         except Exception as e:
             logger.error("XML parsing failed [%s]: %s", file_path, e)
             return None
+        # recover=True can return a nonempty tree after discarding source text.
+        # Raise outside the legacy read-failure handler so ingest cannot silently
+        # treat an unverified partial document as empty or successfully parsed.
+        if any(entry.level >= etree.ErrorLevels.ERROR for entry in parser.error_log):
+            raise XMLRecoveryError(file_path, parser.error_log)
+        return tree.getroot()
 
     def _make_chunk_uid(self, source_metadata: Dict[str, Any], chunk_id: int, sub_chunk_idx: int) -> str:
         report_key = (

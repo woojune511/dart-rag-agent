@@ -16,6 +16,7 @@ NO_EVIDENCE_ANSWER = "선택한 검색 범위에서 답변 근거를 찾지 못�
 SOURCE_CONTEXT_FIELDS = (
     "company", "year", "rcept_no", "report_type", "section_path", "local_heading",
     "table_context", "table_header_context", "unit", "consolidation_scope",
+    "unit_hint", "period_focus", "period_labels",
 )
 
 
